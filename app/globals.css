@@ -14,6 +14,8 @@
   --macro-carbs: #d97706;
   --macro-protein: #e11d48;
   --macro-fat: #0284c7;
+  /* Validated with the dataviz palette checks on both surfaces. */
+  --chart-weight: #e8590c;
   color-scheme: light;
 }
 
@@ -50,6 +52,7 @@
   --color-macro-carbs: var(--macro-carbs);
   --color-macro-protein: var(--macro-protein);
   --color-macro-fat: var(--macro-fat);
+  --color-chart-weight: var(--chart-weight);
   /* SF Pro on iPhone; covers Vietnamese diacritics without a web font. */
   --font-sans:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto,

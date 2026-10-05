@@ -149,3 +149,20 @@ export const bodyProfiles = sqliteTable("body_profiles", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+// One weigh-in per user per day; the latest also updates the body profile.
+export const weightLogs = sqliteTable(
+  "weight_logs",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    date: text("date").notNull(),
+    weightKg: real("weight_kg").notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex("weight_logs_user_date").on(table.userId, table.date),
+  ],
+);

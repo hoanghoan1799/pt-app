@@ -1,7 +1,11 @@
 import { WeekNavigator } from "@/components/common/WeekNavigator";
 import { SECTION_TITLE } from "@/constants/styles";
 import { NutritionWeekSummary } from "@/features/nutrition/components/NutritionWeekSummary";
-import type { NutritionDay } from "@/features/nutrition/types/nutrition";
+import { WeightTrendCard } from "@/features/nutrition/components/WeightTrendCard";
+import type {
+  NutritionDay,
+  WeeklyWeight,
+} from "@/features/nutrition/types/nutrition";
 import { WorkoutWeekSummary } from "@/features/workouts/components/WorkoutWeekSummary";
 import type { ScheduleDay } from "@/features/workouts/types/workout";
 
@@ -14,6 +18,10 @@ interface WeekSummaryProps {
   today: string;
   workoutDays: ScheduleDay[];
   nutritionDays: NutritionDay[];
+  weightWeeks: WeeklyWeight[];
+  // Users log their own weight here; the admin only reads.
+  canLogWeight: boolean;
+  todayWeight: number | null;
 }
 
 // The "Tổng kết" tab: a week of training and eating side by side, shared by
@@ -27,6 +35,9 @@ export const WeekSummary = ({
   today,
   workoutDays,
   nutritionDays,
+  weightWeeks,
+  canLogWeight,
+  todayWeight,
 }: WeekSummaryProps) => (
   <div className="space-y-6">
     <WeekNavigator
@@ -35,6 +46,15 @@ export const WeekSummary = ({
       selectedDate={selectedDate}
       today={today}
     />
+    <section className="space-y-2">
+      <h2 className={SECTION_TITLE}>Cân nặng theo tuần</h2>
+      <WeightTrendCard
+        weeks={weightWeeks}
+        selectedWeekStart={weekStart}
+        canLog={canLogWeight}
+        todayWeight={todayWeight}
+      />
+    </section>
     <section className="space-y-2">
       <h2 className={SECTION_TITLE}>Tập luyện</h2>
       <WorkoutWeekSummary

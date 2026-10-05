@@ -15,6 +15,7 @@
 - **Dinh dưỡng** (tab dưới cùng): xem mục tiêu carb/protein/fat mỗi ngày (gram, quy đổi lạng) và lời dặn của PT; ghi từng bữa đã ăn (món + gram ước lượng) cho hôm nay hoặc ngày đã qua; tiến độ trong ngày (còn thiếu/đạt/vượt) và bảng tổng kết tuần.
 - **Chỉ số của bạn**: user tự nhập giới tính, tuổi, chiều cao, cân nặng, mức vận động, mục tiêu để xem BMR/TDEE. Nếu mục tiêu dinh dưỡng đang "tự tính từ TDEE" (hoặc chưa có), nó được tính lại ngay; nếu PT đã nhập tay thì giữ nguyên.
 - **Tổng kết** (tab thứ 3): tuần tập luyện (buổi/bài đã tập từng ngày) và dinh dưỡng (gram từng ngày so với mục tiêu, số ngày ghi/đạt, kcal TB). Bấm vào ngày để mở chi tiết.
+- **Cân nặng theo tuần** (đầu tab Tổng kết): user ghi "cân hôm nay" (mỗi ngày 1 số, ghi lại thì thay), biểu đồ trung bình theo tuần trong 12 tuần (chạm để xem từng tuần, có dạng bảng), thay đổi so với tuần trước và cả kỳ. Cân mới nhất cập nhật luôn chỉ số cơ thể/TDEE; mục tiêu "tự tính từ TDEE" được tính lại theo.
 
 **Admin** (`/admin`)
 

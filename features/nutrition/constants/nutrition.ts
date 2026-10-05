@@ -65,6 +65,8 @@ export const NUTRITION_MESSAGES = {
   INVALID_INPUT: "Vui lòng kiểm tra lại thông tin",
   TARGET_SAVED: "Đã lưu mục tiêu dinh dưỡng",
   PROFILE_SAVED: "Đã lưu chỉ số cơ thể",
+  WEIGHT_SAVED: "Đã ghi cân nặng hôm nay",
+  WEIGHT_SAVED_TARGET: "Đã ghi cân nặng và cập nhật mục tiêu theo TDEE",
   PROFILE_APPLIED: "Đã lưu chỉ số và cập nhật mục tiêu theo TDEE",
   PROFILE_KEPT_MANUAL:
     "Đã lưu chỉ số. PT đang đặt mục tiêu riêng nên mục tiêu giữ nguyên.",

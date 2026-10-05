@@ -9,12 +9,16 @@ import { TIME_ZONE } from "@/constants/time";
 import { db } from "@/db";
 import { foodEntries, nutritionTargets } from "@/db/schema";
 import { NUTRITION_MESSAGES } from "@/features/nutrition/constants/nutrition";
-import { saveBodyProfile } from "@/features/nutrition/services/body-profile-service";
+import {
+  logWeight,
+  saveBodyProfile,
+} from "@/features/nutrition/services/body-profile-service";
 import {
   bodyProfileSchema,
   foodEntrySchema,
   myBodyProfileSchema,
   targetSchema,
+  weightLogSchema,
 } from "@/features/nutrition/services/nutrition-schemas";
 import {
   withFormErrorHandling,
@@ -34,6 +38,7 @@ import { getTodayDate } from "@/utils/week";
 
 const revalidateNutrition = (userId: number) => {
   revalidatePath(ROUTES.NUTRITION);
+  revalidatePath(ROUTES.SUMMARY);
   revalidatePath(getAdminNutritionPath(userId));
   revalidatePath(ROUTES.ADMIN);
 };
@@ -196,6 +201,37 @@ export const saveMyBodyProfileAction = withFormErrorHandling(
       isApplied
         ? NUTRITION_MESSAGES.PROFILE_APPLIED
         : NUTRITION_MESSAGES.PROFILE_KEPT_MANUAL,
+    );
+  },
+);
+
+// User: records today's weight (one weigh-in per day; saving again replaces it).
+export const logWeightAction = withFormErrorHandling(
+  "logWeight",
+  async (_previousState: FormState, formData: FormData): Promise<FormState> => {
+    const user = await requireUser();
+    const parsed = weightLogSchema.safeParse(getFormValues(formData));
+
+    if (!parsed.success) {
+      return createErrorState(NUTRITION_MESSAGES.INVALID_INPUT, {
+        fieldErrors: toFieldErrors(parsed.error),
+      });
+    }
+
+    const today = getTodayDate(TIME_ZONE);
+    const isTargetUpdated = await logWeight(
+      user.id,
+      today,
+      parsed.data.weightKg,
+      today,
+    );
+
+    revalidateNutrition(user.id);
+    revalidatePath(ROUTES.SUMMARY);
+    return createSuccessState(
+      isTargetUpdated
+        ? NUTRITION_MESSAGES.WEIGHT_SAVED_TARGET
+        : NUTRITION_MESSAGES.WEIGHT_SAVED,
     );
   },
 );

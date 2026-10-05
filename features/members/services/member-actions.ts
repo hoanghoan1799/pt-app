@@ -14,6 +14,7 @@ import {
   foodEntries,
   nutritionTargets,
   users,
+  weightLogs,
   workoutDays,
 } from "@/db/schema";
 import {
@@ -87,6 +88,7 @@ export const deleteMemberAction = withResultErrorHandling(
       await tx.delete(foodEntries).where(eq(foodEntries.userId, id));
       await tx.delete(nutritionTargets).where(eq(nutritionTargets.userId, id));
       await tx.delete(bodyProfiles).where(eq(bodyProfiles.userId, id));
+      await tx.delete(weightLogs).where(eq(weightLogs.userId, id));
 
       if (dayIds.length) {
         await tx.delete(exercises).where(inArray(exercises.dayId, dayIds));

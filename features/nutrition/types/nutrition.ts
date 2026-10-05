@@ -71,3 +71,22 @@ export interface EnergyPlan {
 }
 
 export type BodyProfileEditor = "admin" | "user";
+
+export interface WeightLog {
+  date: string;
+  weightKg: number;
+}
+
+export interface WeeklyWeight {
+  weekStart: string;
+  // Average of that week's weigh-ins, or null when there were none.
+  averageKg: number | null;
+  count: number;
+}
+
+export interface ChartPoint {
+  index: number;
+  x: number;
+  y: number;
+  value: number;
+}

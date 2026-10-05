@@ -37,17 +37,17 @@ export const MemberSectionTabs = ({
 
   return (
     <nav aria-label="Mục của user" className={`${PAGE_CONTAINER} pt-3`}>
-      <ul className="grid grid-cols-3 gap-1 rounded-xl bg-line/60 p-1">
+      <ul className="grid grid-cols-3 gap-1 rounded-2xl border border-line bg-surface p-1 shadow-sm">
         {SECTIONS.map((section) => (
           <li key={section.key}>
             <Link
               href={`${section.getPath(userId)}${query}`}
               aria-current={active === section.key ? "page" : undefined}
               className={clsx(
-                "flex min-h-10 items-center justify-center rounded-lg text-sm font-semibold transition",
+                "flex min-h-11 items-center justify-center rounded-xl text-sm font-semibold transition-colors duration-200",
                 active === section.key
-                  ? "bg-surface text-fg shadow-sm"
-                  : "text-muted",
+                  ? "bg-accent text-accent-fg shadow-md shadow-accent/25"
+                  : "text-muted active:bg-line",
               )}
             >
               {section.label}

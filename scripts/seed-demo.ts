@@ -13,6 +13,7 @@ import {
   foodEntries,
   nutritionTargets,
   users,
+  weightLogs,
   workoutDays,
 } from "@/db/schema";
 import { toNameKey } from "@/utils/name";
@@ -146,6 +147,7 @@ const removeDemoUser = async () => {
   await db.delete(foodEntries).where(eq(foodEntries.userId, demo.id));
   await db.delete(nutritionTargets).where(eq(nutritionTargets.userId, demo.id));
   await db.delete(bodyProfiles).where(eq(bodyProfiles.userId, demo.id));
+  await db.delete(weightLogs).where(eq(weightLogs.userId, demo.id));
   if (dayIds.length) {
     await db.delete(exercises).where(inArray(exercises.dayId, dayIds));
     await db.delete(workoutDays).where(inArray(workoutDays.id, dayIds));
@@ -209,6 +211,20 @@ const seedDemo = async () => {
     activityLevel: "moderate",
     goal: "cut",
   });
+  // ~0,4 kg/week down over 12 weeks, 2–3 weigh-ins a week, weeks 4 and 9 skipped.
+  await db.insert(weightLogs).values(
+    Array.from({ length: 12 }, (_, week) => week)
+      .filter((week) => week !== 3 && week !== 8)
+      .flatMap((week) =>
+        [0, 3, 6].slice(0, week % 2 ? 2 : 3).map((dayOffset) => ({
+          userId: demo.id,
+          date: addDays(weekStart, (week - 11) * 7 + dayOffset),
+          weightKg:
+            Math.round((79 - week * 0.4 + (dayOffset - 3) * 0.05) * 10) / 10,
+        })),
+      )
+      .filter((log) => log.date <= today),
+  );
   await db.insert(nutritionTargets).values({
     userId: demo.id,
     effectiveFrom: weekStart,

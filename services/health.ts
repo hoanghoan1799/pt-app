@@ -14,6 +14,7 @@ import {
   foodEntries,
   nutritionTargets,
   users,
+  weightLogs,
   workoutDays,
 } from "@/db/schema";
 import { describeDatabaseConfig, getSessionSecret } from "@/services/env";
@@ -34,6 +35,7 @@ const REQUIRED_TABLES = [
   nutritionTargets,
   foodEntries,
   bodyProfiles,
+  weightLogs,
 ].map((table) => getTableName(table));
 
 const runCheck = async (

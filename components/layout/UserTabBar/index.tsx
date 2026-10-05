@@ -13,16 +13,17 @@ const TABS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: ROUTES.SUMMARY, label: "Tổng kết", icon: ChartColumn },
 ];
 
-// iOS-style bottom tab bar; sits above the home indicator.
+// Floating tab bar above the home indicator; the active tab is a filled
+// pill so it reads at a glance, not just a tinted icon.
 export const UserTabBar = () => {
   const pathname = usePathname();
 
   return (
     <nav
       aria-label="Chuyển mục"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
     >
-      <ul className="mx-auto grid max-w-lg grid-cols-3">
+      <ul className="pointer-events-auto mx-auto grid max-w-md grid-cols-3 gap-1 rounded-[1.75rem] border border-line bg-surface/90 p-1.5 shadow-[0_10px_30px_-8px_rgb(0_0_0/0.35)] backdrop-blur-xl">
         {TABS.map(({ href, label, icon: Icon }) => {
           const isActive = pathname.startsWith(href);
 
@@ -32,13 +33,15 @@ export const UserTabBar = () => {
                 href={href}
                 aria-current={isActive ? "page" : undefined}
                 className={clsx(
-                  "flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold transition active:opacity-60",
-                  isActive ? "text-accent" : "text-muted",
+                  "flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-[1.375rem] text-[11px] font-semibold transition-colors duration-200",
+                  isActive
+                    ? "bg-accent text-accent-fg shadow-md shadow-accent/30"
+                    : "text-muted active:bg-line/70",
                 )}
               >
                 <Icon
-                  className="size-6"
-                  strokeWidth={isActive ? 2.4 : 1.8}
+                  className="size-5"
+                  strokeWidth={isActive ? 2.4 : 2}
                   aria-hidden
                 />
                 {label}

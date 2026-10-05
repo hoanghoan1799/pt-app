@@ -6,6 +6,11 @@ import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
 import { LogoutButton } from "@/features/auth/components/LogoutButton";
+import { WEIGHT_CHART_WEEKS } from "@/features/nutrition/constants/weight";
+import {
+  getTodayWeight,
+  getWeightTrend,
+} from "@/features/nutrition/services/body-profile-service";
 import { getNutritionWeek } from "@/features/nutrition/services/nutrition-queries";
 import { getWeekSchedule } from "@/features/workouts/services/workout-queries";
 import { requireUser } from "@/services/auth-guard";
@@ -22,10 +27,13 @@ const SummaryPage = async ({ searchParams }: PageProps<"/summary">) => {
     { week: readSearchParam(params.week), day: readSearchParam(params.day) },
     today,
   );
-  const [workoutDays, nutritionDays] = await Promise.all([
-    getWeekSchedule(user.id, schedule.weekStart),
-    getNutritionWeek(user.id, schedule.weekStart),
-  ]);
+  const [workoutDays, nutritionDays, weightWeeks, todayWeight] =
+    await Promise.all([
+      getWeekSchedule(user.id, schedule.weekStart),
+      getNutritionWeek(user.id, schedule.weekStart),
+      getWeightTrend(user.id, schedule.weekStart, WEIGHT_CHART_WEEKS),
+      getTodayWeight(user.id, today),
+    ]);
 
   return (
     <>
@@ -46,6 +54,9 @@ const SummaryPage = async ({ searchParams }: PageProps<"/summary">) => {
           today={today}
           workoutDays={workoutDays}
           nutritionDays={nutritionDays}
+          weightWeeks={weightWeeks}
+          canLogWeight={true}
+          todayWeight={todayWeight}
         />
       </main>
     </>

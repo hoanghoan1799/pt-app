@@ -113,3 +113,11 @@ export const myBodyProfileSchema = bodyProfileSchema.omit({
   userId: true,
   applyToTarget: true,
 });
+
+export const weightLogSchema = z.object({
+  weightKg: decimalField(
+    "Cân nặng",
+    BODY_LIMITS.WEIGHT_KG.min,
+    BODY_LIMITS.WEIGHT_KG.max,
+  ),
+});
