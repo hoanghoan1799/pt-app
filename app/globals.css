@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f4f4f5;
+  --surface: #ffffff;
+  --fg: #111113;
+  --muted: #6b6b76;
+  --line: #e4e4e9;
+  --accent: #e8590c;
+  --accent-fg: #ffffff;
+  --danger: #dc2626;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c0c0e;
+    --surface: #18181b;
+    --fg: #f4f4f5;
+    --muted: #a1a1aa;
+    --line: #2a2a30;
+    --accent: #ff7a2e;
+    --accent-fg: #1a0a00;
+    --danger: #f87171;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-danger: var(--danger);
+  /* SF Pro on iPhone; covers Vietnamese diacritics without a web font. */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  overscroll-behavior-y: none;
+}
