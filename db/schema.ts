@@ -60,3 +60,17 @@ export const exercises = sqliteTable("exercises", {
   position: integer("position").notNull().default(0),
   createdAt: createdAt(),
 });
+
+export const exerciseCompletions = sqliteTable("exercise_completions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  // One completion per exercise: exercises already belong to one user's day.
+  exerciseId: integer("exercise_id")
+    .notNull()
+    .unique()
+    .references(() => exercises.id, { onDelete: "cascade" }),
+  // Denormalized from the exercise's day so dashboards can group by user.
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  completedAt: integer("completed_at", { mode: "timestamp_ms" }).notNull(),
+});

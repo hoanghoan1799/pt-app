@@ -1,14 +1,16 @@
 import clsx from "clsx";
+import { Check } from "lucide-react";
 import Link from "next/link";
 
 import type { ScheduleDay } from "@/features/workouts/types/workout";
+import { isDayComplete } from "@/features/workouts/utils/progress";
 import { hasDayContent } from "@/features/workouts/utils/schedule";
 import {
   buildScheduleHref,
   formatDayNumber,
   formatFullDay,
   getWeekdayShortLabel,
-} from "@/features/workouts/utils/week";
+} from "@/utils/week";
 
 interface DayTabsProps {
   basePath: string;
@@ -39,7 +41,7 @@ export const DayTabs = ({
           })}
           scroll={false}
           aria-current={isSelected ? "date" : undefined}
-          aria-label={`${formatFullDay(day.date)}${hasDayContent(day) ? `, ${day.exercises.length} bài` : ""}`}
+          aria-label={`${formatFullDay(day.date)}${hasDayContent(day) ? `, ${day.exercises.length} bài` : ""}${isDayComplete(day) ? ", đã tập xong" : ""}`}
           className={clsx(
             "relative flex h-[68px] flex-col items-center justify-center rounded-2xl border transition active:scale-95",
             isSelected
@@ -54,13 +56,24 @@ export const DayTabs = ({
           <span className="mt-0.5 text-lg leading-none font-bold">
             {formatDayNumber(day.date)}
           </span>
-          {day.exercises.length > 0 && (
-            <span
+          {isDayComplete(day) ? (
+            <Check
               className={clsx(
-                "absolute bottom-2 size-1.5 rounded-full",
-                isSelected ? "bg-accent-fg" : "bg-accent",
+                "absolute bottom-1 size-3.5",
+                isSelected ? "text-accent-fg" : "text-success",
               )}
+              strokeWidth={3.5}
+              aria-hidden
             />
+          ) : (
+            day.exercises.length > 0 && (
+              <span
+                className={clsx(
+                  "absolute bottom-2 size-1.5 rounded-full",
+                  isSelected ? "bg-accent-fg" : "bg-accent",
+                )}
+              />
+            )
           )}
         </Link>
       );

@@ -11,11 +11,14 @@
 - Lịch theo tuần (T2 → CN), mặc định mở hôm nay, chuyển tuần trước/sau.
 - Mỗi bài tập: video YouTube phát ngay trong trang, số hiệp × số lần, mô tả.
 - Ngày không có bài hiển thị "Ngày nghỉ".
+- **Đánh dấu đã tập** từng bài (hôm nay hoặc ngày đã qua; bấm lại để bỏ). Có thanh tiến độ ngày/tuần, dấu ✓ trên ngày đã tập xong.
 
 **Admin** (`/admin`)
 
 - Đăng nhập bằng tài khoản + mật khẩu riêng (lưu trong DB, mật khẩu hash bằng scrypt). Tạo bằng `npm run admin:create`.
-- Thêm / xóa user.
+- **Dashboard** (`/admin`) theo tuần: số user, số user đang tập, % hoàn thành, số bài đã tập; danh sách user kèm tiến độ, lần tập gần nhất và nhãn "Chưa có lịch"; nhật ký hoạt động gần đây.
+- Thêm (nút + trên dashboard) / xóa user.
+- Trang từng user: tiến độ tuần, bài nào đã tập lúc nào, lịch sử tập.
 - Giao bài theo ngày cho từng user: tiêu đề + ghi chú của ngày; mỗi bài có tên, link YouTube (preview ngay khi dán), số hiệp, số lần/thời gian, mô tả.
 - Sửa, xóa, sắp xếp thứ tự bài tập.
 - Sao chép cả tuần sang tuần khác hoặc sang user khác.
@@ -43,16 +46,17 @@ npm run admin:create -- <username> <mật-khẩu>
 
 ## Scripts
 
-| Lệnh                   | Việc                                 |
-| ---------------------- | ------------------------------------ |
-| `npm run dev`          | Dev server                           |
-| `npm run build`        | Build production                     |
-| `npm test`             | Unit test (Vitest)                   |
-| `npm run lint`         | ESLint (0 warning)                   |
-| `npm run typecheck`    | TypeScript                           |
-| `npm run db:push`      | Đồng bộ schema `db/schema.ts` vào DB |
-| `npm run db:studio`    | Xem dữ liệu bằng Drizzle Studio      |
-| `npm run admin:create` | Tạo admin / đặt lại mật khẩu         |
+| Lệnh                   | Việc                                                        |
+| ---------------------- | ----------------------------------------------------------- |
+| `npm run dev`          | Dev server                                                  |
+| `npm run build`        | Build production                                            |
+| `npm test`             | Unit test (Vitest)                                          |
+| `npm run lint`         | ESLint (0 warning)                                          |
+| `npm run typecheck`    | TypeScript                                                  |
+| `npm run db:push`      | Đồng bộ schema `db/schema.ts` vào DB                        |
+| `npm run db:studio`    | Xem dữ liệu bằng Drizzle Studio                             |
+| `npm run admin:create` | Tạo admin / đặt lại mật khẩu                                |
+| `npm run db:seed-demo` | Tạo user "Demo" có lịch + bài đã tập (`-- --remove` để xóa) |
 
 ## Phân quyền
 
@@ -74,7 +78,8 @@ app/                 routes (mỏng, chỉ ghép các feature)
 features/
   auth/              đăng nhập user/admin, đăng xuất
   members/           quản lý user (admin)
-  workouts/          lịch tuần, bài tập, YouTube, sao chép tuần
+  workouts/          lịch tuần, bài tập, YouTube, sao chép tuần, đánh dấu đã tập
+  dashboard/         thống kê tiến độ và hoạt động cho admin
 components/          layout + UI dùng chung (header, bottom sheet, nút submit)
 services/            session, guard, truy vấn user dùng chung
 db/                  schema + kết nối Drizzle
@@ -96,4 +101,3 @@ Sau đó chạy `npm run db:push` và `npm run admin:create -- <username> <mật
 
 - User vào bằng tên, không có mật khẩu: ai biết tên của người khác thì xem được lịch của người đó.
 - Chưa có rate limit đăng nhập admin theo IP (chỉ có độ trễ khi sai mật khẩu).
-- Chưa có đánh dấu "đã tập xong" hay theo dõi tiến độ.

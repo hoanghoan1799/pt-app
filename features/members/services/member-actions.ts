@@ -7,7 +7,12 @@ import { z } from "zod";
 
 import { ROUTES } from "@/constants/routes";
 import { db } from "@/db";
-import { exercises, users, workoutDays } from "@/db/schema";
+import {
+  exerciseCompletions,
+  exercises,
+  users,
+  workoutDays,
+} from "@/db/schema";
 import {
   MEMBER_MESSAGES,
   MEMBER_NAME_MAX_LENGTH,
@@ -67,6 +72,10 @@ export const deleteMemberAction = async (userId: number) => {
   const dayIds = days.map((day) => day.id);
 
   await db.transaction(async (tx) => {
+    await tx
+      .delete(exerciseCompletions)
+      .where(eq(exerciseCompletions.userId, id));
+
     if (dayIds.length) {
       await tx.delete(exercises).where(inArray(exercises.dayId, dayIds));
       await tx.delete(workoutDays).where(inArray(workoutDays.id, dayIds));

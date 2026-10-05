@@ -3,7 +3,7 @@ import {
   DAYS_PER_WEEK,
   WEEKDAY_LABELS,
   WEEKDAY_SHORT_LABELS,
-} from "@/features/workouts/constants/week";
+} from "@/constants/week";
 
 // Dates are plain "YYYY-MM-DD" strings; arithmetic runs in UTC so the result
 // never depends on the server's time zone.

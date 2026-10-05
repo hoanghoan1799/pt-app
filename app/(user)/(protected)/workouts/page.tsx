@@ -8,9 +8,9 @@ import { LogoutButton } from "@/features/auth/components/LogoutButton";
 import { RememberUser } from "@/features/auth/components/RememberUser";
 import { WorkoutWeek } from "@/features/workouts/components/WorkoutWeek";
 import { getWeekSchedule } from "@/features/workouts/services/workout-queries";
-import { getTodayDate, resolveSchedule } from "@/features/workouts/utils/week";
 import { requireUser } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
+import { getTodayDate, resolveSchedule } from "@/utils/week";
 
 export const metadata: Metadata = { title: "Lịch tập" };
 
@@ -41,6 +41,7 @@ const WorkoutsPage = async ({ searchParams }: PageProps<"/workouts">) => {
           weekStart={weekStart}
           selectedDate={selectedDate}
           today={today}
+          isInteractive={true}
         />
       </main>
     </>

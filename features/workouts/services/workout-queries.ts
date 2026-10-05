@@ -3,11 +3,14 @@ import "server-only";
 import { and, asc, between, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
-import { exercises, workoutDays } from "@/db/schema";
+import { exerciseCompletions, exercises, workoutDays } from "@/db/schema";
 import type { Exercise, ScheduleDay } from "@/features/workouts/types/workout";
-import { getWeekDates } from "@/features/workouts/utils/week";
+import { getWeekDates } from "@/utils/week";
 
-const toExercise = (row: typeof exercises.$inferSelect): Exercise => ({
+const toExercise = (
+  row: typeof exercises.$inferSelect,
+  completedAt: Date | null,
+): Exercise => ({
   id: row.id,
   title: row.title,
   description: row.description,
@@ -15,6 +18,7 @@ const toExercise = (row: typeof exercises.$inferSelect): Exercise => ({
   reps: row.reps,
   youtubeId: row.youtubeId,
   position: row.position,
+  completedAt: completedAt?.getTime() ?? null,
 });
 
 export const getWeekSchedule = async (
@@ -34,8 +38,15 @@ export const getWeekSchedule = async (
   const dayIds = days.map((day) => day.id);
   const exerciseRows = dayIds.length
     ? await db
-        .select()
+        .select({
+          exercise: exercises,
+          completedAt: exerciseCompletions.completedAt,
+        })
         .from(exercises)
+        .leftJoin(
+          exerciseCompletions,
+          eq(exerciseCompletions.exerciseId, exercises.id),
+        )
         .where(inArray(exercises.dayId, dayIds))
         .orderBy(asc(exercises.position), asc(exercises.id))
     : [];
@@ -48,7 +59,9 @@ export const getWeekSchedule = async (
       title: day?.title ?? "",
       note: day?.note ?? "",
       exercises: day
-        ? exerciseRows.filter((row) => row.dayId === day.id).map(toExercise)
+        ? exerciseRows
+            .filter((row) => row.exercise.dayId === day.id)
+            .map((row) => toExercise(row.exercise, row.completedAt))
         : [],
     };
   });

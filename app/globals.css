@@ -9,6 +9,8 @@
   --accent: #e8590c;
   --accent-fg: #ffffff;
   --danger: #dc2626;
+  --success: #15803d;
+  --success-fg: #ffffff;
   color-scheme: light;
 }
 
@@ -22,6 +24,8 @@
     --accent: #ff7a2e;
     --accent-fg: #1a0a00;
     --danger: #f87171;
+    --success: #4ade80;
+    --success-fg: #052e16;
     color-scheme: dark;
   }
 }
@@ -35,6 +39,8 @@
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
   --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-success-fg: var(--success-fg);
   /* SF Pro on iPhone; covers Vietnamese diacritics without a web font. */
   --font-sans:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto,

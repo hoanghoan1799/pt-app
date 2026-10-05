@@ -6,13 +6,13 @@ import { INITIAL_FORM_STATE } from "@/constants/form";
 import { createMemberAction } from "@/features/members/services/member-actions";
 import { useFormFeedback } from "@/hooks/use-form-feedback";
 
-export const useCreateMember = () => {
+export const useCreateMember = (onCreated?: () => void) => {
   const [state, formAction] = useActionState(
     createMemberAction,
     INITIAL_FORM_STATE,
   );
 
-  useFormFeedback(state);
+  useFormFeedback(state, onCreated);
 
   return {
     formAction,

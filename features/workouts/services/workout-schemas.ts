@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 import { EXERCISE_LIMITS } from "@/features/workouts/constants/messages";
-import { isValidDate } from "@/features/workouts/utils/week";
 import { parseYoutubeId } from "@/features/workouts/utils/youtube";
+import { isValidDate } from "@/utils/week";
 
 const idSchema = z.coerce.number().int().positive();
 

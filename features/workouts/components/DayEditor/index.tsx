@@ -15,7 +15,7 @@ import { ExerciseForm } from "@/features/workouts/components/ExerciseForm";
 import { RestDayState } from "@/features/workouts/components/RestDayState";
 import { useDayEditor } from "@/features/workouts/hooks/use-day-editor";
 import type { ScheduleDay } from "@/features/workouts/types/workout";
-import { formatFullDay } from "@/features/workouts/utils/week";
+import { formatFullDay } from "@/utils/week";
 
 interface DayEditorProps {
   day: ScheduleDay;

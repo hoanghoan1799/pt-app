@@ -6,8 +6,12 @@ import { SubmitButton } from "@/components/common/SubmitButton";
 import { BUTTON_PRIMARY, FIELD_ERROR, INPUT } from "@/constants/styles";
 import { useCreateMember } from "@/features/members/hooks/use-create-member";
 
-export const CreateMemberForm = () => {
-  const { formAction, errorMessage, defaultName } = useCreateMember();
+interface CreateMemberFormProps {
+  onCreated?: () => void;
+}
+
+export const CreateMemberForm = ({ onCreated }: CreateMemberFormProps) => {
+  const { formAction, errorMessage, defaultName } = useCreateMember(onCreated);
 
   return (
     <form action={formAction}>

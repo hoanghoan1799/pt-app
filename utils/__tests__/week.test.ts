@@ -12,7 +12,7 @@ import {
   isValidDate,
   resolveSchedule,
   shiftSchedule,
-} from "@/features/workouts/utils/week";
+} from "@/utils/week";
 
 describe("isValidDate", () => {
   it("accepts real dates only", () => {

@@ -8,7 +8,7 @@ import {
   getRelativeWeekLabel,
   getWeekStart,
   shiftSchedule,
-} from "@/features/workouts/utils/week";
+} from "@/utils/week";
 
 interface WeekNavigatorProps {
   basePath: string;

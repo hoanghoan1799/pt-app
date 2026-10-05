@@ -1,7 +1,9 @@
+import { WeekNavigator } from "@/components/common/WeekNavigator";
 import { DayEditor } from "@/features/workouts/components/DayEditor";
 import { DayTabs } from "@/features/workouts/components/DayTabs";
-import { WeekNavigator } from "@/features/workouts/components/WeekNavigator";
+import { WeekProgress } from "@/features/workouts/components/WeekProgress";
 import type { ScheduleDay } from "@/features/workouts/types/workout";
+import { getWeekProgress } from "@/features/workouts/utils/progress";
 
 interface WorkoutWeekEditorProps {
   userId: number;
@@ -38,6 +40,7 @@ export const WorkoutWeekEditor = ({
           selectedDate={selectedDate}
           today={today}
         />
+        <WeekProgress progress={getWeekProgress(days)} />
       </div>
       <DayEditor
         key={selectedDay.date}

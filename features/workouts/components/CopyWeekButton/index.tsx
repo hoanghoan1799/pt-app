@@ -12,7 +12,7 @@ import {
 } from "@/constants/styles";
 import { useCopyWeek } from "@/features/workouts/hooks/use-copy-week";
 import type { MemberOption } from "@/features/workouts/types/workout";
-import { formatWeekRange } from "@/features/workouts/utils/week";
+import { formatWeekRange } from "@/utils/week";
 
 interface CopyWeekButtonProps {
   userId: number;

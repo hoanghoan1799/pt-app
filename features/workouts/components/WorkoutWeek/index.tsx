@@ -1,7 +1,9 @@
+import { WeekNavigator } from "@/components/common/WeekNavigator";
 import { DayTabs } from "@/features/workouts/components/DayTabs";
 import { DayView } from "@/features/workouts/components/DayView";
-import { WeekNavigator } from "@/features/workouts/components/WeekNavigator";
+import { WeekProgress } from "@/features/workouts/components/WeekProgress";
 import type { ScheduleDay } from "@/features/workouts/types/workout";
+import { getWeekProgress } from "@/features/workouts/utils/progress";
 
 interface WorkoutWeekProps {
   basePath: string;
@@ -9,6 +11,7 @@ interface WorkoutWeekProps {
   weekStart: string;
   selectedDate: string;
   today: string;
+  isInteractive: boolean;
 }
 
 // The read-only week a user sees; also used for the admin's "view as user".
@@ -18,6 +21,7 @@ export const WorkoutWeek = ({
   weekStart,
   selectedDate,
   today,
+  isInteractive,
 }: WorkoutWeekProps) => {
   const selectedDay = days.find((day) => day.date === selectedDate) ?? days[0];
 
@@ -37,8 +41,9 @@ export const WorkoutWeek = ({
           selectedDate={selectedDate}
           today={today}
         />
+        <WeekProgress progress={getWeekProgress(days)} />
       </div>
-      <DayView day={selectedDay} isToday={selectedDay.date === today} />
+      <DayView day={selectedDay} today={today} isInteractive={isInteractive} />
     </div>
   );
 };

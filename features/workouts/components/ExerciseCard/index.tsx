@@ -1,10 +1,12 @@
 "use client";
 
-import { ExternalLink, Play, Repeat } from "lucide-react";
+import clsx from "clsx";
+import { Check, ExternalLink, Play, Repeat } from "lucide-react";
 import Image from "next/image";
 import { type ReactNode, useState } from "react";
 
 import { CARD } from "@/constants/styles";
+import { TIME_ZONE } from "@/constants/time";
 import { YoutubePlayer } from "@/features/workouts/components/YoutubePlayer";
 import type { Exercise } from "@/features/workouts/types/workout";
 import { formatVolume } from "@/features/workouts/utils/exercise";
@@ -12,6 +14,7 @@ import {
   getYoutubeThumbnailUrl,
   getYoutubeWatchUrl,
 } from "@/features/workouts/utils/youtube";
+import { formatClockTime, formatShortDate } from "@/utils/time";
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -30,7 +33,13 @@ export const ExerciseCard = ({
   const volume = formatVolume(exercise.sets, exercise.reps);
 
   return (
-    <article className={`${CARD} overflow-hidden`}>
+    <article
+      className={clsx(
+        CARD,
+        "overflow-hidden transition-colors",
+        exercise.completedAt !== null && "border-success/50",
+      )}
+    >
       <div className="relative aspect-video bg-black">
         {isPlaying ? (
           <YoutubePlayer
@@ -60,6 +69,13 @@ export const ExerciseCard = ({
               {index + 1}
             </span>
           </button>
+        )}
+        {exercise.completedAt !== null && !isPlaying && (
+          <span className="pointer-events-none absolute top-3 right-3 flex items-center gap-1 rounded-full bg-success px-2.5 py-1 text-xs font-bold text-success-fg shadow">
+            <Check className="size-3.5" strokeWidth={3} aria-hidden />
+            Đã tập {formatClockTime(exercise.completedAt, TIME_ZONE)} ·{" "}
+            {formatShortDate(exercise.completedAt, TIME_ZONE)}
+          </span>
         )}
       </div>
       <div className="space-y-2.5 p-4">

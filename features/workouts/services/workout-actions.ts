@@ -4,7 +4,12 @@ import { and, asc, eq, inArray, max } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
-import { exercises, users, workoutDays } from "@/db/schema";
+import {
+  exerciseCompletions,
+  exercises,
+  users,
+  workoutDays,
+} from "@/db/schema";
 import { WORKOUT_MESSAGES } from "@/features/workouts/constants/messages";
 import { getWeekSchedule } from "@/features/workouts/services/workout-queries";
 import {
@@ -15,12 +20,6 @@ import {
 } from "@/features/workouts/services/workout-schemas";
 import type { MoveDirection } from "@/features/workouts/types/workout";
 import { hasDayContent } from "@/features/workouts/utils/schedule";
-import {
-  addDays,
-  formatWeekRange,
-  getWeekDates,
-  getWeekStart,
-} from "@/features/workouts/utils/week";
 import { requireAdmin } from "@/services/auth-guard";
 import type { FormState } from "@/types/form";
 import {
@@ -30,6 +29,12 @@ import {
   toFieldErrors,
 } from "@/utils/form";
 import { getAdminUserPath } from "@/utils/routes";
+import {
+  addDays,
+  formatWeekRange,
+  getWeekDates,
+  getWeekStart,
+} from "@/utils/week";
 
 const revalidateMember = (userId: number) => {
   // "layout" also refreshes the nested preview page.
@@ -141,7 +146,12 @@ export const deleteExerciseAction = async (
   const existing = await findExerciseForUser(ref.exerciseId, ref.userId);
 
   if (existing) {
-    await db.delete(exercises).where(eq(exercises.id, existing.id));
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(exerciseCompletions)
+        .where(eq(exerciseCompletions.exerciseId, existing.id));
+      await tx.delete(exercises).where(eq(exercises.id, existing.id));
+    });
   }
   revalidateMember(ref.userId);
 };
@@ -240,6 +250,14 @@ export const copyWeekAction = async (
     const existingIds = existingDays.map((day) => day.id);
 
     if (existingIds.length) {
+      const replacedExercises = tx
+        .select({ id: exercises.id })
+        .from(exercises)
+        .where(inArray(exercises.dayId, existingIds));
+
+      await tx
+        .delete(exerciseCompletions)
+        .where(inArray(exerciseCompletions.exerciseId, replacedExercises));
       await tx.delete(exercises).where(inArray(exercises.dayId, existingIds));
       await tx.delete(workoutDays).where(inArray(workoutDays.id, existingIds));
     }

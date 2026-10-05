@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 
-import type { Member } from "@/features/members/types/member";
+import type { MemberRow } from "@/features/dashboard/types/dashboard";
 import { toNameKey } from "@/utils/name";
 
-export const useMemberSearch = (members: Member[]) => {
+export const useMemberSearch = (members: MemberRow[]) => {
   const [query, setQuery] = useState("");
   const queryKey = toNameKey(query);
   const filteredMembers = queryKey

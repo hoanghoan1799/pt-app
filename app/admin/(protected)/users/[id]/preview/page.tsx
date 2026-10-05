@@ -7,15 +7,11 @@ import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
 import { WorkoutWeek } from "@/features/workouts/components/WorkoutWeek";
 import { getWeekSchedule } from "@/features/workouts/services/workout-queries";
-import {
-  buildScheduleHref,
-  getTodayDate,
-  resolveSchedule,
-} from "@/features/workouts/utils/week";
 import { requireAdmin } from "@/services/auth-guard";
 import { findUserById } from "@/services/users";
 import { getAdminPreviewPath, getAdminUserPath } from "@/utils/routes";
 import { readSearchParam } from "@/utils/search-params";
+import { buildScheduleHref, getTodayDate, resolveSchedule } from "@/utils/week";
 
 export const metadata: Metadata = { title: "Xem như user" };
 
@@ -60,6 +56,7 @@ const AdminPreviewPage = async ({
           weekStart={schedule.weekStart}
           selectedDate={schedule.selectedDate}
           today={today}
+          isInteractive={false}
         />
       </main>
     </>

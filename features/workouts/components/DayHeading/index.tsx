@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 
 import type { ScheduleDay } from "@/features/workouts/types/workout";
-import { formatFullDay } from "@/features/workouts/utils/week";
+import { getDayProgress } from "@/features/workouts/utils/progress";
+import { formatFullDay } from "@/utils/week";
 
 interface DayHeadingProps {
   day: ScheduleDay;
@@ -16,7 +17,7 @@ export const DayHeading = ({
   fallbackTitle,
   action,
 }: DayHeadingProps) => {
-  const count = day.exercises.length;
+  const { completed, total } = getDayProgress(day);
 
   return (
     <div className="flex items-start gap-3">
@@ -24,7 +25,8 @@ export const DayHeading = ({
         <p className="text-sm font-medium text-muted">
           {formatFullDay(day.date)}
           {isToday && <span className="text-accent"> · Hôm nay</span>}
-          {count > 0 && ` · ${count} bài`}
+          {total > 0 &&
+            ` · ${completed > 0 ? `${completed}/${total} đã tập` : `${total} bài`}`}
         </p>
         <h2 className="mt-0.5 text-2xl leading-tight font-bold text-balance text-fg">
           {day.title || fallbackTitle}
