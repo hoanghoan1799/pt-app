@@ -8,6 +8,7 @@ import { z } from "zod";
 import { ROUTES } from "@/constants/routes";
 import { db } from "@/db";
 import {
+  bodyProfiles,
   exerciseCompletions,
   exercises,
   foodEntries,
@@ -85,6 +86,7 @@ export const deleteMemberAction = withResultErrorHandling(
         .where(eq(exerciseCompletions.userId, id));
       await tx.delete(foodEntries).where(eq(foodEntries.userId, id));
       await tx.delete(nutritionTargets).where(eq(nutritionTargets.userId, id));
+      await tx.delete(bodyProfiles).where(eq(bodyProfiles.userId, id));
 
       if (dayIds.length) {
         await tx.delete(exercises).where(inArray(exercises.dayId, dayIds));

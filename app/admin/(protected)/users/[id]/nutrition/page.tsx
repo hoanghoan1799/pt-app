@@ -6,8 +6,10 @@ import { MemberSectionTabs } from "@/components/layout/MemberSectionTabs";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
+import { BodyProfileCard } from "@/features/nutrition/components/BodyProfileCard";
 import { NutritionTargetCard } from "@/features/nutrition/components/NutritionTargetCard";
 import { NutritionWeek } from "@/features/nutrition/components/NutritionWeek";
+import { getBodyProfile } from "@/features/nutrition/services/body-profile-queries";
 import {
   getLatestTarget,
   getNutritionWeek,
@@ -39,9 +41,10 @@ const AdminNutritionPage = async ({
     { week: readSearchParam(query.week), day: readSearchParam(query.day) },
     today,
   );
-  const [days, latestTarget] = await Promise.all([
+  const [days, latestTarget, bodyProfile] = await Promise.all([
     getNutritionWeek(user.id, schedule.weekStart),
     getLatestTarget(user.id),
+    getBodyProfile(user.id),
   ]);
 
   return (
@@ -59,6 +62,7 @@ const AdminNutritionPage = async ({
       <main
         className={`${PAGE_CONTAINER} space-y-6 pt-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]`}
       >
+        <BodyProfileCard userId={user.id} profile={bodyProfile} today={today} />
         <NutritionTargetCard userId={user.id} target={latestTarget} />
         <NutritionWeek
           basePath={getAdminNutritionPath(user.id)}

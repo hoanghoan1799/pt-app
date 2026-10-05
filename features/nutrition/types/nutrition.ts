@@ -42,3 +42,27 @@ export interface NutritionWeekSummary {
   // Days where every macro with a target ended "on" target.
   onTargetDays: number;
 }
+
+export type Sex = "male" | "female";
+
+export type ActivityLevel =
+  "sedentary" | "light" | "moderate" | "active" | "very_active";
+
+export type Goal = "cut" | "maintain" | "bulk";
+
+export interface BodyProfile {
+  sex: Sex;
+  birthYear: number;
+  heightCm: number;
+  weightKg: number;
+  activityLevel: ActivityLevel;
+  goal: Goal;
+}
+
+export interface EnergyPlan {
+  age: number;
+  bmr: number;
+  tdee: number;
+  targetCalories: number;
+  macros: MacroAmounts;
+}

@@ -21,6 +21,7 @@
 - Thêm (nút + trên dashboard) / xóa user.
 - Trang từng user: tiến độ tuần, bài nào đã tập lúc nào, lịch sử tập.
 - Tab **Dinh dưỡng** của từng user: đặt mục tiêu gram/ngày cho carb, protein, fat + lời dặn (áp dụng từ hôm nay, ngày cũ giữ mục tiêu cũ); xem nhật ký ăn, tổng kết ngày/tuần. Dashboard hiện số ngày user đã ghi nhật ký ăn.
+- **TDEE**: admin nhập giới tính, tuổi, chiều cao, cân nặng, mức vận động, mục tiêu (giảm mỡ / giữ cân / tăng cơ) → app tính BMR (Mifflin-St Jeor), TDEE, calo mục tiêu (−20% / 0 / +10%) và chia macro (protein 2,2 / 1,8 / 2,0 g/kg, fat 25% calo, carb phần còn lại), rồi tự điền vào mục tiêu dinh dưỡng từ hôm nay (có thể bỏ tick để tự nhập tay). Mục tiêu hiển thị kèm kcal và món tương đương (≈ lạng cơm chín, lạng ức gà, thìa dầu).
 - Giao bài theo ngày cho từng user: tiêu đề + ghi chú của ngày; mỗi bài có tên, link YouTube (preview ngay khi dán), số hiệp, số lần/thời gian, mô tả.
 - Sửa, xóa, sắp xếp thứ tự bài tập.
 - Sao chép cả tuần sang tuần khác hoặc sang user khác.

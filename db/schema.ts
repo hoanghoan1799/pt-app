@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   integer,
+  real,
   sqliteTable,
   text,
   uniqueIndex,
@@ -116,4 +117,25 @@ export const foodEntries = sqliteTable("food_entries", {
   protein: integer("protein"),
   fat: integer("fat"),
   createdAt: createdAt(),
+});
+
+// Body measurements the admin enters to compute the user's TDEE.
+export const bodyProfiles = sqliteTable("body_profiles", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  sex: text("sex", { enum: ["male", "female"] }).notNull(),
+  // Stored instead of age so the age stays right in later years.
+  birthYear: integer("birth_year").notNull(),
+  heightCm: real("height_cm").notNull(),
+  weightKg: real("weight_kg").notNull(),
+  activityLevel: text("activity_level", {
+    enum: ["sedentary", "light", "moderate", "active", "very_active"],
+  }).notNull(),
+  goal: text("goal", { enum: ["cut", "maintain", "bulk"] }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
 });

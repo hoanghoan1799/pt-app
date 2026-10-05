@@ -13,7 +13,11 @@ import {
   MACROS,
 } from "@/features/nutrition/constants/nutrition";
 import type { NutritionTarget } from "@/features/nutrition/types/nutrition";
-import { formatLang } from "@/features/nutrition/utils/nutrition";
+import {
+  calculateCalories,
+  describeFoodEquivalent,
+  formatCalories,
+} from "@/features/nutrition/utils/energy";
 import { formatDayMonth } from "@/utils/week";
 
 interface NutritionTargetCardProps {
@@ -38,7 +42,8 @@ export const NutritionTargetCard = ({
           </p>
           {target && (
             <p className="mt-0.5 text-xs text-muted">
-              Áp dụng từ {formatDayMonth(target.effectiveFrom)}
+              {formatCalories(calculateCalories(target))}/ngày · áp dụng từ{" "}
+              {formatDayMonth(target.effectiveFrom)}
             </p>
           )}
         </div>
@@ -75,7 +80,9 @@ export const NutritionTargetCard = ({
               <p className="mt-0.5 text-lg leading-tight font-bold text-fg tabular-nums">
                 {target[macro]} g
               </p>
-              <p className="text-xs text-muted">{formatLang(target[macro])}</p>
+              <p className="text-[11px] leading-tight text-muted">
+                {describeFoodEquivalent(macro, target[macro])}
+              </p>
             </div>
           ))}
         </div>

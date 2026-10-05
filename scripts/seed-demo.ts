@@ -7,6 +7,7 @@ import { eq, inArray } from "drizzle-orm";
 import { TIME_ZONE } from "@/constants/time";
 import { db } from "@/db";
 import {
+  bodyProfiles,
   exerciseCompletions,
   exercises,
   foodEntries,
@@ -144,6 +145,7 @@ const removeDemoUser = async () => {
     .where(eq(exerciseCompletions.userId, demo.id));
   await db.delete(foodEntries).where(eq(foodEntries.userId, demo.id));
   await db.delete(nutritionTargets).where(eq(nutritionTargets.userId, demo.id));
+  await db.delete(bodyProfiles).where(eq(bodyProfiles.userId, demo.id));
   if (dayIds.length) {
     await db.delete(exercises).where(inArray(exercises.dayId, dayIds));
     await db.delete(workoutDays).where(inArray(workoutDays.id, dayIds));
@@ -198,13 +200,22 @@ const seedDemo = async () => {
       }
     }
   }
+  await db.insert(bodyProfiles).values({
+    userId: demo.id,
+    sex: "male",
+    birthYear: Number(today.slice(0, 4)) - 30,
+    heightCm: 175,
+    weightKg: 75,
+    activityLevel: "moderate",
+    goal: "cut",
+  });
   await db.insert(nutritionTargets).values({
     userId: demo.id,
     effectiveFrom: weekStart,
     carbs: 250,
     protein: 150,
     fat: 60,
-    note: "Gram tính theo đồ ăn đã nấu chín. Uống 2,5 lít nước mỗi ngày.",
+    note: "Ưu tiên đạm nạc, nhiều rau. Uống 2,5 lít nước mỗi ngày.",
   });
   await db.insert(foodEntries).values(
     DEMO_MEALS.filter((item) => addDays(weekStart, item.offset) <= today).map(

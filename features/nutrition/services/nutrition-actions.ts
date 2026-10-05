@@ -7,12 +7,18 @@ import { z } from "zod";
 import { ROUTES } from "@/constants/routes";
 import { TIME_ZONE } from "@/constants/time";
 import { db } from "@/db";
-import { foodEntries, nutritionTargets } from "@/db/schema";
+import { bodyProfiles, foodEntries, nutritionTargets } from "@/db/schema";
 import { NUTRITION_MESSAGES } from "@/features/nutrition/constants/nutrition";
+import { getLatestTarget } from "@/features/nutrition/services/nutrition-queries";
 import {
+  bodyProfileSchema,
   foodEntrySchema,
   targetSchema,
 } from "@/features/nutrition/services/nutrition-schemas";
+import {
+  calculateEnergyPlan,
+  getBirthYear,
+} from "@/features/nutrition/utils/energy";
 import {
   withFormErrorHandling,
   withResultErrorHandling,
@@ -124,5 +130,54 @@ export const deleteFoodEntryAction = withResultErrorHandling(
 
     revalidateNutrition(user.id);
     return { status: "success" };
+  },
+);
+
+// Admin: saves the body measurements and, unless unticked, replaces today's
+// macro target with the one computed from the TDEE (keeping the coach note).
+export const saveBodyProfileAction = withFormErrorHandling(
+  "saveBodyProfile",
+  async (_previousState: FormState, formData: FormData): Promise<FormState> => {
+    await requireAdmin();
+
+    const parsed = bodyProfileSchema.safeParse(getFormValues(formData));
+
+    if (!parsed.success) {
+      return createErrorState(NUTRITION_MESSAGES.INVALID_INPUT, {
+        fieldErrors: toFieldErrors(parsed.error),
+      });
+    }
+
+    const { userId, age, applyToTarget, ...measurements } = parsed.data;
+    const today = getTodayDate(TIME_ZONE);
+    const profile = { ...measurements, birthYear: getBirthYear(age, today) };
+
+    await db
+      .insert(bodyProfiles)
+      .values({ userId, ...profile })
+      .onConflictDoUpdate({
+        target: bodyProfiles.userId,
+        set: { ...profile, updatedAt: new Date() },
+      });
+
+    if (applyToTarget) {
+      const { macros } = calculateEnergyPlan(profile, today);
+      const note = (await getLatestTarget(userId))?.note ?? "";
+
+      await db
+        .insert(nutritionTargets)
+        .values({ userId, effectiveFrom: today, ...macros, note })
+        .onConflictDoUpdate({
+          target: [nutritionTargets.userId, nutritionTargets.effectiveFrom],
+          set: macros,
+        });
+    }
+
+    revalidateNutrition(userId);
+    return createSuccessState(
+      applyToTarget
+        ? NUTRITION_MESSAGES.PROFILE_APPLIED
+        : NUTRITION_MESSAGES.PROFILE_SAVED,
+    );
   },
 );

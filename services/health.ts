@@ -8,6 +8,7 @@ import { ERROR_MESSAGES } from "@/constants/errors";
 import { db } from "@/db";
 import {
   admins,
+  bodyProfiles,
   exerciseCompletions,
   exercises,
   foodEntries,
@@ -32,6 +33,7 @@ const REQUIRED_TABLES = [
   exerciseCompletions,
   nutritionTargets,
   foodEntries,
+  bodyProfiles,
 ].map((table) => getTableName(table));
 
 const runCheck = async (

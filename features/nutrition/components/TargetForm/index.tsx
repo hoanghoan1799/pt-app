@@ -72,12 +72,14 @@ export const TargetForm = ({ userId, target, onSaved }: TargetFormProps) => {
           defaultValue={target?.note}
           rows={3}
           maxLength={NUTRITION_LIMITS.NOTE}
-          placeholder="VD: Gram tính theo đồ ăn đã nấu chín. Uống 2,5 lít nước/ngày."
+          placeholder="VD: Ưu tiên đạm nạc, nhiều rau. Uống 2,5 lít nước/ngày."
           className={TEXTAREA}
         />
       </div>
       <p className="text-xs text-muted">
-        Áp dụng từ hôm nay; các ngày trước giữ mục tiêu cũ. 100 g = 1 lạng.
+        Gram chất dinh dưỡng (không phải gram món ăn). Áp dụng từ hôm nay; các
+        ngày trước giữ mục tiêu cũ. Muốn tự tính theo TDEE, dùng thẻ Chỉ số cơ
+        thể.
       </p>
       <SubmitButton className={`${BUTTON_PRIMARY} w-full`}>
         Lưu mục tiêu

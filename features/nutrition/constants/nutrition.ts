@@ -60,6 +60,8 @@ export const NUTRITION_LIMITS = {
 export const NUTRITION_MESSAGES = {
   INVALID_INPUT: "Vui lòng kiểm tra lại thông tin",
   TARGET_SAVED: "Đã lưu mục tiêu dinh dưỡng",
+  PROFILE_SAVED: "Đã lưu chỉ số cơ thể",
+  PROFILE_APPLIED: "Đã lưu chỉ số và cập nhật mục tiêu theo TDEE",
   ENTRY_CREATED: "Đã ghi bữa ăn",
   ENTRY_UPDATED: "Đã cập nhật bữa ăn",
   ENTRY_DELETED: "Đã xóa bữa ăn",
