@@ -10,6 +10,8 @@ import {
   admins,
   exerciseCompletions,
   exercises,
+  foodEntries,
+  nutritionTargets,
   users,
   workoutDays,
 } from "@/db/schema";
@@ -28,6 +30,8 @@ const REQUIRED_TABLES = [
   workoutDays,
   exercises,
   exerciseCompletions,
+  nutritionTargets,
+  foodEntries,
 ].map((table) => getTableName(table));
 
 const runCheck = async (
