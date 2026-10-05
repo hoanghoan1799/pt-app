@@ -29,8 +29,11 @@ export const startUserSession = async (userId: number) => {
   await writeCookie(USER_COOKIE, token, USER_SESSION_MAX_AGE);
 };
 
-export const startAdminSession = async () => {
-  const token = await signSession({ role: "admin" }, ADMIN_SESSION_MAX_AGE);
+export const startAdminSession = async (adminId: number) => {
+  const token = await signSession(
+    { role: "admin", adminId },
+    ADMIN_SESSION_MAX_AGE,
+  );
 
   await writeCookie(ADMIN_COOKIE, token, ADMIN_SESSION_MAX_AGE);
 };

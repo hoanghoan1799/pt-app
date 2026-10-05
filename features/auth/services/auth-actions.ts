@@ -1,7 +1,5 @@
 "use server";
 
-import { createHash, timingSafeEqual } from "node:crypto";
-
 import { redirect } from "next/navigation";
 
 import { ROUTES } from "@/constants/routes";
@@ -10,6 +8,8 @@ import {
   AUTH_MESSAGES,
   LOGIN_FAILURE_DELAY_MS,
 } from "@/features/auth/constants/messages";
+import { findAdminByUsername } from "@/services/admins";
+import { getDummyPasswordHash, verifyPassword } from "@/services/password";
 import {
   endSession,
   startAdminSession,
@@ -19,9 +19,6 @@ import { findUserByName } from "@/services/users";
 import type { FormState } from "@/types/form";
 import { createErrorState } from "@/utils/form";
 import { normalizeName } from "@/utils/name";
-
-const hashValue = (value: string) =>
-  createHash("sha256").update(value).digest();
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -50,23 +47,27 @@ export const loginAdminAction = async (
   _previousState: FormState,
   formData: FormData,
 ): Promise<FormState> => {
+  const username = String(formData.get("username") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const expectedPassword = process.env.ADMIN_PASSWORD;
+  const values = { username };
 
-  if (!expectedPassword) {
-    return createErrorState(AUTH_MESSAGES.ADMIN_NOT_CONFIGURED);
+  if (!username || !password) {
+    return createErrorState(AUTH_MESSAGES.CREDENTIALS_REQUIRED, { values });
   }
 
-  if (!password) {
-    return createErrorState(AUTH_MESSAGES.PASSWORD_REQUIRED);
-  }
+  const admin = await findAdminByUsername(username);
+  // Always run one hash check so an unknown username isn't faster to reject.
+  const isPasswordCorrect = await verifyPassword(
+    password,
+    admin?.passwordHash ?? (await getDummyPasswordHash()),
+  );
 
-  if (!timingSafeEqual(hashValue(password), hashValue(expectedPassword))) {
+  if (!admin || !isPasswordCorrect) {
     await wait(LOGIN_FAILURE_DELAY_MS);
-    return createErrorState(AUTH_MESSAGES.PASSWORD_WRONG);
+    return createErrorState(AUTH_MESSAGES.CREDENTIALS_WRONG, { values });
   }
 
-  await startAdminSession();
+  await startAdminSession(admin.id);
   redirect(ROUTES.ADMIN);
 };
 

@@ -5,7 +5,7 @@ import { MIN_SESSION_SECRET_LENGTH } from "@/constants/session";
 import type { SessionPayload, VerifiedSession } from "@/types/session";
 
 const SESSION_PAYLOAD_SCHEMA = z.discriminatedUnion("role", [
-  z.object({ role: z.literal("admin") }),
+  z.object({ role: z.literal("admin"), adminId: z.number().int().positive() }),
   z.object({ role: z.literal("user"), userId: z.number().int().positive() }),
 ]);
 

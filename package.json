@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "admin:create": "tsx --env-file-if-exists=.env.local scripts/create-admin.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",

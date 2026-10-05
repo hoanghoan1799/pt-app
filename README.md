@@ -14,7 +14,7 @@
 
 **Admin** (`/admin`)
 
-- Đăng nhập bằng mật khẩu trong `ADMIN_PASSWORD`.
+- Đăng nhập bằng tài khoản + mật khẩu riêng (lưu trong DB, mật khẩu hash bằng scrypt). Tạo bằng `npm run admin:create`.
 - Thêm / xóa user.
 - Giao bài theo ngày cho từng user: tiêu đề + ghi chú của ngày; mỗi bài có tên, link YouTube (preview ngay khi dán), số hiệp, số lần/thời gian, mô tả.
 - Sửa, xóa, sắp xếp thứ tự bài tập.
@@ -25,26 +25,43 @@
 
 ```bash
 npm install
-cp .env.example .env.local   # sửa ADMIN_PASSWORD và SESSION_SECRET
+cp .env.example .env.local   # sửa SESSION_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD
 npm run db:push              # tạo bảng trong local.db (SQLite)
+npm run admin:create         # tạo tài khoản admin từ ADMIN_USERNAME / ADMIN_PASSWORD
 npm run dev
 ```
 
-Mở http://localhost:3000 (user) và http://localhost:3000/admin (admin).
+Mở http://localhost:3000 (user) và http://localhost:3000/admin/login (admin). Trang user không có link sang admin.
+
+Tạo thêm admin hoặc đổi mật khẩu (chạy lại với cùng username sẽ đặt lại mật khẩu):
+
+```bash
+npm run admin:create -- <username> <mật-khẩu>
+```
 
 Để mở trên iPhone cùng mạng Wi-Fi, dùng địa chỉ `Network` mà `next dev` in ra.
 
 ## Scripts
 
-| Lệnh                | Việc                                 |
-| ------------------- | ------------------------------------ |
-| `npm run dev`       | Dev server                           |
-| `npm run build`     | Build production                     |
-| `npm test`          | Unit test (Vitest)                   |
-| `npm run lint`      | ESLint (0 warning)                   |
-| `npm run typecheck` | TypeScript                           |
-| `npm run db:push`   | Đồng bộ schema `db/schema.ts` vào DB |
-| `npm run db:studio` | Xem dữ liệu bằng Drizzle Studio      |
+| Lệnh                   | Việc                                 |
+| ---------------------- | ------------------------------------ |
+| `npm run dev`          | Dev server                           |
+| `npm run build`        | Build production                     |
+| `npm test`             | Unit test (Vitest)                   |
+| `npm run lint`         | ESLint (0 warning)                   |
+| `npm run typecheck`    | TypeScript                           |
+| `npm run db:push`      | Đồng bộ schema `db/schema.ts` vào DB |
+| `npm run db:studio`    | Xem dữ liệu bằng Drizzle Studio      |
+| `npm run admin:create` | Tạo admin / đặt lại mật khẩu         |
+
+## Phân quyền
+
+| Khu   | Đường dẫn                   | Ai vào được                                                                         |
+| ----- | --------------------------- | ----------------------------------------------------------------------------------- |
+| User  | `/` (nhập tên), `/workouts` | User đã đăng nhập. Admin vào sẽ bị chuyển về `/admin`.                              |
+| Admin | `/admin/login`, `/admin/**` | Admin đã đăng nhập. User vào (kể cả trang login admin) sẽ bị chuyển về `/workouts`. |
+
+Bảo vệ 3 lớp: `proxy.ts` (kiểm tra cookie và điều hướng), layout của route group `(user)/(protected)` và `admin/(protected)` (kiểm tra với DB), và từng server action (`requireAdmin`). Trang admin có `noindex`.
 
 ## Công nghệ
 
@@ -70,14 +87,13 @@ SQLite file không dùng được trên Vercel. Tạo database [Turso](https://t
 ```bash
 DATABASE_URL=libsql://<db>.turso.io
 DATABASE_AUTH_TOKEN=<token>
-ADMIN_PASSWORD=<mật khẩu mạnh>
 SESSION_SECRET=<chuỗi ngẫu nhiên ≥ 32 ký tự>
 ```
 
-Sau đó chạy `npm run db:push` với các biến trên để tạo bảng.
+Sau đó chạy `npm run db:push` và `npm run admin:create -- <username> <mật-khẩu>` với các biến trên để tạo bảng và tài khoản admin.
 
 ## Giới hạn hiện tại
 
 - User vào bằng tên, không có mật khẩu: ai biết tên của người khác thì xem được lịch của người đó.
-- Một mật khẩu admin chung, chưa có rate limit theo IP.
+- Chưa có rate limit đăng nhập admin theo IP (chỉ có độ trễ khi sai mật khẩu).
 - Chưa có đánh dấu "đã tập xong" hay theo dõi tiến độ.

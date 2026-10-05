@@ -11,14 +11,14 @@ import { requireAdmin } from "@/services/auth-guard";
 export const metadata: Metadata = { title: "Quản lý user" };
 
 const AdminPage = async () => {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const members = await listMembers();
 
   return (
     <>
       <AppHeader
-        eyebrow="Admin"
+        eyebrow={`Admin · ${admin.username}`}
         title="User của bạn"
         actions={<LogoutButton role="admin" />}
       />

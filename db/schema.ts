@@ -11,6 +11,16 @@ const createdAt = () =>
     .notNull()
     .default(sql`(unixepoch())`);
 
+export const admins = sqliteTable("admins", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  username: text("username").notNull(),
+  // Lower-cased username used for login lookups.
+  usernameKey: text("username_key").notNull().unique(),
+  // scrypt hash, see services/password.ts.
+  passwordHash: text("password_hash").notNull(),
+  createdAt: createdAt(),
+});
+
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
