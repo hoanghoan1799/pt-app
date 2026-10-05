@@ -8,17 +8,25 @@ import {
 } from "react";
 
 import { INITIAL_FORM_STATE } from "@/constants/form";
-import { saveBodyProfileAction } from "@/features/nutrition/services/nutrition-actions";
-import type { BodyProfile } from "@/features/nutrition/types/nutrition";
+import {
+  saveBodyProfileAction,
+  saveMyBodyProfileAction,
+} from "@/features/nutrition/services/nutrition-actions";
+import type {
+  BodyProfile,
+  BodyProfileEditor,
+} from "@/features/nutrition/types/nutrition";
 import {
   type BodyProfileDraft,
   calculateEnergyPlan,
+  formatDecimal,
   getAge,
   toBodyProfile,
 } from "@/features/nutrition/utils/energy";
 import { useFormFeedback } from "@/hooks/use-form-feedback";
 
 interface UseBodyProfileFormOptions {
+  editor: BodyProfileEditor;
   profile: BodyProfile | null;
   today: string;
   onSaved: () => void;
@@ -30,19 +38,20 @@ const toDraft = (
 ): BodyProfileDraft => ({
   sex: profile?.sex ?? "male",
   age: profile ? String(getAge(profile.birthYear, today)) : "",
-  heightCm: profile ? String(profile.heightCm) : "",
-  weightKg: profile ? String(profile.weightKg) : "",
+  heightCm: profile ? formatDecimal(profile.heightCm) : "",
+  weightKg: profile ? formatDecimal(profile.weightKg) : "",
   activityLevel: profile?.activityLevel ?? "moderate",
   goal: profile?.goal ?? "maintain",
 });
 
 export const useBodyProfileForm = ({
+  editor,
   profile,
   today,
   onSaved,
 }: UseBodyProfileFormOptions) => {
   const [state, formAction, isPending] = useActionState(
-    saveBodyProfileAction,
+    editor === "admin" ? saveBodyProfileAction : saveMyBodyProfileAction,
     INITIAL_FORM_STATE,
   );
   const [draft, setDraft] = useState(() => toDraft(profile, today));

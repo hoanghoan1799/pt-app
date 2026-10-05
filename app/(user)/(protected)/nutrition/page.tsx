@@ -6,8 +6,13 @@ import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
 import { LogoutButton } from "@/features/auth/components/LogoutButton";
 import { RememberUser } from "@/features/auth/components/RememberUser";
+import { BodyProfileCard } from "@/features/nutrition/components/BodyProfileCard";
 import { NutritionWeek } from "@/features/nutrition/components/NutritionWeek";
-import { getNutritionWeek } from "@/features/nutrition/services/nutrition-queries";
+import { getBodyProfile } from "@/features/nutrition/services/body-profile-queries";
+import {
+  getLatestTarget,
+  getNutritionWeek,
+} from "@/features/nutrition/services/nutrition-queries";
 import { requireUser } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
 import { getTodayDate, resolveSchedule } from "@/utils/week";
@@ -22,7 +27,19 @@ const NutritionPage = async ({ searchParams }: PageProps<"/nutrition">) => {
     { week: readSearchParam(params.week), day: readSearchParam(params.day) },
     today,
   );
-  const days = await getNutritionWeek(user.id, weekStart);
+  const [days, bodyProfile, latestTarget] = await Promise.all([
+    getNutritionWeek(user.id, weekStart),
+    getBodyProfile(user.id),
+    getLatestTarget(user.id),
+  ]);
+  const profileCard = (
+    <BodyProfileCard
+      editor="user"
+      profile={bodyProfile}
+      isTargetManual={latestTarget?.source === "manual"}
+      today={today}
+    />
+  );
 
   return (
     <>
@@ -33,8 +50,9 @@ const NutritionPage = async ({ searchParams }: PageProps<"/nutrition">) => {
         actions={<LogoutButton role="user" />}
       />
       <main
-        className={`${PAGE_CONTAINER} pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]`}
+        className={`${PAGE_CONTAINER} space-y-6 pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]`}
       >
+        {!bodyProfile && profileCard}
         <NutritionWeek
           basePath={ROUTES.NUTRITION}
           days={days}
@@ -43,6 +61,7 @@ const NutritionPage = async ({ searchParams }: PageProps<"/nutrition">) => {
           today={today}
           isEditable
         />
+        {bodyProfile && profileCard}
       </main>
     </>
   );

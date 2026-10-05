@@ -12,11 +12,18 @@ import {
   GOALS,
   SEX_LABELS,
 } from "@/features/nutrition/constants/energy";
-import type { EnergyPlan, Sex } from "@/features/nutrition/types/nutrition";
+import type {
+  BodyProfileEditor,
+  EnergyPlan,
+  Sex,
+} from "@/features/nutrition/types/nutrition";
 import type { BodyProfileDraft } from "@/features/nutrition/utils/energy";
 
 interface BodyProfileFormViewProps {
-  userId: number;
+  editor: BodyProfileEditor;
+  // The member being edited; only sent by the admin form.
+  userId?: number;
+  isTargetManual: boolean;
   draft: BodyProfileDraft;
   plan: EnergyPlan | null;
   isPending: boolean;
@@ -56,7 +63,9 @@ const NUMBER_FIELDS = [
 ] as const;
 
 export const BodyProfileFormView = ({
+  editor,
   userId,
+  isTargetManual,
   draft,
   plan,
   isPending,
@@ -65,7 +74,7 @@ export const BodyProfileFormView = ({
   onSubmit,
 }: BodyProfileFormViewProps) => (
   <form onSubmit={onSubmit} className="space-y-5" noValidate>
-    <input type="hidden" name="userId" value={userId} />
+    {editor === "admin" && <input type="hidden" name="userId" value={userId} />}
     <input type="hidden" name="sex" value={draft.sex} />
     <input type="hidden" name="goal" value={draft.goal} />
 
@@ -193,17 +202,25 @@ export const BodyProfileFormView = ({
       )}
     </div>
 
-    <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl bg-line/60 px-3">
-      <input
-        type="checkbox"
-        name="applyToTarget"
-        defaultChecked
-        className="size-5 accent-[var(--accent)]"
-      />
-      <span className="text-sm text-fg">
-        Cập nhật mục tiêu dinh dưỡng theo kết quả này (từ hôm nay)
-      </span>
-    </label>
+    {editor === "admin" ? (
+      <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl bg-line/60 px-3">
+        <input
+          type="checkbox"
+          name="applyToTarget"
+          defaultChecked
+          className="size-5 accent-[var(--accent)]"
+        />
+        <span className="text-sm text-fg">
+          Cập nhật mục tiêu dinh dưỡng theo kết quả này (từ hôm nay)
+        </span>
+      </label>
+    ) : (
+      <p className="rounded-xl bg-line/60 px-3 py-2.5 text-sm text-muted">
+        {isTargetManual
+          ? "PT đang đặt mục tiêu riêng cho bạn, nên mục tiêu sẽ giữ nguyên. PT vẫn thấy chỉ số mới của bạn."
+          : "Mục tiêu dinh dưỡng của bạn sẽ được tính lại theo kết quả này, từ hôm nay."}
+      </p>
+    )}
 
     <SubmitButton className={`${BUTTON_PRIMARY} w-full`} isPending={isPending}>
       Lưu chỉ số

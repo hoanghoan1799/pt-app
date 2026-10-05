@@ -125,3 +125,10 @@ export const toBodyProfile = (
     goal: draft.goal,
   };
 };
+
+// 72.5 → "72,5" (Vietnamese decimal comma), 175 → "175".
+export const formatDecimal = (value: number) =>
+  value.toLocaleString("vi-VN", {
+    maximumFractionDigits: 1,
+    useGrouping: false,
+  });

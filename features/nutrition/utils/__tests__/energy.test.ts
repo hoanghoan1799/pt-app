@@ -7,6 +7,7 @@ import {
   calculateEnergyPlan,
   describeFoodEquivalent,
   formatCalories,
+  formatDecimal,
   getAge,
   getBirthYear,
   toBodyProfile,
@@ -90,6 +91,8 @@ describe("formatting", () => {
     );
     expect(describeFoodEquivalent("fat", 56)).toBe("≈ 4 thìa dầu ăn");
     expect(formatCalories(2630)).toBe("2.630 kcal");
+    expect(formatDecimal(72.5)).toBe("72,5");
+    expect(formatDecimal(1750)).toBe("1750");
   });
 });
 

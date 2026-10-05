@@ -1,4 +1,8 @@
-import type { Macro, Meal } from "@/features/nutrition/types/nutrition";
+import type {
+  Macro,
+  Meal,
+  TargetSource,
+} from "@/features/nutrition/types/nutrition";
 
 export const MACROS: Macro[] = ["carbs", "protein", "fat"];
 
@@ -62,6 +66,8 @@ export const NUTRITION_MESSAGES = {
   TARGET_SAVED: "Đã lưu mục tiêu dinh dưỡng",
   PROFILE_SAVED: "Đã lưu chỉ số cơ thể",
   PROFILE_APPLIED: "Đã lưu chỉ số và cập nhật mục tiêu theo TDEE",
+  PROFILE_KEPT_MANUAL:
+    "Đã lưu chỉ số. PT đang đặt mục tiêu riêng nên mục tiêu giữ nguyên.",
   ENTRY_CREATED: "Đã ghi bữa ăn",
   ENTRY_UPDATED: "Đã cập nhật bữa ăn",
   ENTRY_DELETED: "Đã xóa bữa ăn",
@@ -70,3 +76,8 @@ export const NUTRITION_MESSAGES = {
   FUTURE_DATE: "Chưa tới ngày này",
   DELETE_CONFIRM: "Xóa bữa ăn này?",
 } as const;
+
+export const TARGET_SOURCE_LABELS: Record<TargetSource, string> = {
+  tdee: "Tự tính từ TDEE",
+  manual: "PT nhập tay",
+};

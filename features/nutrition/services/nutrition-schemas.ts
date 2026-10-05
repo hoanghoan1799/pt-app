@@ -106,3 +106,10 @@ export const bodyProfileSchema = z.object({
     .optional()
     .transform((value) => value === "on"),
 });
+
+// What a user may send about themselves: no userId (taken from the session)
+// and no choice about the target (decided by its source).
+export const myBodyProfileSchema = bodyProfileSchema.omit({
+  userId: true,
+  applyToTarget: true,
+});

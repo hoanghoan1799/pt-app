@@ -7,18 +7,15 @@ import { z } from "zod";
 import { ROUTES } from "@/constants/routes";
 import { TIME_ZONE } from "@/constants/time";
 import { db } from "@/db";
-import { bodyProfiles, foodEntries, nutritionTargets } from "@/db/schema";
+import { foodEntries, nutritionTargets } from "@/db/schema";
 import { NUTRITION_MESSAGES } from "@/features/nutrition/constants/nutrition";
-import { getLatestTarget } from "@/features/nutrition/services/nutrition-queries";
+import { saveBodyProfile } from "@/features/nutrition/services/body-profile-service";
 import {
   bodyProfileSchema,
   foodEntrySchema,
+  myBodyProfileSchema,
   targetSchema,
 } from "@/features/nutrition/services/nutrition-schemas";
-import {
-  calculateEnergyPlan,
-  getBirthYear,
-} from "@/features/nutrition/utils/energy";
 import {
   withFormErrorHandling,
   withResultErrorHandling,
@@ -60,10 +57,18 @@ export const saveNutritionTargetAction = withFormErrorHandling(
 
     await db
       .insert(nutritionTargets)
-      .values({ userId, effectiveFrom, carbs, protein, fat, note })
+      .values({
+        userId,
+        effectiveFrom,
+        carbs,
+        protein,
+        fat,
+        note,
+        source: "manual",
+      })
       .onConflictDoUpdate({
         target: [nutritionTargets.userId, nutritionTargets.effectiveFrom],
-        set: { carbs, protein, fat, note },
+        set: { carbs, protein, fat, note, source: "manual" },
       });
 
     revalidateNutrition(userId);
@@ -134,7 +139,7 @@ export const deleteFoodEntryAction = withResultErrorHandling(
 );
 
 // Admin: saves the body measurements and, unless unticked, replaces today's
-// macro target with the one computed from the TDEE (keeping the coach note).
+// target with the one computed from the TDEE (keeping the coach note).
 export const saveBodyProfileAction = withFormErrorHandling(
   "saveBodyProfile",
   async (_previousState: FormState, formData: FormData): Promise<FormState> => {
@@ -148,36 +153,49 @@ export const saveBodyProfileAction = withFormErrorHandling(
       });
     }
 
-    const { userId, age, applyToTarget, ...measurements } = parsed.data;
-    const today = getTodayDate(TIME_ZONE);
-    const profile = { ...measurements, birthYear: getBirthYear(age, today) };
-
-    await db
-      .insert(bodyProfiles)
-      .values({ userId, ...profile })
-      .onConflictDoUpdate({
-        target: bodyProfiles.userId,
-        set: { ...profile, updatedAt: new Date() },
-      });
-
-    if (applyToTarget) {
-      const { macros } = calculateEnergyPlan(profile, today);
-      const note = (await getLatestTarget(userId))?.note ?? "";
-
-      await db
-        .insert(nutritionTargets)
-        .values({ userId, effectiveFrom: today, ...macros, note })
-        .onConflictDoUpdate({
-          target: [nutritionTargets.userId, nutritionTargets.effectiveFrom],
-          set: macros,
-        });
-    }
+    const { userId, applyToTarget, ...measurements } = parsed.data;
+    const isApplied = await saveBodyProfile(
+      userId,
+      measurements,
+      applyToTarget ? "always" : "never",
+      getTodayDate(TIME_ZONE),
+    );
 
     revalidateNutrition(userId);
     return createSuccessState(
-      applyToTarget
+      isApplied
         ? NUTRITION_MESSAGES.PROFILE_APPLIED
         : NUTRITION_MESSAGES.PROFILE_SAVED,
+    );
+  },
+);
+
+// User: updates their own measurements; the target follows the TDEE unless
+// the admin set it by hand.
+export const saveMyBodyProfileAction = withFormErrorHandling(
+  "saveMyBodyProfile",
+  async (_previousState: FormState, formData: FormData): Promise<FormState> => {
+    const user = await requireUser();
+    const parsed = myBodyProfileSchema.safeParse(getFormValues(formData));
+
+    if (!parsed.success) {
+      return createErrorState(NUTRITION_MESSAGES.INVALID_INPUT, {
+        fieldErrors: toFieldErrors(parsed.error),
+      });
+    }
+
+    const isApplied = await saveBodyProfile(
+      user.id,
+      parsed.data,
+      "unless-manual",
+      getTodayDate(TIME_ZONE),
+    );
+
+    revalidateNutrition(user.id);
+    return createSuccessState(
+      isApplied
+        ? NUTRITION_MESSAGES.PROFILE_APPLIED
+        : NUTRITION_MESSAGES.PROFILE_KEPT_MANUAL,
     );
   },
 );

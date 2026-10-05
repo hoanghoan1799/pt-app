@@ -13,6 +13,8 @@
 - Ngày không có bài hiển thị "Ngày nghỉ".
 - **Đánh dấu đã tập** từng bài (hôm nay hoặc ngày đã qua; bấm lại để bỏ). Có thanh tiến độ ngày/tuần, dấu ✓ trên ngày đã tập xong.
 - **Dinh dưỡng** (tab dưới cùng): xem mục tiêu carb/protein/fat mỗi ngày (gram, quy đổi lạng) và lời dặn của PT; ghi từng bữa đã ăn (món + gram ước lượng) cho hôm nay hoặc ngày đã qua; tiến độ trong ngày (còn thiếu/đạt/vượt) và bảng tổng kết tuần.
+- **Chỉ số của bạn**: user tự nhập giới tính, tuổi, chiều cao, cân nặng, mức vận động, mục tiêu để xem BMR/TDEE. Nếu mục tiêu dinh dưỡng đang "tự tính từ TDEE" (hoặc chưa có), nó được tính lại ngay; nếu PT đã nhập tay thì giữ nguyên.
+- **Tổng kết** (tab thứ 3): tuần tập luyện (buổi/bài đã tập từng ngày) và dinh dưỡng (gram từng ngày so với mục tiêu, số ngày ghi/đạt, kcal TB). Bấm vào ngày để mở chi tiết.
 
 **Admin** (`/admin`)
 
@@ -22,6 +24,8 @@
 - Trang từng user: tiến độ tuần, bài nào đã tập lúc nào, lịch sử tập.
 - Tab **Dinh dưỡng** của từng user: đặt mục tiêu gram/ngày cho carb, protein, fat + lời dặn (áp dụng từ hôm nay, ngày cũ giữ mục tiêu cũ); xem nhật ký ăn, tổng kết ngày/tuần. Dashboard hiện số ngày user đã ghi nhật ký ăn.
 - **TDEE**: admin nhập giới tính, tuổi, chiều cao, cân nặng, mức vận động, mục tiêu (giảm mỡ / giữ cân / tăng cơ) → app tính BMR (Mifflin-St Jeor), TDEE, calo mục tiêu (−20% / 0 / +10%) và chia macro (protein 2,2 / 1,8 / 2,0 g/kg, fat 25% calo, carb phần còn lại), rồi tự điền vào mục tiêu dinh dưỡng từ hôm nay (có thể bỏ tick để tự nhập tay). Mục tiêu hiển thị kèm kcal và món tương đương (≈ lạng cơm chín, lạng ức gà, thìa dầu).
+- Mỗi mục tiêu có nhãn nguồn: **Tự tính từ TDEE** (tự cập nhật khi chỉ số thay đổi) hoặc **PT nhập tay** (không bị ghi đè khi user sửa chỉ số).
+- Tab **Tổng kết** của từng user: giống màn tổng kết của user.
 - Giao bài theo ngày cho từng user: tiêu đề + ghi chú của ngày; mỗi bài có tên, link YouTube (preview ngay khi dán), số hiệp, số lần/thời gian, mô tả.
 - Sửa, xóa, sắp xếp thứ tự bài tập.
 - Sao chép cả tuần sang tuần khác hoặc sang user khác.

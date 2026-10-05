@@ -11,6 +11,7 @@ import {
   MACRO_COLORS,
   MACRO_LABELS,
   MACROS,
+  TARGET_SOURCE_LABELS,
 } from "@/features/nutrition/constants/nutrition";
 import type { NutritionTarget } from "@/features/nutrition/types/nutrition";
 import {
@@ -44,6 +45,16 @@ export const NutritionTargetCard = ({
             <p className="mt-0.5 text-xs text-muted">
               {formatCalories(calculateCalories(target))}/ngày · áp dụng từ{" "}
               {formatDayMonth(target.effectiveFrom)}
+              <span
+                className={clsx(
+                  "ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                  target.source === "tdee"
+                    ? "bg-success/15 text-success"
+                    : "bg-line text-muted",
+                )}
+              >
+                {TARGET_SOURCE_LABELS[target.source]}
+              </span>
             </p>
           )}
         </div>

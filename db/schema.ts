@@ -41,6 +41,11 @@ export const workoutDays = sqliteTable(
     date: text("date").notNull(),
     title: text("title").notNull().default(""),
     note: text("note").notNull().default(""),
+    // "tdee": computed from the body profile, recomputed when it changes;
+    // "manual": typed by the admin, never overwritten automatically.
+    source: text("source", { enum: ["manual", "tdee"] })
+      .notNull()
+      .default("manual"),
     createdAt: createdAt(),
   },
   (table) => [
@@ -91,6 +96,11 @@ export const nutritionTargets = sqliteTable(
     protein: integer("protein").notNull(),
     fat: integer("fat").notNull(),
     note: text("note").notNull().default(""),
+    // "tdee": computed from the body profile, recomputed when it changes;
+    // "manual": typed by the admin, never overwritten automatically.
+    source: text("source", { enum: ["manual", "tdee"] })
+      .notNull()
+      .default("manual"),
     createdAt: createdAt(),
   },
   (table) => [

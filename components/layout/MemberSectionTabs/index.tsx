@@ -2,50 +2,55 @@ import clsx from "clsx";
 import Link from "next/link";
 
 import { PAGE_CONTAINER } from "@/constants/styles";
-import { getAdminNutritionPath, getAdminUserPath } from "@/utils/routes";
+import {
+  getAdminNutritionPath,
+  getAdminSummaryPath,
+  getAdminUserPath,
+} from "@/utils/routes";
+
+type MemberSection = "workouts" | "nutrition" | "summary";
 
 interface MemberSectionTabsProps {
   userId: number;
-  active: "workouts" | "nutrition";
+  active: MemberSection;
   weekStart: string;
 }
 
-// Segmented control switching between a member's workouts and nutrition.
+const SECTIONS: {
+  key: MemberSection;
+  label: string;
+  getPath: (userId: number) => string;
+}[] = [
+  { key: "workouts", label: "Lịch tập", getPath: getAdminUserPath },
+  { key: "nutrition", label: "Dinh dưỡng", getPath: getAdminNutritionPath },
+  { key: "summary", label: "Tổng kết", getPath: getAdminSummaryPath },
+];
+
+// Segmented control switching between a member's workouts, nutrition and
+// weekly summary; keeps the selected week.
 export const MemberSectionTabs = ({
   userId,
   active,
   weekStart,
 }: MemberSectionTabsProps) => {
   const query = `?${new URLSearchParams({ week: weekStart })}`;
-  const tabs = [
-    {
-      key: "workouts",
-      label: "Lịch tập",
-      href: `${getAdminUserPath(userId)}${query}`,
-    },
-    {
-      key: "nutrition",
-      label: "Dinh dưỡng",
-      href: `${getAdminNutritionPath(userId)}${query}`,
-    },
-  ] as const;
 
   return (
     <nav aria-label="Mục của user" className={`${PAGE_CONTAINER} pt-3`}>
-      <ul className="grid grid-cols-2 gap-1 rounded-xl bg-line/60 p-1">
-        {tabs.map((tab) => (
-          <li key={tab.key}>
+      <ul className="grid grid-cols-3 gap-1 rounded-xl bg-line/60 p-1">
+        {SECTIONS.map((section) => (
+          <li key={section.key}>
             <Link
-              href={tab.href}
-              aria-current={active === tab.key ? "page" : undefined}
+              href={`${section.getPath(userId)}${query}`}
+              aria-current={active === section.key ? "page" : undefined}
               className={clsx(
                 "flex min-h-10 items-center justify-center rounded-lg text-sm font-semibold transition",
-                active === tab.key
+                active === section.key
                   ? "bg-surface text-fg shadow-sm"
                   : "text-muted",
               )}
             >
-              {tab.label}
+              {section.label}
             </Link>
           </li>
         ))}

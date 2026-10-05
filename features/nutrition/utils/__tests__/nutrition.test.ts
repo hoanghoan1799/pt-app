@@ -20,6 +20,7 @@ const TARGET: NutritionTarget = {
   protein: 150,
   fat: 50,
   note: "",
+  source: "manual",
 };
 
 const createEntry = (

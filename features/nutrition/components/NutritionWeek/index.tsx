@@ -1,7 +1,6 @@
 import { WeekDayTabs } from "@/components/common/WeekDayTabs";
 import { WeekNavigator } from "@/components/common/WeekNavigator";
 import { NutritionDayView } from "@/features/nutrition/components/NutritionDayView";
-import { NutritionWeekSummary } from "@/features/nutrition/components/NutritionWeekSummary";
 import type { NutritionDay } from "@/features/nutrition/types/nutrition";
 import { isDayOnTarget } from "@/features/nutrition/utils/nutrition";
 
@@ -57,7 +56,6 @@ export const NutritionWeek = ({
         today={today}
         isEditable={isEditable}
       />
-      <NutritionWeekSummary days={days} />
     </div>
   );
 };

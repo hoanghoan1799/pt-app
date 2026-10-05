@@ -3,29 +3,28 @@ import { notFound } from "next/navigation";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { MemberSectionTabs } from "@/components/layout/MemberSectionTabs";
+import { WeekSummary } from "@/components/layout/WeekSummary";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
-import { BodyProfileCard } from "@/features/nutrition/components/BodyProfileCard";
-import { NutritionTargetCard } from "@/features/nutrition/components/NutritionTargetCard";
-import { NutritionWeek } from "@/features/nutrition/components/NutritionWeek";
-import { getBodyProfile } from "@/features/nutrition/services/body-profile-queries";
-import {
-  getLatestTarget,
-  getNutritionWeek,
-} from "@/features/nutrition/services/nutrition-queries";
+import { getNutritionWeek } from "@/features/nutrition/services/nutrition-queries";
+import { getWeekSchedule } from "@/features/workouts/services/workout-queries";
 import { requireAdmin } from "@/services/auth-guard";
 import { findUserById } from "@/services/users";
-import { getAdminNutritionPath } from "@/utils/routes";
+import {
+  getAdminNutritionPath,
+  getAdminSummaryPath,
+  getAdminUserPath,
+} from "@/utils/routes";
 import { readSearchParam } from "@/utils/search-params";
 import { getTodayDate, resolveSchedule } from "@/utils/week";
 
-export const metadata: Metadata = { title: "Dinh dưỡng" };
+export const metadata: Metadata = { title: "Tổng kết" };
 
-const AdminNutritionPage = async ({
+const AdminSummaryPage = async ({
   params,
   searchParams,
-}: PageProps<"/admin/users/[id]/nutrition">) => {
+}: PageProps<"/admin/users/[id]/summary">) => {
   await requireAdmin();
 
   const { id } = await params;
@@ -41,46 +40,39 @@ const AdminNutritionPage = async ({
     { week: readSearchParam(query.week), day: readSearchParam(query.day) },
     today,
   );
-  const [days, latestTarget, bodyProfile] = await Promise.all([
+  const [workoutDays, nutritionDays] = await Promise.all([
+    getWeekSchedule(user.id, schedule.weekStart),
     getNutritionWeek(user.id, schedule.weekStart),
-    getLatestTarget(user.id),
-    getBodyProfile(user.id),
   ]);
 
   return (
     <>
       <AppHeader
-        eyebrow="Dinh dưỡng của"
+        eyebrow="Tổng kết của"
         title={user.name}
         backHref={`${ROUTES.ADMIN}?${new URLSearchParams({ week: schedule.weekStart })}`}
       />
       <MemberSectionTabs
         userId={user.id}
-        active="nutrition"
+        active="summary"
         weekStart={schedule.weekStart}
       />
       <main
-        className={`${PAGE_CONTAINER} space-y-6 pt-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]`}
+        className={`${PAGE_CONTAINER} pt-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]`}
       >
-        <BodyProfileCard
-          editor="admin"
-          userId={user.id}
-          profile={bodyProfile}
-          isTargetManual={latestTarget?.source === "manual"}
-          today={today}
-        />
-        <NutritionTargetCard userId={user.id} target={latestTarget} />
-        <NutritionWeek
-          basePath={getAdminNutritionPath(user.id)}
-          days={days}
+        <WeekSummary
+          basePath={getAdminSummaryPath(user.id)}
+          workoutsPath={getAdminUserPath(user.id)}
+          nutritionPath={getAdminNutritionPath(user.id)}
           weekStart={schedule.weekStart}
           selectedDate={schedule.selectedDate}
           today={today}
-          isEditable={false}
+          workoutDays={workoutDays}
+          nutritionDays={nutritionDays}
         />
       </main>
     </>
   );
 };
 
-export default AdminNutritionPage;
+export default AdminSummaryPage;

@@ -23,6 +23,7 @@ const toTarget = (
   protein: row.protein,
   fat: row.fat,
   note: row.note,
+  source: row.source,
 });
 
 const toEntry = (row: typeof foodEntries.$inferSelect): FoodEntry => ({

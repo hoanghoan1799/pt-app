@@ -63,7 +63,7 @@ const handleAdminArea = async (request: NextRequest) => {
     : redirectTo(ROUTES.ADMIN_LOGIN, request);
 };
 
-// User area: / (login), /workouts/* and /nutrition/*.
+// User area: / (login), /workouts/*, /nutrition/* and /summary/*.
 const handleUserArea = async (request: NextRequest) => {
   const isLoginPage = request.nextUrl.pathname === ROUTES.HOME;
   const userSession = await readSession(request, USER_COOKIE);
@@ -96,5 +96,11 @@ export const proxy = (request: NextRequest) =>
     : handleUserArea(request);
 
 export const config = {
-  matcher: ["/", "/workouts/:path*", "/nutrition/:path*", "/admin/:path*"],
+  matcher: [
+    "/",
+    "/workouts/:path*",
+    "/nutrition/:path*",
+    "/summary/:path*",
+    "/admin/:path*",
+  ],
 };

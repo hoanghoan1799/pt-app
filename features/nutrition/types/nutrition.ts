@@ -4,9 +4,12 @@ export type Meal = "breakfast" | "lunch" | "dinner" | "snack";
 
 export type MacroAmounts = Record<Macro, number>;
 
+export type TargetSource = "manual" | "tdee";
+
 export interface NutritionTarget extends MacroAmounts {
   effectiveFrom: string;
   note: string;
+  source: TargetSource;
 }
 
 export interface FoodEntry {
@@ -66,3 +69,5 @@ export interface EnergyPlan {
   targetCalories: number;
   macros: MacroAmounts;
 }
+
+export type BodyProfileEditor = "admin" | "user";
