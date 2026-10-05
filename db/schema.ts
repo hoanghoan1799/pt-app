@@ -74,3 +74,46 @@ export const exerciseCompletions = sqliteTable("exercise_completions", {
     .references(() => users.id, { onDelete: "cascade" }),
   completedAt: integer("completed_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+// Daily macro targets set by the admin. A target applies from `effectiveFrom`
+// until a later one replaces it, so past days keep the target they had.
+export const nutritionTargets = sqliteTable(
+  "nutrition_targets",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    effectiveFrom: text("effective_from").notNull(),
+    // Grams per day.
+    carbs: integer("carbs").notNull(),
+    protein: integer("protein").notNull(),
+    fat: integer("fat").notNull(),
+    note: text("note").notNull().default(""),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex("nutrition_targets_user_from").on(
+      table.userId,
+      table.effectiveFrom,
+    ),
+  ],
+);
+
+// What a user ate, one row per meal they logged.
+export const foodEntries = sqliteTable("food_entries", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  date: text("date").notNull(),
+  meal: text("meal", {
+    enum: ["breakfast", "lunch", "dinner", "snack"],
+  }).notNull(),
+  description: text("description").notNull().default(""),
+  // Grams; null when the user didn't estimate that macro.
+  carbs: integer("carbs"),
+  protein: integer("protein"),
+  fat: integer("fat"),
+  createdAt: createdAt(),
+});

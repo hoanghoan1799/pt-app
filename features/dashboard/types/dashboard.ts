@@ -7,6 +7,8 @@ export interface MemberProgress {
   // Days in the week with at least one exercise / one completion.
   plannedDays: number;
   activeDays: number;
+  // Days in the week with at least one food log entry.
+  nutritionDays: number;
   // Latest completion ever (epoch ms), not limited to the week.
   lastActiveAt: number | null;
 }

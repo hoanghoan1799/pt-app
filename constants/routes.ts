@@ -1,6 +1,7 @@
 export const ROUTES = {
   HOME: "/",
   WORKOUTS: "/workouts",
+  NUTRITION: "/nutrition",
   ADMIN: "/admin",
   ADMIN_LOGIN: "/admin/login",
   ADMIN_USERS: "/admin/users",
@@ -9,4 +10,5 @@ export const ROUTES = {
 } as const;
 
 export const ADMIN_PREVIEW_SEGMENT = "preview";
+export const ADMIN_NUTRITION_SEGMENT = "nutrition";
 export const SESSION_ROLE_PARAM = "role";

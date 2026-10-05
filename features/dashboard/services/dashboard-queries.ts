@@ -6,6 +6,7 @@ import { db } from "@/db";
 import {
   exerciseCompletions,
   exercises,
+  foodEntries,
   users,
   workoutDays,
 } from "@/db/schema";
@@ -24,7 +25,7 @@ export const getMemberProgress = async (
   const dates = getWeekDates(weekStart);
   const inWeek = between(workoutDays.date, dates[0], dates[dates.length - 1]);
 
-  const [members, assignedRows, completedRows, lastActiveRows] =
+  const [members, assignedRows, completedRows, lastActiveRows, nutritionRows] =
     await Promise.all([
       db
         .select({ id: users.id, name: users.name })
@@ -58,12 +59,21 @@ export const getMemberProgress = async (
         })
         .from(exerciseCompletions)
         .groupBy(exerciseCompletions.userId),
+      db
+        .select({
+          userId: foodEntries.userId,
+          nutritionDays: countDistinct(foodEntries.date),
+        })
+        .from(foodEntries)
+        .where(between(foodEntries.date, dates[0], dates[dates.length - 1]))
+        .groupBy(foodEntries.userId),
     ]);
 
   return members.map((member) => {
     const assigned = assignedRows.find((row) => row.userId === member.id);
     const completed = completedRows.find((row) => row.userId === member.id);
     const lastActive = lastActiveRows.find((row) => row.userId === member.id);
+    const nutrition = nutritionRows.find((row) => row.userId === member.id);
 
     return {
       ...member,
@@ -72,6 +82,7 @@ export const getMemberProgress = async (
       completed: completed?.completed ?? 0,
       activeDays: completed?.activeDays ?? 0,
       lastActiveAt: toEpochMs(lastActive?.lastActiveAt),
+      nutritionDays: nutrition?.nutritionDays ?? 0,
     };
   });
 };

@@ -12,6 +12,7 @@
 - Mỗi bài tập: video YouTube phát ngay trong trang, số hiệp × số lần, mô tả.
 - Ngày không có bài hiển thị "Ngày nghỉ".
 - **Đánh dấu đã tập** từng bài (hôm nay hoặc ngày đã qua; bấm lại để bỏ). Có thanh tiến độ ngày/tuần, dấu ✓ trên ngày đã tập xong.
+- **Dinh dưỡng** (tab dưới cùng): xem mục tiêu carb/protein/fat mỗi ngày (gram, quy đổi lạng) và lời dặn của PT; ghi từng bữa đã ăn (món + gram ước lượng) cho hôm nay hoặc ngày đã qua; tiến độ trong ngày (còn thiếu/đạt/vượt) và bảng tổng kết tuần.
 
 **Admin** (`/admin`)
 
@@ -19,6 +20,7 @@
 - **Dashboard** (`/admin`) theo tuần: số user, số user đang tập, % hoàn thành, số bài đã tập; danh sách user kèm tiến độ, lần tập gần nhất và nhãn "Chưa có lịch"; nhật ký hoạt động gần đây.
 - Thêm (nút + trên dashboard) / xóa user.
 - Trang từng user: tiến độ tuần, bài nào đã tập lúc nào, lịch sử tập.
+- Tab **Dinh dưỡng** của từng user: đặt mục tiêu gram/ngày cho carb, protein, fat + lời dặn (áp dụng từ hôm nay, ngày cũ giữ mục tiêu cũ); xem nhật ký ăn, tổng kết ngày/tuần. Dashboard hiện số ngày user đã ghi nhật ký ăn.
 - Giao bài theo ngày cho từng user: tiêu đề + ghi chú của ngày; mỗi bài có tên, link YouTube (preview ngay khi dán), số hiệp, số lần/thời gian, mô tả.
 - Sửa, xóa, sắp xếp thứ tự bài tập.
 - Sao chép cả tuần sang tuần khác hoặc sang user khác.
@@ -81,6 +83,7 @@ features/
   members/           quản lý user (admin)
   workouts/          lịch tuần, bài tập, YouTube, sao chép tuần, đánh dấu đã tập
   dashboard/         thống kê tiến độ và hoạt động cho admin
+  nutrition/         mục tiêu dinh dưỡng, nhật ký ăn, tổng kết ngày/tuần
 components/          layout + UI dùng chung (header, bottom sheet, nút submit)
 services/            session, guard, truy vấn user dùng chung
 db/                  schema + kết nối Drizzle

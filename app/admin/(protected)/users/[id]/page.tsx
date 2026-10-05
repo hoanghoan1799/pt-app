@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AppHeader } from "@/components/layout/AppHeader";
+import { MemberSectionTabs } from "@/components/layout/MemberSectionTabs";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
@@ -69,6 +70,11 @@ const AdminUserPage = async ({
             <Eye className="size-5" />
           </Link>
         }
+      />
+      <MemberSectionTabs
+        userId={user.id}
+        active="workouts"
+        weekStart={schedule.weekStart}
       />
       {/* Bottom padding clears the fixed "Thêm bài tập" bar. */}
       <main

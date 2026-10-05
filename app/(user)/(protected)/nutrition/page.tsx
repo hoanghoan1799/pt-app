@@ -6,15 +6,15 @@ import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
 import { LogoutButton } from "@/features/auth/components/LogoutButton";
 import { RememberUser } from "@/features/auth/components/RememberUser";
-import { WorkoutWeek } from "@/features/workouts/components/WorkoutWeek";
-import { getWeekSchedule } from "@/features/workouts/services/workout-queries";
+import { NutritionWeek } from "@/features/nutrition/components/NutritionWeek";
+import { getNutritionWeek } from "@/features/nutrition/services/nutrition-queries";
 import { requireUser } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
 import { getTodayDate, resolveSchedule } from "@/utils/week";
 
-export const metadata: Metadata = { title: "Lịch tập" };
+export const metadata: Metadata = { title: "Dinh dưỡng" };
 
-const WorkoutsPage = async ({ searchParams }: PageProps<"/workouts">) => {
+const NutritionPage = async ({ searchParams }: PageProps<"/nutrition">) => {
   const user = await requireUser();
   const params = await searchParams;
   const today = getTodayDate(TIME_ZONE);
@@ -22,7 +22,7 @@ const WorkoutsPage = async ({ searchParams }: PageProps<"/workouts">) => {
     { week: readSearchParam(params.week), day: readSearchParam(params.day) },
     today,
   );
-  const days = await getWeekSchedule(user.id, weekStart);
+  const days = await getNutritionWeek(user.id, weekStart);
 
   return (
     <>
@@ -35,17 +35,17 @@ const WorkoutsPage = async ({ searchParams }: PageProps<"/workouts">) => {
       <main
         className={`${PAGE_CONTAINER} pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]`}
       >
-        <WorkoutWeek
-          basePath={ROUTES.WORKOUTS}
+        <NutritionWeek
+          basePath={ROUTES.NUTRITION}
           days={days}
           weekStart={weekStart}
           selectedDate={selectedDate}
           today={today}
-          isInteractive={true}
+          isEditable
         />
       </main>
     </>
   );
 };
 
-export default WorkoutsPage;
+export default NutritionPage;

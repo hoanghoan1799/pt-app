@@ -20,6 +20,7 @@ const createMember = (
   completed,
   plannedDays: assigned ? 1 : 0,
   activeDays: completed ? 1 : 0,
+  nutritionDays: 0,
   lastActiveAt,
 });
 

@@ -9,6 +9,8 @@ import { db } from "@/db";
 import {
   exerciseCompletions,
   exercises,
+  foodEntries,
+  nutritionTargets,
   users,
   workoutDays,
 } from "@/db/schema";
@@ -88,6 +90,39 @@ const DEMO_DAYS = [
   },
 ];
 
+const DEMO_MEALS = [
+  {
+    offset: 0,
+    entry: {
+      meal: "breakfast",
+      description: "Phở bò",
+      carbs: 80,
+      protein: 30,
+      fat: 12,
+    },
+  },
+  {
+    offset: 0,
+    entry: {
+      meal: "lunch",
+      description: "Cơm, ức gà luộc, rau",
+      carbs: 120,
+      protein: 70,
+      fat: 15,
+    },
+  },
+  {
+    offset: 0,
+    entry: {
+      meal: "dinner",
+      description: "Khoai lang, cá hồi áp chảo",
+      carbs: 60,
+      protein: 45,
+      fat: 28,
+    },
+  },
+] as const;
+
 const removeDemoUser = async () => {
   const [demo] = await db
     .select()
@@ -107,6 +142,8 @@ const removeDemoUser = async () => {
   await db
     .delete(exerciseCompletions)
     .where(eq(exerciseCompletions.userId, demo.id));
+  await db.delete(foodEntries).where(eq(foodEntries.userId, demo.id));
+  await db.delete(nutritionTargets).where(eq(nutritionTargets.userId, demo.id));
   if (dayIds.length) {
     await db.delete(exercises).where(inArray(exercises.dayId, dayIds));
     await db.delete(workoutDays).where(inArray(workoutDays.id, dayIds));
@@ -161,6 +198,24 @@ const seedDemo = async () => {
       }
     }
   }
+  await db.insert(nutritionTargets).values({
+    userId: demo.id,
+    effectiveFrom: weekStart,
+    carbs: 250,
+    protein: 150,
+    fat: 60,
+    note: "Gram tính theo đồ ăn đã nấu chín. Uống 2,5 lít nước mỗi ngày.",
+  });
+  await db.insert(foodEntries).values(
+    DEMO_MEALS.filter((item) => addDays(weekStart, item.offset) <= today).map(
+      (item) => ({
+        ...item.entry,
+        userId: demo.id,
+        date: addDays(weekStart, item.offset),
+      }),
+    ),
+  );
+
   console.log(
     `✔ Đã tạo user "${DEMO_NAME}" với lịch tuần ${weekStart} (${completedCount} bài đã tập)`,
   );

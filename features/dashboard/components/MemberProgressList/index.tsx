@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { ChevronRight, Search, Users } from "lucide-react";
+import { ChevronRight, Search, Users, Utensils } from "lucide-react";
 import Link from "next/link";
 
 import { ProgressBar } from "@/components/common/ProgressBar";
@@ -108,7 +108,15 @@ export const MemberProgressList = ({ members }: MemberProgressListProps) => {
                   >
                     {getStatusText(member)}
                   </span>
-                  <span className="shrink-0 text-muted">
+                  <span className="flex shrink-0 items-center gap-2 text-muted">
+                    <span
+                      className="inline-flex items-center gap-0.5"
+                      title="Số ngày ghi nhật ký ăn tuần này"
+                    >
+                      <Utensils className="size-3" aria-hidden />
+                      <span className="sr-only">Ghi nhật ký ăn</span>
+                      {member.nutritionDays}/7
+                    </span>
                     {member.lastActiveLabel
                       ? `Tập ${member.lastActiveLabel}`
                       : "Chưa tập"}
