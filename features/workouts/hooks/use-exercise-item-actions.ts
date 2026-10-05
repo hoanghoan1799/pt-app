@@ -12,12 +12,21 @@ import {
   moveExerciseAction,
 } from "@/features/workouts/services/workout-actions";
 import type { MoveDirection } from "@/features/workouts/types/workout";
+import { describeErrorReference } from "@/utils/errors";
 
 export const useExerciseItemActions = (exerciseId: number, userId: number) => {
   const [isPending, startTransition] = useTransition();
 
   const handleMove = (direction: MoveDirection) => {
-    startTransition(() => moveExerciseAction(exerciseId, userId, direction));
+    startTransition(async () => {
+      const result = await moveExerciseAction(exerciseId, userId, direction);
+
+      if (result.status === "error") {
+        toast.error(result.message, {
+          description: describeErrorReference(result.reference),
+        });
+      }
+    });
   };
 
   const handleDelete = () => {
@@ -26,7 +35,14 @@ export const useExerciseItemActions = (exerciseId: number, userId: number) => {
     }
 
     startTransition(async () => {
-      await deleteExerciseAction(exerciseId, userId);
+      const result = await deleteExerciseAction(exerciseId, userId);
+
+      if (result.status === "error") {
+        toast.error(result.message, {
+          description: describeErrorReference(result.reference),
+        });
+        return;
+      }
       toast.success(WORKOUT_MESSAGES.EXERCISE_DELETED);
     });
   };

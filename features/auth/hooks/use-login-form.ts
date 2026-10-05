@@ -13,6 +13,7 @@ export const useLoginForm = (action: LoginAction) => {
   return {
     formAction,
     errorMessage: state.status === "error" ? state.message : undefined,
+    errorReference: state.status === "error" ? state.errorReference : undefined,
     values: state.values ?? {},
   };
 };

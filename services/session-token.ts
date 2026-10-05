@@ -1,7 +1,7 @@
 import { jwtVerify, SignJWT } from "jose";
 import { z } from "zod";
 
-import { MIN_SESSION_SECRET_LENGTH } from "@/constants/session";
+import { getSessionSecret } from "@/services/env";
 import type { SessionPayload, VerifiedSession } from "@/types/session";
 
 const SESSION_PAYLOAD_SCHEMA = z.discriminatedUnion("role", [
@@ -9,16 +9,7 @@ const SESSION_PAYLOAD_SCHEMA = z.discriminatedUnion("role", [
   z.object({ role: z.literal("user"), userId: z.number().int().positive() }),
 ]);
 
-const getSecretKey = () => {
-  const secret = process.env.SESSION_SECRET;
-
-  if (!secret || secret.length < MIN_SESSION_SECRET_LENGTH) {
-    throw new Error(
-      `SESSION_SECRET must be set to at least ${MIN_SESSION_SECRET_LENGTH} characters`,
-    );
-  }
-  return new TextEncoder().encode(secret);
-};
+const getSecretKey = () => new TextEncoder().encode(getSessionSecret());
 
 export const signSession = (payload: SessionPayload, maxAgeSeconds: number) =>
   new SignJWT({ ...payload })

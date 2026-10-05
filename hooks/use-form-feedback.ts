@@ -4,6 +4,7 @@ import { useEffect, useEffectEvent } from "react";
 import { toast } from "sonner";
 
 import type { FormState } from "@/types/form";
+import { describeErrorReference } from "@/utils/errors";
 
 // Toasts the message of each form response and runs `onSuccess` once per
 // successful submit.
@@ -17,7 +18,9 @@ export const useFormFeedback = (state: FormState, onSuccess?: () => void) => {
     }
 
     if (response.status === "error" && response.message) {
-      toast.error(response.message);
+      toast.error(response.message, {
+        description: describeErrorReference(response.errorReference),
+      });
     }
   });
 

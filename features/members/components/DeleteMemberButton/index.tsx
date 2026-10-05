@@ -2,10 +2,12 @@
 
 import { Loader2, Trash2 } from "lucide-react";
 import { useTransition } from "react";
+import { toast } from "sonner";
 
 import { BUTTON_DANGER } from "@/constants/styles";
 import { MEMBER_MESSAGES } from "@/features/members/constants/messages";
 import { deleteMemberAction } from "@/features/members/services/member-actions";
+import { describeErrorReference } from "@/utils/errors";
 
 interface DeleteMemberButtonProps {
   userId: number;
@@ -18,7 +20,16 @@ export const DeleteMemberButton = ({ userId }: DeleteMemberButtonProps) => {
     if (!window.confirm(MEMBER_MESSAGES.DELETE_CONFIRM)) {
       return;
     }
-    startTransition(() => deleteMemberAction(userId));
+    startTransition(async () => {
+      // On success the action redirects to the dashboard.
+      const result = await deleteMemberAction(userId);
+
+      if (result.status === "error") {
+        toast.error(result.message, {
+          description: describeErrorReference(result.reference),
+        });
+      }
+    });
   };
 
   return (

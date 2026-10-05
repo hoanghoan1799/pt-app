@@ -20,6 +20,10 @@ import {
 } from "@/features/workouts/services/workout-schemas";
 import type { MoveDirection } from "@/features/workouts/types/workout";
 import { hasDayContent } from "@/features/workouts/utils/schedule";
+import {
+  withFormErrorHandling,
+  withResultErrorHandling,
+} from "@/services/action-errors";
 import { requireAdmin } from "@/services/auth-guard";
 import type { FormState } from "@/types/form";
 import {
@@ -65,237 +69,244 @@ const findExerciseForUser = async (exerciseId: number, userId: number) => {
   return row ?? null;
 };
 
-export const saveDayAction = async (
-  _previousState: FormState,
-  formData: FormData,
-): Promise<FormState> => {
-  await requireAdmin();
+export const saveDayAction = withFormErrorHandling(
+  "saveDay",
+  async (_previousState: FormState, formData: FormData): Promise<FormState> => {
+    await requireAdmin();
 
-  const parsed = daySchema.safeParse(getFormValues(formData));
+    const parsed = daySchema.safeParse(getFormValues(formData));
 
-  if (!parsed.success) {
-    return createErrorState(WORKOUT_MESSAGES.INVALID_INPUT, {
-      fieldErrors: toFieldErrors(parsed.error),
-    });
-  }
+    if (!parsed.success) {
+      return createErrorState(WORKOUT_MESSAGES.INVALID_INPUT, {
+        fieldErrors: toFieldErrors(parsed.error),
+      });
+    }
 
-  const { userId, date, title, note } = parsed.data;
+    const { userId, date, title, note } = parsed.data;
 
-  await db
-    .insert(workoutDays)
-    .values({ userId, date, title, note })
-    .onConflictDoUpdate({
-      target: [workoutDays.userId, workoutDays.date],
-      set: { title, note },
-    });
+    await db
+      .insert(workoutDays)
+      .values({ userId, date, title, note })
+      .onConflictDoUpdate({
+        target: [workoutDays.userId, workoutDays.date],
+        set: { title, note },
+      });
 
-  revalidateMember(userId);
-  return createSuccessState(WORKOUT_MESSAGES.DAY_SAVED);
-};
+    revalidateMember(userId);
+    return createSuccessState(WORKOUT_MESSAGES.DAY_SAVED);
+  },
+);
 
-export const saveExerciseAction = async (
-  _previousState: FormState,
-  formData: FormData,
-): Promise<FormState> => {
-  await requireAdmin();
+export const saveExerciseAction = withFormErrorHandling(
+  "saveExercise",
+  async (_previousState: FormState, formData: FormData): Promise<FormState> => {
+    await requireAdmin();
 
-  const parsed = exerciseSchema.safeParse(getFormValues(formData));
+    const parsed = exerciseSchema.safeParse(getFormValues(formData));
 
-  if (!parsed.success) {
-    return createErrorState(WORKOUT_MESSAGES.INVALID_INPUT, {
-      fieldErrors: toFieldErrors(parsed.error),
-    });
-  }
+    if (!parsed.success) {
+      return createErrorState(WORKOUT_MESSAGES.INVALID_INPUT, {
+        fieldErrors: toFieldErrors(parsed.error),
+      });
+    }
 
-  const { exerciseId, userId, date, youtubeUrl, ...fields } = parsed.data;
-  const values = { ...fields, youtubeId: youtubeUrl };
+    const { exerciseId, userId, date, youtubeUrl, ...fields } = parsed.data;
+    const values = { ...fields, youtubeId: youtubeUrl };
 
-  if (exerciseId) {
-    const existing = await findExerciseForUser(exerciseId, userId);
+    if (exerciseId) {
+      const existing = await findExerciseForUser(exerciseId, userId);
+
+      if (!existing) {
+        return createErrorState(WORKOUT_MESSAGES.EXERCISE_NOT_FOUND);
+      }
+
+      await db
+        .update(exercises)
+        .set(values)
+        .where(eq(exercises.id, exerciseId));
+      revalidateMember(userId);
+      return createSuccessState(WORKOUT_MESSAGES.EXERCISE_UPDATED);
+    }
+
+    const dayId = await ensureDay(userId, date);
+    const [{ lastPosition }] = await db
+      .select({ lastPosition: max(exercises.position) })
+      .from(exercises)
+      .where(eq(exercises.dayId, dayId));
+
+    await db
+      .insert(exercises)
+      .values({ ...values, dayId, position: (lastPosition ?? -1) + 1 });
+
+    revalidateMember(userId);
+    return createSuccessState(WORKOUT_MESSAGES.EXERCISE_CREATED);
+  },
+);
+
+export const deleteExerciseAction = withResultErrorHandling(
+  "deleteExercise",
+  async (exerciseId: number, userId: number) => {
+    await requireAdmin();
+
+    const ref = exerciseRefSchema.parse({ exerciseId, userId });
+    const existing = await findExerciseForUser(ref.exerciseId, ref.userId);
+
+    if (existing) {
+      await db.transaction(async (tx) => {
+        await tx
+          .delete(exerciseCompletions)
+          .where(eq(exerciseCompletions.exerciseId, existing.id));
+        await tx.delete(exercises).where(eq(exercises.id, existing.id));
+      });
+    }
+    revalidateMember(ref.userId);
+  },
+);
+
+export const moveExerciseAction = withResultErrorHandling(
+  "moveExercise",
+  async (exerciseId: number, userId: number, direction: MoveDirection) => {
+    await requireAdmin();
+
+    const ref = exerciseRefSchema.parse({ exerciseId, userId });
+    const existing = await findExerciseForUser(ref.exerciseId, ref.userId);
 
     if (!existing) {
-      return createErrorState(WORKOUT_MESSAGES.EXERCISE_NOT_FOUND);
+      return;
     }
 
-    await db.update(exercises).set(values).where(eq(exercises.id, exerciseId));
-    revalidateMember(userId);
-    return createSuccessState(WORKOUT_MESSAGES.EXERCISE_UPDATED);
-  }
+    const siblings = await db
+      .select({ id: exercises.id })
+      .from(exercises)
+      .where(eq(exercises.dayId, existing.dayId))
+      .orderBy(asc(exercises.position), asc(exercises.id));
+    const ids = siblings.map((row) => row.id);
+    const index = ids.indexOf(existing.id);
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
 
-  const dayId = await ensureDay(userId, date);
-  const [{ lastPosition }] = await db
-    .select({ lastPosition: max(exercises.position) })
-    .from(exercises)
-    .where(eq(exercises.dayId, dayId));
+    if (targetIndex < 0 || targetIndex >= ids.length) {
+      return;
+    }
 
-  await db
-    .insert(exercises)
-    .values({ ...values, dayId, position: (lastPosition ?? -1) + 1 });
+    [ids[index], ids[targetIndex]] = [ids[targetIndex], ids[index]];
 
-  revalidateMember(userId);
-  return createSuccessState(WORKOUT_MESSAGES.EXERCISE_CREATED);
-};
-
-export const deleteExerciseAction = async (
-  exerciseId: number,
-  userId: number,
-) => {
-  await requireAdmin();
-
-  const ref = exerciseRefSchema.parse({ exerciseId, userId });
-  const existing = await findExerciseForUser(ref.exerciseId, ref.userId);
-
-  if (existing) {
+    // Renumbering every sibling also repairs gaps or duplicate positions.
     await db.transaction(async (tx) => {
-      await tx
-        .delete(exerciseCompletions)
-        .where(eq(exerciseCompletions.exerciseId, existing.id));
-      await tx.delete(exercises).where(eq(exercises.id, existing.id));
-    });
-  }
-  revalidateMember(ref.userId);
-};
-
-export const moveExerciseAction = async (
-  exerciseId: number,
-  userId: number,
-  direction: MoveDirection,
-) => {
-  await requireAdmin();
-
-  const ref = exerciseRefSchema.parse({ exerciseId, userId });
-  const existing = await findExerciseForUser(ref.exerciseId, ref.userId);
-
-  if (!existing) {
-    return;
-  }
-
-  const siblings = await db
-    .select({ id: exercises.id })
-    .from(exercises)
-    .where(eq(exercises.dayId, existing.dayId))
-    .orderBy(asc(exercises.position), asc(exercises.id));
-  const ids = siblings.map((row) => row.id);
-  const index = ids.indexOf(existing.id);
-  const targetIndex = direction === "up" ? index - 1 : index + 1;
-
-  if (targetIndex < 0 || targetIndex >= ids.length) {
-    return;
-  }
-
-  [ids[index], ids[targetIndex]] = [ids[targetIndex], ids[index]];
-
-  // Renumbering every sibling also repairs gaps or duplicate positions.
-  await db.transaction(async (tx) => {
-    for (const [position, id] of ids.entries()) {
-      await tx.update(exercises).set({ position }).where(eq(exercises.id, id));
-    }
-  });
-  revalidateMember(ref.userId);
-};
-
-export const copyWeekAction = async (
-  _previousState: FormState,
-  formData: FormData,
-): Promise<FormState> => {
-  await requireAdmin();
-
-  const parsed = copyWeekSchema.safeParse(getFormValues(formData));
-
-  if (!parsed.success) {
-    return createErrorState(WORKOUT_MESSAGES.INVALID_INPUT, {
-      fieldErrors: toFieldErrors(parsed.error),
-    });
-  }
-
-  const { userId, fromWeek, targetUserId, targetDate } = parsed.data;
-  const sourceWeek = getWeekStart(fromWeek);
-  const targetWeek = getWeekStart(targetDate);
-
-  if (userId === targetUserId && sourceWeek === targetWeek) {
-    return createErrorState(WORKOUT_MESSAGES.COPY_SAME_WEEK);
-  }
-
-  const [targetUser] = await db
-    .select({ id: users.id, name: users.name })
-    .from(users)
-    .where(eq(users.id, targetUserId))
-    .limit(1);
-
-  if (!targetUser) {
-    return createErrorState(WORKOUT_MESSAGES.USER_NOT_FOUND);
-  }
-
-  const sourceDays = (await getWeekSchedule(userId, sourceWeek)).filter(
-    hasDayContent,
-  );
-
-  if (!sourceDays.length) {
-    return createErrorState(WORKOUT_MESSAGES.COPY_EMPTY);
-  }
-
-  const targetDates = getWeekDates(targetWeek);
-
-  await db.transaction(async (tx) => {
-    // The target week is replaced as a whole so the copy matches the source.
-    const existingDays = await tx
-      .select({ id: workoutDays.id })
-      .from(workoutDays)
-      .where(
-        and(
-          eq(workoutDays.userId, targetUserId),
-          inArray(workoutDays.date, targetDates),
-        ),
-      );
-    const existingIds = existingDays.map((day) => day.id);
-
-    if (existingIds.length) {
-      const replacedExercises = tx
-        .select({ id: exercises.id })
-        .from(exercises)
-        .where(inArray(exercises.dayId, existingIds));
-
-      await tx
-        .delete(exerciseCompletions)
-        .where(inArray(exerciseCompletions.exerciseId, replacedExercises));
-      await tx.delete(exercises).where(inArray(exercises.dayId, existingIds));
-      await tx.delete(workoutDays).where(inArray(workoutDays.id, existingIds));
-    }
-
-    for (const day of sourceDays) {
-      const offset = getWeekDates(sourceWeek).indexOf(day.date);
-      const [created] = await tx
-        .insert(workoutDays)
-        .values({
-          userId: targetUserId,
-          date: addDays(targetWeek, offset),
-          title: day.title,
-          note: day.note,
-        })
-        .returning({ id: workoutDays.id });
-
-      if (day.exercises.length) {
-        await tx.insert(exercises).values(
-          day.exercises.map((exercise, position) => ({
-            dayId: created.id,
-            title: exercise.title,
-            description: exercise.description,
-            sets: exercise.sets,
-            reps: exercise.reps,
-            youtubeId: exercise.youtubeId,
-            position,
-          })),
-        );
+      for (const [position, id] of ids.entries()) {
+        await tx
+          .update(exercises)
+          .set({ position })
+          .where(eq(exercises.id, id));
       }
+    });
+    revalidateMember(ref.userId);
+  },
+);
+
+export const copyWeekAction = withFormErrorHandling(
+  "copyWeek",
+  async (_previousState: FormState, formData: FormData): Promise<FormState> => {
+    await requireAdmin();
+
+    const parsed = copyWeekSchema.safeParse(getFormValues(formData));
+
+    if (!parsed.success) {
+      return createErrorState(WORKOUT_MESSAGES.INVALID_INPUT, {
+        fieldErrors: toFieldErrors(parsed.error),
+      });
     }
-  });
 
-  revalidateMember(userId);
-  revalidateMember(targetUserId);
+    const { userId, fromWeek, targetUserId, targetDate } = parsed.data;
+    const sourceWeek = getWeekStart(fromWeek);
+    const targetWeek = getWeekStart(targetDate);
 
-  const target = targetUserId === userId ? "" : ` của ${targetUser.name}`;
+    if (userId === targetUserId && sourceWeek === targetWeek) {
+      return createErrorState(WORKOUT_MESSAGES.COPY_SAME_WEEK);
+    }
 
-  return createSuccessState(
-    `Đã sao chép ${sourceDays.length} ngày sang tuần ${formatWeekRange(targetWeek)}${target}`,
-  );
-};
+    const [targetUser] = await db
+      .select({ id: users.id, name: users.name })
+      .from(users)
+      .where(eq(users.id, targetUserId))
+      .limit(1);
+
+    if (!targetUser) {
+      return createErrorState(WORKOUT_MESSAGES.USER_NOT_FOUND);
+    }
+
+    const sourceDays = (await getWeekSchedule(userId, sourceWeek)).filter(
+      hasDayContent,
+    );
+
+    if (!sourceDays.length) {
+      return createErrorState(WORKOUT_MESSAGES.COPY_EMPTY);
+    }
+
+    const targetDates = getWeekDates(targetWeek);
+
+    await db.transaction(async (tx) => {
+      // The target week is replaced as a whole so the copy matches the source.
+      const existingDays = await tx
+        .select({ id: workoutDays.id })
+        .from(workoutDays)
+        .where(
+          and(
+            eq(workoutDays.userId, targetUserId),
+            inArray(workoutDays.date, targetDates),
+          ),
+        );
+      const existingIds = existingDays.map((day) => day.id);
+
+      if (existingIds.length) {
+        const replacedExercises = tx
+          .select({ id: exercises.id })
+          .from(exercises)
+          .where(inArray(exercises.dayId, existingIds));
+
+        await tx
+          .delete(exerciseCompletions)
+          .where(inArray(exerciseCompletions.exerciseId, replacedExercises));
+        await tx.delete(exercises).where(inArray(exercises.dayId, existingIds));
+        await tx
+          .delete(workoutDays)
+          .where(inArray(workoutDays.id, existingIds));
+      }
+
+      for (const day of sourceDays) {
+        const offset = getWeekDates(sourceWeek).indexOf(day.date);
+        const [created] = await tx
+          .insert(workoutDays)
+          .values({
+            userId: targetUserId,
+            date: addDays(targetWeek, offset),
+            title: day.title,
+            note: day.note,
+          })
+          .returning({ id: workoutDays.id });
+
+        if (day.exercises.length) {
+          await tx.insert(exercises).values(
+            day.exercises.map((exercise, position) => ({
+              dayId: created.id,
+              title: exercise.title,
+              description: exercise.description,
+              sets: exercise.sets,
+              reps: exercise.reps,
+              youtubeId: exercise.youtubeId,
+              position,
+            })),
+          );
+        }
+      }
+    });
+
+    revalidateMember(userId);
+    revalidateMember(targetUserId);
+
+    const target = targetUserId === userId ? "" : ` của ${targetUser.name}`;
+
+    return createSuccessState(
+      `Đã sao chép ${sourceDays.length} ngày sang tuần ${formatWeekRange(targetWeek)}${target}`,
+    );
+  },
+);

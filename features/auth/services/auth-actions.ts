@@ -8,6 +8,7 @@ import {
   AUTH_MESSAGES,
   LOGIN_FAILURE_DELAY_MS,
 } from "@/features/auth/constants/messages";
+import { withFormErrorHandling } from "@/services/action-errors";
 import { findAdminByUsername } from "@/services/admins";
 import { getDummyPasswordHash, verifyPassword } from "@/services/password";
 import {
@@ -22,54 +23,54 @@ import { normalizeName } from "@/utils/name";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export const loginUserAction = async (
-  _previousState: FormState,
-  formData: FormData,
-): Promise<FormState> => {
-  const name = String(formData.get("name") ?? "");
-  const values = { name };
+export const loginUserAction = withFormErrorHandling(
+  "loginUser",
+  async (_previousState: FormState, formData: FormData): Promise<FormState> => {
+    const name = String(formData.get("name") ?? "");
+    const values = { name };
 
-  if (!normalizeName(name)) {
-    return createErrorState(AUTH_MESSAGES.NAME_REQUIRED, { values });
-  }
+    if (!normalizeName(name)) {
+      return createErrorState(AUTH_MESSAGES.NAME_REQUIRED, { values });
+    }
 
-  const user = await findUserByName(name);
+    const user = await findUserByName(name);
 
-  if (!user) {
-    return createErrorState(AUTH_MESSAGES.NAME_NOT_FOUND, { values });
-  }
+    if (!user) {
+      return createErrorState(AUTH_MESSAGES.NAME_NOT_FOUND, { values });
+    }
 
-  await startUserSession(user.id);
-  redirect(ROUTES.WORKOUTS);
-};
+    await startUserSession(user.id);
+    redirect(ROUTES.WORKOUTS);
+  },
+);
 
-export const loginAdminAction = async (
-  _previousState: FormState,
-  formData: FormData,
-): Promise<FormState> => {
-  const username = String(formData.get("username") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
-  const values = { username };
+export const loginAdminAction = withFormErrorHandling(
+  "loginAdmin",
+  async (_previousState: FormState, formData: FormData): Promise<FormState> => {
+    const username = String(formData.get("username") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
+    const values = { username };
 
-  if (!username || !password) {
-    return createErrorState(AUTH_MESSAGES.CREDENTIALS_REQUIRED, { values });
-  }
+    if (!username || !password) {
+      return createErrorState(AUTH_MESSAGES.CREDENTIALS_REQUIRED, { values });
+    }
 
-  const admin = await findAdminByUsername(username);
-  // Always run one hash check so an unknown username isn't faster to reject.
-  const isPasswordCorrect = await verifyPassword(
-    password,
-    admin?.passwordHash ?? (await getDummyPasswordHash()),
-  );
+    const admin = await findAdminByUsername(username);
+    // Always run one hash check so an unknown username isn't faster to reject.
+    const isPasswordCorrect = await verifyPassword(
+      password,
+      admin?.passwordHash ?? (await getDummyPasswordHash()),
+    );
 
-  if (!admin || !isPasswordCorrect) {
-    await wait(LOGIN_FAILURE_DELAY_MS);
-    return createErrorState(AUTH_MESSAGES.CREDENTIALS_WRONG, { values });
-  }
+    if (!admin || !isPasswordCorrect) {
+      await wait(LOGIN_FAILURE_DELAY_MS);
+      return createErrorState(AUTH_MESSAGES.CREDENTIALS_WRONG, { values });
+    }
 
-  await startAdminSession(admin.id);
-  redirect(ROUTES.ADMIN);
-};
+    await startAdminSession(admin.id);
+    redirect(ROUTES.ADMIN);
+  },
+);
 
 export const logoutUserAction = async () => {
   await endSession(USER_COOKIE);

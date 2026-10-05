@@ -17,6 +17,10 @@ import {
   MEMBER_MESSAGES,
   MEMBER_NAME_MAX_LENGTH,
 } from "@/features/members/constants/messages";
+import {
+  withFormErrorHandling,
+  withResultErrorHandling,
+} from "@/services/action-errors";
 import { requireAdmin } from "@/services/auth-guard";
 import { findUserByName } from "@/services/users";
 import type { FormState } from "@/types/form";
@@ -33,56 +37,59 @@ const nameSchema = z
       .max(MEMBER_NAME_MAX_LENGTH, MEMBER_MESSAGES.NAME_TOO_LONG),
   );
 
-export const createMemberAction = async (
-  _previousState: FormState,
-  formData: FormData,
-): Promise<FormState> => {
-  await requireAdmin();
+export const createMemberAction = withFormErrorHandling(
+  "createMember",
+  async (_previousState: FormState, formData: FormData): Promise<FormState> => {
+    await requireAdmin();
 
-  const rawName = String(formData.get("name") ?? "");
-  const parsed = nameSchema.safeParse(rawName);
+    const rawName = String(formData.get("name") ?? "");
+    const parsed = nameSchema.safeParse(rawName);
 
-  if (!parsed.success) {
-    return createErrorState(parsed.error.issues[0].message, {
-      values: { name: rawName },
-    });
-  }
-
-  const name = parsed.data;
-
-  if (await findUserByName(name)) {
-    return createErrorState(MEMBER_MESSAGES.NAME_TAKEN, {
-      values: { name: rawName },
-    });
-  }
-
-  await db.insert(users).values({ name, nameKey: toNameKey(name) });
-  revalidatePath(ROUTES.ADMIN);
-  return createSuccessState(`Đã thêm ${name}`);
-};
-
-export const deleteMemberAction = async (userId: number) => {
-  await requireAdmin();
-
-  const id = z.number().int().positive().parse(userId);
-  const days = await db
-    .select({ id: workoutDays.id })
-    .from(workoutDays)
-    .where(eq(workoutDays.userId, id));
-  const dayIds = days.map((day) => day.id);
-
-  await db.transaction(async (tx) => {
-    await tx
-      .delete(exerciseCompletions)
-      .where(eq(exerciseCompletions.userId, id));
-
-    if (dayIds.length) {
-      await tx.delete(exercises).where(inArray(exercises.dayId, dayIds));
-      await tx.delete(workoutDays).where(inArray(workoutDays.id, dayIds));
+    if (!parsed.success) {
+      return createErrorState(parsed.error.issues[0].message, {
+        values: { name: rawName },
+      });
     }
-    await tx.delete(users).where(eq(users.id, id));
-  });
 
-  revalidatePath(ROUTES.ADMIN);
-  redirect(ROUTES.ADMIN);
-};
+    const name = parsed.data;
+
+    if (await findUserByName(name)) {
+      return createErrorState(MEMBER_MESSAGES.NAME_TAKEN, {
+        values: { name: rawName },
+      });
+    }
+
+    await db.insert(users).values({ name, nameKey: toNameKey(name) });
+    revalidatePath(ROUTES.ADMIN);
+    return createSuccessState(`Đã thêm ${name}`);
+  },
+);
+
+export const deleteMemberAction = withResultErrorHandling(
+  "deleteMember",
+  async (userId: number) => {
+    await requireAdmin();
+
+    const id = z.number().int().positive().parse(userId);
+    const days = await db
+      .select({ id: workoutDays.id })
+      .from(workoutDays)
+      .where(eq(workoutDays.userId, id));
+    const dayIds = days.map((day) => day.id);
+
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(exerciseCompletions)
+        .where(eq(exerciseCompletions.userId, id));
+
+      if (dayIds.length) {
+        await tx.delete(exercises).where(inArray(exercises.dayId, dayIds));
+        await tx.delete(workoutDays).where(inArray(workoutDays.id, dayIds));
+      }
+      await tx.delete(users).where(eq(users.id, id));
+    });
+
+    revalidatePath(ROUTES.ADMIN);
+    redirect(ROUTES.ADMIN);
+  },
+);

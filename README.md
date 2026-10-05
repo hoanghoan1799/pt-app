@@ -54,6 +54,7 @@ npm run admin:create -- <username> <mật-khẩu>
 | `npm run lint`         | ESLint (0 warning)                                          |
 | `npm run typecheck`    | TypeScript                                                  |
 | `npm run db:push`      | Đồng bộ schema `db/schema.ts` vào DB                        |
+| `npm run db:setup`     | Tạo bảng + admin đầu tiên (tự chạy khi build trên Vercel)   |
 | `npm run db:studio`    | Xem dữ liệu bằng Drizzle Studio                             |
 | `npm run admin:create` | Tạo admin / đặt lại mật khẩu                                |
 | `npm run db:seed-demo` | Tạo user "Demo" có lịch + bài đã tập (`-- --remove` để xóa) |
@@ -85,17 +86,29 @@ services/            session, guard, truy vấn user dùng chung
 db/                  schema + kết nối Drizzle
 ```
 
-## Deploy
+## Deploy lên Vercel (Turso)
 
-SQLite file không dùng được trên Vercel. Tạo database [Turso](https://turso.tech) rồi đặt:
+1. Vercel → project → **Storage** → kết nối database Turso. Integration tự thêm `TURSO_DATABASE_URL` và `TURSO_AUTH_TOKEN` (app đọc 2 biến này trước, rồi mới tới `DATABASE_URL`/`DATABASE_AUTH_TOKEN`).
+2. Vercel → **Settings → Environment Variables** (Production + Preview):
 
-```bash
-DATABASE_URL=libsql://<db>.turso.io
-DATABASE_AUTH_TOKEN=<token>
-SESSION_SECRET=<chuỗi ngẫu nhiên ≥ 32 ký tự>
-```
+   | Biến                 | Giá trị                                                 |
+   | -------------------- | ------------------------------------------------------- |
+   | `SESSION_SECRET`     | chuỗi ngẫu nhiên ≥ 32 ký tự (`openssl rand -base64 32`) |
+   | `ADMIN_USERNAME`     | tài khoản admin đầu tiên (3–32 ký tự a-z 0-9 . _ -)     |
+   | `ADMIN_PASSWORD`     | mật khẩu admin đầu tiên (≥ 8 ký tự)                     |
+   | `HEALTH_CHECK_TOKEN` | (tuỳ chọn) ≥ 16 ký tự, để xem chi tiết `/api/health`    |
 
-Sau đó chạy `npm run db:push` và `npm run admin:create -- <username> <mật-khẩu>` với các biến trên để tạo bảng và tài khoản admin.
+   Không cần `DATABASE_URL` trên Vercel; nếu có, đừng để `file:local.db`.
+
+3. **Redeploy**. Bước `prebuild` tự chạy `scripts/setup-database.ts`: tạo/cập nhật bảng trên Turso và tạo admin từ `ADMIN_USERNAME`/`ADMIN_PASSWORD` nếu database chưa có admin nào (admin đã có thì không bị ghi đè).
+4. Kiểm tra: mở `https://<domain>/api/health?token=<HEALTH_CHECK_TOKEN>` — phải là `"status": "ok"`.
+
+## Xử lý lỗi
+
+- Lỗi kỹ thuật (thiếu biến môi trường, database chưa tạo bảng, mất kết nối…) **không làm crash app**: form/toast hiện thông báo chung _"Đã có lỗi xảy ra. Vui lòng thử lại sau."_ kèm **mã tham chiếu**. Trên production không bao giờ hiện chi tiết kỹ thuật cho user.
+- Chi tiết nằm trong **Vercel → Logs**, mỗi lỗi một dòng `[pt-app] <hành động> failed · <MÃ LỖI>` kèm `referenceId`/`digest` trùng với mã user thấy.
+- Mã lỗi: `CONFIG_MISSING`, `CONFIG_INVALID`, `DB_FILE_UNAVAILABLE`, `DB_NOT_MIGRATED`, `DB_AUTH_FAILED`, `DB_UNREACHABLE`, `UNKNOWN`.
+- Ở môi trường dev, form/toast hiện luôn nguyên nhân và mã lỗi để debug nhanh.
 
 ## Giới hạn hiện tại
 

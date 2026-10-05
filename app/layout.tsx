@@ -1,7 +1,8 @@
 import "./globals.css";
 
 import type { Metadata, Viewport } from "next";
-import { Toaster } from "sonner";
+
+import { AppToaster } from "@/components/common/AppToaster";
 
 export const metadata: Metadata = {
   title: { default: "PT App", template: "%s · PT App" },
@@ -25,12 +26,7 @@ const RootLayout = ({ children }: LayoutProps<"/">) => (
   <html lang="vi">
     <body className="min-h-dvh antialiased">
       {children}
-      <Toaster
-        position="top-center"
-        richColors
-        theme="system"
-        mobileOffset={{ top: "calc(env(safe-area-inset-top) + 8px)" }}
-      />
+      <AppToaster />
     </body>
   </html>
 );

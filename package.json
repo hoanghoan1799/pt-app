@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "tsx scripts/setup-database.ts --prebuild",
     "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings 0",
@@ -13,7 +14,8 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "admin:create": "tsx --env-file-if-exists=.env.local scripts/create-admin.ts",
-    "db:seed-demo": "tsx --env-file-if-exists=.env.local scripts/seed-demo.ts"
+    "db:seed-demo": "tsx --env-file-if-exists=.env.local scripts/seed-demo.ts",
+    "db:setup": "tsx --env-file-if-exists=.env.local scripts/setup-database.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",

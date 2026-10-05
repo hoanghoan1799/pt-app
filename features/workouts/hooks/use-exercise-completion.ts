@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { WORKOUT_MESSAGES } from "@/features/workouts/constants/messages";
 import { setExerciseCompletionAction } from "@/features/workouts/services/completion-actions";
 import type { Exercise } from "@/features/workouts/types/workout";
+import { describeErrorReference } from "@/utils/errors";
 
 // Flips the card to done/undone immediately; the server response (and its
 // revalidated page) then confirms it or rolls it back.
@@ -27,7 +28,9 @@ export const useExerciseCompletion = (exercise: Exercise) => {
       );
 
       if (result.status === "error") {
-        toast.error(result.message);
+        toast.error(result.message, {
+          description: describeErrorReference(result.reference),
+        });
         return;
       }
       if (isCompleting) {
