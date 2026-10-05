@@ -5,10 +5,13 @@ import { ArrowRight } from "lucide-react";
 import { SubmitButton } from "@/components/common/SubmitButton";
 import { BUTTON_PRIMARY, FIELD_ERROR, INPUT, LABEL } from "@/constants/styles";
 import { useLoginForm } from "@/features/auth/hooks/use-login-form";
+import { useRememberedName } from "@/features/auth/hooks/use-remembered-name";
 import { loginUserAction } from "@/features/auth/services/auth-actions";
 
 export const UserLoginForm = () => {
   const { formAction, errorMessage, values } = useLoginForm(loginUserAction);
+  const rememberedName = useRememberedName();
+  const defaultName = values.name ?? rememberedName;
 
   return (
     <form action={formAction} className="space-y-4">
@@ -17,9 +20,11 @@ export const UserLoginForm = () => {
           Tên của bạn
         </label>
         <input
+          // Remounts once the remembered name is read after hydration.
+          key={defaultName}
           id="name"
           name="name"
-          defaultValue={values.name}
+          defaultValue={defaultName}
           placeholder="VD: Nguyễn Văn An"
           autoComplete="name"
           autoCapitalize="words"

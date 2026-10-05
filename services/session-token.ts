@@ -2,7 +2,7 @@ import { jwtVerify, SignJWT } from "jose";
 import { z } from "zod";
 
 import { MIN_SESSION_SECRET_LENGTH } from "@/constants/session";
-import type { SessionPayload } from "@/types/session";
+import type { SessionPayload, VerifiedSession } from "@/types/session";
 
 const SESSION_PAYLOAD_SCHEMA = z.discriminatedUnion("role", [
   z.object({ role: z.literal("admin") }),
@@ -27,9 +27,17 @@ export const signSession = (payload: SessionPayload, maxAgeSeconds: number) =>
     .setExpirationTime(`${maxAgeSeconds}s`)
     .sign(getSecretKey());
 
+export const getSessionCookieOptions = (maxAge: number) => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  path: "/",
+  maxAge,
+});
+
 export const verifySession = async (
   token: string | undefined,
-): Promise<SessionPayload | null> => {
+): Promise<VerifiedSession | null> => {
   if (!token) {
     return null;
   }
@@ -40,7 +48,9 @@ export const verifySession = async (
     });
     const parsed = SESSION_PAYLOAD_SCHEMA.safeParse(payload);
 
-    return parsed.success ? parsed.data : null;
+    return parsed.success
+      ? { ...parsed.data, issuedAt: payload.iat ?? 0 }
+      : null;
   } catch {
     return null;
   }

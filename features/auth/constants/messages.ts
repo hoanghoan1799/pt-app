@@ -9,3 +9,7 @@ export const AUTH_MESSAGES = {
 
 // Slows down password guessing on the single shared admin password.
 export const LOGIN_FAILURE_DELAY_MS = 600;
+
+// localStorage key holding the last signed-in name, used to pre-fill the
+// login form if the session cookie is ever lost.
+export const REMEMBERED_NAME_KEY = "pt-app:last-name";

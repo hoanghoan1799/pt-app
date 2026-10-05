@@ -5,6 +5,7 @@ import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
 import { LogoutButton } from "@/features/auth/components/LogoutButton";
+import { RememberUser } from "@/features/auth/components/RememberUser";
 import { WorkoutWeek } from "@/features/workouts/components/WorkoutWeek";
 import { getWeekSchedule } from "@/features/workouts/services/workout-queries";
 import { getTodayDate, resolveSchedule } from "@/features/workouts/utils/week";
@@ -25,6 +26,7 @@ const WorkoutsPage = async ({ searchParams }: PageProps<"/workouts">) => {
 
   return (
     <>
+      <RememberUser name={user.name} />
       <AppHeader
         eyebrow="Xin chào"
         title={user.name}

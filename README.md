@@ -7,6 +7,7 @@
 **User** (`/`)
 
 - Đăng nhập bằng tên (không phân biệt hoa/thường, có dấu hay không dấu).
+- Nhớ đăng nhập: cookie tự gia hạn mỗi lần mở app (400 ngày), nên lần sau vào thẳng lịch tập. Tên cũng được lưu trên máy để điền sẵn nếu cookie bị xóa. Chỉ khi bấm **Đăng xuất** mới phải nhập lại.
 - Lịch theo tuần (T2 → CN), mặc định mở hôm nay, chuyển tuần trước/sau.
 - Mỗi bài tập: video YouTube phát ngay trong trang, số hiệp × số lần, mô tả.
 - Ngày không có bài hiển thị "Ngày nghỉ".

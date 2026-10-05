@@ -8,18 +8,16 @@ import {
   USER_COOKIE,
   USER_SESSION_MAX_AGE,
 } from "@/constants/session";
-import { signSession, verifySession } from "@/services/session-token";
+import {
+  getSessionCookieOptions,
+  signSession,
+  verifySession,
+} from "@/services/session-token";
 
 const writeCookie = async (name: string, value: string, maxAge: number) => {
   const cookieStore = await cookies();
 
-  cookieStore.set(name, value, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge,
-  });
+  cookieStore.set(name, value, getSessionCookieOptions(maxAge));
 };
 
 export const startUserSession = async (userId: number) => {
