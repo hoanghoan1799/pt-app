@@ -3,10 +3,12 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 
 import { AppToaster } from "@/components/common/AppToaster";
+import { ServiceWorkerRegister } from "@/features/pwa/components/ServiceWorkerRegister";
 
 export const metadata: Metadata = {
   title: { default: "PT App", template: "%s · PT App" },
   description: "Lịch tập luyện hằng tuần do PT giao",
+  icons: { apple: "/icons/apple-touch-icon.png" },
   appleWebApp: { capable: true, title: "PT App", statusBarStyle: "default" },
 };
 
@@ -27,6 +29,7 @@ const RootLayout = ({ children }: LayoutProps<"/">) => (
     <body className="min-h-dvh antialiased">
       {children}
       <AppToaster />
+      <ServiceWorkerRegister />
     </body>
   </html>
 );
