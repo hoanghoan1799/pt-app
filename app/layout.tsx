@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from "next";
 
 import { AppToaster } from "@/components/common/AppToaster";
 import { ServiceWorkerRegister } from "@/features/pwa/components/ServiceWorkerRegister";
+import { INSTALL_CAPTURE_SCRIPT } from "@/features/pwa/constants/capture-script";
 
 export const metadata: Metadata = {
   title: { default: "PT App", template: "%s · PT App" },
@@ -26,6 +27,9 @@ export const viewport: Viewport = {
 
 const RootLayout = ({ children }: LayoutProps<"/">) => (
   <html lang="vi">
+    <head>
+      <script dangerouslySetInnerHTML={{ __html: INSTALL_CAPTURE_SCRIPT }} />
+    </head>
     <body className="min-h-dvh antialiased">
       {children}
       <AppToaster />

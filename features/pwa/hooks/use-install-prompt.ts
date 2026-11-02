@@ -1,97 +1,53 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
-import { DISMISS_STORAGE_KEY } from "@/features/pwa/constants";
 import {
-  detectInstallPlatform,
-  type InstallPlatform,
-  isDismissed,
-} from "@/features/pwa/utils/detect-install-platform";
-
-// Chrome's non-standard install prompt event.
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
-
-const readDismissedAt = () => {
-  try {
-    const raw = window.localStorage.getItem(DISMISS_STORAGE_KEY);
-
-    return raw === null ? null : Number(raw);
-  } catch {
-    return null;
-  }
-};
-
-const writeDismissedAt = (value: number) => {
-  try {
-    window.localStorage.setItem(DISMISS_STORAGE_KEY, String(value));
-  } catch {
-    // Storage blocked (private mode): the banner just reappears next visit.
-  }
-};
-
-const readIsStandalone = () =>
-  window.matchMedia("(display-mode: standalone)").matches ||
-  (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  dismissInstall,
+  getDeferredPrompt,
+  getDismissed,
+  getPlatform,
+  subscribeInstall,
+  takeDeferredPrompt,
+} from "@/features/pwa/utils/install-store";
 
 export const useInstallPrompt = () => {
-  // null until mounted so the server and first client render both show nothing.
-  const [platform, setPlatform] = useState<InstallPlatform | null>(null);
-  const [dismissed, setDismissed] = useState(true);
-  const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
-
-  useEffect(() => {
-    // Browser-only values, read once after mount to avoid a hydration mismatch.
-    /* eslint-disable react-hooks/set-state-in-effect */
-    setPlatform(
-      detectInstallPlatform({
-        userAgent: navigator.userAgent,
-        maxTouchPoints: navigator.maxTouchPoints,
-        isStandalone: readIsStandalone(),
-      }),
-    );
-    setDismissed(isDismissed(readDismissedAt(), Date.now()));
-    /* eslint-enable react-hooks/set-state-in-effect */
-
-    const onBeforeInstallPrompt = (event: Event) => {
-      event.preventDefault();
-      setDeferredPrompt(event as BeforeInstallPromptEvent);
-    };
-    const onInstalled = () => {
-      setDeferredPrompt(null);
-      setPlatform("installed");
-    };
-
-    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
-  }, []);
-
-  const dismiss = useCallback(() => {
-    writeDismissedAt(Date.now());
-    setDismissed(true);
-  }, []);
+  // Server snapshots hide everything, so server and first client render match.
+  const platform = useSyncExternalStore(
+    subscribeInstall,
+    getPlatform,
+    () => null,
+  );
+  const dismissed = useSyncExternalStore(
+    subscribeInstall,
+    getDismissed,
+    () => true,
+  );
+  const deferredPrompt = useSyncExternalStore(
+    subscribeInstall,
+    getDeferredPrompt,
+    () => null,
+  );
 
   const install = useCallback(async () => {
-    if (!deferredPrompt) {
+    // Clears the saved event before awaiting, so a double tap is ignored.
+    const event = takeDeferredPrompt();
+
+    if (!event) {
       return;
     }
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
+    try {
+      await event.prompt();
+      const { outcome } = await event.userChoice;
 
-    // The saved event can only be used once.
-    setDeferredPrompt(null);
-    if (outcome === "dismissed") {
-      dismiss();
+      if (outcome === "dismissed") {
+        dismissInstall();
+      }
+    } catch {
+      // The browser refused or the prompt was torn down; the event is already
+      // cleared, so the banner waits for the next beforeinstallprompt.
     }
-  }, [deferredPrompt, dismiss]);
+  }, []);
 
   const needsPrompt = platform === "android" || platform === "other";
   const visible =
@@ -100,5 +56,5 @@ export const useInstallPrompt = () => {
     !dismissed &&
     (needsPrompt ? deferredPrompt !== null : true);
 
-  return { visible, platform, install, dismiss };
+  return { visible, platform, install, dismiss: dismissInstall };
 };
