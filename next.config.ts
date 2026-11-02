@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  env: {
+    // Versions the service worker URL so each deploy reinstalls it.
+    NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA ?? "dev",
+  },
   reactCompiler: true,
   images: {
     // YouTube video thumbnails.
