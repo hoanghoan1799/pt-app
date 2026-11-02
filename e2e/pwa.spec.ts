@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { type Browser, expect, type Page, test } from "@playwright/test";
 
 import { E2E_USER_NAME } from "./config";
 import { shot } from "./shots";
@@ -125,11 +125,8 @@ test("once the worker controls the page, an offline navigation shows the offline
   await expect(page.getByLabel("Tên của bạn")).toBeVisible();
 });
 
-// The install banner. The config starts every spec with it dismissed, so these
-// specs use an empty storage state to see it.
+// The install banner.
 test.describe("install banner", () => {
-  test.use({ storageState: { cookies: [], origins: [] } });
-
   const IPHONE_SAFARI =
     "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
   const ZALO_ANDROID =
@@ -192,15 +189,63 @@ test.describe("install banner", () => {
     await context.close();
   });
 
-  test("Android Chrome shows the banner only after beforeinstallprompt and Cài đặt calls prompt()", async ({
-    browser,
-  }) => {
-    const context = await browser.newContext({
+  const dispatchInstallPrompt = (page: Page) =>
+    page.evaluate(() => {
+      const w = window as unknown as { promptCalls: number };
+      const event = new Event("beforeinstallprompt", { cancelable: true });
+
+      w.promptCalls = 0;
+      Object.assign(event, {
+        prompt: async () => {
+          w.promptCalls += 1;
+        },
+        userChoice: Promise.resolve({ outcome: "accepted" }),
+      });
+      window.dispatchEvent(event);
+    });
+
+  const promptCalls = (page: Page) =>
+    page.evaluate(
+      () => (window as unknown as { promptCalls: number }).promptCalls,
+    );
+
+  const androidContext = (browser: Browser) =>
+    browser.newContext({
       userAgent:
         "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.6478.122 Mobile Safari/537.36",
       viewport: { width: 390, height: 844 },
       hasTouch: true,
     });
+
+  test("Android: an install prompt fired on the login page still shows the banner after login, and Cài đặt removes it", async ({
+    browser,
+  }) => {
+    const context = await androidContext(browser);
+    const page = await context.newPage();
+
+    // Chrome fires the event once, on the first page, before the trainee logs in.
+    await page.goto("/");
+    await expect(page.getByLabel("Tên của bạn")).toBeVisible();
+    await dispatchInstallPrompt(page);
+    await page.getByLabel("Tên của bạn").fill(E2E_USER_NAME);
+    await page.getByRole("button", { name: "Vào tập" }).click();
+    await expect(page).toHaveURL(/\/workouts/);
+
+    await expect(banner(page)).toContainText(
+      "Cài PT App lên màn hình chính để mở nhanh hơn",
+    );
+    await shot(page, "01-android-banner");
+
+    await banner(page).getByRole("button", { name: "Cài đặt" }).click();
+    await expect(banner(page)).toHaveCount(0);
+    expect(await promptCalls(page)).toBe(1);
+    await context.close();
+  });
+
+  test("Android: no banner without an install prompt, and a double tap on Cài đặt calls prompt() once", async ({
+    browser,
+  }) => {
+    const context = await androidContext(browser);
     const page = await context.newPage();
 
     await logIn(page);
@@ -209,30 +254,57 @@ test.describe("install banner", () => {
     ).toBeVisible();
     await expect(banner(page)).toHaveCount(0);
 
+    await dispatchInstallPrompt(page);
+    await expect(banner(page)).toBeVisible();
+    // Two taps in the same task, before React removes the banner.
     await page.evaluate(() => {
-      const event = new Event("beforeinstallprompt", { cancelable: true });
-
-      Object.assign(event, {
-        prompt: async () => {
-          (window as unknown as { promptCalls: number }).promptCalls = 1;
-        },
-        userChoice: Promise.resolve({ outcome: "accepted" }),
-      });
-      window.dispatchEvent(event);
-    });
-    await expect(banner(page)).toContainText(
-      "Cài PT App lên màn hình chính để mở nhanh hơn",
-    );
-    await shot(page, "01-android-banner");
-
-    await banner(page).getByRole("button", { name: "Cài đặt" }).click();
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () => (window as unknown as { promptCalls?: number }).promptCalls,
+      const button = [
+        ...document.querySelectorAll<HTMLButtonElement>(
+          '[aria-label="Cài ứng dụng"] button',
         ),
-      )
-      .toBe(1);
+      ].find((el) => el.textContent === "Cài đặt");
+
+      button?.click();
+      button?.click();
+    });
+    await expect(banner(page)).toHaveCount(0);
+    expect(await promptCalls(page)).toBe(1);
+    await context.close();
+  });
+
+  test("the banner never covers the last content of the workouts page", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      userAgent: IPHONE_SAFARI,
+      viewport: { width: 390, height: 844 },
+      hasTouch: true,
+    });
+    const page = await context.newPage();
+
+    await logIn(page);
+    await expect(banner(page)).toBeVisible();
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const bannerTop = await banner(page).evaluate(
+      (el) => el.getBoundingClientRect().top,
+    );
+    const contentBottom = await page.evaluate(() => {
+      // Last visible block of the page content, not the fixed chrome.
+      const main = document.querySelector("main") ?? document.body;
+      let bottom = 0;
+
+      for (const child of main.querySelectorAll("*")) {
+        const rect = child.getBoundingClientRect();
+
+        if (rect.height > 0 && rect.bottom > bottom) {
+          bottom = rect.bottom;
+        }
+      }
+      return bottom;
+    });
+
+    expect(contentBottom).toBeLessThanOrEqual(bannerTop);
+    await shot(page, "06-workouts-bottom-with-banner");
     await context.close();
   });
 });
