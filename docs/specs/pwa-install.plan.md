@@ -1,0 +1,46 @@
+# Plan: Install pt-app as an app (PWA)
+
+## Source
+
+- Intent: `intent/2026-11-02-pwa-install.md`
+- Spec: `docs/specs/pwa-install.md`
+- KAN key: KAN-79 (KAN-80 [FE], KAN-81 [QA])
+
+## Files that change
+
+- `scripts/generate-pwa-icons.ts` (new): renders `public/icons/icon.svg` to PNGs with the pre-installed Playwright Chromium. Run once; PNGs are committed.
+- `public/icons/` (new): `icon.svg`, `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`.
+- `app/manifest.ts`: `id`, `scope`, `lang`, `orientation`, `icons`.
+- `app/layout.tsx`: `icons.apple` metadata.
+- `public/sw.js` (new): install (precache `/offline` + icons), activate (drop old caches), fetch (navigation network-first with offline fallback; precached icons cache-first; everything else untouched).
+- `app/offline/page.tsx` (new): static Vietnamese offline page with "Thử lại".
+- `next.config.ts`: headers for `/sw.js`.
+- `features/pwa/utils/detect-install-platform.ts` + `__tests__/` (new): pure UA/standalone detection and dismissal window.
+- `features/pwa/hooks/use-install-prompt.ts` (new): captures `beforeinstallprompt`, reads/writes dismissal.
+- `features/pwa/components/ServiceWorkerRegister/index.tsx`, `InstallPrompt/index.tsx` (new).
+- `app/(user)/(protected)/layout.tsx`: render `InstallPrompt`; root layout renders `ServiceWorkerRegister`.
+- `e2e/pwa.spec.ts` (new): manifest, icons, sw headers, offline fallback.
+- `README.md`: "Cài app" section.
+
+## Order of work
+
+1. Icons + manifest + apple icon. Verify: manifest e2e and icon URLs.
+2. Offline page + `sw.js` + headers + register. Verify: e2e offline navigation.
+3. Detection util with unit tests, then hook + `InstallPrompt`. Verify: unit tests, browser proof at 390 px with emulated iPhone and Android UAs.
+4. README, `pnpm verify`, e2e, `/code-review`, PR with walkthrough artifact.
+
+## Risks
+
+- A buggy worker can keep serving an old page. Contained by: no HTML caching, `no-cache` on `sw.js`, `skipWaiting` + `clients.claim`, cache name versioned.
+- iOS home-screen app has its own cookie jar: trainee logs in once more. Documented in README.
+- Offline fallback could hide a real server error: only network failures (fetch throws) show `/offline`; HTTP errors pass through.
+
+## Proof
+
+- Unit: `features/pwa/utils/__tests__/detect-install-platform.test.ts`.
+- e2e: `e2e/pwa.spec.ts`. Commands: `pnpm verify`, `pnpm test:e2e`.
+- Browser proof screenshots (banner Android/iOS, offline page) at 390 px; real-phone check by Hoan after the Vercel deploy.
+
+## Deviations
+
+None yet.
