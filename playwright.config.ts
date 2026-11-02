@@ -1,6 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 
 import { E2E_BASE_URL, E2E_ENV, E2E_PORT } from "./e2e/config";
+import { DISMISS_STORAGE_KEY } from "./features/pwa/constants";
+
+// Lets context.route see (and abort) requests made by the service worker; the
+// offline spec of e2e/pwa.spec.ts needs it. Read when the browser launches.
+process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = "1";
 
 const isCi = Boolean(process.env.CI);
 
@@ -24,6 +29,20 @@ export default defineConfig({
     ...devices["iPhone 12"],
     // The iPhone preset defaults to WebKit; CI only installs Chromium.
     defaultBrowserType: "chromium",
+    // The iPhone user agent makes the install banner (KAN-79) show above the
+    // tab bar, where it covers taps. Specs start with it dismissed; the banner
+    // spec opts out with its own empty storage state.
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: E2E_BASE_URL,
+          localStorage: [
+            { name: DISMISS_STORAGE_KEY, value: String(Date.now()) },
+          ],
+        },
+      ],
+    },
   },
   projects: [{ name: "mobile-chromium" }],
   webServer: {

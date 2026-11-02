@@ -19,6 +19,8 @@ export const E2E_ENV = {
   TURSO_AUTH_TOKEN: "",
   SESSION_SECRET: "e2e-only-secret-at-least-32-characters-long",
   VERCEL: "",
+  // Registers public/sw.js under `next dev` (the worker is production-only otherwise).
+  NEXT_PUBLIC_ENABLE_SW: "1",
 } as const;
 
 export const E2E_USER_NAME = "E2E Trainee";
