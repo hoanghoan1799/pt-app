@@ -19,6 +19,12 @@ const UA = {
     "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 [FBAN/FBIOS;FBAV/460.0.0.37.108;FBBV/569293617;FBDV/iPhone14,5;FBMD/iPhone;FBSN/iOS;FBSV/17.5;FBLC/vi_VN]",
   instagramAndroid:
     "Mozilla/5.0 (Linux; Android 14; Pixel 8 Build/UP1A.231005.007; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/126.0.6478.122 Mobile Safari/537.36 Instagram 330.0.0.40.97 Android (34/14; 420dpi; 1080x2400; Google/google; Pixel 8; shiba; shiba; en_US; 560339221)",
+  tiktokAndroid:
+    "Mozilla/5.0 (Linux; Android 13; SM-A546E Build/TP1A.220624.014; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/125.0.6422.165 Mobile Safari/537.36 trill_340000 JsSdk/1.0 NetType/WIFI Channel/googleplay AppName/musical_ly app_version/34.0.0 ByteLocale/vi-VN BytedanceWebview/d8a21c6",
+  tiktokIos:
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 musical_ly_34.0.0 JsSdk/2.0 NetType/WIFI Channel/App Store ByteLocale/vi Region/VN",
+  androidWebView:
+    "Mozilla/5.0 (Linux; Android 12; Redmi Note 11 Build/SKQ1.211103.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/124.0.6367.113 Mobile Safari/537.36",
   macSafari:
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
   windowsChrome:
@@ -59,6 +65,15 @@ describe("detectInstallPlatform", () => {
 
   it("returns in-app for the Instagram browser", () => {
     expect(detect(UA.instagramAndroid, 5)).toBe("in-app");
+  });
+
+  it("returns in-app for the TikTok browser on Android and iOS", () => {
+    expect(detect(UA.tiktokAndroid, 5)).toBe("in-app");
+    expect(detect(UA.tiktokIos, 5)).toBe("in-app");
+  });
+
+  it("returns in-app for a generic Android WebView (; wv)", () => {
+    expect(detect(UA.androidWebView, 5)).toBe("in-app");
   });
 
   it("returns other for desktop Chrome", () => {

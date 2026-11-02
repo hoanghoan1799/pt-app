@@ -10,7 +10,9 @@ interface DetectInput {
 }
 
 // In-app browsers that cannot install a PWA or add to the home screen.
-const IN_APP_PATTERN = /Zalo|FBAN|FBAV|FB_IAB|Instagram|\bLine\/|Messenger/i;
+// Includes TikTok and any Android WebView (`; wv)`), where install is impossible.
+const IN_APP_PATTERN =
+  /Zalo|FBAN|FBAV|FB_IAB|Instagram|\bLine\/|Messenger|musical_ly|BytedanceWebview|TikTok|; wv\)/i;
 const IOS_PATTERN = /iPhone|iPod|iPad/;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
