@@ -28,4 +28,4 @@ See `docs/specs/pwa-install.md`.
 
 ## Out of scope
 
-Push notifications, offline logging, a separate admin app, app store publishing.
+Push notifications, offline logging, app store publishing. (A separate PT Admin app was first out of scope and added on 2026-11-02, spec D8.)

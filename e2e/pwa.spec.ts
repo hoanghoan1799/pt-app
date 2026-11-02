@@ -46,6 +46,55 @@ test("the manifest has the start page, standalone display and 192, 512 and maska
   }
 });
 
+test("admin pages link the PT Admin manifest, which opens on the dashboard", async ({
+  page,
+  request,
+}) => {
+  // Logged out, /admin redirects to the admin login, which is still under the
+  // admin layout and must point "Add to Home Screen" at the admin app.
+  await page.goto("/admin/login");
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute(
+    "href",
+    "/admin-manifest.webmanifest",
+  );
+  await expect(
+    page.locator('meta[name="apple-mobile-web-app-title"]'),
+  ).toHaveAttribute("content", "PT Admin");
+
+  // Fetched without a session, like a browser does: not redirected by proxy.ts.
+  const response = await request.get("/admin-manifest.webmanifest", {
+    maxRedirects: 0,
+  });
+
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-type"]).toContain(
+    "application/manifest+json",
+  );
+  const manifest = await response.json();
+
+  expect(manifest.name).toBe("PT Admin");
+  expect(manifest.id).toBe("/admin");
+  expect(manifest.start_url).toBe("/admin");
+  expect(manifest.scope).toBe("/admin");
+  expect(manifest.display).toBe("standalone");
+  expect(manifest.icons.map((icon: ManifestIcon) => icon.src).sort()).toEqual([
+    "/icons/icon-192.png",
+    "/icons/icon-512.png",
+    "/icons/icon-maskable-512.png",
+  ]);
+});
+
+test("trainee pages keep the PT App manifest", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute(
+    "href",
+    "/manifest.webmanifest",
+  );
+  await expect(
+    page.locator('meta[name="apple-mobile-web-app-title"]'),
+  ).toHaveAttribute("content", "PT App");
+});
+
 test("the apple touch icon is linked and served as a PNG", async ({
   page,
   request,

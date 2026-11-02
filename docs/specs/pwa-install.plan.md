@@ -54,3 +54,4 @@
 - `/_next/static/*` is network first with cache fallback only when fetch throws; icons stay cache-first. D3 therefore reads: precache `/offline`, its static chunks and icons; navigations and statics are network first.
 - The banner reserves its height with an in-flow aria-hidden spacer (kept in sync by a ResizeObserver), so the last content stays reachable. The pre-dismiss storage state in `playwright.config.ts` was removed; F8, F9 and B17 pass with the banner visible.
 - In-app detection also covers TikTok and Android WebView (`; wv)`).
+- Admin app (spec D8, Hoan 2026-11-02): `features/pwa/utils/build-manifest.ts` shared by `app/manifest.ts` and the new `app/admin-manifest.webmanifest/route.ts`; `app/admin/layout.tsx` sets `manifest` and `appleWebApp.title`; e2e covers both manifests and that the admin manifest is not redirected by `proxy.ts`.

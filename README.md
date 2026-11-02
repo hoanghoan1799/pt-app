@@ -21,6 +21,7 @@
 **Admin** (`/admin`)
 
 - Đăng nhập bằng tài khoản + mật khẩu riêng (lưu trong DB, mật khẩu hash bằng scrypt). Tạo bằng `pnpm admin:create`.
+- **App PT Admin**: mở `/admin` trên điện thoại rồi **Thêm vào MH chính** (iPhone) hoặc **Cài đặt ứng dụng** (menu Chrome) để có icon riêng "PT Admin" mở thẳng vào dashboard, tách biệt với app của học viên.
 - **Dashboard** (`/admin`) theo tuần: số user, số user đang tập, % hoàn thành, số bài đã tập; danh sách user kèm tiến độ, lần tập gần nhất và nhãn "Chưa có lịch"; nhật ký hoạt động gần đây.
 - Thêm (nút + trên dashboard) / xóa user.
 - Trang từng user: tiến độ tuần, bài nào đã tập lúc nào, lịch sử tập.
