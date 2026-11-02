@@ -21,6 +21,7 @@
     "admin:create": "tsx --env-file-if-exists=.env.local scripts/create-admin.ts",
     "db:seed-foods": "tsx --env-file-if-exists=.env.local scripts/seed-foods.ts",
     "db:seed-demo": "tsx --env-file-if-exists=.env.local scripts/seed-demo.ts",
+    "pwa:icons": "tsx scripts/generate-pwa-icons.ts",
     "db:setup": "tsx --env-file-if-exists=.env.local scripts/setup-database.ts"
   },
   "dependencies": {
