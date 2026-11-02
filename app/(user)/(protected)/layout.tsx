@@ -1,4 +1,5 @@
 import { UserTabBar } from "@/components/layout/UserTabBar";
+import { InstallPrompt } from "@/features/pwa/components/InstallPrompt";
 import { requireUser } from "@/services/auth-guard";
 
 // Every page in this group is for signed-in users only.
@@ -8,6 +9,7 @@ const UserProtectedLayout = async ({ children }: LayoutProps<"/">) => {
   return (
     <>
       {children}
+      <InstallPrompt />
       <UserTabBar />
     </>
   );

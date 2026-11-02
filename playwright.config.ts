@@ -2,6 +2,10 @@ import { defineConfig, devices } from "@playwright/test";
 
 import { E2E_BASE_URL, E2E_ENV, E2E_PORT } from "./e2e/config";
 
+// Lets context.route see (and abort) requests made by the service worker; the
+// offline spec of e2e/pwa.spec.ts needs it. Read when the browser launches.
+process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = "1";
+
 const isCi = Boolean(process.env.CI);
 
 export default defineConfig({

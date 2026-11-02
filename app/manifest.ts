@@ -1,15 +1,15 @@
 import type { MetadataRoute } from "next";
 
 import { ROUTES } from "@/constants/routes";
+import { buildManifest } from "@/features/pwa/utils/build-manifest";
 
-const manifest = (): MetadataRoute.Manifest => ({
-  name: "PT App",
-  short_name: "PT App",
-  description: "Lịch tập luyện hằng tuần do PT giao",
-  start_url: ROUTES.WORKOUTS,
-  display: "standalone",
-  background_color: "#f4f4f5",
-  theme_color: "#f4f4f5",
-});
+const manifest = (): MetadataRoute.Manifest =>
+  buildManifest({
+    id: "/",
+    name: "PT App",
+    description: "Lịch tập luyện hằng tuần do PT giao",
+    startUrl: ROUTES.WORKOUTS,
+    scope: "/",
+  });
 
 export default manifest;

@@ -3,10 +3,13 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 
 import { AppToaster } from "@/components/common/AppToaster";
+import { ServiceWorkerRegister } from "@/features/pwa/components/ServiceWorkerRegister";
+import { INSTALL_CAPTURE_SCRIPT } from "@/features/pwa/constants/capture-script";
 
 export const metadata: Metadata = {
   title: { default: "PT App", template: "%s · PT App" },
   description: "Lịch tập luyện hằng tuần do PT giao",
+  icons: { apple: "/icons/apple-touch-icon.png" },
   appleWebApp: { capable: true, title: "PT App", statusBarStyle: "default" },
 };
 
@@ -24,9 +27,13 @@ export const viewport: Viewport = {
 
 const RootLayout = ({ children }: LayoutProps<"/">) => (
   <html lang="vi">
+    <head>
+      <script dangerouslySetInnerHTML={{ __html: INSTALL_CAPTURE_SCRIPT }} />
+    </head>
     <body className="min-h-dvh antialiased">
       {children}
       <AppToaster />
+      <ServiceWorkerRegister />
     </body>
   </html>
 );
