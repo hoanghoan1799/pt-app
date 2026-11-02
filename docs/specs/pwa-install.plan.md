@@ -43,4 +43,8 @@
 
 ## Deviations
 
-None yet.
+- D7 changed: the worker registers in production or when `NEXT_PUBLIC_ENABLE_SW=1`, because e2e runs against `next dev`. `e2e/config.ts` sets the flag in `E2E_ENV`.
+- Icon sources: besides `icon.svg` there is `icon-maskable.svg` (glyph scaled to 72% for the safe zone); `pnpm pwa:icons` renders both. The script imports `chromium` from `@playwright/test` (already a dependency).
+- Offline e2e: Playwright's `setOffline` does not affect fetches made by the worker, so `playwright.config.ts` sets `PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1` and the spec aborts the `/summary` request with `context.route`. The worker then falls back to `/offline`.
+- Added `features/pwa/components/OfflineRetryButton` (client button for the static offline page) and `features/pwa/constants/index.ts`.
+- `/sw.js` also gets a `Content-Security-Policy: default-src 'self'; script-src 'self'` header, as in the Next PWA guide.

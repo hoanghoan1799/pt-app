@@ -16,6 +16,7 @@
 - **Chỉ số của bạn**: user tự nhập giới tính, tuổi, chiều cao, cân nặng, mức vận động, mục tiêu để xem BMR/TDEE. Nếu mục tiêu dinh dưỡng đang "tự tính từ TDEE" (hoặc chưa có), nó được tính lại ngay; nếu PT đã nhập tay thì giữ nguyên.
 - **Tổng kết** (tab thứ 3): tuần tập luyện (buổi/bài đã tập từng ngày) và dinh dưỡng (gram từng ngày so với mục tiêu, số ngày ghi/đạt, kcal TB). Bấm vào ngày để mở chi tiết.
 - **Cân nặng theo tuần** (đầu tab Tổng kết): user ghi "cân hôm nay" (mỗi ngày 1 số, ghi lại thì thay), biểu đồ trung bình theo tuần trong 12 tuần (chạm để xem từng tuần, có dạng bảng), thay đổi so với tuần trước và cả kỳ. Cân mới nhất cập nhật luôn chỉ số cơ thể/TDEE; mục tiêu "tự tính từ TDEE" được tính lại theo.
+- **Cài app (PWA)**: cài PT App lên màn hình chính để mở như app thật. Android/Chrome: bấm **Cài đặt** ở banner phía trên thanh tab. iPhone/iPad: bấm nút **Chia sẻ** rồi chọn **Thêm vào MH chính**. Mở link từ Zalo/Facebook thì cần mở lại bằng Safari hoặc Chrome. Bấm **Để sau** để ẩn banner 14 ngày. Lưu ý: app trên màn hình chính của iPhone có bộ nhớ riêng nên phải đăng nhập lại một lần. Khi mất mạng, app chỉ hiện thông báo "Không có kết nối mạng" (không lưu lịch tập hay dữ liệu cá nhân offline).
 
 **Admin** (`/admin`)
 
