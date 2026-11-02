@@ -1,7 +1,7 @@
 // PT App service worker. Deliberately tiny: it makes the app installable and
 // shows a friendly page when the network is down. It never caches HTML pages,
 // /api, server actions or any user data.
-const CACHE_NAME = "pt-app-static-v1";
+const CACHE_NAME = "pt-app-static-v2";
 const OFFLINE_URL = "/offline";
 const ICON_URLS = [
   "/icons/icon-192.png",
@@ -15,7 +15,19 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then(async (cache) => {
+        await cache.addAll(PRECACHE_URLS);
+        // The offline page needs its own CSS and JS chunks to render styled
+        // and hydrate the retry button with no network. They are hashed,
+        // immutable build files, never user data.
+        const offline = await cache.match(OFFLINE_URL);
+        const html = offline ? await offline.text() : "";
+        const assets = [
+          ...new Set(html.match(/\/_next\/static\/[^"'\\\s)]+/g) ?? []),
+        ];
+        // One missing chunk must not block installing the worker.
+        await Promise.allSettled(assets.map((url) => cache.add(url)));
+      })
       .then(() => self.skipWaiting()),
   );
 });
@@ -58,7 +70,7 @@ self.addEventListener("fetch", (event) => {
 
   const { pathname } = new URL(request.url);
 
-  if (ICON_URLS.includes(pathname)) {
+  if (ICON_URLS.includes(pathname) || pathname.startsWith("/_next/static/")) {
     event.respondWith(
       caches.match(request).then((cached) => cached || fetch(request)),
     );

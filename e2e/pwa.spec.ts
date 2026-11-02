@@ -95,10 +95,9 @@ test("once the worker controls the page, an offline navigation shows the offline
 
   // Page-level offline emulation does not reach fetches made by the worker
   // itself; with PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS (set in
-  // playwright.config.ts) context.route does, so the page request is aborted.
-  await context.route("**/summary", (route) =>
-    route.abort("internetdisconnected"),
-  );
+  // playwright.config.ts) context.route does, so every request is aborted and
+  // whatever renders must come from the worker's cache.
+  await context.route("**/*", (route) => route.abort("internetdisconnected"));
   try {
     await page.goto("/summary");
     await expect(
@@ -106,8 +105,19 @@ test("once the worker controls the page, an offline navigation shows the offline
     ).toBeVisible();
     // The fallback replaces the failed page: no login form, no tab bar.
     await expect(page.getByLabel("Tên của bạn")).toHaveCount(0);
+    // Its CSS came from the cache too, so the page is styled, not bare HTML.
+    const hasStyles = await page.evaluate(() =>
+      [...document.styleSheets].some((sheet) => {
+        try {
+          return sheet.cssRules.length > 0;
+        } catch {
+          return false;
+        }
+      }),
+    );
+    expect(hasStyles).toBe(true);
   } finally {
-    await context.unroute("**/summary");
+    await context.unroute("**/*");
   }
 
   // Back online the real app loads again: the worker did not cache the fallback.
