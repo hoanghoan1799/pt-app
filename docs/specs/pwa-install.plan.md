@@ -48,3 +48,4 @@
 - Offline e2e: Playwright's `setOffline` does not affect fetches made by the worker, so `playwright.config.ts` sets `PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1` and the spec aborts the `/summary` request with `context.route`. The worker then falls back to `/offline`.
 - Added `features/pwa/components/OfflineRetryButton` (client button for the static offline page) and `features/pwa/constants/index.ts`.
 - `/sw.js` also gets a `Content-Security-Policy: default-src 'self'; script-src 'self'` header, as in the Next PWA guide.
+- e2e default storage state: the iPhone preset's user agent makes the install banner appear above the tab bar and cover taps (F8, F9, B17 timed out on first run). `playwright.config.ts` now starts every spec with the dismissal key set; the banner specs in `e2e/pwa.spec.ts` use an empty storage state.
