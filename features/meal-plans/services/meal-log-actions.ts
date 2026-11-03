@@ -29,7 +29,9 @@ import { getTodayDate } from "@/utils/week";
 
 const refresh = (userId: number) => {
   revalidatePath(ROUTES.NUTRITION);
+  revalidatePath(ROUTES.SUMMARY);
   revalidatePath(getAdminNutritionPath(userId));
+  revalidatePath(ROUTES.ADMIN);
 };
 
 // The trainee logs what they ate today or earlier, never ahead of time.

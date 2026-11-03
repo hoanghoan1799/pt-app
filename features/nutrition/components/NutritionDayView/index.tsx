@@ -54,14 +54,22 @@ export const NutritionDayView = ({
 
       <div className={`${CARD} space-y-4 p-4`}>
         {day.target ? (
-          <MacroProgressList totals={day.totals} target={day.target} />
+          <MacroProgressList
+            totals={day.totals}
+            kcal={day.totalKcal}
+            target={day.target}
+          />
         ) : (
           <>
             <p className="text-sm text-muted">
               PT chưa đặt mục tiêu dinh dưỡng cho ngày này.
             </p>
             {day.loggedCount > 0 && (
-              <MacroProgressList totals={day.totals} target={null} />
+              <MacroProgressList
+                totals={day.totals}
+                kcal={day.totalKcal}
+                target={null}
+              />
             )}
           </>
         )}

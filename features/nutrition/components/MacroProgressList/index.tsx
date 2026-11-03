@@ -8,15 +8,18 @@ import type {
 
 interface MacroProgressListProps {
   totals: MacroAmounts;
+  // Counted kcal; a free food can add kcal without macros.
+  kcal: number;
   target: NutritionTarget | null;
 }
 
 export const MacroProgressList = ({
   totals,
+  kcal,
   target,
 }: MacroProgressListProps) => (
   <ul className="space-y-4">
-    <CaloriesProgressRow totals={totals} target={target} />
+    <CaloriesProgressRow kcal={kcal} target={target} />
     {MACROS.map((macro) => (
       <MacroProgressRow
         key={macro}

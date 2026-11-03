@@ -10,16 +10,17 @@ import {
 import { formatComparison } from "@/features/nutrition/utils/progress-text";
 
 interface CaloriesProgressRowProps {
-  totals: MacroAmounts;
+  // Counted kcal of the day.
+  kcal: number;
   target: MacroAmounts | null;
 }
 
-// Calories follow from the macros: 4 kcal/g carbs and protein, 9 kcal/g fat.
+// The goal follows from the target macros (4/4/9); what was eaten is the
+// day's counted kcal.
 export const CaloriesProgressRow = ({
-  totals,
+  kcal: eaten,
   target,
 }: CaloriesProgressRowProps) => {
-  const eaten = calculateCalories(totals);
   const goal = target ? calculateCalories(target) : undefined;
   const comparison = compareToTarget(eaten, goal, "kcal");
 
