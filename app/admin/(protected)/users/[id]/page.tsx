@@ -12,6 +12,7 @@ import { RecentActivityList } from "@/features/dashboard/components/RecentActivi
 import { MEMBER_ACTIVITY_LIMIT } from "@/features/dashboard/constants/dashboard";
 import { getRecentActivity } from "@/features/dashboard/services/dashboard-queries";
 import { DeleteMemberButton } from "@/features/members/components/DeleteMemberButton";
+import { MemberLoginCard } from "@/features/members/components/MemberLoginCard";
 import { listMembers } from "@/features/members/services/member-queries";
 import { CopyWeekButton } from "@/features/workouts/components/CopyWeekButton";
 import { WorkoutWeekEditor } from "@/features/workouts/components/WorkoutWeekEditor";
@@ -96,6 +97,7 @@ const AdminUserPage = async ({
             now={getRequestTime()}
           />
         </section>
+        <MemberLoginCard userId={user.id} name={user.name} email={user.email} />
         <section className="space-y-3">
           <h2 className={SECTION_TITLE}>Công cụ</h2>
           <CopyWeekButton

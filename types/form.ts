@@ -9,4 +9,6 @@ export interface FormState {
   errorReference?: string;
   // Changes on every response so effects can react to repeated successes.
   submittedAt?: number;
+  // Shown once to the admin after a member is created; never persisted.
+  credentials?: { name: string; email: string; password: string };
 }
