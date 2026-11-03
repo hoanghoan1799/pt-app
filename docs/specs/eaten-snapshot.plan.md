@@ -38,4 +38,8 @@
 
 ## Deviations
 
-None yet.
+- `listMealNutrition`, `countMealNutrition` and `countMealEntries` take the frozen items as an optional 4th argument (`FrozenItem[]`, carried on `MealMark.frozen`) instead of a separate snapshot-aware code path; the loaders (`getMealLogData`, `getNutritionWeek`) fill it, so strip, summary and cards share one rule. New helper `nutritionOfFood` computes a food's numbers for the actions and the counting.
+- A marked meal whose snapshot has no rows (no planned items at mark time, or marked before KAN-93) reads live, so a PT who adds foods to a meal that was empty when marked changes its eaten total; D5 makes no distinction and this edge is accepted.
+- Snapshot items always carry the plan item's `food_id` (never null in practice); the loaders skip a null one.
+- `getNutritionWeek` now passes only the four typed columns to `resolveLogNutrition` (it used to pass the whole joined row).
+- The existing e2e C5 asserted that a library log stores null numbers; updated to the KAN-93 rule (computed numbers stored, recomputed on edit).

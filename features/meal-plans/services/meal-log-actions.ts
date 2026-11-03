@@ -7,7 +7,13 @@ import type { z } from "zod";
 import { ROUTES } from "@/constants/routes";
 import { TIME_ZONE } from "@/constants/time";
 import { db } from "@/db";
-import { foods, mealLogs, mealMarks } from "@/db/schema";
+import {
+  foods,
+  mealLogs,
+  mealMarkItems,
+  mealMarks,
+  mealPlanItems,
+} from "@/db/schema";
 import { getFood } from "@/features/foods/services/food-queries";
 import {
   MEAL_LOG_LIMITS,
@@ -22,6 +28,7 @@ import {
   updateMealLogSchema,
 } from "@/features/meal-plans/services/meal-log-schemas";
 import { findOwnedMeal } from "@/features/meal-plans/services/meal-plan-store";
+import { nutritionOfFood } from "@/features/meal-plans/utils/meal-log";
 import { withResultErrorHandling } from "@/services/action-errors";
 import { requireUser } from "@/services/auth-guard";
 import { getAdminNutritionPath } from "@/utils/routes";
@@ -86,11 +93,14 @@ export const addMealLogAction = withResultErrorHandling(
         return false;
       }
       if (data.kind === "library" && food) {
+        // The numbers are stored with the log (KAN-93): editing the food
+        // later does not change what was eaten.
         await tx.insert(mealLogs).values({
           userId: user.id,
           mealId: data.mealId,
           foodId: food.id,
           grams: data.grams,
+          ...nutritionOfFood(food, data.grams),
         });
       } else if (data.kind === "free") {
         await tx.insert(mealLogs).values({
@@ -143,7 +153,11 @@ export const updateMealLogAction = withResultErrorHandling(
     if (log.foodId !== null) {
       // Archived foods may still be edited; a deleted row may not.
       const [food] = await db
-        .select({ id: foods.id })
+        .select({
+          protein: foods.protein,
+          carbs: foods.carbs,
+          fat: foods.fat,
+        })
         .from(foods)
         .where(eq(foods.id, log.foodId));
 
@@ -155,7 +169,12 @@ export const updateMealLogAction = withResultErrorHandling(
       }
       await db
         .update(mealLogs)
-        .set({ grams: data.grams, updatedAt: new Date() })
+        // Recomputed from the library as it is now (KAN-93).
+        .set({
+          grams: data.grams,
+          ...nutritionOfFood(food, data.grams),
+          updatedAt: new Date(),
+        })
         .where(eq(mealLogs.id, log.id));
     } else {
       if (!data.customName) {
@@ -222,10 +241,23 @@ export const setMealMarkAction = withResultErrorHandling(
       return meal.error;
     }
 
-    if (!data.achieved && !data.note) {
-      await db.delete(mealMarks).where(eq(mealMarks.mealId, data.mealId));
-    } else {
-      await db
+    await db.transaction(async (tx) => {
+      const [previous] = await tx
+        .select()
+        .from(mealMarks)
+        .where(eq(mealMarks.mealId, data.mealId));
+
+      if (!data.achieved && !data.note) {
+        if (previous) {
+          await tx
+            .delete(mealMarkItems)
+            .where(eq(mealMarkItems.markId, previous.id));
+        }
+        await tx.delete(mealMarks).where(eq(mealMarks.mealId, data.mealId));
+        return;
+      }
+
+      const [mark] = await tx
         .insert(mealMarks)
         .values({
           mealId: data.mealId,
@@ -240,8 +272,54 @@ export const setMealMarkAction = withResultErrorHandling(
             note: data.note,
             updatedAt: new Date(),
           },
-        });
-    }
+        })
+        .returning({ id: mealMarks.id });
+
+      // KAN-93: "Đạt" freezes the planned items as they are now. Turning it on
+      // takes a fresh snapshot; a note-only save keeps it; turning it off
+      // drops it.
+      const wasAchieved = previous?.achieved ?? false;
+
+      if (data.achieved && wasAchieved) {
+        return;
+      }
+      await tx.delete(mealMarkItems).where(eq(mealMarkItems.markId, mark.id));
+      if (!data.achieved) {
+        return;
+      }
+
+      const items = await tx
+        .select({
+          foodId: mealPlanItems.foodId,
+          grams: mealPlanItems.grams,
+          protein: foods.protein,
+          carbs: foods.carbs,
+          fat: foods.fat,
+        })
+        .from(mealPlanItems)
+        .leftJoin(foods, eq(foods.id, mealPlanItems.foodId))
+        .where(eq(mealPlanItems.mealId, data.mealId));
+
+      if (items.length) {
+        await tx.insert(mealMarkItems).values(
+          items.map((item) => ({
+            markId: mark.id,
+            mealId: data.mealId,
+            foodId: item.foodId,
+            grams: item.grams,
+            // A food row that is gone counts 0 g, as the live plan does.
+            ...(item.protein !== null &&
+            item.carbs !== null &&
+            item.fat !== null
+              ? nutritionOfFood(
+                  { protein: item.protein, carbs: item.carbs, fat: item.fat },
+                  item.grams,
+                )
+              : { protein: 0, carbs: 0, fat: 0, kcal: 0 }),
+          })),
+        );
+      }
+    });
 
     refresh(user.id);
     return ok;

@@ -6,6 +6,7 @@ import { db } from "@/db";
 import {
   foods,
   mealLogs,
+  mealMarkItems,
   mealMarks,
   mealPlanDays,
   mealPlanMeals,
@@ -23,7 +24,7 @@ export const getMealLogData = async (mealIds: number[]) => {
     return { logs: [] as MealLog[], marks: [] as MealMark[] };
   }
 
-  const [logRows, markRows] = await Promise.all([
+  const [logRows, markRows, frozenRows] = await Promise.all([
     db
       .select({
         log: mealLogs,
@@ -41,6 +42,11 @@ export const getMealLogData = async (mealIds: number[]) => {
       .where(inArray(mealLogs.mealId, mealIds))
       .orderBy(asc(mealLogs.id)),
     db.select().from(mealMarks).where(inArray(mealMarks.mealId, mealIds)),
+    db
+      .select()
+      .from(mealMarkItems)
+      .where(inArray(mealMarkItems.mealId, mealIds))
+      .orderBy(asc(mealMarkItems.id)),
   ]);
 
   const logs: MealLog[] = logRows.map(({ log, food }) => {
@@ -77,6 +83,17 @@ export const getMealLogData = async (mealIds: number[]) => {
       mealId: row.mealId,
       achieved: row.achieved,
       note: row.note,
+      frozen: frozenRows
+        .filter((item) => item.markId === row.id && item.foodId !== null)
+        .map((item) => ({
+          foodId: item.foodId as number,
+          nutrition: {
+            kcal: item.kcal,
+            protein: item.protein,
+            carbs: item.carbs,
+            fat: item.fat,
+          },
+        })),
     })),
   };
 };

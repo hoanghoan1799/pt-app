@@ -6,6 +6,7 @@ import { db } from "@/db";
 import {
   foods,
   mealLogs,
+  mealMarkItems,
   mealMarks,
   mealPlanDays,
   mealPlanItems,
@@ -96,6 +97,10 @@ export const deleteMeals = async (mealIds: number[], executor: Executor) => {
   // The trainee's logs and marks go with the meal (KAN-71).
   await executor.delete(mealLogs).where(inArray(mealLogs.mealId, mealIds));
   await executor.delete(mealMarks).where(inArray(mealMarks.mealId, mealIds));
+  // The frozen "Đạt" items go with the mark (KAN-93).
+  await executor
+    .delete(mealMarkItems)
+    .where(inArray(mealMarkItems.mealId, mealIds));
   await executor
     .delete(mealPlanMeals)
     .where(inArray(mealPlanMeals.id, mealIds));

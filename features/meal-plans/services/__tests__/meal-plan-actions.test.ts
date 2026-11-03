@@ -5,6 +5,8 @@ import { INITIAL_FORM_STATE } from "@/constants/form";
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
 import {
   foods,
+  mealMarkItems,
+  mealMarks,
   mealPlanDays,
   mealPlanItems,
   mealPlanMeals,
@@ -1215,6 +1217,44 @@ describe("deleteDayPlanAction", () => {
           .where(and(eq(mealPlanDays.date, TUESDAY)))
       ).length,
     ).toBe(1);
+  });
+});
+
+describe("deleting a meal with a frozen mark (KAN-93)", () => {
+  it("removes the snapshot rows with the meal, not another meal's", async () => {
+    const { member, chicken } = await seed();
+
+    await actions.createDayPlanAction({ userId: member.id, date: MONDAY });
+
+    const [monday] = await getMealPlanWeek(member.id, MONDAY);
+    const [first, second] = monday.meals;
+
+    for (const meal of [first, second]) {
+      const [mark] = await db
+        .insert(mealMarks)
+        .values({ mealId: meal.id, userId: member.id, achieved: true })
+        .returning();
+
+      await db.insert(mealMarkItems).values({
+        markId: mark.id,
+        mealId: meal.id,
+        foodId: chicken.id,
+        grams: 200,
+        protein: 62,
+        carbs: 0,
+        fat: 7.2,
+        kcal: 312.8,
+      });
+    }
+    await actions.removeMealAction({ userId: member.id, mealId: first.id });
+
+    const rows = await db.select().from(mealMarkItems);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].mealId).toBe(second.id);
+
+    await actions.deleteDayPlanAction({ userId: member.id, dayId: monday.id });
+    expect(await db.select().from(mealMarkItems)).toHaveLength(0);
   });
 });
 

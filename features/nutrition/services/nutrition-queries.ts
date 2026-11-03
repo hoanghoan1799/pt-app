@@ -7,6 +7,7 @@ import {
   foodEntries,
   foods,
   mealLogs,
+  mealMarkItems,
   mealMarks,
   mealPlanDays,
   mealPlanItems,
@@ -16,6 +17,7 @@ import {
 import {
   type CountedItem,
   type CountedLog,
+  type FrozenItem,
   listMealNutrition,
   resolveLogNutrition,
 } from "@/features/meal-plans/utils/meal-log";
@@ -57,7 +59,7 @@ export const getNutritionWeek = async (
 ): Promise<NutritionDay[]> => {
   const dates = getWeekDates(weekStart);
   const weekEnd = dates[dates.length - 1];
-  const [targetRows, entryRows, logRows, itemRows, markRows] =
+  const [targetRows, entryRows, logRows, itemRows, markRows, frozenRows] =
     await Promise.all([
       db
         .select()
@@ -126,7 +128,7 @@ export const getNutritionWeek = async (
           ),
         ),
       db
-        .select({ mealId: mealMarks.mealId })
+        .select({ id: mealMarks.id, mealId: mealMarks.mealId })
         .from(mealMarks)
         .innerJoin(mealPlanMeals, eq(mealPlanMeals.id, mealMarks.mealId))
         .innerJoin(mealPlanDays, eq(mealPlanDays.id, mealPlanMeals.dayId))
@@ -137,8 +139,28 @@ export const getNutritionWeek = async (
             between(mealPlanDays.date, dates[0], weekEnd),
           ),
         ),
+      // Items frozen when a meal was marked "Đạt" (KAN-93).
+      db
+        .select({
+          markId: mealMarkItems.markId,
+          foodId: mealMarkItems.foodId,
+          kcal: mealMarkItems.kcal,
+          protein: mealMarkItems.protein,
+          carbs: mealMarkItems.carbs,
+          fat: mealMarkItems.fat,
+        })
+        .from(mealMarkItems)
+        .innerJoin(mealPlanMeals, eq(mealPlanMeals.id, mealMarkItems.mealId))
+        .innerJoin(mealPlanDays, eq(mealPlanDays.id, mealPlanMeals.dayId))
+        .where(
+          and(
+            eq(mealPlanDays.userId, userId),
+            between(mealPlanDays.date, dates[0], weekEnd),
+          ),
+        ),
     ]);
   const achievedMealIds = new Set(markRows.map((row) => row.mealId));
+  const markIdByMeal = new Map(markRows.map((row) => [row.mealId, row.id]));
   const mealIdsByDate = new Map<string, Set<number>>();
 
   for (const row of [...logRows, ...itemRows]) {
@@ -168,11 +190,36 @@ export const getNutritionWeek = async (
           nutrition: resolveLogNutrition(
             row.grams,
             row.foodId !== null ? row.food : null,
-            row,
+            {
+              kcal: row.kcal,
+              protein: row.protein,
+              carbs: row.carbs,
+              fat: row.fat,
+            },
           ),
         }));
 
-      return listMealNutrition(items, logs, achievedMealIds.has(mealId));
+      const frozen: FrozenItem[] = frozenRows
+        .filter(
+          (row) =>
+            row.markId === markIdByMeal.get(mealId) && row.foodId !== null,
+        )
+        .map((row) => ({
+          foodId: row.foodId as number,
+          nutrition: {
+            kcal: row.kcal,
+            protein: row.protein,
+            carbs: row.carbs,
+            fat: row.fat,
+          },
+        }));
+
+      return listMealNutrition(
+        items,
+        logs,
+        achievedMealIds.has(mealId),
+        frozen,
+      );
     });
   const targets = targetRows.map(toTarget);
 

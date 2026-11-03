@@ -55,7 +55,12 @@ export const MealLogSummary = ({ items, logs, mark }: MealLogSummaryProps) => {
         <p className="text-sm font-semibold text-fg tabular-nums">
           Đã ăn:{" "}
           {formatNutrition(
-            countMealNutrition(items, logs, mark?.achieved ?? false),
+            countMealNutrition(
+              items,
+              logs,
+              mark?.achieved ?? false,
+              mark?.frozen,
+            ),
           )}
         </p>
       )}

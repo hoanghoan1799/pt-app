@@ -5,6 +5,7 @@ import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
 import {
   foods,
   mealLogs,
+  mealMarkItems,
   mealMarks,
   mealPlanDays,
   mealPlanItems,
@@ -906,5 +907,334 @@ describe("getPlanKcalNoticesFrom", () => {
       .values({ mealId: today.meals[0].id, foodId: rice.id, grams: 500 });
     expect(await getPlanKcalNoticesFrom(member.id, TODAY)).toEqual([]);
     expect(await getPlanKcalNoticesFrom(9999, TODAY)).toEqual([]);
+  });
+});
+
+// KAN-93: what counts as eaten is frozen when the trainee marks "Đạt".
+describe("freezing the eaten numbers (KAN-93)", () => {
+  // Today's first meal: 200 g chicken (P 62 / F 7.2) + 300 g rice
+  // (P 8.1 / C 84.6 / F 0.9).
+  const seedMarked = async () => {
+    const data = await seed();
+    const mealId = data.today.meals[0].id;
+
+    await db.insert(mealPlanItems).values([
+      { mealId, foodId: data.chicken.id, grams: 200 },
+      { mealId, foodId: data.rice.id, grams: 300 },
+    ]);
+    loginAs(data.member.id);
+    await logActions.setMealMarkAction({ mealId, achieved: true, note: "" });
+    return { ...data, mealId };
+  };
+
+  // The totals the trainee sees: the meal card and the day summary use
+  // countMealNutrition with the loaded mark, the week strip the week query.
+  const eatenOf = async (mealId: number) => {
+    const { countMealNutrition } =
+      await import("@/features/meal-plans/utils/meal-log");
+    const { getMealPlanWeek: loadWeek } =
+      await import("@/features/meal-plans/services/meal-plan-queries");
+    const [plan] = (await loadWeek(1, getWeekStart(TODAY))).filter(
+      (day) => day.date === TODAY,
+    );
+    const meal = plan.meals.find((item) => item.id === mealId);
+    const { logs, marks } = await getMealLogData([mealId]);
+    const mark = marks[0];
+
+    return countMealNutrition(
+      meal?.items ?? [],
+      logs,
+      mark?.achieved ?? false,
+      mark?.frozen,
+    );
+  };
+
+  const weekProtein = async (userId: number) => {
+    const { getNutritionWeek } =
+      await import("@/features/nutrition/services/nutrition-queries");
+    const days = await getNutritionWeek(userId, getWeekStart(TODAY));
+
+    return days.find((day) => day.date === TODAY)?.totals.protein;
+  };
+
+  it("snapshots every planned item with its numbers when marked", async () => {
+    const { mealId, chicken, rice } = await seedMarked();
+    const rows = await db.select().from(mealMarkItems);
+
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      mealId,
+      foodId: chicken.id,
+      grams: 200,
+      protein: 62,
+      carbs: 0,
+      fat: 7.2,
+      kcal: 312.8,
+    });
+    expect(rows[1]).toMatchObject({ foodId: rice.id, grams: 300 });
+    expect(rows[1].protein).toBeCloseTo(8.1, 5);
+    expect(rows[1].carbs).toBeCloseTo(84.6, 5);
+  });
+
+  it("keeps the eaten total when the PT changes grams, adds or removes a food", async () => {
+    const { member, mealId, chicken, rice } = await seedMarked();
+    const before = await eatenOf(mealId);
+
+    expect(before.protein).toBeCloseTo(70.1, 5);
+
+    state.role = "admin";
+    const [chickenItem] = await db
+      .select()
+      .from(mealPlanItems)
+      .where(eq(mealPlanItems.foodId, chicken.id));
+
+    // 200 g -> 400 g.
+    await planActions.updateItemGramsAction({
+      userId: member.id,
+      itemId: chickenItem.id,
+      grams: 400,
+    });
+    // Remove the rice, add 100 g of a new planned food.
+    const [riceItem] = await db
+      .select()
+      .from(mealPlanItems)
+      .where(eq(mealPlanItems.foodId, rice.id));
+
+    await planActions.removeItemAction({
+      userId: member.id,
+      itemId: riceItem.id,
+    });
+    await planActions.addItemAction({
+      userId: member.id,
+      mealId,
+      foodId: rice.id,
+      grams: 999,
+    });
+
+    expect(await eatenOf(mealId)).toEqual(before);
+    expect(await weekProtein(member.id)).toBe(70);
+  });
+
+  it("keeps the eaten total when the admin edits the food's macros", async () => {
+    const { member, mealId, chicken } = await seedMarked();
+
+    await db.update(foods).set({ protein: 5 }).where(eq(foods.id, chicken.id));
+
+    expect((await eatenOf(mealId)).protein).toBeCloseTo(70.1, 5);
+    expect(await weekProtein(member.id)).toBe(70);
+  });
+
+  it("keeps the snapshot when only the note changes", async () => {
+    const { mealId } = await seedMarked();
+    const [first] = await db.select().from(mealMarkItems);
+
+    await logActions.setMealMarkAction({
+      mealId,
+      achieved: true,
+      note: "Cơm hơi dư",
+    });
+
+    const rows = await db.select().from(mealMarkItems);
+
+    expect(rows).toHaveLength(2);
+    expect(rows[0].id).toBe(first.id);
+  });
+
+  it("does not snapshot a note-only mark, and drops the snapshot on un-mark", async () => {
+    const { mealId } = await seedMarked();
+
+    await logActions.setMealMarkAction({
+      mealId,
+      achieved: false,
+      note: "Thiếu",
+    });
+    expect(await db.select().from(mealMarkItems)).toHaveLength(0);
+    expect(await db.select().from(mealMarks)).toHaveLength(1);
+
+    await logActions.setMealMarkAction({ mealId, achieved: true, note: "" });
+    expect(await db.select().from(mealMarkItems)).toHaveLength(2);
+    await logActions.setMealMarkAction({
+      mealId,
+      achieved: false,
+      note: "",
+    });
+    expect(await db.select().from(mealMarks)).toHaveLength(0);
+    expect(await db.select().from(mealMarkItems)).toHaveLength(0);
+  });
+
+  it("takes a fresh snapshot when marked again after the PT edited grams", async () => {
+    const { member, mealId, chicken } = await seedMarked();
+    const [chickenItem] = await db
+      .select()
+      .from(mealPlanItems)
+      .where(eq(mealPlanItems.foodId, chicken.id));
+
+    await logActions.setMealMarkAction({
+      mealId,
+      achieved: false,
+      note: "",
+    });
+    state.role = "admin";
+    await planActions.updateItemGramsAction({
+      userId: member.id,
+      itemId: chickenItem.id,
+      grams: 400,
+    });
+    loginAs(member.id);
+    await logActions.setMealMarkAction({ mealId, achieved: true, note: "" });
+
+    // 400 g chicken P 124 + 300 g rice P 8.1.
+    expect((await eatenOf(mealId)).protein).toBeCloseTo(132.1, 5);
+    expect(await weekProtein(member.id)).toBe(132);
+  });
+
+  it("replaces the frozen item with a same-food log added after the mark", async () => {
+    const { member, mealId, chicken } = await seedMarked();
+
+    await logActions.addMealLogAction({
+      kind: "library",
+      mealId,
+      foodId: chicken.id,
+      grams: 50,
+    });
+
+    // 50 g chicken P 15.5 + 300 g rice P 8.1.
+    expect((await eatenOf(mealId)).protein).toBeCloseTo(23.6, 5);
+    expect(await weekProtein(member.id)).toBe(24);
+  });
+
+  it("reads a mark made before KAN-93 (no snapshot rows) live", async () => {
+    const data = await seed();
+    const mealId = data.today.meals[0].id;
+
+    await db
+      .insert(mealPlanItems)
+      .values({ mealId, foodId: data.chicken.id, grams: 200 });
+    await db.insert(mealMarks).values({
+      mealId,
+      userId: data.member.id,
+      achieved: true,
+    });
+    expect((await eatenOf(mealId)).protein).toBe(62);
+
+    await db
+      .update(mealPlanItems)
+      .set({ grams: 400 })
+      .where(eq(mealPlanItems.mealId, mealId));
+    expect((await eatenOf(mealId)).protein).toBe(124);
+    expect(await weekProtein(data.member.id)).toBe(124);
+  });
+
+  it("agrees across the meal card, the day summary and the week strip", async () => {
+    const { member, mealId } = await seedMarked();
+    const { logs, marks } = await getMealLogData([mealId]);
+
+    expect(marks[0].frozen).toHaveLength(2);
+    expect(logs).toHaveLength(0);
+    expect(Math.round((await eatenOf(mealId)).protein)).toBe(
+      await weekProtein(member.id),
+    );
+  });
+
+  it("deleting the plan day removes the snapshot rows", async () => {
+    const { member, today } = await seedMarked();
+
+    state.role = "admin";
+    await planActions.deleteDayPlanAction({
+      userId: member.id,
+      dayId: today.day.id,
+    });
+    expect(await db.select().from(mealMarks)).toHaveLength(0);
+    expect(await db.select().from(mealMarkItems)).toHaveLength(0);
+  });
+});
+
+describe("library log numbers are stored (KAN-93)", () => {
+  it("stores the computed numbers on add and keeps them when the food is edited", async () => {
+    const { member, chicken, today } = await seed();
+    const mealId = today.meals[0].id;
+
+    loginAs(member.id);
+    await logActions.addMealLogAction({
+      kind: "library",
+      mealId,
+      foodId: chicken.id,
+      grams: 200,
+    });
+
+    const [row] = await db.select().from(mealLogs);
+
+    expect(row).toMatchObject({
+      protein: 62,
+      carbs: 0,
+      fat: 7.2,
+      kcal: 312.8,
+    });
+
+    await db.update(foods).set({ protein: 5 }).where(eq(foods.id, chicken.id));
+
+    const { logs } = await getMealLogData([mealId]);
+
+    expect(logs[0].nutrition).toEqual({
+      kcal: 312.8,
+      protein: 62,
+      carbs: 0,
+      fat: 7.2,
+    });
+    // The edit sheet must not see them as typed numbers.
+    expect(logs[0].typed).toEqual({
+      kcal: null,
+      protein: null,
+      carbs: null,
+      fat: null,
+    });
+  });
+
+  it("recomputes from the library at edit time when the grams change", async () => {
+    const { member, chicken, today } = await seed();
+    const mealId = today.meals[0].id;
+
+    loginAs(member.id);
+    await logActions.addMealLogAction({
+      kind: "library",
+      mealId,
+      foodId: chicken.id,
+      grams: 200,
+    });
+    await db.update(foods).set({ protein: 20 }).where(eq(foods.id, chicken.id));
+
+    const [row] = await db.select().from(mealLogs);
+
+    await logActions.updateMealLogAction({
+      logId: row.id,
+      grams: 100,
+    });
+
+    const { logs } = await getMealLogData([mealId]);
+
+    // 100 g at P 20 / F 3.6: 80 + 32.4 = 112.4 kcal.
+    expect(logs[0].nutrition).toEqual({
+      kcal: 112.4,
+      protein: 20,
+      carbs: 0,
+      fat: 3.6,
+    });
+  });
+
+  it("reads a library log with no stored numbers (before KAN-93) live", async () => {
+    const { member, chicken, today } = await seed();
+    const mealId = today.meals[0].id;
+
+    await db.insert(mealLogs).values({
+      userId: member.id,
+      mealId,
+      foodId: chicken.id,
+      grams: 200,
+    });
+    await db.update(foods).set({ protein: 20 }).where(eq(foods.id, chicken.id));
+
+    const { logs } = await getMealLogData([mealId]);
+
+    expect(logs[0].nutrition?.protein).toBe(40);
   });
 });
