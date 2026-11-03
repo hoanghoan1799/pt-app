@@ -22,7 +22,7 @@ const writeCookie = async (name: string, value: string, maxAge: number) => {
 
 export const startUserSession = async (userId: number) => {
   const token = await signSession(
-    { role: "user", userId },
+    { role: "user", userId, authAt: Math.floor(Date.now() / 1000) },
     USER_SESSION_MAX_AGE,
   );
 

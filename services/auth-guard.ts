@@ -9,6 +9,7 @@ import { findAdminById } from "@/services/admins";
 import { readSession } from "@/services/session";
 import { findUserById } from "@/services/users";
 import type { SessionRole } from "@/types/session";
+import { isSessionStale, sessionAuthTime } from "@/utils/session-staleness";
 
 // Cached per request: the guard layout and the page both ask for it.
 export const getCurrentUser = cache(async () => {
@@ -18,7 +19,16 @@ export const getCurrentUser = cache(async () => {
     return null;
   }
   // The user may have been deleted by the admin since the cookie was issued.
-  return findUserById(session.userId);
+  const user = await findUserById(session.userId);
+
+  // A reset or password change signs out sessions issued before it.
+  if (
+    !user ||
+    isSessionStale(sessionAuthTime(session), user.passwordChangedAt)
+  ) {
+    return null;
+  }
+  return user;
 });
 
 export const getCurrentAdmin = cache(async () => {

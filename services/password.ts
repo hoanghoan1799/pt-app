@@ -1,7 +1,12 @@
-import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
+import { randomBytes, randomInt, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 
 import {
+  GENERATED_PASSWORD_ALPHABET,
+  GENERATED_PASSWORD_DIGITS,
+  GENERATED_PASSWORD_LENGTH,
+  GENERATED_PASSWORD_LOWER,
+  GENERATED_PASSWORD_UPPER,
   PASSWORD_HASH_PREFIX,
   SCRYPT_COST,
   SCRYPT_KEY_LENGTH,
@@ -59,4 +64,28 @@ export const getDummyPasswordHash = () => {
     randomBytes(SCRYPT_SALT_BYTES).toString("hex"),
   );
   return dummyHashPromise;
+};
+
+const pick = (chars: string) => chars[randomInt(chars.length)];
+
+// Random password for a trainee, shown to the admin once (KAN-82, D3). At
+// least one upper, lower and digit, then shuffled so they are not up front.
+export const generatePassword = () => {
+  const chars = [
+    pick(GENERATED_PASSWORD_UPPER),
+    pick(GENERATED_PASSWORD_LOWER),
+    pick(GENERATED_PASSWORD_DIGITS),
+  ];
+
+  while (chars.length < GENERATED_PASSWORD_LENGTH) {
+    chars.push(pick(GENERATED_PASSWORD_ALPHABET));
+  }
+
+  // Fisher-Yates with a CSPRNG.
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join("");
 };

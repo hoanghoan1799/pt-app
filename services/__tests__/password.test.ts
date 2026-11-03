@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { hashPassword, verifyPassword } from "@/services/password";
+import {
+  generatePassword,
+  hashPassword,
+  verifyPassword,
+} from "@/services/password";
 
 describe("password hashing", () => {
   it("verifies the right password only", async () => {
@@ -18,5 +22,23 @@ describe("password hashing", () => {
   it("rejects malformed hashes", async () => {
     expect(await verifyPassword("x", "")).toBe(false);
     expect(await verifyPassword("x", "md5$abc")).toBe(false);
+  });
+});
+
+describe("generatePassword", () => {
+  it("makes 1000 valid, mostly distinct passwords", () => {
+    const seen = new Set<string>();
+
+    for (let i = 0; i < 1000; i++) {
+      const password = generatePassword();
+
+      expect(password).toHaveLength(12);
+      expect(password).toMatch(/^[A-HJ-NP-Za-km-z2-9]{12}$/);
+      expect(password).toMatch(/[A-Z]/);
+      expect(password).toMatch(/[a-z]/);
+      expect(password).toMatch(/[2-9]/);
+      seen.add(password);
+    }
+    expect(seen.size).toBe(1000);
   });
 });

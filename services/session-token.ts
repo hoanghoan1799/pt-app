@@ -6,7 +6,11 @@ import type { SessionPayload, VerifiedSession } from "@/types/session";
 
 const SESSION_PAYLOAD_SCHEMA = z.discriminatedUnion("role", [
   z.object({ role: z.literal("admin"), adminId: z.number().int().positive() }),
-  z.object({ role: z.literal("user"), userId: z.number().int().positive() }),
+  z.object({
+    role: z.literal("user"),
+    userId: z.number().int().positive(),
+    authAt: z.number().int().positive().optional(),
+  }),
 ]);
 
 const getSecretKey = () => new TextEncoder().encode(getSessionSecret());
