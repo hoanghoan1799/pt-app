@@ -529,7 +529,15 @@ describe("items", () => {
 
     const [item] = (await getMealPlanWeek(member.id, MONDAY))[0].meals[0].items;
 
-    for (const grams of [-1, Number.NaN, Number.POSITIVE_INFINITY, 3001]) {
+    // 0 g (or 0.04 g, stored as 0) is not an amount: remove the food instead.
+    for (const grams of [
+      0,
+      0.04,
+      -1,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      3001,
+    ]) {
       expect(
         await actions.updateItemGramsAction({
           userId: member.id,

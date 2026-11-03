@@ -6,7 +6,7 @@ import { formatGrams } from "@/features/foods/utils/food-math";
 import { normalizeGrams } from "@/features/meal-plans/utils/grams-input";
 
 // An amount the PT types: saved when the field loses focus and the value is a
-// valid number that differs from the saved one (compared at the one decimal
+// valid number above 0 (KAN-92: remove the food instead) that differs from the saved one (compared at the one decimal
 // the server stores); the field then shows the value that will be stored.
 export const useGramsInput = (
   savedGrams: number,
@@ -17,7 +17,7 @@ export const useGramsInput = (
   const handleBlur = () => {
     const grams = normalizeGrams(text);
 
-    if (grams === null) {
+    if (grams === null || grams <= 0) {
       setText(formatGrams(savedGrams));
       return;
     }

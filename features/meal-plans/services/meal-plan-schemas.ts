@@ -18,7 +18,9 @@ const grams = z
   .min(0)
   .max(MEAL_PLAN_LIMITS.MAX_GRAMS)
   // One decimal is plenty for a weighed food.
-  .transform((value) => Math.round(value * 10) / 10);
+  .transform((value) => Math.round(value * 10) / 10)
+  // A planned food needs an amount; 0 g shows the trainee a blank (KAN-92).
+  .refine((value) => value > 0);
 
 const MAX_COPY_DATES = 14;
 
