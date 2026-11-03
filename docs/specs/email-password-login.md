@@ -9,7 +9,7 @@ KAN-82 (sub-tasks KAN-83 [BE], KAN-84 [FE admin], KAN-85 [FE trainee], KAN-86 [Q
 - Admin login already uses username + scrypt password (`services/password.ts`), a dummy hash for unknown usernames and a fixed 600 ms delay on failure. No attempt limit anywhere.
 - Sessions are stateless HS256 JWTs carrying `iat`; `getCurrentUser` re-reads the user row on every request.
 
-## Decisions (proposed, confirm on KAN-82)
+## Decisions (approved by Hoan 2026-11-03)
 
 | #   | Decision                                                                                                                                                                                                                                                                                                                                                                                                                         | Why                                                                                                                                        |
 | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -34,9 +34,9 @@ KAN-82 (sub-tasks KAN-83 [BE], KAN-84 [FE admin], KAN-85 [FE trainee], KAN-86 [Q
 
 ## Open questions
 
-1. **Bulk reset.** Hoan wrote "chỉ có admin được tự động revert mật khẩu cho toàn bộ user". Read as: the admin can reset the password of any trainee (one at a time). Is a "reset all trainees at once" button also wanted? It would log everyone out and show a list of N new passwords to hand out. (Default: per-trainee only.)
-2. **Cut-over.** OK that the name login keeps working until Hoan has set a login for every existing trainee (D10)? (Default: yes.)
-3. **Lock policy.** 5 failures / 15 minutes lock / 15 minutes window OK? (Default: yes.)
+1. **Bulk reset.** Hoan wrote "chỉ có admin được tự động revert mật khẩu cho toàn bộ user". Read as: the admin can reset the password of any trainee (one at a time). Is a "reset all trainees at once" button also wanted? It would log everyone out and show a list of N new passwords to hand out. **Answer (Hoan, 2026-11-03): per-trainee only.**
+2. **Cut-over.** OK that the name login keeps working until Hoan has set a login for every existing trainee (D10)? (Default accepted with the plan approval, 2026-11-03.)
+3. **Lock policy.** 5 failures / 15 minutes lock / 15 minutes window OK? (Default accepted with the plan approval, 2026-11-03.)
 
 ## Test matrix
 

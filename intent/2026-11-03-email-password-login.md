@@ -1,7 +1,7 @@
 # Intent: Trainees log in with email and password
 
 - **Author:** Hoan
-- **Status:** draft
+- **Status:** accepted
 - **KAN key:** KAN-82
 
 ## Problem
