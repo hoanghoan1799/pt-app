@@ -61,3 +61,4 @@ PR 4, KAN-86 [QA]: e2e specs for the matrix in the spec, browser proof at 390 px
 
 - 2026-11-03, Hoan: delete all existing trainees instead of migrating them. Dropped `setMemberLoginAction`, the set-login form and the "no login yet" badge; PR 3 no longer waits on PR 2.
 - PR 1: added `features/members/services/create-member-with-login.ts` (server-only helper; PR 2 calls it from `createMemberAction`) and `changeMemberEmailAction`; `setUserEmail` keeps sessions valid. The limiter also counts failures for unknown or malformed emails.
+- PR 2: `FormState` gained an optional `credentials` field so `createMemberAction` can hand the generated password back once; the add-member sheet now stays open on success to show it and closes on "Xong" (`CreateMemberForm` prop `onCreated` became `onDone`). The create form shows per-field errors for name and email.

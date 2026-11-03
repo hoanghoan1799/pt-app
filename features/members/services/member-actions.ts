@@ -20,29 +20,14 @@ import {
   workoutDays,
 } from "@/db/schema";
 import { deleteDays } from "@/features/meal-plans/services/meal-plan-store";
-import {
-  MEMBER_MESSAGES,
-  MEMBER_NAME_MAX_LENGTH,
-} from "@/features/members/constants/messages";
+import { createMemberWithLogin } from "@/features/members/services/create-member-with-login";
 import {
   withFormErrorHandling,
   withResultErrorHandling,
 } from "@/services/action-errors";
 import { requireAdmin } from "@/services/auth-guard";
-import { findUserByName } from "@/services/users";
 import type { FormState } from "@/types/form";
 import { createErrorState, createSuccessState } from "@/utils/form";
-import { normalizeName, toNameKey } from "@/utils/name";
-
-const nameSchema = z
-  .string()
-  .transform(normalizeName)
-  .pipe(
-    z
-      .string()
-      .min(1, MEMBER_MESSAGES.NAME_REQUIRED)
-      .max(MEMBER_NAME_MAX_LENGTH, MEMBER_MESSAGES.NAME_TOO_LONG),
-  );
 
 export const createMemberAction = withFormErrorHandling(
   "createMember",
@@ -50,25 +35,26 @@ export const createMemberAction = withFormErrorHandling(
     await requireAdmin();
 
     const rawName = String(formData.get("name") ?? "");
-    const parsed = nameSchema.safeParse(rawName);
+    const rawEmail = String(formData.get("email") ?? "");
+    const result = await createMemberWithLogin(rawName, rawEmail);
 
-    if (!parsed.success) {
-      return createErrorState(parsed.error.issues[0].message, {
-        values: { name: rawName },
+    if (result.status === "error") {
+      return createErrorState(result.message, {
+        fieldErrors: { [result.field]: result.message },
+        values: { name: rawName, email: rawEmail },
       });
     }
 
-    const name = parsed.data;
-
-    if (await findUserByName(name)) {
-      return createErrorState(MEMBER_MESSAGES.NAME_TAKEN, {
-        values: { name: rawName },
-      });
-    }
-
-    await db.insert(users).values({ name, nameKey: toNameKey(name) });
     revalidatePath(ROUTES.ADMIN);
-    return createSuccessState(`Đã thêm ${name}`);
+    // The password goes back to the caller once and is never logged.
+    return {
+      ...createSuccessState(`Đã thêm ${result.name}`),
+      credentials: {
+        name: result.name,
+        email: rawEmail.trim(),
+        password: result.password,
+      },
+    };
   },
 );
 

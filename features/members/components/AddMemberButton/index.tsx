@@ -25,9 +25,9 @@ export const AddMemberButton = () => {
         isOpen={isOpen}
         onOpenChange={setIsOpen}
         title="Thêm user"
-        description="User chỉ cần nhập đúng tên này để vào xem bài tập."
+        description="Nhập email để tạo tài khoản. Mật khẩu được tạo tự động và chỉ hiện một lần."
       >
-        <CreateMemberForm onCreated={() => setIsOpen(false)} />
+        <CreateMemberForm onDone={() => setIsOpen(false)} />
       </BottomSheet>
     </>
   );
