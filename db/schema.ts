@@ -345,8 +345,9 @@ export const mealLogs = sqliteTable(
     customName: text("custom_name"),
     // 0 = unknown amount (free foods only).
     grams: real("grams").notNull(),
-    // Free foods only: what the trainee typed. A library food's numbers come
-    // from the library at read time.
+    // Free foods: what the trainee typed. Library foods: the numbers computed
+    // when the log was added or edited (KAN-93), so editing the food later
+    // does not change them; all four null = logged before KAN-93, read live.
     kcal: real("kcal"),
     protein: real("protein"),
     carbs: real("carbs"),
@@ -378,3 +379,27 @@ export const mealMarks = sqliteTable("meal_marks", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+// Snapshot of a meal's planned items, taken when the trainee marks it "Đạt"
+// (KAN-93): the PT editing the plan or a food's macros later does not change
+// what counted as eaten. Deleted with the mark (un-mark) or with the meal.
+export const mealMarkItems = sqliteTable(
+  "meal_mark_items",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    markId: integer("mark_id")
+      .notNull()
+      .references(() => mealMarks.id, { onDelete: "cascade" }),
+    mealId: integer("meal_id")
+      .notNull()
+      .references(() => mealPlanMeals.id, { onDelete: "cascade" }),
+    // Always the planned item's food; nullable only for safety.
+    foodId: integer("food_id").references(() => foods.id),
+    grams: real("grams").notNull(),
+    protein: real("protein").notNull(),
+    carbs: real("carbs").notNull(),
+    fat: real("fat").notNull(),
+    kcal: real("kcal").notNull(),
+  },
+  (table) => [index("meal_mark_items_meal").on(table.mealId)],
+);

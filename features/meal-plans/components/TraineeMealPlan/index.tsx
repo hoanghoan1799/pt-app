@@ -67,6 +67,7 @@ export const TraineeMealPlan = ({
         meal.items,
         logs.filter((log) => log.mealId === meal.id),
         marks.some((mark) => mark.mealId === meal.id && mark.achieved),
+        marks.find((mark) => mark.mealId === meal.id)?.frozen,
       ),
     ),
   );

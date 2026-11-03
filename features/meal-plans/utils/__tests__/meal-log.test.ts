@@ -5,6 +5,7 @@ import {
   countMealNutrition,
   formatLogGrams,
   formatNutrition,
+  nutritionOfFood,
   resolveLogNutrition,
   sumLogNutrition,
 } from "@/features/meal-plans/utils/meal-log";
@@ -202,5 +203,85 @@ describe("countMealEntries", () => {
     expect(countMealEntries(items, [log], false)).toBe(1);
     expect(countMealEntries(items, [log], true)).toBe(2);
     expect(countMealEntries(items, [], true)).toBe(2);
+  });
+});
+
+describe("stored numbers of a library log (KAN-93)", () => {
+  it("prefers the stored numbers over the food's current macros", () => {
+    // Logged when chicken was P 31 / F 3.6; the food was edited to P 20 since.
+    const edited = { kcal: 100, protein: 20, carbs: 0, fat: 1 };
+    const stored = { kcal: 312.8, protein: 62, carbs: 0, fat: 7.2 };
+
+    expect(resolveLogNutrition(200, edited, stored)).toEqual(stored);
+  });
+
+  it("reads a library log with all four numbers null live (logged before KAN-93)", () => {
+    expect(resolveLogNutrition(200, CHICKEN, NONE)).toEqual({
+      kcal: 312.8,
+      protein: 62,
+      carbs: 0,
+      fat: 7.2,
+    });
+  });
+});
+
+describe("a meal marked with frozen items (KAN-93)", () => {
+  const RICE = { kcal: 130, protein: 2.7, carbs: 28.2, fat: 0.3 };
+  // Marked when the plan was 200 g chicken + 300 g rice.
+  const frozen = [
+    { foodId: 1, nutrition: nutritionOfFood(CHICKEN, 200) },
+    { foodId: 2, nutrition: nutritionOfFood(RICE, 300) },
+  ];
+  // The PT has since changed the chicken to 400 g and dropped the rice.
+  const liveItems = [{ foodId: 1, grams: 400, food: CHICKEN }];
+
+  it("counts the frozen items, not the edited plan", () => {
+    const eaten = countMealNutrition(liveItems, [], true, frozen);
+
+    expect(eaten.protein).toBeCloseTo(70.1, 5);
+    expect(eaten.carbs).toBeCloseTo(84.6, 5);
+    expect(eaten.fat).toBeCloseTo(8.1, 5);
+    expect(eaten.kcal).toBeCloseTo(691.7, 5);
+  });
+
+  it("ignores a changed food macro", () => {
+    const changed = { ...CHICKEN, protein: 10 };
+    const eaten = countMealNutrition(
+      [{ foodId: 1, grams: 200, food: changed }],
+      [],
+      true,
+      frozen,
+    );
+
+    expect(eaten.protein).toBeCloseTo(70.1, 5);
+  });
+
+  it("lets a log of the same food replace its frozen item (KAN-87)", () => {
+    const log = {
+      foodId: 1,
+      nutrition: resolveLogNutrition(50, CHICKEN, NONE),
+    };
+    const eaten = countMealNutrition(liveItems, [log], true, frozen);
+
+    // 50 g chicken P 15.5 / F 1.8 + 300 g rice P 8.1 / C 84.6 / F 0.9.
+    expect(eaten.protein).toBeCloseTo(23.6, 5);
+    expect(eaten.carbs).toBeCloseTo(84.6, 5);
+    expect(eaten.fat).toBeCloseTo(2.7, 5);
+    expect(countMealEntries(liveItems, [log], true, frozen)).toBe(2);
+  });
+
+  it("reads the live plan when nothing was frozen (marked before KAN-93)", () => {
+    const eaten = countMealNutrition(liveItems, [], true, []);
+
+    expect(eaten.protein).toBeCloseTo(124, 5);
+  });
+
+  it("counts nothing from the frozen items when not marked", () => {
+    expect(countMealNutrition(liveItems, [], false, frozen)).toEqual({
+      kcal: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+    });
   });
 });

@@ -244,8 +244,9 @@ test("C5: the trainee logs a library food and a free food, edits and removes one
       custom_name: null,
       food_id: expect.any(Number),
       grams: 180,
-      kcal: null,
-      protein: null,
+      // KAN-93: a library log stores its computed numbers (180 g chicken).
+      kcal: 281.52,
+      protein: 55.8,
     },
     {
       name: null,
@@ -269,7 +270,12 @@ test("C5: the trainee logs a library food and a free food, edits and removes one
   // The plan side of the chips is rounded like the rest: C 84,6 / P 70,1.
   await expect(breakfast).toContainText("/ 84,6");
   await expect(breakfast).not.toContainText("99999");
-  expect((await getLogs())[0].grams).toBe(200);
+  // The stored numbers follow the edit (KAN-93).
+  expect((await getLogs())[0]).toMatchObject({
+    grams: 200,
+    kcal: 312.8,
+    protein: 62,
+  });
 
   // Remove the free food.
   page.once("dialog", (dialog) => dialog.accept());
@@ -373,6 +379,67 @@ test("S4 + S3: the PT sees the marks and logs, and is told when the plan no long
 
   await shot(page.getByRole("main"), "05-admin-logs-and-notice");
   await shot(page, "05b-admin-top-notice");
+});
+
+test("KAN-93: the PT edits a marked meal's grams and the trainee's eaten total does not move", async ({
+  page,
+}) => {
+  // Breakfast was marked "Đạt" earlier: the plan's items were frozen then.
+  const frozen = await query<{ grams: number; protein: number }>(
+    `SELECT grams, protein FROM meal_mark_items ORDER BY id`,
+  );
+
+  expect(frozen.map((row) => Number(row.grams))).toEqual([200, 300]);
+  expect(Number(frozen[0].protein)).toBeCloseTo(62, 5);
+  expect(Number(frozen[1].protein)).toBeCloseTo(8.1, 5);
+
+  // The PT raises the planned rice from 300 g to 500 g.
+  await logInAsAdmin(page);
+  await openAdminDay(page);
+
+  const riceGrams = meal(page, "Bữa sáng").getByLabel(
+    `Gram ${E2E_FOODS.RICE}`,
+    { exact: true },
+  );
+
+  await expect(riceGrams).toHaveValue("300");
+  await riceGrams.fill("500");
+  await riceGrams.blur();
+  await expect
+    .poll(async () => {
+      const [row] = await query<{ grams: number }>(
+        `SELECT i.grams FROM meal_plan_items i
+         JOIN foods f ON f.id = i.food_id
+         JOIN meal_plan_meals m ON m.id = i.meal_id
+         WHERE f.name = ? AND m.name = 'Bữa sáng'`,
+        [E2E_FOODS.RICE],
+      );
+
+      return Number(row.grams);
+    })
+    .toBe(500);
+
+  // The PT's view of what the trainee ate is the same as before the edit.
+  await openAdminDay(page);
+  await expect(
+    meal(page, "Bữa sáng").getByRole("group", { name: "Học viên đã ghi" }),
+  ).toContainText("Đã ăn: 692 kcal · P 70,1 · C 84,6 · F 8,1");
+
+  // And so is the trainee's day total (the plan moved, what was eaten did not).
+  await page.context().clearCookies();
+  await logInAsTrainee(page);
+  await expect(
+    page.getByRole("region", { name: "Đã ăn cả ngày" }),
+  ).toContainText("692 kcal /");
+  // Old entry (P 30, C 60, F 10) plus the frozen breakfast (P 70,1 / C 84,6 /
+  // F 8,1); with the new 500 g of rice carbs would read 201.
+  await expect(
+    page.getByRole("progressbar", { name: "Carb: 145/200 g" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("progressbar", { name: "Protein: 100/160 g" }),
+  ).toBeVisible();
+  expect(await getLogs()).toHaveLength(1);
 });
 
 test("KAN-89: the PT folds a meal; its header controls still work", async ({

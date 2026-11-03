@@ -50,7 +50,7 @@ export const TraineeMealCard = ({
   const card = useTraineeMealCard();
   const planned = sumItems(meal.items);
   const isAchieved = mark?.achieved ?? false;
-  const eaten = countMealNutrition(meal.items, logs, isAchieved);
+  const eaten = countMealNutrition(meal.items, logs, isAchieved, mark?.frozen);
   const bodyId = `meal-${meal.id}-body`;
 
   return (

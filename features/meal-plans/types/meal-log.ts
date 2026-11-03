@@ -35,4 +35,7 @@ export interface MealMark {
   mealId: number;
   achieved: boolean;
   note: string;
+  // The planned items as they were when "Đạt" was marked (KAN-93); empty for a
+  // mark made before then, which counts the live plan.
+  frozen: { foodId: number; nutrition: LogNutrition }[];
 }
