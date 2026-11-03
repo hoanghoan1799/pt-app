@@ -17,7 +17,7 @@ import {
   macrosOf,
   sumMacros,
 } from "@/features/meal-plans/utils/plan-totals";
-import { listTargetsUpTo } from "@/features/nutrition/services/nutrition-queries";
+import { listTargets } from "@/features/nutrition/services/nutrition-queries";
 import { findTargetForDate } from "@/features/nutrition/utils/nutrition";
 import { addDays, getWeekDates } from "@/utils/week";
 
@@ -167,10 +167,7 @@ export const getPlanKcalNoticesFrom = async (
       ),
     );
   // The user's targets once; each date is resolved in memory.
-  const targets = await listTargetsUpTo(
-    userId,
-    dayRows[dayRows.length - 1].date,
-  );
+  const targets = await listTargets(userId);
 
   return getPlanKcalNotices(
     dayRows.map((day) => {

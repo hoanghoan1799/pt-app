@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, between, desc, eq, lte } from "drizzle-orm";
+import { and, asc, between, desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -62,12 +62,8 @@ export const getNutritionWeek = async (
       db
         .select()
         .from(nutritionTargets)
-        .where(
-          and(
-            eq(nutritionTargets.userId, userId),
-            lte(nutritionTargets.effectiveFrom, weekEnd),
-          ),
-        )
+        // Every target: a week before the first one falls back to it.
+        .where(eq(nutritionTargets.userId, userId))
         .orderBy(asc(nutritionTargets.effectiveFrom)),
       db
         .select()
@@ -205,24 +201,19 @@ export const getLatestTarget = async (userId: number) => {
   return row ? toTarget(row) : null;
 };
 
-// Every target that started on or before `date`, oldest first. Resolve a day
-// with findTargetForDate; the week view and the meal plan share this rule.
-export const listTargetsUpTo = async (userId: number, date: string) => {
+// Every target of the user, oldest first. Resolve a day with
+// findTargetForDate; the week view and the meal plan share this rule.
+export const listTargets = async (userId: number) => {
   const rows = await db
     .select()
     .from(nutritionTargets)
-    .where(
-      and(
-        eq(nutritionTargets.userId, userId),
-        lte(nutritionTargets.effectiveFrom, date),
-      ),
-    )
+    .where(eq(nutritionTargets.userId, userId))
     .orderBy(asc(nutritionTargets.effectiveFrom));
 
   return rows.map(toTarget);
 };
 
 // The target that applies on `date`: the latest one that started on or before
-// it.
+// it, or the first one for a day before any target started.
 export const getTargetForDate = async (userId: number, date: string) =>
-  findTargetForDate(await listTargetsUpTo(userId, date), date);
+  findTargetForDate(await listTargets(userId), date);
