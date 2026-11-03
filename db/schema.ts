@@ -34,7 +34,27 @@ export const users = sqliteTable("users", {
   // foods they like or avoid. Null = no request.
   preferredMealCount: integer("preferred_meal_count"),
   foodNote: text("food_note"),
+  // Email + password login (KAN-82). All nullable so trainees created before
+  // it stay valid until the admin sets their login.
+  email: text("email"),
+  // Trimmed, lower-cased email used for login lookups; unique when set.
+  emailKey: text("email_key").unique(),
+  // scrypt hash, see services/password.ts.
+  passwordHash: text("password_hash"),
+  // Sessions issued before this moment are rejected (whole seconds).
+  passwordChangedAt: integer("password_changed_at", { mode: "timestamp" }),
   createdAt: createdAt(),
+});
+
+// Failed-login counters shared by all serverless instances (KAN-82, D9).
+// Key: "user:<email_key>" or "admin:<username_key>".
+export const loginAttempts = sqliteTable("login_attempts", {
+  key: text("key").primaryKey(),
+  failedCount: integer("failed_count").notNull().default(0),
+  windowStartedAt: integer("window_started_at", {
+    mode: "timestamp",
+  }).notNull(),
+  lockedUntil: integer("locked_until", { mode: "timestamp" }),
 });
 
 export const workoutDays = sqliteTable(
