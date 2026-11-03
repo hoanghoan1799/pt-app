@@ -12,6 +12,8 @@ import {
   signSession,
   verifySession,
 } from "@/services/session-token";
+import type { VerifiedSession } from "@/types/session";
+import { refreshedUserPayload } from "@/utils/session-staleness";
 
 const redirectTo = (path: string, request: NextRequest) =>
   NextResponse.redirect(new URL(path, request.url));
@@ -21,14 +23,14 @@ const readSession = (request: NextRequest, cookieName: string) =>
 
 // Slides the user session forward (at most once a day) so it only ends on an
 // explicit logout, not because the user didn't open the app for a while.
+// Keeps `authAt`, so a password reset still signs this session out (D6).
 const withRefreshedUserSession = async (
   response: NextResponse,
-  userId: number,
-  issuedAt: number,
+  session: Extract<VerifiedSession, { role: "user" }>,
 ) => {
-  if (Date.now() / 1000 - issuedAt > USER_SESSION_REFRESH_AFTER) {
+  if (Date.now() / 1000 - session.issuedAt > USER_SESSION_REFRESH_AFTER) {
     const token = await signSession(
-      { role: "user", userId },
+      refreshedUserPayload(session),
       USER_SESSION_MAX_AGE,
     );
 
@@ -73,11 +75,7 @@ const handleUserArea = async (request: NextRequest) => {
       ? redirectTo(ROUTES.WORKOUTS, request)
       : NextResponse.next();
 
-    return withRefreshedUserSession(
-      response,
-      userSession.userId,
-      userSession.issuedAt,
-    );
+    return withRefreshedUserSession(response, userSession);
   }
 
   const adminSession = await readSession(request, ADMIN_COOKIE);

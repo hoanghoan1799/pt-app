@@ -9,7 +9,7 @@ import { findAdminById } from "@/services/admins";
 import { readSession } from "@/services/session";
 import { findUserById } from "@/services/users";
 import type { SessionRole } from "@/types/session";
-import { isSessionStale } from "@/utils/session-staleness";
+import { isSessionStale, sessionAuthTime } from "@/utils/session-staleness";
 
 // Cached per request: the guard layout and the page both ask for it.
 export const getCurrentUser = cache(async () => {
@@ -22,7 +22,10 @@ export const getCurrentUser = cache(async () => {
   const user = await findUserById(session.userId);
 
   // A reset or password change signs out sessions issued before it.
-  if (!user || isSessionStale(session.issuedAt, user.passwordChangedAt)) {
+  if (
+    !user ||
+    isSessionStale(sessionAuthTime(session), user.passwordChangedAt)
+  ) {
     return null;
   }
   return user;
