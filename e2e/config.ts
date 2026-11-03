@@ -44,6 +44,12 @@ export const E2E_PLANNER_NAME = "E2E Planner";
 // and one old free-text food entry.
 export const E2E_LOGGER_NAME = "E2E Logger";
 
+// Trainees of the login specs (KAN-86). Each spec that changes credentials or
+// locks an account owns its trainee, so the specs do not depend on each other.
+export const E2E_LOCKED_NAME = "E2E Locked";
+export const E2E_CHANGER_NAME = "E2E Changer";
+export const E2E_RESET_NAME = "E2E Reset";
+
 // Every seeded trainee logs in with an email derived from the display name
 // and this shared throwaway password (KAN-85).
 export const E2E_USER_PASSWORD = "e2e-trainee-password";

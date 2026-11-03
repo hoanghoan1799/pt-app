@@ -11,10 +11,13 @@ import { addDays, getTodayDate } from "@/utils/week";
 
 import {
   E2E_ADMIN,
+  E2E_CHANGER_NAME,
   E2E_EMPTY_NAME,
   E2E_LIFTER_NAME,
+  E2E_LOCKED_NAME,
   E2E_LOGGER_NAME,
   E2E_PLANNER_NAME,
+  E2E_RESET_NAME,
   E2E_USER_NAME,
   E2E_USER_PASSWORD,
   e2eEmail,
@@ -258,6 +261,9 @@ export const seedE2eDatabase = async (url: string) => {
   const db = drizzle(client, { schema });
   const { today, previous, future } = getE2eDates();
 
+  // Failed-login counters start clean on every run (KAN-86).
+  await db.delete(schema.loginAttempts);
+
   const [user] = await db
     .insert(schema.users)
     .values(await traineeValues(E2E_USER_NAME))
@@ -345,6 +351,15 @@ export const seedE2eDatabase = async (url: string) => {
     .returning();
 
   await db.insert(schema.users).values(await traineeValues(E2E_EMPTY_NAME));
+
+  // Login specs (KAN-86): one trainee per spec that locks or changes credentials.
+  await db
+    .insert(schema.users)
+    .values([
+      await traineeValues(E2E_LOCKED_NAME),
+      await traineeValues(E2E_CHANGER_NAME),
+      await traineeValues(E2E_RESET_NAME),
+    ]);
 
   const previousDay = await addDay(lifter.id, previous, [
     { title: E2E_PT_EXERCISES.SQUAT, sets: 2, reps: "8-10" },
