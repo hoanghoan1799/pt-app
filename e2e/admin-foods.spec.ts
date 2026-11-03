@@ -1,6 +1,7 @@
 import { createClient } from "@libsql/client";
 import { expect, type Page, test } from "@playwright/test";
 
+import { fillTraineeLogin } from "./auth";
 import { E2E_ADMIN, E2E_DB_URL, E2E_USER_NAME } from "./config";
 import { E2E_FOODS } from "./seed";
 
@@ -59,8 +60,7 @@ const traineeSees = async (
 
   try {
     await page.goto("/");
-    await page.getByLabel("Tên của bạn").fill(E2E_USER_NAME);
-    await page.getByRole("button", { name: "Vào tập" }).click();
+    await fillTraineeLogin(page, E2E_USER_NAME);
     await expect(page).toHaveURL(/\/workouts/);
     await page.goto("/foods");
     await expect(

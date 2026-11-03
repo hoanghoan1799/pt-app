@@ -5,7 +5,7 @@ import { WeekSummary } from "@/components/layout/WeekSummary";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
-import { LogoutButton } from "@/features/auth/components/LogoutButton";
+import { UserHeaderActions } from "@/features/auth/components/UserHeaderActions";
 import { WEIGHT_CHART_WEEKS } from "@/features/nutrition/constants/weight";
 import {
   getTodayWeight,
@@ -40,7 +40,7 @@ const SummaryPage = async ({ searchParams }: PageProps<"/summary">) => {
       <AppHeader
         eyebrow="Tổng kết tuần"
         title={user.name}
-        actions={<LogoutButton role="user" />}
+        actions={<UserHeaderActions />}
       />
       <main
         className={`${PAGE_CONTAINER} pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]`}

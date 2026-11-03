@@ -4,6 +4,7 @@ export const ROUTES = {
   NUTRITION: "/nutrition",
   SUMMARY: "/summary",
   FOODS: "/foods",
+  ACCOUNT_PASSWORD: "/account/password",
   // Static fallback the service worker shows when the network is down.
   OFFLINE: "/offline",
   ADMIN: "/admin",

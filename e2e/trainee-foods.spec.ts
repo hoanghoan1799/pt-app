@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
+import { fillTraineeLogin } from "./auth";
 import { E2E_USER_NAME } from "./config";
 import { E2E_FOODS } from "./seed";
 
@@ -8,8 +9,7 @@ import { E2E_FOODS } from "./seed";
 // 390 px layout check of F13.
 const logIn = async (page: Page) => {
   await page.goto("/");
-  await page.getByLabel("Tên của bạn").fill(E2E_USER_NAME);
-  await page.getByRole("button", { name: "Vào tập" }).click();
+  await fillTraineeLogin(page, E2E_USER_NAME);
   await expect(page).toHaveURL(/\/workouts/);
 };
 

@@ -11,7 +11,7 @@ const HomePage = () => (
         <Dumbbell className="size-8" aria-hidden />
       </span>
       <h1 className="mt-5 text-3xl font-bold tracking-tight text-fg">PT App</h1>
-      <p className="mt-2 text-muted">Nhập tên để xem lịch tập tuần này</p>
+      <p className="mt-2 text-muted">Đăng nhập để xem lịch tập tuần này</p>
     </div>
     <div className={`${CARD} p-5`}>
       <UserLoginForm />

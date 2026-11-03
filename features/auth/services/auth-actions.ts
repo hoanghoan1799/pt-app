@@ -23,35 +23,13 @@ import {
   startAdminSession,
   startUserSession,
 } from "@/services/session";
-import { findUserByEmail, findUserByName } from "@/services/users";
+import { findUserByEmail } from "@/services/users";
 import type { FormState } from "@/types/form";
 import { emailSchema, toEmailKey } from "@/utils/email";
 import { createErrorState } from "@/utils/form";
-import { normalizeName } from "@/utils/name";
 import { toUsernameKey } from "@/utils/username";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-export const loginUserAction = withFormErrorHandling(
-  "loginUser",
-  async (_previousState: FormState, formData: FormData): Promise<FormState> => {
-    const name = String(formData.get("name") ?? "");
-    const values = { name };
-
-    if (!normalizeName(name)) {
-      return createErrorState(AUTH_MESSAGES.NAME_REQUIRED, { values });
-    }
-
-    const user = await findUserByName(name);
-
-    if (!user) {
-      return createErrorState(AUTH_MESSAGES.NAME_NOT_FOUND, { values });
-    }
-
-    await startUserSession(user.id);
-    redirect(ROUTES.WORKOUTS);
-  },
-);
 
 export const loginWithEmailAction = withFormErrorHandling(
   "loginWithEmail",

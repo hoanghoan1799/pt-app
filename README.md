@@ -1,13 +1,16 @@
 # PT App
 
-Ứng dụng giao bài tập theo tuần: **admin (PT)** tạo user và giao bài tập theo từng ngày (video YouTube), **user** chỉ cần nhập đúng tên để xem lịch tập của mình. Thiết kế mobile-first cho iPhone 12 → iPhone 17 Pro Max.
+Ứng dụng giao bài tập theo tuần: **admin (PT)** tạo user và giao bài tập theo từng ngày (video YouTube), **user** đăng nhập bằng email + mật khẩu do PT cấp để xem lịch tập của mình. Thiết kế mobile-first cho iPhone 12 → iPhone 17 Pro Max.
 
 ## Tính năng
 
 **User** (`/`)
 
-- Đăng nhập bằng tên (không phân biệt hoa/thường, có dấu hay không dấu).
-- Nhớ đăng nhập: cookie tự gia hạn mỗi lần mở app (400 ngày), nên lần sau vào thẳng lịch tập. Tên cũng được lưu trên máy để điền sẵn nếu cookie bị xóa. Chỉ khi bấm **Đăng xuất** mới phải nhập lại.
+- Đăng nhập bằng email + mật khẩu (email không phân biệt hoa/thường). PT tạo tài khoản kèm email; mật khẩu tạo sẵn chỉ hiện **một lần** khi tạo (hoặc khi PT đặt lại) để PT gửi cho học viên.
+- Giữ đăng nhập: cookie tự gia hạn mỗi lần mở app (400 ngày), nên lần sau vào thẳng lịch tập. Chỉ khi bấm **Đăng xuất** (hoặc PT đặt lại mật khẩu) mới phải nhập lại. Trình duyệt/trình quản lý mật khẩu sẽ nhớ email và mật khẩu.
+- **Đổi mật khẩu**: bấm biểu tượng chìa khóa trên thanh tiêu đề (`/account/password`), nhập mật khẩu hiện tại, mật khẩu mới (8-128 ký tự, khác mật khẩu cũ) và nhập lại. Các thiết bị khác sẽ bị đăng xuất.
+- **Quên mật khẩu**: liên hệ PT để đặt lại. PT sẽ đặt mật khẩu mới trong trang user và gửi lại cho bạn.
+- Đăng nhập sai 5 lần trong 15 phút sẽ bị khóa 15 phút.
 - Lịch theo tuần (T2 → CN), mặc định mở hôm nay, chuyển tuần trước/sau.
 - Mỗi bài tập: video YouTube phát ngay trong trang, số hiệp × số lần, mô tả.
 - Ngày không có bài hiển thị "Ngày nghỉ".
@@ -72,10 +75,10 @@ pnpm admin:create <username> <mật-khẩu>
 
 ## Phân quyền
 
-| Khu   | Đường dẫn                   | Ai vào được                                                                         |
-| ----- | --------------------------- | ----------------------------------------------------------------------------------- |
-| User  | `/` (nhập tên), `/workouts` | User đã đăng nhập. Admin vào sẽ bị chuyển về `/admin`.                              |
-| Admin | `/admin/login`, `/admin/**` | Admin đã đăng nhập. User vào (kể cả trang login admin) sẽ bị chuyển về `/workouts`. |
+| Khu   | Đường dẫn                                                | Ai vào được                                                                         |
+| ----- | -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| User  | `/` (email + mật khẩu), `/workouts`, `/account/password` | User đã đăng nhập. Admin vào sẽ bị chuyển về `/admin`.                              |
+| Admin | `/admin/login`, `/admin/**`                              | Admin đã đăng nhập. User vào (kể cả trang login admin) sẽ bị chuyển về `/workouts`. |
 
 Bảo vệ 3 lớp: `proxy.ts` (kiểm tra cookie và điều hướng), layout của route group `(user)/(protected)` và `admin/(protected)` (kiểm tra với DB), và từng server action (`requireAdmin`). Trang admin có `noindex`.
 
@@ -124,5 +127,5 @@ db/                  schema + kết nối Drizzle
 
 ## Giới hạn hiện tại
 
-- User vào bằng tên, không có mật khẩu: ai biết tên của người khác thì xem được lịch của người đó.
+- Chưa có chức năng tự quên/đặt lại mật khẩu qua email: user phải nhờ PT đặt lại.
 - Chưa có rate limit đăng nhập admin theo IP (chỉ có độ trễ khi sai mật khẩu).

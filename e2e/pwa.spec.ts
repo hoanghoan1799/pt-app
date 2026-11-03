@@ -1,5 +1,6 @@
 import { type Browser, expect, type Page, test } from "@playwright/test";
 
+import { fillTraineeLogin } from "./auth";
 import { E2E_USER_NAME } from "./config";
 import { shot } from "./shots";
 
@@ -153,7 +154,7 @@ test("once the worker controls the page, an offline navigation shows the offline
       page.getByRole("heading", { name: "Không có kết nối mạng" }),
     ).toBeVisible();
     // The fallback replaces the failed page: no login form, no tab bar.
-    await expect(page.getByLabel("Tên của bạn")).toHaveCount(0);
+    await expect(page.getByLabel("Email")).toHaveCount(0);
     // Its CSS came from the cache too, so the page is styled, not bare HTML.
     const hasStyles = await page.evaluate(() =>
       [...document.styleSheets].some((sheet) => {
@@ -171,7 +172,7 @@ test("once the worker controls the page, an offline navigation shows the offline
 
   // Back online the real app loads again: the worker did not cache the fallback.
   await page.goto("/");
-  await expect(page.getByLabel("Tên của bạn")).toBeVisible();
+  await expect(page.getByLabel("Email")).toBeVisible();
 });
 
 // The install banner.
@@ -183,8 +184,7 @@ test.describe("install banner", () => {
 
   const logIn = async (page: Page) => {
     await page.goto("/");
-    await page.getByLabel("Tên của bạn").fill(E2E_USER_NAME);
-    await page.getByRole("button", { name: "Vào tập" }).click();
+    await fillTraineeLogin(page, E2E_USER_NAME);
     await expect(page).toHaveURL(/\/workouts/);
   };
 
@@ -274,10 +274,9 @@ test.describe("install banner", () => {
 
     // Chrome fires the event once, on the first page, before the trainee logs in.
     await page.goto("/");
-    await expect(page.getByLabel("Tên của bạn")).toBeVisible();
+    await expect(page.getByLabel("Email")).toBeVisible();
     await dispatchInstallPrompt(page);
-    await page.getByLabel("Tên của bạn").fill(E2E_USER_NAME);
-    await page.getByRole("button", { name: "Vào tập" }).click();
+    await fillTraineeLogin(page, E2E_USER_NAME);
     await expect(page).toHaveURL(/\/workouts/);
 
     await expect(banner(page)).toContainText(
