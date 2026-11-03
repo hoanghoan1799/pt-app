@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  countMealEntries,
+  countMealNutrition,
   formatLogGrams,
   formatNutrition,
   resolveLogNutrition,
@@ -102,5 +104,103 @@ describe("formatLogGrams", () => {
     expect(formatLogGrams(0)).toBe("");
     expect(formatLogGrams(200)).toBe("200 g");
     expect(formatLogGrams(62.5)).toBe("62,5 g");
+  });
+});
+
+describe("countMealNutrition", () => {
+  // Per 100 g: chicken P 31 / F 3.6, rice P 2.7 / C 28.2 / F 0.3.
+  const RICE = { kcal: 130, protein: 2.7, carbs: 28.2, fat: 0.3 };
+  const items = [
+    { foodId: 1, grams: 200, food: CHICKEN },
+    { foodId: 2, grams: 300, food: RICE },
+  ];
+  const logOf = (foodId: number | null, grams: number, food = CHICKEN) => ({
+    foodId,
+    nutrition: resolveLogNutrition(grams, food, NONE),
+  });
+  const freeLog = (typed: {
+    kcal: number | null;
+    protein: number | null;
+    carbs: number | null;
+    fat: number | null;
+  }) => ({
+    foodId: null,
+    nutrition: resolveLogNutrition(0, null, typed),
+  });
+
+  it("counts the logs only when the meal is not marked", () => {
+    expect(countMealNutrition(items, [logOf(1, 100)], false)).toEqual({
+      kcal: 156.4,
+      protein: 31,
+      carbs: 0,
+      fat: 3.6,
+    });
+    expect(countMealNutrition(items, [], false)).toEqual({
+      kcal: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+    });
+  });
+
+  it("counts the whole plan for a marked meal with no logs", () => {
+    // 200 g chicken: P 62, F 7.2. 300 g rice: P 8.1, C 84.6, F 0.9.
+    const eaten = countMealNutrition(items, [], true);
+
+    expect(eaten.protein).toBeCloseTo(70.1, 5);
+    expect(eaten.carbs).toBeCloseTo(84.6, 5);
+    expect(eaten.fat).toBeCloseTo(8.1, 5);
+    // 4 * 84.6 + 4 * 70.1 + 9 * 8.1 = 338.4 + 280.4 + 72.9
+    expect(eaten.kcal).toBeCloseTo(691.7, 5);
+  });
+
+  it("counts a planned food logged at other grams once, at the logged grams", () => {
+    // Chicken logged 100 g instead of 200 g; rice stays at the plan.
+    const eaten = countMealNutrition(items, [logOf(1, 100)], true);
+
+    expect(eaten.protein).toBeCloseTo(31 + 8.1, 5);
+    expect(eaten.carbs).toBeCloseTo(84.6, 5);
+    expect(eaten.fat).toBeCloseTo(3.6 + 0.9, 5);
+  });
+
+  it("adds an off-menu free food on top of the plan", () => {
+    const eaten = countMealNutrition(
+      items,
+      [freeLog({ kcal: 300, protein: null, carbs: null, fat: null })],
+      true,
+    );
+
+    expect(eaten.kcal).toBeCloseTo(691.7 + 300, 5);
+    expect(eaten.protein).toBeCloseTo(70.1, 5);
+  });
+
+  it("adds a library food that is not in the plan", () => {
+    const eaten = countMealNutrition(items, [logOf(3, 100)], true);
+
+    expect(eaten.protein).toBeCloseTo(70.1 + 31, 5);
+  });
+
+  it("counts a planned food whose row is gone as 0 g", () => {
+    const eaten = countMealNutrition(
+      [{ foodId: 9, grams: 500, food: null }],
+      [],
+      true,
+    );
+
+    expect(eaten).toEqual({ kcal: 0, protein: 0, carbs: 0, fat: 0 });
+  });
+});
+
+describe("countMealEntries", () => {
+  const items = [
+    { foodId: 1, grams: 200, food: CHICKEN },
+    { foodId: 2, grams: 300, food: CHICKEN },
+  ];
+  const log = { foodId: 1, nutrition: null };
+
+  it("counts logs, plus the planned foods not logged when marked", () => {
+    expect(countMealEntries(items, [log], false)).toBe(1);
+    expect(countMealEntries(items, [log], true)).toBe(2);
+    expect(countMealEntries(items, [], true)).toBe(2);
   });
 });

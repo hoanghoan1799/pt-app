@@ -15,8 +15,8 @@ import type {
   PlanMeal,
 } from "@/features/meal-plans/types/meal-plan";
 import {
+  countMealNutrition,
   formatLogGrams,
-  sumLogNutrition,
 } from "@/features/meal-plans/utils/meal-log";
 import { kcalOf, sumItems } from "@/features/meal-plans/utils/plan-totals";
 
@@ -44,7 +44,8 @@ export const TraineeMealCard = ({
 }: TraineeMealCardProps) => {
   const card = useTraineeMealCard();
   const planned = sumItems(meal.items);
-  const eaten = sumLogNutrition(logs.map((log) => log.nutrition));
+  const isAchieved = mark?.achieved ?? false;
+  const eaten = countMealNutrition(meal.items, logs, isAchieved);
 
   return (
     <section
@@ -102,7 +103,7 @@ export const TraineeMealCard = ({
         )}
       </div>
 
-      {logs.length > 0 && (
+      {(logs.length > 0 || isAchieved) && (
         <div className="space-y-2">
           <p
             className="text-sm font-semibold text-fg tabular-nums"

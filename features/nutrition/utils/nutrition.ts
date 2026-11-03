@@ -5,6 +5,7 @@ import {
 import { MACROS } from "@/features/nutrition/constants/nutrition";
 import type {
   ComparedMetric,
+  EatenAmounts,
   FoodEntry,
   Macro,
   MacroAmounts,
@@ -27,13 +28,14 @@ export const sumEntries = (entries: FoodEntry[]): MacroAmounts =>
     EMPTY_AMOUNTS,
   );
 
-// A day from the old free-text entries and the macros of the foods logged in
-// the meal plan (KAN-71). Totals are whole grams, like the old entries.
+// A day from the old free-text entries and what the meal plan counts as eaten
+// (KAN-71, KAN-87): one part per logged food, or per planned food of a meal
+// marked "Đạt". Totals are whole grams and whole kcal.
 export const buildNutritionDay = (
   date: string,
   target: NutritionTarget | null,
   entries: FoodEntry[],
-  mealLogs: MacroAmounts[],
+  mealLogs: EatenAmounts[],
 ): NutritionDay => {
   const fromEntries = sumEntries(entries);
   const sum = (macro: Macro) =>
@@ -47,6 +49,10 @@ export const buildNutritionDay = (
     entries,
     loggedCount: entries.length + mealLogs.length,
     totals: { carbs: sum("carbs"), protein: sum("protein"), fat: sum("fat") },
+    totalKcal: Math.round(
+      mealLogs.reduce((total, log) => total + log.kcal, 0) +
+        calculateCalories(fromEntries),
+    ),
   };
 };
 
@@ -101,7 +107,7 @@ export const compareToTarget = (
 // A logged day is on target when kcal (4/4/9 from the macros), protein, carbs
 // and fat are all "on"; macros without a target are ignored.
 export const isDayOnTarget = (day: NutritionDay) => {
-  const { target, totals, loggedCount } = day;
+  const { target, totals, totalKcal, loggedCount } = day;
 
   if (!target || !loggedCount) {
     return false;
@@ -114,7 +120,7 @@ export const isDayOnTarget = (day: NutritionDay) => {
   };
 
   return (
-    isOn(calculateCalories(totals), calculateCalories(target), "kcal") &&
+    isOn(totalKcal, calculateCalories(target), "kcal") &&
     MACROS.every((macro) => isOn(totals[macro], target[macro], macro))
   );
 };
@@ -131,6 +137,7 @@ export const summarizeNutritionWeek = (
     }),
     EMPTY_AMOUNTS,
   );
+  const totalKcal = loggedDays.reduce((sum, day) => sum + day.totalKcal, 0);
   const divisor = loggedDays.length || 1;
 
   return {
@@ -140,6 +147,7 @@ export const summarizeNutritionWeek = (
       protein: Math.round(totals.protein / divisor),
       fat: Math.round(totals.fat / divisor),
     },
+    averageKcal: Math.round(totalKcal / divisor),
     onTargetDays: days.filter(isDayOnTarget).length,
   };
 };
