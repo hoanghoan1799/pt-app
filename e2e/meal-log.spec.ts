@@ -11,6 +11,7 @@ import {
   getWeekStart,
 } from "@/utils/week";
 
+import { fillTraineeLogin } from "./auth";
 import { E2E_ADMIN, E2E_DB_URL, E2E_LOGGER_NAME } from "./config";
 import { E2E_FOODS } from "./seed";
 import { shot } from "./shots";
@@ -67,8 +68,7 @@ const getLogs = () =>
 
 const logInAsTrainee = async (page: Page) => {
   await page.goto("/");
-  await page.getByLabel("Tên của bạn").fill(E2E_LOGGER_NAME);
-  await page.getByRole("button", { name: "Vào tập" }).click();
+  await fillTraineeLogin(page, E2E_LOGGER_NAME);
   await expect(page).toHaveURL(/\/workouts/);
   await page.goto("/nutrition");
   await expect(page.getByRole("heading", { name: "Bữa sáng" })).toBeVisible();

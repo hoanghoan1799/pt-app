@@ -4,8 +4,7 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
-import { LogoutButton } from "@/features/auth/components/LogoutButton";
-import { RememberUser } from "@/features/auth/components/RememberUser";
+import { UserHeaderActions } from "@/features/auth/components/UserHeaderActions";
 import { WorkoutWeek } from "@/features/workouts/components/WorkoutWeek";
 import { getWeekScheduleWithSets } from "@/features/workouts/services/workout-queries";
 import { requireUser } from "@/services/auth-guard";
@@ -26,11 +25,10 @@ const WorkoutsPage = async ({ searchParams }: PageProps<"/workouts">) => {
 
   return (
     <>
-      <RememberUser name={user.name} />
       <AppHeader
         eyebrow="Xin chào"
         title={user.name}
-        actions={<LogoutButton role="user" />}
+        actions={<UserHeaderActions />}
       />
       <main
         className={`${PAGE_CONTAINER} pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]`}

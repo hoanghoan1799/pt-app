@@ -11,6 +11,7 @@ import {
   getWeekStart,
 } from "@/utils/week";
 
+import { fillTraineeLogin } from "./auth";
 import { E2E_ADMIN, E2E_DB_URL, E2E_PLANNER_NAME } from "./config";
 import { E2E_FOODS } from "./seed";
 import { shot } from "./shots";
@@ -105,8 +106,7 @@ test("Q1: the trainee asks for 4 meals and a food note; both are kept", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByLabel("Tên của bạn").fill(E2E_PLANNER_NAME);
-  await page.getByRole("button", { name: "Vào tập" }).click();
+  await fillTraineeLogin(page, E2E_PLANNER_NAME);
   await expect(page).toHaveURL(/\/workouts/);
   await page.goto("/nutrition");
 

@@ -4,6 +4,7 @@ import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
 import { TIME_ZONE } from "@/constants/time";
 import * as schema from "@/db/schema";
 import { hashPassword } from "@/services/password";
+import { toEmailKey } from "@/utils/email";
 import { toNameKey } from "@/utils/name";
 import { toUsernameKey } from "@/utils/username";
 import { addDays, getTodayDate } from "@/utils/week";
@@ -15,7 +16,25 @@ import {
   E2E_LOGGER_NAME,
   E2E_PLANNER_NAME,
   E2E_USER_NAME,
+  E2E_USER_PASSWORD,
+  e2eEmail,
 } from "./config";
+
+// Trainee row with an email and a scrypt hash, as the admin UI creates them.
+// One hash is reused: scrypt is slow and the password is shared.
+let traineeHash: string | undefined;
+const traineeValues = async (name: string) => {
+  traineeHash ??= await hashPassword(E2E_USER_PASSWORD);
+  const email = e2eEmail(name);
+
+  return {
+    name,
+    nameKey: toNameKey(name),
+    email,
+    emailKey: toEmailKey(email),
+    passwordHash: traineeHash,
+  };
+};
 
 // Exercise titles the spec looks up by name.
 export const E2E_EXERCISES = {
@@ -177,10 +196,7 @@ const LOGGER_PLAN = [
 const seedLogger = async (db: LibSQLDatabase<typeof schema>, today: string) => {
   const [logger] = await db
     .insert(schema.users)
-    .values({
-      name: E2E_LOGGER_NAME,
-      nameKey: toNameKey(E2E_LOGGER_NAME),
-    })
+    .values(await traineeValues(E2E_LOGGER_NAME))
     .returning();
   const library = await db.select().from(schema.foods);
   const foodId = (name: string) => {
@@ -244,7 +260,7 @@ export const seedE2eDatabase = async (url: string) => {
 
   const [user] = await db
     .insert(schema.users)
-    .values({ name: E2E_USER_NAME, nameKey: toNameKey(E2E_USER_NAME) })
+    .values(await traineeValues(E2E_USER_NAME))
     .returning();
 
   const addDay = async (
@@ -325,15 +341,10 @@ export const seedE2eDatabase = async (url: string) => {
   });
   const [lifter] = await db
     .insert(schema.users)
-    .values({
-      name: E2E_LIFTER_NAME,
-      nameKey: toNameKey(E2E_LIFTER_NAME),
-    })
+    .values(await traineeValues(E2E_LIFTER_NAME))
     .returning();
 
-  await db
-    .insert(schema.users)
-    .values({ name: E2E_EMPTY_NAME, nameKey: toNameKey(E2E_EMPTY_NAME) });
+  await db.insert(schema.users).values(await traineeValues(E2E_EMPTY_NAME));
 
   const previousDay = await addDay(lifter.id, previous, [
     { title: E2E_PT_EXERCISES.SQUAT, sets: 2, reps: "8-10" },
@@ -398,10 +409,7 @@ export const seedE2eDatabase = async (url: string) => {
 
   const [planner] = await db
     .insert(schema.users)
-    .values({
-      name: E2E_PLANNER_NAME,
-      nameKey: toNameKey(E2E_PLANNER_NAME),
-    })
+    .values(await traineeValues(E2E_PLANNER_NAME))
     .returning();
 
   await db.insert(schema.nutritionTargets).values({
