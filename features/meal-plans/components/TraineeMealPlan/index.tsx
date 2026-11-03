@@ -1,8 +1,12 @@
+"use client";
+
 import { CalendarX2 } from "lucide-react";
 
-import { CARD, SECTION_TITLE } from "@/constants/styles";
+import { CARD } from "@/constants/styles";
 import { MacroChips } from "@/features/meal-plans/components/MacroChips";
+import { MealPlanTitle } from "@/features/meal-plans/components/MealPlanTitle";
 import { TraineeMealCard } from "@/features/meal-plans/components/TraineeMealCard";
+import { useMealCollapse } from "@/features/meal-plans/hooks/use-meal-collapse";
 import type { MealLog, MealMark } from "@/features/meal-plans/types/meal-log";
 import type { PlanDay, PlanFood } from "@/features/meal-plans/types/meal-plan";
 import { sumLogNutrition } from "@/features/meal-plans/utils/meal-log";
@@ -29,10 +33,12 @@ export const TraineeMealPlan = ({
   library,
   isLoggable,
 }: TraineeMealPlanProps) => {
+  const collapse = useMealCollapse(plan?.meals.map((meal) => meal.id) ?? []);
+
   if (!plan) {
     return (
       <section className="space-y-3" aria-label="Plan bữa ăn">
-        <h3 className={SECTION_TITLE}>Plan bữa ăn</h3>
+        <MealPlanTitle />
         <div
           className={`${CARD} flex items-center gap-3 px-4 py-5 text-sm text-muted`}
         >
@@ -55,7 +61,12 @@ export const TraineeMealPlan = ({
 
   return (
     <section className="space-y-3" aria-label="Plan bữa ăn">
-      <h3 className={SECTION_TITLE}>Plan bữa ăn</h3>
+      <MealPlanTitle
+        isAllCollapsed={collapse.isAllCollapsed}
+        onToggleAll={
+          collapse.isAllCollapsed ? collapse.expandAll : collapse.collapseAll
+        }
+      />
       {plan.meals.map((meal, index) => (
         <TraineeMealCard
           key={meal.id}
@@ -66,6 +77,8 @@ export const TraineeMealPlan = ({
           mark={marks.find((mark) => mark.mealId === meal.id) ?? null}
           library={library}
           isLoggable={isLoggable}
+          isCollapsed={collapse.isCollapsed(meal.id)}
+          onToggleCollapse={() => collapse.toggle(meal.id)}
         />
       ))}
 

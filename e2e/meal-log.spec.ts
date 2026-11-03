@@ -127,6 +127,63 @@ test("R6: the trainee sees today's plan read-only and the old log as history", a
   await shot(page, "01-trainee-plan-day", { fullPage: true });
 });
 
+test("KAN-89: the trainee folds one meal, then folds and opens every meal", async ({
+  page,
+}) => {
+  await logInAsTrainee(page);
+
+  const breakfast = meal(page, "Bữa sáng");
+  const logButton = breakfast.getByRole("button", {
+    name: "Ghi món đã ăn vào Bữa sáng",
+  });
+  const toggle = breakfast.getByRole("button", { name: "Thu gọn Bữa sáng" });
+
+  // Default: every card is open.
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(logButton).toBeVisible();
+
+  await toggle.click();
+  const opener = breakfast.getByRole("button", { name: "Mở Bữa sáng" });
+
+  await expect(opener).toHaveAttribute("aria-expanded", "false");
+  await expect(logButton).toBeHidden();
+  await expect(breakfast).toContainText(/Đã ăn \d+ \/ \d+ kcal/);
+  // The other meals stay open.
+  await expect(
+    meal(page, "Bữa trưa").getByRole("button", {
+      name: "Ghi món đã ăn vào Bữa trưa",
+    }),
+  ).toBeVisible();
+
+  await opener.click();
+  await expect(
+    breakfast.getByRole("button", { name: "Thu gọn Bữa sáng" }),
+  ).toHaveAttribute("aria-expanded", "true");
+  await expect(logButton).toBeVisible();
+
+  // Fold all, then open all.
+  const logButtons = page.getByRole("button", { name: /^Ghi món đã ăn vào / });
+  const count = await logButtons.count();
+
+  expect(count).toBeGreaterThan(1);
+  await page.getByRole("button", { name: "Thu gọn tất cả" }).click();
+  await expect(page.getByRole("button", { name: "Mở tất cả" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Mở Bữa / })).toHaveCount(
+    count,
+  );
+  for (let index = 0; index < count; index += 1) {
+    await expect(logButtons.nth(index)).toBeHidden();
+  }
+
+  await page.getByRole("button", { name: "Mở tất cả" }).click();
+  await expect(
+    page.getByRole("button", { name: "Thu gọn tất cả" }),
+  ).toBeVisible();
+  for (let index = 0; index < count; index += 1) {
+    await expect(logButtons.nth(index)).toBeVisible();
+  }
+});
+
 test("C5: the trainee logs a library food and a free food, edits and removes one", async ({
   page,
 }) => {
@@ -312,6 +369,38 @@ test("S4 + S3: the PT sees the marks and logs, and is told when the plan no long
 
   await shot(page.getByRole("main"), "05-admin-logs-and-notice");
   await shot(page, "05b-admin-top-notice");
+});
+
+test("KAN-89: the PT folds a meal; its header controls still work", async ({
+  page,
+}) => {
+  await logInAsAdmin(page);
+  await openAdminDay(page);
+
+  const breakfast = meal(page, "Bữa sáng");
+  const picker = breakfast.getByLabel("Thêm món vào Bữa sáng");
+  const toggle = breakfast.getByRole("button", { name: "Thu gọn Bữa sáng" });
+
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(picker).toBeVisible();
+
+  await toggle.click();
+  await expect(
+    breakfast.getByRole("button", { name: "Mở Bữa sáng" }),
+  ).toHaveAttribute("aria-expanded", "false");
+  await expect(picker).toBeHidden();
+  await expect(breakfast).toContainText("kcal · 2 món");
+  // Name input, reorder and delete stay in the header.
+  await expect(breakfast.getByLabel("Tên bữa 1")).toBeVisible();
+  await expect(
+    breakfast.getByRole("button", { name: "Đưa Bữa sáng xuống dưới" }),
+  ).toBeEnabled();
+  await expect(
+    breakfast.getByRole("button", { name: "Xóa Bữa sáng" }),
+  ).toBeEnabled();
+
+  await breakfast.getByRole("button", { name: "Mở Bữa sáng" }).click();
+  await expect(picker).toBeVisible();
 });
 
 test("KAN-78: overwriting or deleting a day with the trainee's logs warns that they go too", async ({
