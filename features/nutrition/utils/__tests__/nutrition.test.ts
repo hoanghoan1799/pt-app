@@ -139,7 +139,14 @@ describe("findTargetForDate", () => {
   it("uses the latest target that already started", () => {
     expect(findTargetForDate([TARGET, later], "2026-10-05")).toBe(TARGET);
     expect(findTargetForDate([TARGET, later], "2026-10-08")).toBe(later);
-    expect(findTargetForDate([TARGET, later], "2026-09-30")).toBeNull();
+  });
+
+  it("uses the first target for a day before any target started", () => {
+    expect(findTargetForDate([TARGET, later], "2026-09-30")).toBe(TARGET);
+  });
+
+  it("returns null when the user has no target", () => {
+    expect(findTargetForDate([], "2026-10-05")).toBeNull();
   });
 });
 

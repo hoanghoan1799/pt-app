@@ -57,12 +57,16 @@ export const buildNutritionDay = (
 };
 
 // Targets sorted by effectiveFrom ascending; the latest one that started on
-// or before the date applies.
+// or before the date applies. A day before the first target uses the first
+// one (KAN-90): a target saved today must also cover the earlier days of the
+// week the PT is planning, not leave them "without a target".
 export const findTargetForDate = (targets: NutritionTarget[], date: string) =>
   targets.reduce<NutritionTarget | null>(
     (current, target) => (target.effectiveFrom <= date ? target : current),
     null,
-  );
+  ) ??
+  targets[0] ??
+  null;
 
 // Calories follow from the macros: 4 kcal/g carbs and protein, 9 kcal/g fat.
 export const calculateCalories = ({ carbs, protein, fat }: MacroAmounts) =>
