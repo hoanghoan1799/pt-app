@@ -10,7 +10,6 @@ import {
 import type { NutritionDay } from "@/features/nutrition/types/nutrition";
 import { formatCalories } from "@/features/nutrition/utils/energy";
 import {
-  calculateCalories,
   compareToTarget,
   summarizeNutritionWeek,
 } from "@/features/nutrition/utils/nutrition";
@@ -52,9 +51,7 @@ export const NutritionWeekSummary = ({
       className: "text-success",
     },
     {
-      value: summary.loggedDays
-        ? formatCalories(calculateCalories(summary.averages))
-        : "–",
+      value: summary.loggedDays ? formatCalories(summary.averageKcal) : "–",
       label: "TB/ngày",
       className: "text-fg",
     },

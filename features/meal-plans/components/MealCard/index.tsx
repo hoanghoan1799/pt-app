@@ -202,7 +202,7 @@ export const MealCard = ({
         </div>
       )}
 
-      <MealLogSummary logs={logs} mark={mark} />
+      <MealLogSummary items={meal.items} logs={logs} mark={mark} />
     </section>
   );
 };

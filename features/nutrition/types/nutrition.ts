@@ -6,6 +6,12 @@ export type MacroAmounts = Record<Macro, number>;
 
 export type TargetSource = "manual" | "tdee";
 
+// Macros in grams plus the kcal that were counted for them. Free foods can
+// carry kcal without macros, so kcal is not always 4/4/9 of the macros.
+export interface EatenAmounts extends MacroAmounts {
+  kcal: number;
+}
+
 export interface NutritionTarget extends MacroAmounts {
   effectiveFrom: string;
   note: string;
@@ -31,6 +37,9 @@ export interface NutritionDay {
   loggedCount: number;
   // Macros of the entries and the meal logs together, whole grams.
   totals: MacroAmounts;
+  // Counted kcal of the day, whole kcal: the entries' 4/4/9 plus the kcal of
+  // the meal logs and marked meals (a free food may have kcal only).
+  totalKcal: number;
 }
 
 // What compareToTarget judges: a macro in grams or the day's calories.
@@ -49,6 +58,8 @@ export interface NutritionWeekSummary {
   loggedDays: number;
   // Average per logged day, rounded.
   averages: MacroAmounts;
+  // Average counted kcal per logged day, rounded.
+  averageKcal: number;
   // Days where every macro with a target ended "on" target.
   onTargetDays: number;
 }

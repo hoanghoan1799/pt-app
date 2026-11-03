@@ -2,19 +2,22 @@ import { CircleCheck, MessageSquareText } from "lucide-react";
 
 import { MealLogList } from "@/features/meal-plans/components/MealLogList";
 import type { MealLog, MealMark } from "@/features/meal-plans/types/meal-log";
+import type { PlanItem } from "@/features/meal-plans/types/meal-plan";
 import {
+  countMealNutrition,
   formatNutrition,
-  sumLogNutrition,
 } from "@/features/meal-plans/utils/meal-log";
 
 interface MealLogSummaryProps {
+  // The meal's planned items: a meal marked "Đạt" counts them.
+  items: PlanItem[];
   logs: MealLog[];
   mark: MealMark | null;
 }
 
 // S4: what the trainee reported for a meal, read-only for the PT: "Đạt", the
 // note about what was short or over, and the foods they logged.
-export const MealLogSummary = ({ logs, mark }: MealLogSummaryProps) => {
+export const MealLogSummary = ({ items, logs, mark }: MealLogSummaryProps) => {
   if (!logs.length && !mark) {
     return (
       <p className="rounded-xl bg-line/50 px-3 py-2 text-xs text-muted">
@@ -47,14 +50,14 @@ export const MealLogSummary = ({ logs, mark }: MealLogSummaryProps) => {
           <span className="whitespace-pre-line">{mark.note}</span>
         </p>
       )}
-      {logs.length > 0 && (
-        <>
-          <MealLogList logs={logs} />
-          <p className="text-sm font-semibold text-fg tabular-nums">
-            Đã ăn:{" "}
-            {formatNutrition(sumLogNutrition(logs.map((log) => log.nutrition)))}
-          </p>
-        </>
+      {logs.length > 0 && <MealLogList logs={logs} />}
+      {(logs.length > 0 || mark?.achieved) && (
+        <p className="text-sm font-semibold text-fg tabular-nums">
+          Đã ăn:{" "}
+          {formatNutrition(
+            countMealNutrition(items, logs, mark?.achieved ?? false),
+          )}
+        </p>
       )}
     </div>
   );

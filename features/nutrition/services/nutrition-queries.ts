@@ -7,11 +7,18 @@ import {
   foodEntries,
   foods,
   mealLogs,
+  mealMarks,
   mealPlanDays,
+  mealPlanItems,
   mealPlanMeals,
   nutritionTargets,
 } from "@/db/schema";
-import { resolveLogNutrition } from "@/features/meal-plans/utils/meal-log";
+import {
+  type CountedItem,
+  type CountedLog,
+  listMealNutrition,
+  resolveLogNutrition,
+} from "@/features/meal-plans/utils/meal-log";
 import type {
   FoodEntry,
   NutritionDay,
@@ -50,54 +57,127 @@ export const getNutritionWeek = async (
 ): Promise<NutritionDay[]> => {
   const dates = getWeekDates(weekStart);
   const weekEnd = dates[dates.length - 1];
-  const [targetRows, entryRows, logRows] = await Promise.all([
-    db
-      .select()
-      .from(nutritionTargets)
-      .where(
-        and(
-          eq(nutritionTargets.userId, userId),
-          lte(nutritionTargets.effectiveFrom, weekEnd),
+  const [targetRows, entryRows, logRows, itemRows, markRows] =
+    await Promise.all([
+      db
+        .select()
+        .from(nutritionTargets)
+        .where(
+          and(
+            eq(nutritionTargets.userId, userId),
+            lte(nutritionTargets.effectiveFrom, weekEnd),
+          ),
+        )
+        .orderBy(asc(nutritionTargets.effectiveFrom)),
+      db
+        .select()
+        .from(foodEntries)
+        .where(
+          and(
+            eq(foodEntries.userId, userId),
+            between(foodEntries.date, dates[0], weekEnd),
+          ),
+        )
+        .orderBy(asc(foodEntries.id)),
+      // Foods the trainee logged in the meal plan (KAN-71), by plan day.
+      db
+        .select({
+          date: mealPlanDays.date,
+          mealId: mealLogs.mealId,
+          foodId: mealLogs.foodId,
+          grams: mealLogs.grams,
+          kcal: mealLogs.kcal,
+          protein: mealLogs.protein,
+          carbs: mealLogs.carbs,
+          fat: mealLogs.fat,
+          food: {
+            protein: foods.protein,
+            carbs: foods.carbs,
+            fat: foods.fat,
+          },
+        })
+        .from(mealLogs)
+        .innerJoin(mealPlanMeals, eq(mealPlanMeals.id, mealLogs.mealId))
+        .innerJoin(mealPlanDays, eq(mealPlanDays.id, mealPlanMeals.dayId))
+        .leftJoin(foods, eq(foods.id, mealLogs.foodId))
+        .where(
+          and(
+            eq(mealLogs.userId, userId),
+            between(mealPlanDays.date, dates[0], weekEnd),
+          ),
         ),
-      )
-      .orderBy(asc(nutritionTargets.effectiveFrom)),
-    db
-      .select()
-      .from(foodEntries)
-      .where(
-        and(
-          eq(foodEntries.userId, userId),
-          between(foodEntries.date, dates[0], weekEnd),
+      // The plan's items per meal: a meal marked "Đạt" counts them (KAN-87).
+      db
+        .select({
+          date: mealPlanDays.date,
+          mealId: mealPlanItems.mealId,
+          foodId: mealPlanItems.foodId,
+          grams: mealPlanItems.grams,
+          food: {
+            protein: foods.protein,
+            carbs: foods.carbs,
+            fat: foods.fat,
+          },
+        })
+        .from(mealPlanItems)
+        .innerJoin(mealPlanMeals, eq(mealPlanMeals.id, mealPlanItems.mealId))
+        .innerJoin(mealPlanDays, eq(mealPlanDays.id, mealPlanMeals.dayId))
+        .leftJoin(foods, eq(foods.id, mealPlanItems.foodId))
+        .where(
+          and(
+            eq(mealPlanDays.userId, userId),
+            between(mealPlanDays.date, dates[0], weekEnd),
+          ),
         ),
-      )
-      .orderBy(asc(foodEntries.id)),
-    // Foods the trainee logged in the meal plan (KAN-71), by plan day.
-    db
-      .select({
-        date: mealPlanDays.date,
-        grams: mealLogs.grams,
-        kcal: mealLogs.kcal,
-        protein: mealLogs.protein,
-        carbs: mealLogs.carbs,
-        fat: mealLogs.fat,
-        isLibrary: mealLogs.foodId,
-        food: {
-          protein: foods.protein,
-          carbs: foods.carbs,
-          fat: foods.fat,
-        },
-      })
-      .from(mealLogs)
-      .innerJoin(mealPlanMeals, eq(mealPlanMeals.id, mealLogs.mealId))
-      .innerJoin(mealPlanDays, eq(mealPlanDays.id, mealPlanMeals.dayId))
-      .leftJoin(foods, eq(foods.id, mealLogs.foodId))
-      .where(
-        and(
-          eq(mealLogs.userId, userId),
-          between(mealPlanDays.date, dates[0], weekEnd),
+      db
+        .select({ mealId: mealMarks.mealId })
+        .from(mealMarks)
+        .innerJoin(mealPlanMeals, eq(mealPlanMeals.id, mealMarks.mealId))
+        .innerJoin(mealPlanDays, eq(mealPlanDays.id, mealPlanMeals.dayId))
+        .where(
+          and(
+            eq(mealMarks.userId, userId),
+            eq(mealMarks.achieved, true),
+            between(mealPlanDays.date, dates[0], weekEnd),
+          ),
         ),
-      ),
-  ]);
+    ]);
+  const achievedMealIds = new Set(markRows.map((row) => row.mealId));
+  const mealIdsByDate = new Map<string, Set<number>>();
+
+  for (const row of [...logRows, ...itemRows]) {
+    mealIdsByDate.set(
+      row.date,
+      (mealIdsByDate.get(row.date) ?? new Set()).add(row.mealId),
+    );
+  }
+
+  // What counts as eaten on one day, per meal (the same rule as the meal cards).
+  const getMealParts = (date: string) =>
+    [...(mealIdsByDate.get(date) ?? [])].flatMap((mealId) => {
+      const items: CountedItem[] = itemRows
+        .filter((row) => row.mealId === mealId)
+        .map((row) => ({
+          foodId: row.foodId,
+          grams: row.grams,
+          // A deleted food counts 0 g.
+          food: row.food && row.food.protein !== null ? row.food : null,
+        }));
+      const logs: CountedLog[] = logRows
+        .filter((row) => row.mealId === mealId)
+        .map((row) => ({
+          foodId: row.foodId,
+          // Same 4/4/9 numbers as the meal log screens; a vanished food
+          // resolves to nothing.
+          nutrition: resolveLogNutrition(
+            row.grams,
+            row.foodId !== null ? row.food : null,
+            row,
+          ),
+        }));
+
+      return listMealNutrition(items, logs, achievedMealIds.has(mealId));
+    });
   const targets = targetRows.map(toTarget);
 
   return dates.map((date) =>
@@ -105,23 +185,10 @@ export const getNutritionWeek = async (
       date,
       findTargetForDate(targets, date),
       entryRows.filter((row) => row.date === date).map(toEntry),
-      logRows
-        .filter((row) => row.date === date)
-        .map((row) => {
-          // Same 4/4/9 numbers as the meal log screens; a log with no numbers
-          // (or a vanished food) counts as logged, 0 g.
-          const nutrition = resolveLogNutrition(
-            row.grams,
-            row.isLibrary !== null ? row.food : null,
-            row,
-          );
-
-          return {
-            carbs: nutrition?.carbs ?? 0,
-            protein: nutrition?.protein ?? 0,
-            fat: nutrition?.fat ?? 0,
-          };
-        }),
+      // A part with no numbers (or a vanished food) counts as logged, 0 g.
+      getMealParts(date).map(
+        (part) => part ?? { kcal: 0, carbs: 0, protein: 0, fat: 0 },
+      ),
     ),
   );
 };

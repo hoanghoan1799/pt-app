@@ -7,6 +7,7 @@ import type {
 } from "@/features/nutrition/types/nutrition";
 import {
   buildNutritionDay,
+  calculateCalories,
   compareToTarget,
   findTargetForDate,
   isDayOnTarget,
@@ -54,8 +55,8 @@ describe("buildNutritionDay", () => {
       target,
       [createEntry(100, 20, 10)],
       [
-        { carbs: 0, protein: 62, fat: 7.2 },
-        { carbs: 84.6, protein: 8.1, fat: 0.9 },
+        { kcal: 312.8, carbs: 0, protein: 62, fat: 7.2 },
+        { kcal: 380.4, carbs: 84.6, protein: 8.1, fat: 0.9 },
       ],
     );
 
@@ -69,12 +70,47 @@ describe("buildNutritionDay", () => {
       "2026-10-05",
       target,
       [],
-      [{ carbs: TARGET.carbs, protein: TARGET.protein, fat: TARGET.fat }],
+      [
+        {
+          kcal: calculateCalories(TARGET),
+          carbs: TARGET.carbs,
+          protein: TARGET.protein,
+          fat: TARGET.fat,
+        },
+      ],
     );
 
     expect(day.loggedCount).toBe(1);
     expect(day.entries).toEqual([]);
     expect(isDayOnTarget(day)).toBe(true);
+  });
+
+  it("adds the entries' 4/4/9 kcal and the meal logs' own kcal", () => {
+    // Entry: 100 C + 20 P + 10 F = 400 + 80 + 90 = 570 kcal. A free log of
+    // 300 kcal typed without macros adds kcal only.
+    const day = buildNutritionDay(
+      "2026-10-05",
+      target,
+      [createEntry(100, 20, 10)],
+      [{ kcal: 300, carbs: 0, protein: 0, fat: 0 }],
+    );
+
+    expect(day.totalKcal).toBe(870);
+    expect(day.totals).toEqual({ carbs: 100, protein: 20, fat: 10 });
+    expect(day.loggedCount).toBe(2);
+  });
+
+  it("judges the day on the counted kcal, not on the macros", () => {
+    // Macros at the target (1850 kcal) plus a 600 kcal free food: kcal over.
+    const day = buildNutritionDay(
+      "2026-10-05",
+      target,
+      [createEntry(TARGET.carbs, TARGET.protein, TARGET.fat)],
+      [{ kcal: 600, carbs: 0, protein: 0, fat: 0 }],
+    );
+
+    expect(day.totalKcal).toBe(2450);
+    expect(isDayOnTarget(day)).toBe(false);
   });
 
   it("is not logged with nothing", () => {
@@ -178,6 +214,8 @@ describe("week summary", () => {
     expect(summarizeNutritionWeek([onTarget, under, empty])).toEqual({
       loggedDays: 2,
       averages: { carbs: 150, protein: 105, fat: 35 },
+      // (1850 + 820) / 2 days, from the counted kcal of each day.
+      averageKcal: 1335,
       onTargetDays: 1,
     });
   });

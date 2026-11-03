@@ -286,7 +286,11 @@ test("S4 + S3: the PT sees the marks and logs, and is told when the plan no long
   await expect(reported).toContainText("Cơm hơi dư 30 g");
   await expect(reported).toContainText(E2E_FOODS.CHICKEN);
   await expect(reported).toContainText("200 g");
-  await expect(reported).toContainText("Đã ăn: 313 kcal · P 62 · C 0 · F 7,2");
+  // Marked "Đạt" (KAN-87): the logged chicken (313 kcal) plus the planned rice
+  // the trainee did not log, so the whole breakfast plan counts.
+  await expect(reported).toContainText(
+    "Đã ăn: 692 kcal · P 70,1 · C 84,6 · F 8,1",
+  );
   await expect(meal(page, "Bữa trưa")).toContainText(
     "Học viên chưa ghi gì cho bữa này.",
   );
