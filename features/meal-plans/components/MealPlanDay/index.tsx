@@ -2,14 +2,16 @@
 
 import { Copy, Percent, Plus, Trash2 } from "lucide-react";
 
-import { BUTTON_SECONDARY, SECTION_TITLE } from "@/constants/styles";
+import { BUTTON_SECONDARY } from "@/constants/styles";
 import { CopyDaySheet } from "@/features/meal-plans/components/CopyDaySheet";
 import { DayPlanSummary } from "@/features/meal-plans/components/DayPlanSummary";
 import { EmptyDayPlan } from "@/features/meal-plans/components/EmptyDayPlan";
 import { MealCard } from "@/features/meal-plans/components/MealCard";
+import { MealPlanTitle } from "@/features/meal-plans/components/MealPlanTitle";
 import { MealSharesSheet } from "@/features/meal-plans/components/MealSharesSheet";
 import { MemberMealRequest } from "@/features/meal-plans/components/MemberMealRequest";
 import { MEAL_PLAN_LIMITS } from "@/features/meal-plans/constants/meal-plans";
+import { useMealCollapse } from "@/features/meal-plans/hooks/use-meal-collapse";
 import { useMealPlanDay } from "@/features/meal-plans/hooks/use-meal-plan-day";
 import type { MealLog, MealMark } from "@/features/meal-plans/types/meal-log";
 import type { PlanDay, PlanFood } from "@/features/meal-plans/types/meal-plan";
@@ -58,11 +60,12 @@ export const MealPlanDay = ({
   datesWithLogs,
 }: MealPlanDayProps) => {
   const day = useMealPlanDay(userId, plan);
+  const collapse = useMealCollapse(plan?.meals.map((meal) => meal.id) ?? []);
 
   if (!plan) {
     return (
       <section className="space-y-3" aria-label="Plan bữa ăn">
-        <h3 className={SECTION_TITLE}>Plan bữa ăn</h3>
+        <MealPlanTitle />
         <MemberMealRequest
           preferredMealCount={preferredMealCount}
           planMealCount={null}
@@ -90,7 +93,12 @@ export const MealPlanDay = ({
 
   return (
     <section className="space-y-3" aria-label="Plan bữa ăn">
-      <h3 className={SECTION_TITLE}>Plan bữa ăn</h3>
+      <MealPlanTitle
+        isAllCollapsed={collapse.isAllCollapsed}
+        onToggleAll={
+          collapse.isAllCollapsed ? collapse.expandAll : collapse.collapseAll
+        }
+      />
       <MemberMealRequest
         preferredMealCount={preferredMealCount}
         planMealCount={plan.meals.length}
@@ -112,6 +120,8 @@ export const MealPlanDay = ({
           mark={marks.find((item) => item.mealId === meal.id) ?? null}
           onMove={(direction) => day.moveMeal(index, direction)}
           isReordering={day.dayPlan.isPending}
+          isCollapsed={collapse.isCollapsed(meal.id)}
+          onToggleCollapse={() => collapse.toggle(meal.id)}
         />
       ))}
 
