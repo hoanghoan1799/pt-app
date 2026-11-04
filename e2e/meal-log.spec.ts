@@ -302,9 +302,20 @@ test("S4: the trainee marks a meal Đạt with a note about what was over", asyn
   const done = breakfast.getByRole("button", { name: "Đạt Bữa sáng" });
 
   await expect(done).toHaveAttribute("aria-pressed", "false");
+  // KAN-91: a half-typed note is not saved by "Đạt"; it stays as a draft.
+  await breakfast.getByLabel("Ghi chú Bữa sáng").fill("Nháp chưa lưu");
   await done.click();
   await expect(done).toHaveAttribute("aria-pressed", "true");
   await expect(done).toHaveText("Đã đạt");
+  await expect(breakfast.getByLabel("Ghi chú Bữa sáng")).toHaveValue(
+    "Nháp chưa lưu",
+  );
+  await expect(
+    breakfast.getByRole("button", { name: "Lưu ghi chú" }),
+  ).toBeVisible();
+  expect(await query<{ note: string }>("SELECT note FROM meal_marks")).toEqual([
+    { note: "" },
+  ]);
 
   await breakfast.getByLabel("Ghi chú Bữa sáng").fill("Cơm hơi dư 30 g");
   await breakfast.getByRole("button", { name: "Lưu ghi chú" }).click();
