@@ -1,8 +1,10 @@
 "use client";
 
 import { Share } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
+import { ROUTES } from "@/constants/routes";
 import { useInstallPrompt } from "@/features/pwa/hooks/use-install-prompt";
 
 const BUTTON_BASE =
@@ -10,9 +12,12 @@ const BUTTON_BASE =
 
 // Floating banner above the UserTabBar offering to install the app. Android
 // and desktop Chrome wait for the browser's install event; iOS and in-app
-// browsers get a how-to hint instead.
+// browsers get a how-to hint instead. Hidden on the chat page (KAN-102), where
+// the composer is pinned above the tab bar and the banner would cover it.
 export const InstallPrompt = () => {
-  const { visible, platform, install, dismiss } = useInstallPrompt();
+  const { visible: canShow, platform, install, dismiss } = useInstallPrompt();
+  const pathname = usePathname();
+  const visible = canShow && !pathname.startsWith(ROUTES.MESSAGES);
   const bannerRef = useRef<HTMLDivElement>(null);
   const spacerRef = useRef<HTMLDivElement>(null);
 
