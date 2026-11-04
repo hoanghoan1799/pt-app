@@ -25,8 +25,15 @@ export const extractTicketKeys = (...sources: string[]) => {
   return [...keys];
 };
 
+// The integration branch. Task PRs merge into it; the release PR (stag ->
+// main) carries tickets that are already Done, so it moves nothing.
+export const INTEGRATION_BRANCH = "stag";
+
 // In Review when a ready PR opens, Done when it merges, otherwise nothing.
 export const targetStatusFor = (event: PullRequestEvent) => {
+  if (event.headRef === INTEGRATION_BRANCH) {
+    return null;
+  }
   if (event.action === "closed") {
     return event.merged ? "Done" : null;
   }

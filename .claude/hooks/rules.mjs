@@ -1,6 +1,8 @@
 // Pure rules for the PreToolUse hook, kept separate so Vitest can cover them.
 
-const PROTECTED_BRANCHES = ["main", "master"];
+// `stag` is the integration branch every task PR targets; `main` only takes
+// the release PR (docs/release.md). Neither takes a direct push.
+const PROTECTED_BRANCHES = ["main", "master", "stag"];
 
 const ENV_FILE_PATTERN = /(^|[\s/"'=<])\.env(\.[\w.-]+)?(?=$|[\s"';|&)>])/g;
 
@@ -20,7 +22,7 @@ const pushTargetsProtectedBranch = (command, currentBranch) => {
   const positional = args
     .split(/\s+/)
     .filter((arg) => arg && !arg.startsWith("-"));
-  // `git push origin feature:main` or `git push origin main`.
+  // `git push origin feature:stag` or `git push origin main`.
   const refs = positional.slice(1).map((ref) => ref.split(":").pop());
 
   if (refs.length > 0) {
@@ -52,7 +54,7 @@ export const findViolation = (
     return "Force-push is not allowed. Use --force-with-lease on your own branch only if you really must.";
   }
   if (isPush && pushTargetsProtectedBranch(command, currentBranch)) {
-    return "Pushing to main is not allowed. Push a ticket branch and open a PR.";
+    return "Pushing to main or stag is not allowed. Push a ticket branch and open a PR into stag.";
   }
   if ((isPush || isCommit) && hasFlag(command, "--no-verify")) {
     return "--no-verify skips the repo's checks. Fix what the check reports instead.";

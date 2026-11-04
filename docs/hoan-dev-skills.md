@@ -33,14 +33,14 @@ The one idea: **put the context in the repo, not in the prompt.** A short prompt
 
 ## Guardrails (never relaxed, even in auto mode)
 
-| Rule                     | In pt-app                                                                               |
-| ------------------------ | --------------------------------------------------------------------------------------- |
-| Never force-push         | Blocked by the PreToolUse hook; a diverged branch is reported, not overwritten.         |
-| Never push to `main`     | Blocked by the hook; every change goes through a PR with green CI.                      |
-| Honest commits           | Each message is written from the diff, with the KAN key: `honest-commit-push`.          |
-| Verify, then close       | A ticket moves to Done only after its PR is merged with test, lint and typecheck green. |
-| Write down why           | Removals and reversals are recorded in CLAUDE.md or the spec, with the date.            |
-| Production is off limits | No db scripts against Turso; schema changes stay additive.                              |
+| Rule                        | In pt-app                                                                               |
+| --------------------------- | --------------------------------------------------------------------------------------- |
+| Never force-push            | Blocked by the PreToolUse hook; a diverged branch is reported, not overwritten.         |
+| Never push to `stag`/`main` | Blocked by the hook; every task goes through a PR into `stag` with green CI.            |
+| Honest commits              | Each message is written from the diff, with the KAN key: `honest-commit-push`.          |
+| Verify, then close          | A ticket moves to Done only after its PR is merged with test, lint and typecheck green. |
+| Write down why              | Removals and reversals are recorded in CLAUDE.md or the spec, with the date.            |
+| Production is off limits    | No db scripts against Turso; schema changes stay additive.                              |
 
 ## Checklists
 
@@ -58,7 +58,7 @@ The one idea: **put the context in the repo, not in the prompt.** A short prompt
 ### Before commit and push
 
 - [ ] Diff read; no `.env*`, `*.db`, `.next/`, `.playwright-mcp/` or secrets
-- [ ] On the ticket branch, not `main`; author is Hoan Hoang
+- [ ] On the ticket branch (cut from `stag`), not `stag` or `main`; author is Hoan Hoang
 - [ ] One commit per concern; message written from the diff with the KAN key
 - [ ] No `Co-Authored-By` or `Claude-Session` lines
 - [ ] Checks run; no force-push, no `--no-verify`
