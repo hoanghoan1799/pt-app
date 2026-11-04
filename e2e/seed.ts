@@ -12,6 +12,8 @@ import { addDays, getTodayDate } from "@/utils/week";
 import {
   E2E_ADMIN,
   E2E_CHANGER_NAME,
+  E2E_CHAT_NAME,
+  E2E_CHAT_OFF_NAME,
   E2E_EMPTY_NAME,
   E2E_LIFTER_NAME,
   E2E_LOCKED_NAME,
@@ -359,6 +361,14 @@ export const seedE2eDatabase = async (url: string) => {
       await traineeValues(E2E_LOCKED_NAME),
       await traineeValues(E2E_CHANGER_NAME),
       await traineeValues(E2E_RESET_NAME),
+    ]);
+
+  // Chat specs (KAN-102): both start with chat locked (chat_enabled null).
+  await db
+    .insert(schema.users)
+    .values([
+      await traineeValues(E2E_CHAT_OFF_NAME),
+      await traineeValues(E2E_CHAT_NAME),
     ]);
 
   const previousDay = await addDay(lifter.id, previous, [
