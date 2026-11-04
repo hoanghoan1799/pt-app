@@ -26,7 +26,7 @@ vi.mock("@/db", () => ({
 const route = await import("@/app/api/push/subscribe/route");
 
 const subscription = {
-  endpoint: "https://push.example/abc",
+  endpoint: "https://fcm.googleapis.com/fcm/send/abc",
   keys: { p256dh: "p", auth: "a" },
 };
 

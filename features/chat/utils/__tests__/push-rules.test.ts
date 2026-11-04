@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   adminOwnerKey,
   buildChatPushPayload,
+  isAllowedPushEndpoint,
   isGoneStatus,
   pushSubscriptionSchema,
   unsubscribeSchema,
@@ -77,7 +78,7 @@ describe("pushSubscriptionSchema", () => {
     ["not a url", { ...valid, endpoint: "nope" }],
     [
       "endpoint too long",
-      { ...valid, endpoint: `https://push.example/${"a".repeat(2100)}` },
+      { ...valid, endpoint: `https://fcm.googleapis.com/${"a".repeat(2100)}` },
     ],
     ["missing keys", { endpoint: valid.endpoint }],
     ["empty p256dh", { ...valid, keys: { ...valid.keys, p256dh: " " } }],
@@ -88,6 +89,36 @@ describe("pushSubscriptionSchema", () => {
     ],
   ])("rejects %s", (_name, input) => {
     expect(pushSubscriptionSchema.safeParse(input).success).toBe(false);
+  });
+});
+
+describe("isAllowedPushEndpoint", () => {
+  it.each([
+    "https://fcm.googleapis.com/fcm/send/abc",
+    "https://web.push.apple.com/QAbc",
+    "https://wns2-db5p.notify.windows.com/w/?token=x",
+    "https://updates.push.services.mozilla.com/wpush/v2/abc",
+  ])("accepts the push service %s", (endpoint) => {
+    expect(isAllowedPushEndpoint(endpoint)).toBe(true);
+  });
+
+  it.each([
+    ["an arbitrary host", "https://attacker.example/hook"],
+    ["a lookalike suffix", "https://evilfcm.googleapis.com.attacker.example/x"],
+    ["a lookalike prefix", "https://notpush.apple.com.evil/x"],
+    ["localhost", "https://localhost/x"],
+    ["an IP literal", "https://169.254.169.254/latest/meta-data"],
+    ["a custom port", "https://fcm.googleapis.com:8443/fcm/send/abc"],
+    ["credentials in the URL", "https://u:p@fcm.googleapis.com/fcm/send/abc"],
+    ["plain http", "http://fcm.googleapis.com/fcm/send/abc"],
+  ])("rejects %s", (_name, endpoint) => {
+    expect(isAllowedPushEndpoint(endpoint)).toBe(false);
+    expect(
+      pushSubscriptionSchema.safeParse({
+        endpoint,
+        keys: { p256dh: "BKey", auth: "authKey" },
+      }).success,
+    ).toBe(false);
   });
 });
 

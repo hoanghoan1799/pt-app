@@ -13,13 +13,42 @@ export const adminOwnerKey = (adminId: number) =>
 const MAX_ENDPOINT_LENGTH = 2048;
 const MAX_KEY_LENGTH = 512;
 
+// The server POSTs to the endpoint on every chat message, so only the
+// browsers' push services are accepted (no SSRF to internal or arbitrary
+// hosts). Exact host or a subdomain of it, default https port only.
+const PUSH_SERVICE_HOSTS = [
+  "fcm.googleapis.com",
+  "android.googleapis.com",
+  "push.apple.com",
+  "notify.windows.com",
+  "push.services.mozilla.com",
+];
+
+export const isAllowedPushEndpoint = (value: string) => {
+  let url: URL;
+
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "https:" || url.port !== "" || url.username) {
+    return false;
+  }
+  const host = url.hostname.toLowerCase();
+
+  return PUSH_SERVICE_HOSTS.some(
+    (allowed) => host === allowed || host.endsWith(`.${allowed}`),
+  );
+};
+
 // Shape of PushSubscription.toJSON() as the browser produces it.
 export const pushSubscriptionSchema = z.object({
   endpoint: z
     .string()
     .max(MAX_ENDPOINT_LENGTH)
     .url()
-    .refine((value) => value.startsWith("https://"), "https only"),
+    .refine(isAllowedPushEndpoint, "unknown push service"),
   keys: z.object({
     p256dh: z.string().trim().min(1).max(MAX_KEY_LENGTH),
     auth: z.string().trim().min(1).max(MAX_KEY_LENGTH),
