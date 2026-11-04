@@ -4,12 +4,13 @@ import { z } from "zod";
 
 import { CHAT_MESSAGES } from "@/features/chat/constants/messages";
 import { isChatEnabled } from "@/features/chat/services/chat-permission";
+import { schedulePush } from "@/features/chat/services/chat-push";
 import {
   type ChatMessage,
   findConversationById,
   findConversationByUserId,
   getOrCreateConversation,
-  insertMessage,
+  insertMessageOnce,
   saveReadCursor,
 } from "@/features/chat/services/chat-queries";
 import {
@@ -51,7 +52,7 @@ export const sendMessageAction = withResultErrorHandling(
     }
     const { body, clientId } = parsed.data;
     const conversation = await getOrCreateConversation(user.id);
-    const message = await insertMessage({
+    const { message, created } = await insertMessageOnce({
       conversationId: conversation.id,
       senderRole: "user",
       senderAdminId: null,
@@ -62,6 +63,14 @@ export const sendMessageAction = withResultErrorHandling(
     // After the DB write; publishChatEvent never throws. A retried send
     // republishes the stored message, clients dedupe by id.
     await publishNewMessage(conversation.id, message);
+    // Push only for a new row, never for a retried clientId.
+    if (created) {
+      schedulePush({
+        senderRole: "user",
+        traineeUserId: user.id,
+        conversationId: conversation.id,
+      });
+    }
     return { status: "success", message };
   },
 );
@@ -94,7 +103,7 @@ export const adminSendMessageAction = withResultErrorHandling(
       return fail(CHAT_MESSAGES.CHAT_LOCKED);
     }
     const conversation = await getOrCreateConversation(trainee.id);
-    const message = await insertMessage({
+    const { message, created } = await insertMessageOnce({
       conversationId: conversation.id,
       senderRole: "admin",
       senderAdminId: admin.id,
@@ -105,6 +114,13 @@ export const adminSendMessageAction = withResultErrorHandling(
     // After the DB write; publishChatEvent never throws. A retried send
     // republishes the stored message, clients dedupe by id.
     await publishNewMessage(conversation.id, message);
+    if (created) {
+      schedulePush({
+        senderRole: "admin",
+        traineeUserId: trainee.id,
+        conversationId: conversation.id,
+      });
+    }
     return { status: "success", message };
   },
 );

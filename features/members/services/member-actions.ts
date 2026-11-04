@@ -18,10 +18,12 @@ import {
   foodEntries,
   mealPlanDays,
   nutritionTargets,
+  pushSubscriptions,
   users,
   weightLogs,
   workoutDays,
 } from "@/db/schema";
+import { userOwnerKey } from "@/features/chat/utils/push-rules";
 import { deleteDays } from "@/features/meal-plans/services/meal-plan-store";
 import { createMemberWithLogin } from "@/features/members/services/create-member-with-login";
 import {
@@ -96,6 +98,9 @@ export const deleteMemberAction = withResultErrorHandling(
       await tx
         .delete(chatConversations)
         .where(eq(chatConversations.userId, id));
+      await tx
+        .delete(pushSubscriptions)
+        .where(eq(pushSubscriptions.ownerKey, userOwnerKey(id)));
       await tx.delete(exerciseSets).where(eq(exerciseSets.userId, id));
       await tx
         .delete(exerciseCompletions)

@@ -2,7 +2,13 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
-import { chatConversations, chatMessages, chatReads, users } from "@/db/schema";
+import {
+  chatConversations,
+  chatMessages,
+  chatReads,
+  pushSubscriptions,
+  users,
+} from "@/db/schema";
 
 const state = vi.hoisted(() => ({ db: null as unknown }));
 
@@ -103,6 +109,32 @@ describe("deleteMemberAction chat cleanup", () => {
     expect(
       (await db.select().from(chatMessages)).map((row) => row.conversationId),
     ).toEqual([kept.conversationId, kept.conversationId]);
+  });
+
+  it("removes the trainee's push subscriptions only", async () => {
+    const gone = await seedTrainee("An");
+    const kept = await seedTrainee("Binh");
+    const sub = (ownerKey: string, n: number) => ({
+      ownerKey,
+      endpoint: `https://push.example/${n}`,
+      p256dh: "p",
+      auth: "a",
+    });
+
+    await db
+      .insert(pushSubscriptions)
+      .values([
+        sub(`user:${gone.userId}`, 1),
+        sub(`user:${gone.userId}`, 2),
+        sub(`user:${kept.userId}`, 3),
+        sub("admin:1", 4),
+      ]);
+
+    await deleteMemberAction(gone.userId);
+
+    expect(
+      (await db.select().from(pushSubscriptions)).map((row) => row.endpoint),
+    ).toEqual(["https://push.example/3", "https://push.example/4"]);
   });
 
   it("deletes a trainee who never opened a conversation", async () => {
