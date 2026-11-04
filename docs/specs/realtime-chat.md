@@ -147,7 +147,7 @@ Polling details (fallback and e2e): fetch `after=<lastId>`, immediately on `focu
 - Every chat read/write checks ownership: a trainee only ever reaches their own conversation (looked up by `user.id`, never by an id from the client); an admin reaches any conversation.
 - Sends validate with Zod: `body` trimmed 1..2000 chars, `clientId` uuid; reject when `chat_enabled` is not true (error message "PT đã tạm khoá nhắn tin").
 - Errors go through `services/action-errors.ts` (generic message + reference id in production).
-- Rate limit: generalise the limiter into a fixed-window counter. Add a table `rate_limits(key pk, count, window_started_at)` (additive; `login_attempts` keeps its lock semantics) and rules in `utils/rate-limit-rules.ts` (pure, unit-tested). Limits: trainee 20 messages/min and 300/day; admin 60/min; poll endpoints not limited per request (they are cheap and authenticated) but the client never polls faster than 3 s.
+- No rate limit on sending messages (D13, Hoan 2026-11-04): chat is only open to trainees an admin enabled, and the admin can lock a trainee at any time. The `rate_limits` table added in KAN-97 stays unused (dropping it would not be additive). The polling client still never polls faster than 3 s.
 - Push subscribe/unsubscribe endpoints use the same guards.
 
 ## 7. Security and privacy
@@ -230,7 +230,7 @@ Phase 1: instant text chat with permission and badges (~5-6 days)
 
 - **[BE] Chat schema and permission flag** – tables `chat_conversations`, `chat_messages`, `chat_reads`, `rate_limits`; `users.chat_enabled*` columns; member delete cleans chat rows. Done: `db:push` on local SQLite, unit tests for delete path.
 - **[BE] Ably realtime transport** – `ABLY_API_KEY` in `services/env.ts`, token route with per-role capabilities, publish after send/read/lock, a failed publish never fails the send. Done: unit tests for the capability builder and channel names.
-- **[BE] Chat services and API** – `getApiUser/getApiAdmin`, send (Zod, `chat_enabled` check, idempotent `clientId`, rate limit), list with cursor, mark read, unread counts, admin inbox query, admin toggle action. Done: unit tests per rule in section 14.
+- **[BE] Chat services and API** – `getApiUser/getApiAdmin`, send (Zod, `chat_enabled` check, idempotent `clientId`), list with cursor, mark read, unread counts, admin inbox query, admin toggle action. Done: unit tests per rule in section 14.
 - **[FE] Trainee chat tab** – 4th tab, `/messages`, thread, composer, optimistic send/retry, `ChatTransport` (Ably + polling fallback), unread badge, locked state.
 - **[FE] Admin inbox, member chat panel and lock switch** – `/admin/messages`, member page section, dashboard tile, header badge.
 - **[QA] Chat e2e and browser proof** – Playwright specs (section 14), browser proof at 390 px for trainee and admin, artifact.
@@ -266,6 +266,7 @@ Each sub-task: own branch `feat/KAN-<n>-...`, plan approved before code, PR per 
 | D10 | Messages and meal notes stay in the inbox; the dashboard activity list is unchanged (Q8).                                                                    | Hoan, 2026-11-04 |
 | D11 | No quiet hours for push; the phone's Do Not Disturb covers it (Q10).                                                                                         | Hoan, 2026-11-04 |
 | D12 | UX follows the familiar short-video-app DM pattern (Hoan cited TikTok's inbox as the reference): see section 8. Patterns only, no copied assets or branding. | Hoan, 2026-11-04 |
+| D13 | No rate limit on sending chat messages; access control is the per-trainee switch (D1) and the lock (D6).                                                     | Hoan, 2026-11-04 |
 
 Grill-me finished 2026-11-04: round 1 (Q1-Q6, Q9) and round 2 (Q7, Q8, Q10) all answered. No open questions left.
 
@@ -279,7 +280,7 @@ Grill-me finished 2026-11-04: round 1 (Q1-Q6, Q9) and round 2 (Q7, Q8, Q10) all 
 | Admin sends to a locked trainee (D6)                                                                                        | unit          | rejected (D6)                                                            |
 | Trainee asks for another trainee's conversation id                                                                          | unit          | impossible: trainee routes take no conversation id; API returns own only |
 | Unread count: own messages ignored, per-admin read cursors                                                                  | unit          | admin A reading does not clear admin B                                   |
-| Rate limit window: 20 in a minute ok, 21st rejected, next window ok                                                         | unit          | pure rule test                                                           |
+| No send limit (D13): many messages in a row                                                                                 | unit          | all stored                                                               |
 | Member delete removes conversation, messages, reads, subscriptions                                                          | unit          | no orphan rows                                                           |
 | `GET messages` without session                                                                                              | e2e           | 401 JSON, no redirect                                                    |
 | Admin enables chat → trainee sees tab → sends → admin inbox shows it unread → admin replies → trainee sees reply within 5 s | e2e           | exact message texts asserted, unread counts asserted                     |

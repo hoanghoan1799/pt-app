@@ -57,3 +57,9 @@ export const requireAdmin = async () => {
 
   return admin ?? endSessionAndRedirect("admin");
 };
+
+// Route handlers answer 401 JSON instead of redirecting to a login page, so
+// these return null for a missing/stale session. Same checks as the
+// require* guards above (deleted user, password changed since sign-in).
+export const getApiUser = getCurrentUser;
+export const getApiAdmin = getCurrentAdmin;
