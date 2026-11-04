@@ -313,9 +313,9 @@ test("S4: the trainee marks a meal Đạt with a note about what was over", asyn
   await expect(
     breakfast.getByRole("button", { name: "Lưu ghi chú" }),
   ).toBeVisible();
-  expect(
-    await query<{ note: string }>("SELECT note FROM meal_marks"),
-  ).toEqual([{ note: "" }]);
+  expect(await query<{ note: string }>("SELECT note FROM meal_marks")).toEqual([
+    { note: "" },
+  ]);
 
   await breakfast.getByLabel("Ghi chú Bữa sáng").fill("Cơm hơi dư 30 g");
   await breakfast.getByRole("button", { name: "Lưu ghi chú" }).click();
