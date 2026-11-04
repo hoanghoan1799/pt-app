@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
   },
   reactCompiler: true,
   images: {
+    // The e2e server serves thumbnails straight from the browser, where the
+    // specs abort ytimg requests; the optimizer would fetch the fake seed IDs
+    // server-side, past page.route, and log a 404 for each one.
+    unoptimized: process.env.E2E_UNOPTIMIZED_IMAGES === "1",
     // YouTube video thumbnails.
     remotePatterns: [
       { protocol: "https", hostname: "i.ytimg.com", pathname: "/vi/**" },

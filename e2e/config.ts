@@ -21,6 +21,8 @@ export const E2E_ENV = {
   VERCEL: "",
   // Registers public/sw.js under `next dev` (the worker is production-only otherwise).
   NEXT_PUBLIC_ENABLE_SW: "1",
+  // Skips the image optimizer so no thumbnail is fetched server-side (KAN-95).
+  E2E_UNOPTIMIZED_IMAGES: "1",
 } as const;
 
 export const E2E_USER_NAME = "E2E Trainee";
