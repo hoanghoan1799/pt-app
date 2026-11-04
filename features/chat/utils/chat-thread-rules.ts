@@ -92,13 +92,31 @@ export const firstStoredId = (messages: ThreadMessage[]) => {
   return null;
 };
 
-// Newest message from the PT: what "read" is reported against.
-export const newestPeerMessageId = (messages: ThreadMessage[]) => {
+// Who is looking at the thread. The admin carries the names the bubbles need:
+// the trainee's (avatar) and their own (optimistic bubbles).
+export type ThreadViewer =
+  | { role: "user" }
+  | {
+      role: "admin";
+      adminId: number;
+      adminName: string;
+      peerName: string | null;
+    };
+
+export const USER_VIEWER: ThreadViewer = { role: "user" };
+
+// Newest message from the other side: what "read" is reported against. For a
+// trainee that is the PT, for an admin the trainee.
+export const newestPeerMessageId = (
+  messages: ThreadMessage[],
+  viewerRole: ThreadViewer["role"] = "user",
+) => {
+  const peerRole = viewerRole === "user" ? "admin" : "user";
   let newest = 0;
 
   for (const message of messages) {
     if (
-      message.senderRole === "admin" &&
+      message.senderRole === peerRole &&
       message.id !== null &&
       message.id > newest
     ) {
@@ -106,6 +124,24 @@ export const newestPeerMessageId = (messages: ThreadMessage[]) => {
     }
   }
   return newest;
+};
+
+// Username of the admin who wrote the newest stored admin message, or null
+// when there is none or that admin was deleted. Names the PT in the trainee's
+// header.
+export const latestAdminName = (messages: ThreadMessage[]) => {
+  let newest: ThreadMessage | null = null;
+
+  for (const message of messages) {
+    if (
+      message.senderRole === "admin" &&
+      message.id !== null &&
+      (newest === null || message.id > (newest.id ?? 0))
+    ) {
+      newest = message;
+    }
+  }
+  return newest?.senderAdminName ?? null;
 };
 
 // The read cursor is sent only when it moves forward.
@@ -191,9 +227,12 @@ export type ThreadItem =
       // First / last bubble of a run from the same sender.
       isFirstInRun: boolean;
       isLastInRun: boolean;
-      // PT name above the first bubble of a PT run.
+      // Name above the first bubble of a run: the PT for a trainee, another
+      // admin for an admin. Never on my own runs.
       senderName: string | null;
       showAvatar: boolean;
+      // Whose initials the round avatar shows (the other side).
+      avatarName: string | null;
       // "Đã gửi" / "Đã xem", only under my newest stored message.
       statusLine: string | null;
     };
@@ -203,20 +242,45 @@ export const PEER_DELETED_NAME = "PT (đã xoá)";
 const senderKey = (message: ThreadMessage) =>
   message.senderRole === "user" ? "user" : `admin:${message.senderAdminId}`;
 
+const senderNameFor = (
+  message: ThreadMessage,
+  viewer: ThreadViewer,
+  continuesRun: boolean,
+) => {
+  if (continuesRun) {
+    return null;
+  }
+  if (viewer.role === "user") {
+    return message.senderRole === "admin"
+      ? (message.senderAdminName ?? PEER_DELETED_NAME)
+      : null;
+  }
+  // Admin viewer: the trainee needs no label, my own runs neither; a
+  // colleague's run is named (a deleted account has no id or name left).
+  return message.senderRole === "admin" &&
+    message.senderAdminId !== viewer.adminId
+    ? (message.senderAdminName ?? PEER_DELETED_NAME)
+    : null;
+};
+
 // Turns the message list into render items: day separators, centred time
 // stamps after a 15 minute gap, and run grouping (names, avatars, spacing).
 export const buildThreadItems = (
   messages: ThreadMessage[],
   peerReadUpTo: number,
   nowMs: number,
+  viewer: ThreadViewer = USER_VIEWER,
 ): ThreadItem[] => {
+  // "Mine" is the right-hand side: the trainee's own messages, or for an
+  // admin every admin message (the PT inbox is shared, D4).
+  const isMine = (message: ThreadMessage) => message.senderRole === viewer.role;
   const items: ThreadItem[] = [];
   // Index in `items` of the previous message, reset by any separator.
   let previousIndex = -1;
   let lastMineStoredId: number | null = null;
 
   for (const message of messages) {
-    if (message.senderRole === "user" && message.id !== null) {
+    if (isMine(message) && message.id !== null) {
       lastMineStoredId = message.id;
     }
   }
@@ -247,7 +311,7 @@ export const buildThreadItems = (
     if (separated) {
       previousIndex = -1;
     }
-    const mine = message.senderRole === "user";
+    const mine = isMine(message);
     const continuesRun =
       previousIndex >= 0 &&
       previous &&
@@ -268,11 +332,10 @@ export const buildThreadItems = (
       mine,
       isFirstInRun: !continuesRun,
       isLastInRun,
-      senderName:
-        !mine && !continuesRun
-          ? (message.senderAdminName ?? PEER_DELETED_NAME)
-          : null,
+      senderName: senderNameFor(message, viewer, Boolean(continuesRun)),
       showAvatar: !mine && isLastInRun,
+      avatarName:
+        viewer.role === "admin" ? viewer.peerName : message.senderAdminName,
       statusLine:
         mine && message.id !== null && message.id === lastMineStoredId
           ? message.id <= peerReadUpTo

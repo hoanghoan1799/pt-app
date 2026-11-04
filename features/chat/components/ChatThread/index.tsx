@@ -15,6 +15,8 @@ import { Composer } from "@/features/chat/components/Composer";
 import { LockedBanner } from "@/features/chat/components/LockedBanner";
 import { MessageBubble } from "@/features/chat/components/MessageBubble";
 import { NewMessagesChip } from "@/features/chat/components/NewMessagesChip";
+import { CHAT_MESSAGES } from "@/features/chat/constants/messages";
+import { useChatAdapter } from "@/features/chat/hooks/use-chat-adapter";
 import type { ThreadSnapshot } from "@/features/chat/hooks/use-chat-messages";
 import { useChatMessages } from "@/features/chat/hooks/use-chat-messages";
 import { useChatTransport } from "@/features/chat/hooks/use-chat-transport";
@@ -22,16 +24,26 @@ import {
   buildThreadItems,
   firstStoredId,
   isNearBottom,
+  latestAdminName,
+  type ThreadViewer,
+  USER_VIEWER,
 } from "@/features/chat/utils/chat-thread-rules";
 
-interface ChatThreadProps {
+export interface ChatThreadProps {
   initial: ThreadSnapshot;
   userId: number;
   conversationId: number | null;
   // The page header; rendered inside the shell so the keyboard resize keeps
-  // it in place.
-  header: ReactNode;
+  // it in place. A function receives the username of the newest PT who wrote
+  // in the loaded messages (null if none or deleted).
+  header: ReactNode | ((latestPeerName: string | null) => ReactNode);
+  viewer?: ThreadViewer;
+  emptyText?: string;
+  ariaLabel?: string;
 }
+
+const TRAINEE_EMPTY_TEXT = "Gửi tin nhắn đầu tiên cho PT của bạn";
+const TRAINEE_ARIA_LABEL = "Cuộc trò chuyện với PT";
 
 const KEYBOARD_MIN_PX = 120;
 
@@ -75,9 +87,14 @@ export const ChatThread = ({
   userId,
   conversationId,
   header,
+  viewer = USER_VIEWER,
+  emptyText = TRAINEE_EMPTY_TEXT,
+  ariaLabel = TRAINEE_ARIA_LABEL,
 }: ChatThreadProps) => {
+  const isAdmin = viewer.role === "admin";
   const [isVisible, setIsVisible] = useState(true);
-  const chat = useChatMessages({ initial, isViewing: isVisible });
+  const adapter = useChatAdapter(viewer, userId, conversationId);
+  const chat = useChatMessages({ adapter, initial, isViewing: isVisible });
   const { messages, hasMore, chatEnabled, peerReadUpTo, sync } = chat;
   const viewport = useVisualViewport();
   const scroller = useRef<HTMLDivElement>(null);
@@ -89,7 +106,13 @@ export const ChatThread = ({
   );
   const [showNewChip, setShowNewChip] = useState(false);
 
-  useChatTransport({ userId, conversationId, chatEnabled, onSync: sync });
+  useChatTransport({
+    role: viewer.role,
+    userId,
+    conversationId,
+    chatEnabled,
+    onSync: sync,
+  });
 
   useEffect(() => {
     const onChange = () => setIsVisible(document.visibilityState === "visible");
@@ -101,8 +124,8 @@ export const ChatThread = ({
   // `Date.now()` only matters for "Hôm nay"/"Hôm qua"; refreshed per render.
   const items = useMemo(
     // eslint-disable-next-line react-hooks/purity
-    () => buildThreadItems(messages, peerReadUpTo, Date.now()),
-    [messages, peerReadUpTo],
+    () => buildThreadItems(messages, peerReadUpTo, Date.now(), adapter.viewer),
+    [messages, peerReadUpTo, adapter.viewer],
   );
 
   const scrollToBottom = useCallback((smooth: boolean) => {
@@ -140,12 +163,12 @@ export const ChatThread = ({
     if (isFirstRun || !last) {
       return;
     }
-    if (wasNearBottom.current || last.senderRole === "user") {
+    if (wasNearBottom.current || last.senderRole === viewer.role) {
       scrollToBottom(true);
     } else {
       setShowNewChip(true);
     }
-  }, [lastKey, last, scrollToBottom]);
+  }, [lastKey, last, scrollToBottom, viewer.role]);
 
   // Older messages were prepended: keep what the reader was looking at.
   const firstId = firstStoredId(messages);
@@ -194,6 +217,9 @@ export const ChatThread = ({
     void chat.loadOlder();
   };
 
+  const headerNode =
+    typeof header === "function" ? header(latestAdminName(messages)) : header;
+
   return (
     <div
       className="fixed inset-x-0 top-0 z-20 flex flex-col bg-bg"
@@ -206,7 +232,14 @@ export const ChatThread = ({
           : { height: "100dvh" }
       }
     >
-      {header}
+      {isAdmin ? (
+        // The admin header is tall; give the space back while typing.
+        <div className={viewport?.keyboardOpen ? "hidden" : undefined}>
+          {headerNode}
+        </div>
+      ) : (
+        headerNode
+      )}
       <div className="relative min-h-0 flex-1">
         <div
           ref={scroller}
@@ -228,14 +261,10 @@ export const ChatThread = ({
             )}
             {items.length === 0 && (
               <p className="px-6 py-16 text-center text-sm text-muted">
-                Gửi tin nhắn đầu tiên cho PT của bạn
+                {emptyText}
               </p>
             )}
-            <div
-              role="log"
-              aria-live="polite"
-              aria-label="Cuộc trò chuyện với PT"
-            >
+            <div role="log" aria-live="polite" aria-label={ariaLabel}>
               {items.map((item) => {
                 if (item.kind === "message") {
                   return (
@@ -268,10 +297,13 @@ export const ChatThread = ({
       <div
         className={clsx(
           "mx-auto w-full max-w-lg shrink-0 pt-2",
-          // Clear of the floating tab bar, unless the keyboard covers it.
+          // The trainee view clears the floating tab bar (unless the keyboard
+          // covers it); the admin view has none.
           viewport?.keyboardOpen
             ? "pb-2"
-            : "pb-[calc(env(safe-area-inset-bottom)+5.25rem)]",
+            : isAdmin
+              ? "pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
+              : "pb-[calc(env(safe-area-inset-bottom)+5.25rem)]",
         )}
       >
         {chat.sendError && (
@@ -279,7 +311,24 @@ export const ChatThread = ({
             {chat.sendError}
           </p>
         )}
-        {chatEnabled ? <Composer onSend={chat.send} /> : <LockedBanner />}
+        {chatEnabled ? (
+          <Composer
+            onSend={chat.send}
+            placeholder={
+              viewer.role === "admin" && viewer.peerName
+                ? `Nhắn tin cho ${viewer.peerName}…`
+                : undefined
+            }
+          />
+        ) : (
+          <LockedBanner
+            text={
+              isAdmin
+                ? CHAT_MESSAGES.ADMIN_CHAT_LOCKED
+                : CHAT_MESSAGES.CHAT_LOCKED
+            }
+          />
+        )}
       </div>
     </div>
   );

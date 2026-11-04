@@ -7,6 +7,7 @@ import {
   initialsOf,
   isNearBottom,
   lastStoredId,
+  latestAdminName,
   mergeMessages,
   newestPeerMessageId,
   pollIntervalFor,
@@ -273,5 +274,150 @@ describe("small helpers", () => {
   it("detects near-bottom scroll positions", () => {
     expect(isNearBottom(1000, 880, 100)).toBe(true);
     expect(isNearBottom(1000, 500, 100)).toBe(false);
+  });
+});
+
+describe("admin viewer", () => {
+  const now = Date.parse("2026-11-04T05:00:00.000Z");
+  const viewer = {
+    role: "admin" as const,
+    adminId: 1,
+    adminName: "Hoan",
+    peerName: "Lan Anh",
+  };
+  const traineeMsg = (id: number, createdAt = "2026-11-04T03:00:00.000Z") =>
+    msg(id, {
+      senderRole: "user",
+      senderAdminId: null,
+      senderAdminName: null,
+      createdAt,
+    });
+  const messageItems = (list: ThreadMessage[], readUpTo = 0) =>
+    buildThreadItems(list, readUpTo, now, viewer).flatMap((item) =>
+      item.kind === "message" ? [item] : [],
+    );
+
+  it("puts every admin message on the right and the trainee on the left", () => {
+    const [trainee, own, colleague] = messageItems(
+      mergeMessages(
+        [],
+        [
+          traineeMsg(1),
+          msg(2, { senderAdminId: 1 }),
+          msg(3, { senderAdminId: 2, senderAdminName: "Minh" }),
+        ],
+      ),
+    );
+
+    expect(trainee.mine).toBe(false);
+    expect(own.mine).toBe(true);
+    expect(colleague.mine).toBe(true);
+  });
+
+  it("labels a colleague's run above its first bubble only, never my own or the trainee's", () => {
+    const [trainee, own, colleague1, colleague2] = messageItems(
+      mergeMessages(
+        [],
+        [
+          traineeMsg(1),
+          msg(2, { senderAdminId: 1 }),
+          msg(3, { senderAdminId: 2, senderAdminName: "Minh" }),
+          msg(4, { senderAdminId: 2, senderAdminName: "Minh" }),
+        ],
+      ),
+    );
+
+    expect(trainee.senderName).toBeNull();
+    expect(own.senderName).toBeNull();
+    expect(colleague1.senderName).toBe("Minh");
+    expect(colleague2.senderName).toBeNull();
+    expect(colleague1.isFirstInRun).toBe(true);
+    expect(own.isLastInRun).toBe(true);
+  });
+
+  it("falls back to the deleted-PT label for a colleague without a name", () => {
+    const [item] = messageItems(
+      mergeMessages([], [msg(1, { senderAdminId: 9, senderAdminName: null })]),
+    );
+
+    expect(item.senderName).toBe("PT (đã xoá)");
+  });
+
+  it("shows the trainee's initials on the avatar of the trainee side", () => {
+    const [item] = messageItems(mergeMessages([], [traineeMsg(1)]));
+
+    expect(item.avatarName).toBe("Lan Anh");
+    expect(item.showAvatar).toBe(true);
+  });
+
+  it("puts the status line under the newest stored admin message, from the trainee's cursor", () => {
+    const list = mergeMessages(
+      [],
+      [msg(1), traineeMsg(2), msg(3, { senderAdminId: 2 }), traineeMsg(4)],
+    );
+    const statuses = (readUpTo: number) =>
+      messageItems(list, readUpTo).map((item) => item.statusLine);
+
+    expect(statuses(0)).toEqual([null, null, "Đã gửi", null]);
+    expect(statuses(2)).toEqual([null, null, "Đã gửi", null]);
+    expect(statuses(3)).toEqual([null, null, "Đã xem", null]);
+  });
+
+  it("still groups trainee messages into one run", () => {
+    const [first, second] = messageItems(
+      mergeMessages([], [traineeMsg(1), traineeMsg(2)]),
+    );
+
+    expect(first.isFirstInRun).toBe(true);
+    expect(first.showAvatar).toBe(false);
+    expect(second.isFirstInRun).toBe(false);
+    expect(second.showAvatar).toBe(true);
+  });
+});
+
+describe("newestPeerMessageId for an admin viewer", () => {
+  it("returns the newest trainee message, ignoring admin and pending ones", () => {
+    const list = mergeMessages(
+      [],
+      [
+        msg(1, { senderRole: "user", senderAdminId: null }),
+        msg(2),
+        msg(3, { senderRole: "user", senderAdminId: null }),
+        msg(4),
+      ],
+    );
+
+    expect(newestPeerMessageId(list, "admin")).toBe(3);
+    expect(newestPeerMessageId(list, "user")).toBe(4);
+    expect(newestPeerMessageId([pendingMsg("x")], "admin")).toBe(0);
+  });
+});
+
+describe("latestAdminName", () => {
+  it("names the admin of the newest stored admin message", () => {
+    const list = mergeMessages(
+      [],
+      [
+        msg(1, { senderAdminName: "Hoan" }),
+        msg(2, { senderAdminId: 2, senderAdminName: "Minh" }),
+        msg(3, {
+          senderRole: "user",
+          senderAdminId: null,
+          senderAdminName: null,
+        }),
+      ],
+    );
+
+    expect(latestAdminName(list)).toBe("Minh");
+  });
+
+  it("is null without admin messages or when the newest admin was deleted", () => {
+    expect(latestAdminName([])).toBeNull();
+    expect(latestAdminName([pendingMsg("x")])).toBeNull();
+    expect(
+      latestAdminName(
+        mergeMessages([], [msg(1), msg(2, { senderAdminName: null })]),
+      ),
+    ).toBeNull();
   });
 });
