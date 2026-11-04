@@ -116,7 +116,13 @@ const logInAsAdmin = async (page: Page) => {
   await expect(page).toHaveURL(/\/admin(\?.*)?$/);
 };
 
-type NewSessionOptions = { keepInstallBanner?: boolean; userAgent?: string };
+type NewSessionOptions = {
+  keepInstallBanner?: boolean;
+  userAgent?: string;
+  // Headless Chromium builds disagree on Notification.permission (the
+  // headless shell CI uses always answers "denied"); pin it for a stable card.
+  notificationPermission?: NotificationPermission;
+};
 
 const ANDROID_CHROME =
   "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36";
@@ -127,13 +133,25 @@ const IPHONE_SAFARI =
 // A browser context with its own cookies, like another device.
 const newSession = async (
   browser: Browser,
-  { keepInstallBanner = false, userAgent }: NewSessionOptions = {},
+  {
+    keepInstallBanner = false,
+    userAgent,
+    notificationPermission,
+  }: NewSessionOptions = {},
 ) => {
   const context = await browser.newContext({
     baseURL: test.info().project.use.baseURL,
     viewport: { width: 390, height: 844 },
     ...(userAgent ? { userAgent, hasTouch: true } : {}),
   });
+
+  if (notificationPermission) {
+    await context.addInitScript((permission) => {
+      Object.defineProperty(Notification, "permission", {
+        get: () => permission,
+      });
+    }, notificationPermission);
+  }
 
   if (keepInstallBanner) {
     return { context, page: await context.newPage() };
@@ -573,7 +591,10 @@ test("the push opt-in card shows once for a trainee: Để sau hides it for good
 }) => {
   await resetChat(E2E_CHAT_NAME);
   const userId = await getUserId(E2E_CHAT_NAME);
-  const trainee = await newSession(browser, { userAgent: ANDROID_CHROME });
+  const trainee = await newSession(browser, {
+    userAgent: ANDROID_CHROME,
+    notificationPermission: "default",
+  });
   const card = trainee.page.getByRole("region", { name: "Bật thông báo" });
   const title = card.getByText("Bật thông báo để không lỡ tin nhắn từ PT", {
     exact: true,
@@ -606,7 +627,10 @@ test("the push opt-in card shows once for a trainee: Để sau hides it for good
 test("the admin inbox shows the push opt-in card with the admin wording until dismissed", async ({
   browser,
 }) => {
-  const session = await newSession(browser, { userAgent: ANDROID_CHROME });
+  const session = await newSession(browser, {
+    userAgent: ANDROID_CHROME,
+    notificationPermission: "default",
+  });
   const admin = session.page;
   const card = admin.getByRole("region", { name: "Bật thông báo" });
 
