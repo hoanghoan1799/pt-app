@@ -13,6 +13,10 @@ import {
   saveReadCursor,
 } from "@/features/chat/services/chat-queries";
 import {
+  publishNewMessage,
+  publishRead,
+} from "@/features/chat/services/chat-realtime";
+import {
   adminReaderKey,
   sendMessageSchema,
   USER_READER_KEY,
@@ -55,6 +59,9 @@ export const sendMessageAction = withResultErrorHandling(
       clientId,
     });
 
+    // After the DB write; publishChatEvent never throws. A retried send
+    // republishes the stored message, clients dedupe by id.
+    await publishNewMessage(conversation.id, message);
     return { status: "success", message };
   },
 );
@@ -95,6 +102,9 @@ export const adminSendMessageAction = withResultErrorHandling(
       clientId,
     });
 
+    // After the DB write; publishChatEvent never throws. A retried send
+    // republishes the stored message, clients dedupe by id.
+    await publishNewMessage(conversation.id, message);
     return { status: "success", message };
   },
 );
@@ -114,12 +124,14 @@ export const markReadAction = withResultErrorHandling(
     const conversation = await findConversationByUserId(user.id);
 
     if (conversation) {
-      await saveReadCursor(
+      const saved = await saveReadCursor(
         conversation.id,
         USER_READER_KEY,
         parsed.data,
         conversation.lastMessageId ?? 0,
       );
+
+      await publishRead(conversation.id, USER_READER_KEY, saved);
     }
   },
 );
@@ -143,11 +155,14 @@ export const adminMarkReadAction = withResultErrorHandling(
     if (!conversation) {
       return fail(CHAT_MESSAGES.CONVERSATION_NOT_FOUND);
     }
-    await saveReadCursor(
+    const readerKey = adminReaderKey(admin.id);
+    const saved = await saveReadCursor(
       conversation.id,
-      adminReaderKey(admin.id),
+      readerKey,
       parsed.data.lastReadMessageId,
       conversation.lastMessageId ?? 0,
     );
+
+    await publishRead(conversation.id, readerKey, saved);
   },
 );
