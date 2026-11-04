@@ -118,6 +118,9 @@ const logInAsAdmin = async (page: Page) => {
 
 type NewSessionOptions = { keepInstallBanner?: boolean; userAgent?: string };
 
+const ANDROID_CHROME =
+  "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36";
+
 const IPHONE_SAFARI =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
 
@@ -536,6 +539,16 @@ test("the install banner stays off the chat page so it never covers the composer
       .click();
     await expect(trainee.page).toHaveURL(/\/messages$/);
     await expect(banner).toHaveCount(0);
+    // iOS in a Safari tab cannot push: the opt-in card explains the install
+    // steps instead of offering the button.
+    const pushCard = trainee.page.getByRole("region", {
+      name: "Bật thông báo",
+    });
+
+    await expect(pushCard.getByText(/Thêm vào MH chính/)).toBeVisible();
+    await expect(
+      pushCard.getByRole("button", { name: "Bật thông báo" }),
+    ).toHaveCount(0);
     // A real tap (no force) reaches the send button.
     await sendFromComposer(trainee.page, text);
     await expect(
@@ -551,5 +564,74 @@ test("the install banner stays off the chat page so it never covers the composer
     await expect(banner).toBeVisible();
   } finally {
     await trainee.context.close();
+  }
+});
+
+test("the push opt-in card shows once for a trainee: Để sau hides it for good", async ({
+  page: admin,
+  browser,
+}) => {
+  await resetChat(E2E_CHAT_NAME);
+  const userId = await getUserId(E2E_CHAT_NAME);
+  const trainee = await newSession(browser, { userAgent: ANDROID_CHROME });
+  const card = trainee.page.getByRole("region", { name: "Bật thông báo" });
+  const title = card.getByText("Bật thông báo để không lỡ tin nhắn từ PT", {
+    exact: true,
+  });
+
+  try {
+    await logInAsAdmin(admin);
+    await setChatSwitch(admin, userId, true);
+    await logInAsTrainee(trainee.page, E2E_CHAT_NAME);
+    await trainee.page.goto("/messages");
+
+    await expect(title).toBeVisible();
+    await expect(
+      card.getByRole("button", { name: "Bật thông báo" }),
+    ).toBeVisible();
+    await shot(trainee.page, "chat-08-push-card-trainee-390");
+
+    await card.getByRole("button", { name: "Để sau" }).click();
+    await expect(card).toHaveCount(0);
+
+    // The choice is remembered per browser, not per page load.
+    await trainee.page.reload();
+    await expect(getComposer(trainee.page)).toBeVisible();
+    await expect(card).toHaveCount(0);
+  } finally {
+    await trainee.context.close();
+  }
+});
+
+test("the admin inbox shows the push opt-in card with the admin wording until dismissed", async ({
+  browser,
+}) => {
+  const session = await newSession(browser, { userAgent: ANDROID_CHROME });
+  const admin = session.page;
+  const card = admin.getByRole("region", { name: "Bật thông báo" });
+
+  try {
+    await logInAsAdmin(admin);
+    await admin.goto("/admin/messages");
+
+    await expect(
+      card.getByText("Bật thông báo để không lỡ tin nhắn của học viên", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      card.getByRole("button", { name: "Bật thông báo" }),
+    ).toBeVisible();
+    await shot(admin, "chat-09-push-card-admin-390");
+
+    await card.getByRole("button", { name: "Để sau" }).click();
+    await expect(card).toHaveCount(0);
+    await admin.reload();
+    await expect(
+      admin.getByRole("navigation", { name: "Lọc tin nhắn" }),
+    ).toBeVisible();
+    await expect(card).toHaveCount(0);
+  } finally {
+    await session.context.close();
   }
 });
