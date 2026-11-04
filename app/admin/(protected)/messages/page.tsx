@@ -8,6 +8,7 @@ import { ROUTES } from "@/constants/routes";
 import { CARD, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
 import { ChatInboxList } from "@/features/chat/components/ChatInboxList";
 import { InboxLiveRefresh } from "@/features/chat/components/InboxLiveRefresh";
+import { PushOptInCard } from "@/features/chat/components/PushOptInCard";
 import { listAdminInbox } from "@/features/chat/services/chat-queries";
 import { requireAdmin } from "@/services/auth-guard";
 import { getAdminMessagesPath } from "@/utils/routes";
@@ -48,6 +49,7 @@ const AdminMessagesInboxPage = async ({
       <main
         className={`${PAGE_CONTAINER} space-y-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]`}
       >
+        <PushOptInCard role="admin" />
         <nav aria-label="Lọc tin nhắn" className="flex gap-2">
           {FILTERS.map((filter) => {
             const isActive = (filter.key === UNREAD_FILTER) === isUnreadOnly;

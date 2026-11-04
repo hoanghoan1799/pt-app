@@ -21,6 +21,9 @@ export const E2E_ENV = {
   VERCEL: "",
   // Registers public/sw.js under `next dev` (the worker is production-only otherwise).
   NEXT_PUBLIC_ENABLE_SW: "1",
+  // Public half of a throwaway P-256 key so the push opt-in card renders (KAN-104); no private key exists.
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY:
+    "BAJsAp4wk0Cxz0Iys4LFcY5E1Mc_wHsarOMSC5zGuuYn81Ueki43JyI0Ui3R2C9j4LADRP5CFBh2JlsnW8O9b1Q",
   // Skips the image optimizer so no thumbnail is fetched server-side (KAN-95).
   E2E_UNOPTIMIZED_IMAGES: "1",
 } as const;

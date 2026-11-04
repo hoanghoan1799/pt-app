@@ -90,3 +90,78 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
+
+// Web push for chat messages (KAN-103 sends, KAN-104 shows). The payload is
+// {title, body, url, tag} and never carries the message text.
+const DEFAULT_NOTIFICATION = { title: "PT App", body: "Bạn có tin nhắn mới" };
+
+const readPushPayload = (event) => {
+  try {
+    const data = event.data ? event.data.json() : null;
+
+    return data && typeof data === "object" ? data : {};
+  } catch {
+    return {};
+  }
+};
+
+// Only same-origin relative paths; anything else falls back to the home page.
+const safeUrl = (value) =>
+  typeof value === "string" &&
+  value.startsWith("/") &&
+  !value.startsWith("//") &&
+  !value.includes("\\")
+    ? value
+    : "/";
+
+self.addEventListener("push", (event) => {
+  const data = readPushPayload(event);
+  const title =
+    typeof data.title === "string" && data.title
+      ? data.title
+      : DEFAULT_NOTIFICATION.title;
+  const body =
+    typeof data.body === "string" && data.body
+      ? data.body
+      : DEFAULT_NOTIFICATION.body;
+  const options = {
+    body,
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    data: { url: safeUrl(data.url) },
+  };
+
+  // renotify without a tag makes showNotification throw, so they go together.
+  if (typeof data.tag === "string" && data.tag) {
+    options.tag = data.tag;
+    options.renotify = true;
+  }
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(
+    safeUrl(event.notification.data && event.notification.data.url),
+    self.location.origin,
+  );
+
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then(async (windows) => {
+        const client = windows.find(
+          (candidate) => new URL(candidate.url).origin === target.origin,
+        );
+
+        if (client) {
+          await client.focus();
+          if ("navigate" in client) {
+            return client.navigate(target.href);
+          }
+          return undefined;
+        }
+        return self.clients.openWindow(target.href);
+      }),
+  );
+});

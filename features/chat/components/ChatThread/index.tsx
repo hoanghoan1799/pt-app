@@ -15,6 +15,7 @@ import { Composer } from "@/features/chat/components/Composer";
 import { LockedBanner } from "@/features/chat/components/LockedBanner";
 import { MessageBubble } from "@/features/chat/components/MessageBubble";
 import { NewMessagesChip } from "@/features/chat/components/NewMessagesChip";
+import { PushOptInCard } from "@/features/chat/components/PushOptInCard";
 import { CHAT_MESSAGES } from "@/features/chat/constants/messages";
 import { useChatAdapter } from "@/features/chat/hooks/use-chat-adapter";
 import type { ThreadSnapshot } from "@/features/chat/hooks/use-chat-messages";
@@ -247,6 +248,11 @@ export const ChatThread = ({
           className="h-full overflow-y-auto overscroll-contain px-4 pb-3"
         >
           <div className="mx-auto w-full max-w-lg">
+            {chatEnabled && !isAdmin && (
+              <div className="pt-4">
+                <PushOptInCard role="user" />
+              </div>
+            )}
             {hasMore && (
               <div className="flex justify-center pt-4">
                 <button

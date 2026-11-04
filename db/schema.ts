@@ -478,6 +478,24 @@ export const chatReads = sqliteTable(
   (table) => [primaryKey({ columns: [table.conversationId, table.readerKey] })],
 );
 
+// Web Push subscriptions (KAN-103). ownerKey is "user:<id>" or "admin:<id>"; no
+// foreign key, member delete removes them by hand. endpoint is unique so a
+// browser that re-subscribes (or a shared device) just changes owner.
+export const pushSubscriptions = sqliteTable(
+  "push_subscriptions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    ownerKey: text("owner_key").notNull(),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    userAgent: text("user_agent").notNull().default(""),
+    createdAt: createdAt(),
+    lastSuccessAt: integer("last_success_at", { mode: "timestamp" }),
+  },
+  (table) => [index("push_subscriptions_owner_key").on(table.ownerKey)],
+);
+
 // Fixed-window counters shared by all serverless instances. login_attempts
 // keeps its own lock semantics.
 export const rateLimits = sqliteTable("rate_limits", {

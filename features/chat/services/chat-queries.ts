@@ -116,7 +116,9 @@ interface NewMessage {
 
 // Idempotent insert: a retried send (same clientId) stores nothing and returns
 // the message that is already there.
-export const insertMessage = async (input: NewMessage) => {
+// `created` is false for that retried send, so callers can skip side effects
+// (push) that must fire once per message.
+export const insertMessageOnce = async (input: NewMessage) => {
   const now = new Date();
   const inserted = await db
     .insert(chatMessages)
@@ -147,8 +149,11 @@ export const insertMessage = async (input: NewMessage) => {
   if (!message) {
     throw new Error("Chat message missing right after insert");
   }
-  return message;
+  return { message, created: inserted.length > 0 };
 };
+
+export const insertMessage = async (input: NewMessage) =>
+  (await insertMessageOnce(input)).message;
 
 export interface ListMessagesOptions {
   after?: number;

@@ -82,6 +82,41 @@ Each PR: own branch `feat/KAN-<n>-...`, ticket In Progress at start, In Review w
 - `pnpm verify` green on every PR; e2e job under 3 minutes.
 - Manual on the Vercel preview with `ABLY_API_KEY`: message appears on the other device in under 1 s.
 
+## Phase 2 (KAN-103..105): Web Push
+
+Spec sections 4, 6, 7, 10, 12; D11 (no quiet hours). Push is skipped, never failed, when the VAPID env vars are missing, so each PR can merge before Hoan sets them.
+
+### PR 7: KAN-103 [BE] Web Push (as built)
+
+- `package.json`, `pnpm-lock.yaml`: `web-push`, `@types/web-push` (dev).
+- `services/env.ts`: `getVapidConfig()` (null when any value is missing), `getVapidPublicKey()` (for the FE ticket); `.env.example`: four commented entries.
+- `db/schema.ts`: additive table `push_subscriptions` (unique `endpoint`, index on `owner_key`, nullable `last_success_at`).
+- `features/chat/utils/push-rules.ts` (+ test): owner keys, Zod subscription schema, `buildChatPushPayload` (no message body parameter; takes `traineeUserId` for the admin URL), `isGoneStatus`.
+- `features/chat/services/chat-push.ts` (+ tests): `saveSubscription` (upsert on endpoint, reassigns owner), `deleteSubscription` (owner-scoped), `sendChatPush` (injectable sender, TTL 3600, urgency high, topic per conversation, deletes 404/410, stamps `last_success_at`, never throws, logs ids and counts only), `schedulePush` (uses `after()`, falls back to a floating promise).
+- `app/api/push/subscribe/route.ts` (+ test): `POST` subscribe, `DELETE` unsubscribe `{ endpoint }`; `?as=admin` picks the admin session like `/api/chat/ably-token`; 401 / 400 / 204.
+- `features/chat/services/chat-queries.ts`: `insertMessageOnce` (returns `created`), `insertMessage` kept as a wrapper.
+- `features/chat/services/chat-actions.ts`: both send actions call `schedulePush` only for a newly inserted row, not for a retried `clientId`.
+- `features/members/services/member-actions.ts` (+ test): member delete also removes `user:<id>` subscriptions in the same transaction. There is no admin delete path, so `admin:<id>` rows have nothing to clean up yet.
+
+### PR 8: KAN-104 [FE] Push opt-in and service worker
+
+- `public/sw.js`: `push` handler (shows title/body/tag from the payload, `data.url`) and `notificationclick` (focus an open client on the URL or open it).
+- `features/chat/components/PushOptInCard/index.tsx` (+ a `use-push-subscription` hook): shown on the trainee chat page and the admin inbox; subscribes through `/api/push/subscribe` (`?as=admin` in the admin app), reads the public key from `NEXT_PUBLIC_VAPID_PUBLIC_KEY`.
+- iOS only offers the card in standalone mode (installed app); in a Safari tab it reuses the install hint instead.
+- Remember "dismissed" and "enabled" per browser so the card shows once.
+
+### PR 9: KAN-105 [QA] Push checks
+
+- e2e: the opt-in card shows once (dismiss and enable states, no real push service).
+- Manual device checklist for Hoan: Android Chrome and an installed iPhone each receive a push for a new message, the tap opens the right chat, lock screen shows no message body, a deleted member's device stops receiving.
+
+### Env vars Hoan sets in Vercel (Production and Preview)
+
+- `VAPID_PUBLIC_KEY` and `NEXT_PUBLIC_VAPID_PUBLIC_KEY`: the same public key (the second is inlined into the browser bundle at build time, so redeploy after setting it).
+- `VAPID_PRIVATE_KEY`: server only.
+- `VAPID_SUBJECT`: `mailto:<Hoan's email>`.
+- Generate the pair once with `pnpm dlx web-push generate-vapid-keys`; changing it later invalidates every stored subscription.
+
 ## Deviations
 
 - KAN-98: no send rate limit (D13, Hoan 2026-11-04); `utils/rate-limit-rules.ts` and `services/rate-limiter.ts` were dropped and the `rate_limits` table stays unused.
