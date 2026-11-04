@@ -126,14 +126,15 @@ self.addEventListener("push", (event) => {
       : DEFAULT_NOTIFICATION.body;
   const options = {
     body,
-    renotify: true,
     icon: "/icons/icon-192.png",
     badge: "/icons/icon-192.png",
     data: { url: safeUrl(data.url) },
   };
 
+  // renotify without a tag makes showNotification throw, so they go together.
   if (typeof data.tag === "string" && data.tag) {
     options.tag = data.tag;
+    options.renotify = true;
   }
   event.waitUntil(self.registration.showNotification(title, options));
 });
