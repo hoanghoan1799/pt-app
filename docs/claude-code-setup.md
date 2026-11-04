@@ -158,4 +158,4 @@ Auto review runs on every push to every PR and uses your Claude quota. To limit 
 - Database: a scratch SQLite file at `e2e/.tmp/e2e.db`, recreated on every run (schema push plus seed in `e2e/global-setup.ts`). `playwright.config.ts` pins both `DATABASE_URL` and `TURSO_DATABASE_URL` to that file and blanks the tokens, because `services/env.ts` prefers the Turso pair; the setup throws for anything that is not a `file:` URL inside `e2e/.tmp`. Your `.env.local` is never used for the suite.
 - Seed dates are relative to the run date (today, one week ago, tomorrow), so no clock mocking is needed.
 - Record a video of every test: `E2E_VIDEO=1 pnpm test:e2e`; the `.webm` files land in `e2e/.tmp/results`.
-- CI: the separate `e2e` job in `ci.yml` is not a required check yet. If it goes over 3 minutes, remove it and keep this local command.
+- CI: the separate `e2e` job in `ci.yml` runs only when app or e2e files change (always on the release PR into `main`) and is not a required check yet. If it goes over 3 minutes, remove it and keep this local command.

@@ -28,7 +28,7 @@ Weekly PT workout app: admins (PTs) assign daily workouts, users log in by name.
 - UI copy is Vietnamese; code, comments, commits, PRs and Jira tickets are English.
 - Branches: `stag` is the integration branch. Every task branch starts from `stag` and its PR targets `stag`; `main` is production (Vercel) and only takes the release PR `stag` -> `main`, then a tag (`docs/release.md`).
 - One KAN ticket per branch, key in the branch name and commit subject, e.g. `fix(KAN-14): ...`.
-- CI (`.github/workflows/ci.yml`) runs test, lint and typecheck on every PR; keep it green.
+- CI (`.github/workflows/ci.yml`) runs only what a task PR touches (related unit tests, lint on changed files, typecheck on code changes, e2e on app/e2e changes) and the full suite plus `pnpm build` once on the release PR into `main`; the `checks` gate job is the required check. Keep it green; `pnpm verify` locally still runs everything.
 - `.github/workflows/jira-sync.yml` moves the KAN keys in a PR title or branch to In Review when the PR opens and to Done when it merges into `stag` (the release PR from `stag` moves nothing) (secrets `JIRA_EMAIL`, `JIRA_API_TOKEN`); moving a ticket to In Progress stays manual.
 
 ## Verifying your work
