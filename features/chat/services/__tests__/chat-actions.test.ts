@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
-import { chatMessages, chatReads, rateLimits, users } from "@/db/schema";
+import { chatMessages, chatReads, users } from "@/db/schema";
 
 const state = vi.hoisted(() => ({
   db: null as unknown,
@@ -112,18 +112,6 @@ describe("sendMessageAction", () => {
     expect(second).toEqual(first);
   });
 
-  it("does not count a retried clientId against the rate limit", async () => {
-    await actions.sendMessageAction({ body: "một", clientId: uuid(1) });
-    await actions.sendMessageAction({ body: "một", clientId: uuid(1) });
-
-    const [minute] = await db
-      .select()
-      .from(rateLimits)
-      .where(eq(rateLimits.key, `chat:user:${userId}:min`));
-
-    expect(minute.count).toBe(1);
-  });
-
   it.each([null, false])("rejects chatEnabled %s", async (flag) => {
     const lockedId = await addUser(`Binh${String(flag)}`, flag);
 
@@ -155,25 +143,16 @@ describe("sendMessageAction", () => {
     expect(await rows()).toHaveLength(0);
   });
 
-  it("allows 20 sends a minute and rejects the 21st", async () => {
-    for (let i = 1; i <= 20; i++) {
-      const ok = await actions.sendMessageAction({
+  it("has no send limit (D13): 25 messages in a row are all stored", async () => {
+    for (let i = 1; i <= 25; i++) {
+      const result = await actions.sendMessageAction({
         body: `tin ${i}`,
         clientId: uuid(i),
       });
 
-      expect(ok.status).toBe("success");
+      expect(result.status).toBe("success");
     }
-    const blocked = await actions.sendMessageAction({
-      body: "tin 21",
-      clientId: uuid(21),
-    });
-
-    expect(blocked).toEqual({
-      status: "error",
-      message: "Bạn gửi tin nhắn quá nhanh, vui lòng thử lại sau",
-    });
-    expect(await rows()).toHaveLength(20);
+    expect(await rows()).toHaveLength(25);
   });
 
   it("never uses a conversation id from the client", async () => {
@@ -255,27 +234,6 @@ describe("adminSendMessageAction", () => {
       status: "error",
       message: "Không tìm thấy user này",
     });
-  });
-
-  it("limits an admin to 60 messages a minute", async () => {
-    for (let i = 1; i <= 60; i++) {
-      await actions.adminSendMessageAction({
-        userId,
-        body: `tin ${i}`,
-        clientId: uuid(i),
-      });
-    }
-    const blocked = await actions.adminSendMessageAction({
-      userId,
-      body: "tin 61",
-      clientId: uuid(61),
-    });
-
-    expect(blocked).toEqual({
-      status: "error",
-      message: "Bạn gửi tin nhắn quá nhanh, vui lòng thử lại sau",
-    });
-    expect(await rows()).toHaveLength(60);
   });
 
   it("redirects a trainee session", async () => {
