@@ -1,4 +1,5 @@
 import {
+  ADMIN_MESSAGES_SEGMENT,
   ADMIN_NUTRITION_SEGMENT,
   ADMIN_PREVIEW_SEGMENT,
   ADMIN_SUMMARY_SEGMENT,
@@ -16,6 +17,9 @@ export const getAdminNutritionPath = (userId: number) =>
 
 export const getAdminSummaryPath = (userId: number) =>
   `${getAdminUserPath(userId)}/${ADMIN_SUMMARY_SEGMENT}`;
+
+export const getAdminMessagesPath = (userId: number) =>
+  `${getAdminUserPath(userId)}/${ADMIN_MESSAGES_SEGMENT}`;
 
 export const getFoodPath = (foodId: number) => `${ROUTES.FOODS}/${foodId}`;
 

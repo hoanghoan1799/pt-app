@@ -2,10 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import {
-  markReadAction,
-  sendMessageAction,
-} from "@/features/chat/services/chat-actions";
+import type { sendMessageAction } from "@/features/chat/services/chat-actions";
 import {
   firstStoredId,
   lastStoredId,
@@ -14,9 +11,9 @@ import {
   type SerializedChatMessage,
   shouldMarkRead,
   type ThreadMessage,
+  type ThreadViewer,
 } from "@/features/chat/utils/chat-thread-rules";
 
-const MESSAGES_URL = "/api/chat/messages";
 const MARK_READ_DEBOUNCE_MS = 600;
 const SEND_FAILED_TEXT = "Không gửi được tin nhắn. Thử lại nhé.";
 
@@ -35,14 +32,26 @@ const isThreadResponse = (value: unknown): value is ThreadResponse =>
   Array.isArray((value as ThreadResponse).messages) &&
   typeof (value as ThreadResponse).chatEnabled === "boolean";
 
+// What differs between the trainee and the admin view of the same thread.
+export interface ChatAdapter {
+  messagesUrl: string;
+  viewer: ThreadViewer;
+  sendMessage: (
+    body: string,
+    clientId: string,
+  ) => Promise<Awaited<ReturnType<typeof sendMessageAction>>>;
+  markRead: (lastReadMessageId: number) => Promise<{ status: string }>;
+}
+
 interface Options {
+  adapter: ChatAdapter;
   initial: ThreadSnapshot;
   // True while the thread is on screen and the tab visible: new PT messages
   // then count as seen.
   isViewing: boolean;
 }
 
-export const useChatMessages = ({ initial, isViewing }: Options) => {
+export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
   const [messages, setMessages] = useState<ThreadMessage[]>(() =>
     mergeMessages([], initial.messages),
   );
@@ -59,8 +68,10 @@ export const useChatMessages = ({ initial, isViewing }: Options) => {
   const syncing = useRef(false);
   const resync = useRef(false);
   const lastMarked = useRef(0);
+  const adapterRef = useRef(adapter);
 
   useEffect(() => {
+    adapterRef.current = adapter;
     messagesRef.current = messages;
     peerReadRef.current = peerReadUpTo;
     enabledRef.current = chatEnabled;
@@ -97,9 +108,12 @@ export const useChatMessages = ({ initial, isViewing }: Options) => {
         if (after > 0) {
           params.set("after", String(after));
         }
-        const response = await fetch(`${MESSAGES_URL}?${params}`, {
-          cache: "no-store",
-        });
+        const response = await fetch(
+          `${adapterRef.current.messagesUrl}?${params}`,
+          {
+            cache: "no-store",
+          },
+        );
 
         if (response.status === 401) {
           // Session ended: reload so the guard sends the user to login.
@@ -138,9 +152,12 @@ export const useChatMessages = ({ initial, isViewing }: Options) => {
     }
     setIsLoadingOlder(true);
     try {
-      const response = await fetch(`${MESSAGES_URL}?before=${before}`, {
-        cache: "no-store",
-      });
+      const response = await fetch(
+        `${adapterRef.current.messagesUrl}?before=${before}`,
+        {
+          cache: "no-store",
+        },
+      );
       const data: unknown = response.ok ? await response.json() : null;
 
       if (isThreadResponse(data)) {
@@ -157,13 +174,17 @@ export const useChatMessages = ({ initial, isViewing }: Options) => {
   const deliver = useCallback(
     async (body: string, clientId: string) => {
       try {
-        const result = await sendMessageAction({ body, clientId });
+        const { viewer, sendMessage } = adapterRef.current;
+        const result = await sendMessage(body, clientId);
 
         if (result.status === "success" && "message" in result) {
           const stored: SerializedChatMessage = {
             ...result.message,
             createdAt: new Date(result.message.createdAt).toISOString(),
-            senderAdminName: null,
+            senderAdminName:
+              viewer.role === "admin"
+                ? (result.message.senderAdminName ?? viewer.adminName)
+                : null,
           };
 
           setMessages((current) => mergeMessages(current, [stored]));
@@ -199,11 +220,12 @@ export const useChatMessages = ({ initial, isViewing }: Options) => {
         return;
       }
       const clientId = crypto.randomUUID();
+      const { viewer } = adapterRef.current;
       const optimistic: ThreadMessage = {
         id: null,
-        senderRole: "user",
-        senderAdminId: null,
-        senderAdminName: null,
+        senderRole: viewer.role,
+        senderAdminId: viewer.role === "admin" ? viewer.adminId : null,
+        senderAdminName: viewer.role === "admin" ? viewer.adminName : null,
         body,
         clientId,
         createdAt: new Date().toISOString(),
@@ -241,7 +263,7 @@ export const useChatMessages = ({ initial, isViewing }: Options) => {
 
   // Report "read" for the newest PT message once it is on screen; debounced
   // and only when the number grows.
-  const newestPeerId = newestPeerMessageId(messages);
+  const newestPeerId = newestPeerMessageId(messages, adapter.viewer.role);
 
   useEffect(() => {
     if (!isViewing || !shouldMarkRead(newestPeerId, lastMarked.current)) {
@@ -252,7 +274,7 @@ export const useChatMessages = ({ initial, isViewing }: Options) => {
         return;
       }
       lastMarked.current = newestPeerId;
-      void markReadAction({ lastReadMessageId: newestPeerId }).then(
+      void adapterRef.current.markRead(newestPeerId).then(
         (result) => {
           if (result.status === "error") {
             // Allow another attempt on the next change.

@@ -295,6 +295,25 @@ export const countUnreadForAdmin = async (adminId: number) => {
   return rows.reduce((total, row) => total + row.unread, 0);
 };
 
+// Username of the PT who wrote the newest admin message, for the trainee's
+// header. Null when no admin has written yet or that admin was deleted.
+export const findLatestAdminSenderName = async (conversationId: number) => {
+  const [row] = await db
+    .select({ name: admins.username })
+    .from(chatMessages)
+    .leftJoin(admins, eq(admins.id, chatMessages.senderAdminId))
+    .where(
+      and(
+        eq(chatMessages.conversationId, conversationId),
+        eq(chatMessages.senderRole, "admin"),
+      ),
+    )
+    .orderBy(desc(chatMessages.id))
+    .limit(1);
+
+  return row?.name ?? null;
+};
+
 export interface InboxItem {
   conversationId: number;
   userId: number;
@@ -302,6 +321,10 @@ export interface InboxItem {
   chatEnabled: boolean;
   preview: string;
   lastFromAdmin: boolean;
+  // Who wrote the last message when it came from a PT; the name is null once
+  // that account is deleted.
+  lastSenderAdminId: number | null;
+  lastSenderAdminName: string | null;
   lastMessageAt: Date | null;
   unread: number;
 }
@@ -321,6 +344,8 @@ export const listAdminInbox = async (adminId: number) => {
         chatEnabled: users.chatEnabled,
         lastBody: chatMessages.body,
         lastSenderRole: chatMessages.senderRole,
+        lastSenderAdminId: chatMessages.senderAdminId,
+        lastSenderAdminName: admins.username,
         lastMessageAt: chatConversations.lastMessageAt,
       })
       .from(chatConversations)
@@ -329,6 +354,7 @@ export const listAdminInbox = async (adminId: number) => {
         chatMessages,
         eq(chatMessages.id, chatConversations.lastMessageId),
       )
+      .leftJoin(admins, eq(admins.id, chatMessages.senderAdminId))
       .orderBy(
         sql`${chatConversations.lastMessageAt} is null`,
         desc(chatConversations.lastMessageAt),
@@ -352,6 +378,8 @@ export const listAdminInbox = async (adminId: number) => {
     chatEnabled: row.chatEnabled === true,
     preview: toPreview(row.lastBody ?? ""),
     lastFromAdmin: row.lastSenderRole === "admin",
+    lastSenderAdminId: row.lastSenderAdminId,
+    lastSenderAdminName: row.lastSenderAdminName,
     lastMessageAt: row.lastMessageAt,
     unread: unreadById.get(row.conversationId) ?? 0,
   }));

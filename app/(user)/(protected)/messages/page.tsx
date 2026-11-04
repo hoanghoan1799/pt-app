@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
-import { ChatThread } from "@/features/chat/components/ChatThread";
+import { TraineeChatThread } from "@/features/chat/components/TraineeChatThread";
 import { isChatEnabled } from "@/features/chat/services/chat-permission";
 import {
   findConversationByUserId,
+  findLatestAdminSenderName,
   getOrCreateConversation,
 } from "@/features/chat/services/chat-queries";
 import { loadTraineeThread } from "@/features/chat/services/chat-thread";
@@ -34,10 +34,13 @@ const MessagesPage = async () => {
     redirect(ROUTES.WORKOUTS);
   }
   const { payload } = result;
+  const peerName = existing
+    ? await findLatestAdminSenderName(existing.id)
+    : null;
 
   return (
-    <ChatThread
-      header={<AppHeader title="PT của bạn" />}
+    <TraineeChatThread
+      initialPeerName={peerName}
       userId={user.id}
       conversationId={conversation?.id ?? null}
       initial={{

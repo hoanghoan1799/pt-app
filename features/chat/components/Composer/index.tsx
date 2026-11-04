@@ -8,6 +8,7 @@ import { CHAT_BODY_MAX_LENGTH } from "@/features/chat/utils/chat-rules";
 
 interface ComposerProps {
   onSend: (body: string) => void;
+  placeholder?: string;
 }
 
 const MAX_HEIGHT_PX = 120;
@@ -15,7 +16,10 @@ const MAX_HEIGHT_PX = 120;
 // Pill-shaped input. The send arrow only appears with real text. Enter sends
 // on desktop (Shift+Enter = new line); on touch devices Enter is a new line
 // and the button sends.
-export const Composer = ({ onSend }: ComposerProps) => {
+export const Composer = ({
+  onSend,
+  placeholder = "Nhắn tin cho PT…",
+}: ComposerProps) => {
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const canSend = value.trim().length > 0;
@@ -66,7 +70,7 @@ export const Composer = ({ onSend }: ComposerProps) => {
         value={value}
         rows={1}
         maxLength={CHAT_BODY_MAX_LENGTH}
-        placeholder="Nhắn tin cho PT…"
+        placeholder={placeholder}
         aria-label="Nội dung tin nhắn"
         enterKeyHint="enter"
         onChange={(event) => {

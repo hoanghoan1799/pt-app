@@ -12,9 +12,11 @@ import {
   realtimeStateFor,
 } from "@/features/chat/utils/chat-thread-rules";
 
-const TOKEN_URL = "/api/chat/ably-token";
+const USER_TOKEN_URL = "/api/chat/ably-token";
+const ADMIN_TOKEN_URL = "/api/chat/ably-token?as=admin";
 
 interface UseChatTransportOptions {
+  role: "user" | "admin";
   userId: number;
   conversationId: number | null;
   chatEnabled: boolean;
@@ -27,6 +29,7 @@ interface UseChatTransportOptions {
 // plain polling otherwise. Ably events carry no sender name, so any event just
 // triggers a fetch (which also fills gaps). Turso stays the source of truth.
 export const useChatTransport = ({
+  role,
   userId,
   conversationId,
   chatEnabled,
@@ -40,11 +43,16 @@ export const useChatTransport = ({
     syncRef.current = onSync;
   });
 
-  // Ably connection. Locked chat gets no token (403), so it polls only.
+  // A locked trainee gets no token (403) and polls only. An admin is never
+  // refused one: chat-status events tell them when the chat is unlocked.
+  const canConnect =
+    conversationId !== null && (role === "admin" || chatEnabled);
+
   useEffect(() => {
-    if (!chatEnabled || conversationId === null) {
+    if (!canConnect || conversationId === null) {
       return;
     }
+    const tokenUrl = role === "admin" ? ADMIN_TOKEN_URL : USER_TOKEN_URL;
     let cancelled = false;
     let close: (() => void) | undefined;
 
@@ -59,7 +67,7 @@ export const useChatTransport = ({
         const client = new Ably.Realtime({
           autoConnect: true,
           authCallback: (_params, callback) => {
-            fetch(TOKEN_URL, { cache: "no-store" })
+            fetch(tokenUrl, { cache: "no-store" })
               .then(async (response) => {
                 if (response.status === 200) {
                   callback(null, await response.json());
@@ -100,10 +108,12 @@ export const useChatTransport = ({
           .get(conversationChannel(conversationId))
           .subscribe(trigger)
           .catch(ignore);
-        client.channels
-          .get(userChannel(userId))
-          .subscribe(trigger)
-          .catch(ignore);
+        if (role === "user") {
+          client.channels
+            .get(userChannel(userId))
+            .subscribe(trigger)
+            .catch(ignore);
+        }
       } catch {
         if (!cancelled) {
           setState("unavailable");
@@ -116,7 +126,7 @@ export const useChatTransport = ({
       cancelled = true;
       close?.();
     };
-  }, [chatEnabled, conversationId, userId]);
+  }, [canConnect, conversationId, role, userId]);
 
   // Pause while the tab is hidden; fetch once on return.
   useEffect(() => {
@@ -136,7 +146,6 @@ export const useChatTransport = ({
 
   // Without a token scope (locked, no conversation) there is nothing to
   // connect to, whatever the last connection state was.
-  const canConnect = chatEnabled && conversationId !== null;
   const effectiveState = canConnect ? state : "unavailable";
   const interval = pollIntervalFor(effectiveState, isHidden);
 

@@ -12,8 +12,8 @@ interface MessageBubbleProps {
   onRetry: (clientId: string) => void;
 }
 
-// One chat bubble: mine right in the accent colour, the PT left. Spacing is
-// tighter inside a run; the PT's avatar sits on the last bubble of a run.
+// One chat bubble: mine right in the accent colour, the other side left. Spacing is
+// tighter inside a run; the other side's avatar sits on the last bubble of a run.
 export const MessageBubble = ({ item, onRetry }: MessageBubbleProps) => {
   const {
     message,
@@ -22,6 +22,7 @@ export const MessageBubble = ({ item, onRetry }: MessageBubbleProps) => {
     isLastInRun,
     senderName,
     showAvatar,
+    avatarName,
     statusLine,
   } = item;
   const isFailed = message.delivery === "failed";
@@ -36,7 +37,13 @@ export const MessageBubble = ({ item, onRetry }: MessageBubbleProps) => {
       )}
     >
       {senderName && (
-        <p className="mb-1 ml-9 max-w-[75%] truncate text-xs font-medium text-muted">
+        <p
+          className={clsx(
+            "mb-1 max-w-[75%] truncate text-xs font-medium text-muted",
+            // Left runs clear the avatar; right runs line up with the bubble.
+            mine ? "mr-1" : "ml-9",
+          )}
+        >
           {senderName}
         </p>
       )}
@@ -54,7 +61,7 @@ export const MessageBubble = ({ item, onRetry }: MessageBubbleProps) => {
               !showAvatar && "invisible",
             )}
           >
-            {initialsOf(message.senderAdminName)}
+            {initialsOf(avatarName)}
           </span>
         )}
         <p
