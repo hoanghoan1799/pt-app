@@ -45,7 +45,7 @@ Out of scope: group chat, trainee-to-trainee chat, calls, typing indicators, mes
 
 Because trainees have no assigned PT, one conversation per trainee is shared by **all admins** (a team inbox). Each admin message shows the admin's username. Read state is tracked per admin, so admin A reading does not clear admin B's badge.
 
-If Hoan wants 1:1 with a specific PT later, add a nullable `users.coach_admin_id` and filter the inbox by it; the tables below already support it (open question Q1).
+If Hoan wants 1:1 with a specific PT later, add a nullable `users.coach_admin_id` and filter the inbox by it; the tables below already support it.
 
 ## 4. Data model (additive only)
 
