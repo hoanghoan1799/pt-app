@@ -1,6 +1,6 @@
 # Spec: Realtime chat between trainees and PTs
 
-KAN-TBD (parent story + [BE]/[FE]/[QA] sub-tasks filed after this spec is approved, see section 12). Intent: `intent/2026-11-04-realtime-chat.md`.
+KAN-96 (sub-tasks KAN-97..102 phase 1, KAN-103..105 phase 2, KAN-106..108 phase 3; see section 12). Intent: `intent/2026-11-04-realtime-chat.md`.
 
 Status: **grill-me done (D1-D12), awaiting plan approval**. No code until Hoan approves this spec and the plan (`docs/specs/realtime-chat.plan.md`, written after approval).
 
@@ -222,7 +222,7 @@ Not started and not to be started by this work. Design choices that keep the spl
 - The message API contract (`GET messages?after`, `GET unread`, `POST send`, `POST read`) is a plain JSON API, so the split's BFF can proxy it; Ably stays the realtime layer after the split (the API publishes instead of the server action); a NestJS WebSocket gateway is optional then.
 - The `ChatTransport` client interface hides polling vs socket, so moving transports touches one adapter.
 
-## 12. Phased Jira breakdown (to file after approval)
+## 12. Phased Jira breakdown (filed 2026-11-04 under KAN-96)
 
 Parent Story: **"Trainees and PTs chat in the app"** (user stories S1-S11, link to this spec). Sub-tasks:
 

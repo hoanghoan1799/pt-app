@@ -2,7 +2,7 @@
 
 - **Author:** Hoan
 - **Status:** draft
-- **KAN key:** KAN-TBD (parent story filed after the spec is approved)
+- **KAN key:** KAN-96
 
 ## Problem
 
