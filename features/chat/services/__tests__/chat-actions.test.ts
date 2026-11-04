@@ -12,6 +12,11 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("server-only", () => ({}));
+vi.mock("@/features/chat/services/chat-realtime", () => ({
+  publishNewMessage: vi.fn(async () => undefined),
+  publishRead: vi.fn(async () => undefined),
+  publishChatStatus: vi.fn(async () => undefined),
+}));
 vi.mock("@/services/session", () => ({
   readSession: vi.fn(async () =>
     state.role === "admin"
@@ -46,6 +51,7 @@ vi.mock("@/db", () => ({
 
 const actions = await import("@/features/chat/services/chat-actions");
 const queries = await import("@/features/chat/services/chat-queries");
+const realtime = await import("@/features/chat/services/chat-realtime");
 
 let db: TestDb;
 let userId: number;
@@ -95,6 +101,10 @@ describe("sendMessageAction", () => {
 
     expect(conversation?.lastMessageId).toBe(result.message.id);
     expect(conversation?.lastMessageAt).toBeInstanceOf(Date);
+    expect(realtime.publishNewMessage).toHaveBeenCalledExactlyOnceWith(
+      conversation?.id,
+      result.message,
+    );
   });
 
   it("is idempotent: the same clientId twice stores one row", async () => {

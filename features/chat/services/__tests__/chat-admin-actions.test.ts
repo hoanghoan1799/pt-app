@@ -10,6 +10,11 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("server-only", () => ({}));
+vi.mock("@/features/chat/services/chat-realtime", () => ({
+  publishNewMessage: vi.fn(async () => undefined),
+  publishRead: vi.fn(async () => undefined),
+  publishChatStatus: vi.fn(async () => undefined),
+}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/services/session", () => ({
   readSession: vi.fn(async () =>
@@ -30,6 +35,8 @@ vi.mock("@/db", () => ({
 }));
 
 const { revalidatePath } = await import("next/cache");
+const { publishChatStatus } =
+  await import("@/features/chat/services/chat-realtime");
 const { setChatEnabledAction } =
   await import("@/features/chat/services/chat-admin-actions");
 
@@ -69,6 +76,11 @@ describe("setChatEnabledAction", () => {
     expect(row.chatEnabledByAdminId).toBe(7);
     expect(row.chatEnabledChangedAt!.getTime()).toBeGreaterThanOrEqual(before);
     expect(revalidatePath).toHaveBeenCalledWith(`/admin/users/${userId}`);
+    expect(publishChatStatus).toHaveBeenCalledExactlyOnceWith(
+      userId,
+      null,
+      true,
+    );
   });
 
   it("locks again with false, not null", async () => {

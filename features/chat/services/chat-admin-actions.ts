@@ -6,6 +6,8 @@ import { z } from "zod";
 import { ROUTES } from "@/constants/routes";
 import { CHAT_MESSAGES } from "@/features/chat/constants/messages";
 import { setChatEnabled } from "@/features/chat/services/chat-permission";
+import { findConversationByUserId } from "@/features/chat/services/chat-queries";
+import { publishChatStatus } from "@/features/chat/services/chat-realtime";
 import { withResultErrorHandling } from "@/services/action-errors";
 import { requireAdmin } from "@/services/auth-guard";
 
@@ -33,6 +35,17 @@ export const setChatEnabledAction = withResultErrorHandling(
       };
     }
 
+    // The switch is already saved: a failed lookup only skips the
+    // conversation channel, it never fails the action.
+    const conversation = await findConversationByUserId(input.userId).catch(
+      () => null,
+    );
+
+    await publishChatStatus(
+      input.userId,
+      conversation?.id ?? null,
+      input.enabled,
+    );
     revalidatePath(`${ROUTES.ADMIN_USERS}/${input.userId}`);
   },
 );

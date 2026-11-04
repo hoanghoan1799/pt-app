@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
+    "ably": "^2.30.0",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.3",
     "jose": "^6.2.12",

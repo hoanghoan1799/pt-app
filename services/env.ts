@@ -7,6 +7,9 @@ const isVercel = () => Boolean(process.env.VERCEL);
 
 const readEnv = (name: string) => process.env[name]?.trim() || undefined;
 
+// Optional: without it chat falls back to polling only.
+export const getAblyApiKey = () => readEnv("ABLY_API_KEY");
+
 // The Vercel ↔ Turso integration injects TURSO_DATABASE_URL/TURSO_AUTH_TOKEN;
 // DATABASE_URL/DATABASE_AUTH_TOKEN are the names used locally. The Turso pair
 // wins so a stale DATABASE_URL (e.g. copied from .env.example) can't shadow it.

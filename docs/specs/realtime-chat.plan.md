@@ -33,7 +33,7 @@ PR 3, KAN-99 [BE] Ably:
 - `features/chat/utils/ably-capabilities.ts` (+ test): channel names and capability per role.
 - `features/chat/services/chat-realtime.ts`: `publishChatEvent()` (REST, swallow and log errors).
 - `app/api/chat/ably-token/route.ts`: token request, 403 for locked trainee, 204 when no key (client falls back to polling).
-- Hook publish into send, read and lock actions.
+- Hook publish into send, read and lock actions. Events: `message`, `inbox` (no body), `read`, `chat-status` (`CHAT_EVENTS`); `publishNewMessage(conversationId, message)` takes the id because `ChatMessage` has none.
 
 PR 4, KAN-100 [FE] trainee:
 
