@@ -10,7 +10,7 @@ Weekly PT workout app: admins (PTs) assign daily workouts, users log in by name.
 - Dev: `pnpm dev` (http://localhost:3000, admin at `/admin/login`)
 - Check everything: `pnpm verify` (runs `pnpm test && pnpm lint && pnpm typecheck`); run it before every PR
 - Format: `pnpm format` (Prettier; a hook runs `eslint --fix` + Prettier on each file Claude edits)
-- Local-only setup steps (GitHub app, notifications, exercises): `docs/claude-code-setup.md`
+- Cloud sessions set themselves up (`scripts/cloud-session-setup.sh` via `SessionStart`: install, local `.env.local`, local SQLite); local-only steps (GitHub app, notifications, exercises): `docs/claude-code-setup.md`
 
 ## Layout
 
