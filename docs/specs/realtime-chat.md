@@ -2,7 +2,7 @@
 
 KAN-96 (sub-tasks KAN-97..102 phase 1, KAN-103..105 phase 2, KAN-106..108 phase 3; see section 12). Intent: `intent/2026-11-04-realtime-chat.md`.
 
-Status: **grill-me done (D1-D12), awaiting plan approval**. No code until Hoan approves this spec and the plan (`docs/specs/realtime-chat.plan.md`, written after approval).
+Status: **approved 2026-11-04** (grill-me D1-D12, plan `docs/specs/realtime-chat.plan.md`).
 
 ## 1. Today
 

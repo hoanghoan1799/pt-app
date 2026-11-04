@@ -1,6 +1,6 @@
 # Plan: Realtime chat between trainees and PTs (phase 1)
 
-Status: **waiting for Hoan's approval**. Phases 2-3 get their own plan update after phase 1 ships.
+Status: **approved by Hoan 2026-11-04** (with the wireframe: https://claude.ai/artifact/SJqexQQge8AcWUwYE2H3Ej). Phases 2-3 get their own plan update after phase 1 ships.
 
 ## Source
 
