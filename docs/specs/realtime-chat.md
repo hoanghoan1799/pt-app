@@ -2,7 +2,7 @@
 
 KAN-TBD (parent story + [BE]/[FE]/[QA] sub-tasks filed after this spec is approved, see section 12). Intent: `intent/2026-11-04-realtime-chat.md`.
 
-Status: **analysis, not approved**. No code until Hoan approves this spec and the plan (`docs/specs/realtime-chat.plan.md`, written after approval).
+Status: **grill-me done (D1-D12), awaiting plan approval**. No code until Hoan approves this spec and the plan (`docs/specs/realtime-chat.plan.md`, written after approval).
 
 ## 1. Today
 
@@ -153,7 +153,7 @@ Polling details (fallback and e2e): fetch `after=<lastId>`, immediately on `focu
 ## 7. Security and privacy
 
 - Messages are personal health data (food, weight, injuries). Stored in Turso like the rest; never logged (`services/logger.ts` logs ids and counts only, never `body`).
-- Render bodies as plain text (React escapes; no `dangerouslySetInnerHTML`, no Markdown). Links are shown as text in phase 1 (open question Q7: auto-link).
+- Render bodies as plain text (React escapes; no `dangerouslySetInnerHTML`, no Markdown). Links are shown as plain text in phase 1 (D9).
 - Service worker must keep **not** caching `/api/chat/*` (D3 of the PWA spec already excludes `/api`); add an e2e assert.
 - Push payloads carry only "Bạn có tin nhắn mới từ PT" / "<Tên học viên> vừa nhắn tin" and the conversation URL, never the message body (lock-screen privacy on shared phones).
 - Attachments (phase 3): images only (jpeg/png/webp/heic), max 5 MB, re-encoded/resized server-side or validated by magic bytes; stored in Vercel Blob under unguessable keys; served through our route that checks the session (no public bucket listing).
@@ -161,6 +161,16 @@ Polling details (fallback and e2e): fetch `after=<lastId>`, immediately on `focu
 - Locking chat does not delete history; deleting the member deletes it (section 4).
 
 ## 8. UX
+
+Reference (D12): the DM pattern of short-video apps such as TikTok, which most trainees already know. We borrow interaction patterns, not visuals or assets:
+
+- Inbox rows: round avatar (initials, since there are no photos), name, one-line preview "Bạn: ..." for own messages, relative time ("2 phút", "Hôm qua"), bold row + accent dot when unread.
+- Thread: rounded bubbles, consecutive messages from the same sender grouped with tighter spacing and the avatar only on the last bubble of a run; a centred time stamp when more than 15 minutes pass between messages.
+- Status line under the last own message only: "Đã gửi", then "Đã xem" (S7).
+- Composer: one pill-shaped input, send arrow appears only when there is text; phase 3 adds the photo button on the left.
+- Long-press a bubble: menu "Sao chép", "Thu hồi" (own, within 15 min, phase 3), "Ẩn" (admin, phase 3). Phase 1 ships "Sao chép" only.
+- New message while scrolled up: a floating "Tin nhắn mới ↓" chip instead of jumping.
+- Out of scope for now (possible later): emoji reactions, typing indicator, stickers, voice notes.
 
 Trainee (390 px first):
 
@@ -181,14 +191,14 @@ Shared components in `features/chat/components`: `ChatThread`, `MessageBubble`, 
 
 ## 9. Existing behaviour to revisit (revise-existing-features rule)
 
-| Existing                                          | Proposal                                                                                                                                                              |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `workout_days.note` (PT to trainee per day)       | **Keep.** It is an instruction tied to a day, not a conversation. Later: a "Hỏi PT về buổi này" button that prefills chat with a link to the day (phase 3, optional). |
-| `meal_marks.note` (trainee to PT per meal)        | **Keep**, but surface it in the admin inbox as a system line ("Đã ghi chú bữa trưa 04/11") so the PT sees feedback in one place (phase 3, optional; Q8).              |
-| `users.food_note` (trainee meal request)          | **Keep** (structured input for the meal plan).                                                                                                                        |
-| `RecentActivityList` on the admin dashboard       | **Change**: add "Tin nhắn mới" entries, or leave messages to the inbox only (Q8).                                                                                     |
-| Tab bar with 3 tabs                               | **Change** to 4 (section 8). Check that labels still fit at 320 px.                                                                                                   |
-| "Contact your PT on Zalo" habit (outside the app) | Nothing in the app to remove. README gets a "Nhắn tin với PT" section.                                                                                                |
+| Existing                                          | Proposal                                                                                                                                                                        |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `workout_days.note` (PT to trainee per day)       | **Keep.** It is an instruction tied to a day, not a conversation. Later: a "Hỏi PT về buổi này" button that prefills chat with a link to the day (phase 3, optional).           |
+| `meal_marks.note` (trainee to PT per meal)        | **Keep**, but surface it in the admin inbox as a system line ("Đã ghi chú bữa trưa 04/11") so the PT sees feedback in one place (phase 3, optional; not in the dashboard, D10). |
+| `users.food_note` (trainee meal request)          | **Keep** (structured input for the meal plan).                                                                                                                                  |
+| `RecentActivityList` on the admin dashboard       | **Keep as is** (D10): messages live in the inbox.                                                                                                                               |
+| Tab bar with 3 tabs                               | **Change** to 4 (section 8). Check that labels still fit at 320 px.                                                                                                             |
+| "Contact your PT on Zalo" habit (outside the app) | Nothing in the app to remove. README gets a "Nhắn tin với PT" section.                                                                                                          |
 
 ## 10. Cost estimate (Ably + polling fallback + Web Push)
 
@@ -242,24 +252,22 @@ Each sub-task: own branch `feat/KAN-<n>-...`, plan approved before code, PR per 
 
 ## 13. Decision log (grill-me)
 
-| #   | Decision                                                                                                                                               | Source           |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
-| D1  | Chat is off by default; an admin enables or locks it per trainee at any time; only allowed trainees can message admins.                                | Hoan, 2026-11-04 |
-| D2  | pt-app is non-commercial, so Vercel Hobby and free tiers are fine (Q4).                                                                                | Hoan, 2026-11-04 |
-| D3  | Delivery must be instant (Q9): phase 1 uses Ably (option C); polling is only the fallback when the socket is down, and the transport in local dev/e2e. | Hoan, 2026-11-04 |
-| D4  | Shared PT inbox: all admins see and answer every enabled trainee's chat; read state per admin (Q1).                                                    | Hoan, 2026-11-04 |
-| D5  | A locked trainee keeps read-only access to old messages with the banner "PT đã tạm khoá nhắn tin" (Q2).                                                | Hoan, 2026-11-04 |
-| D6  | Locking blocks both directions: admins cannot send to a locked trainee either (Q3).                                                                    | Hoan, 2026-11-04 |
-| D7  | Photo attachments come in phase 3 (Q5).                                                                                                                | Hoan, 2026-11-04 |
-| D8  | History is kept forever; it is deleted only when the member is deleted (Q6).                                                                           | Hoan, 2026-11-04 |
+| #   | Decision                                                                                                                                                     | Source           |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
+| D1  | Chat is off by default; an admin enables or locks it per trainee at any time; only allowed trainees can message admins.                                      | Hoan, 2026-11-04 |
+| D2  | pt-app is non-commercial, so Vercel Hobby and free tiers are fine (Q4).                                                                                      | Hoan, 2026-11-04 |
+| D3  | Delivery must be instant (Q9): phase 1 uses Ably (option C); polling is only the fallback when the socket is down, and the transport in local dev/e2e.       | Hoan, 2026-11-04 |
+| D4  | Shared PT inbox: all admins see and answer every enabled trainee's chat; read state per admin (Q1).                                                          | Hoan, 2026-11-04 |
+| D5  | A locked trainee keeps read-only access to old messages with the banner "PT đã tạm khoá nhắn tin" (Q2).                                                      | Hoan, 2026-11-04 |
+| D6  | Locking blocks both directions: admins cannot send to a locked trainee either (Q3).                                                                          | Hoan, 2026-11-04 |
+| D7  | Photo attachments come in phase 3 (Q5).                                                                                                                      | Hoan, 2026-11-04 |
+| D8  | History is kept forever; it is deleted only when the member is deleted (Q6).                                                                                 | Hoan, 2026-11-04 |
+| D9  | Links in messages are plain text in phase 1 (Q7).                                                                                                            | Hoan, 2026-11-04 |
+| D10 | Messages and meal notes stay in the inbox; the dashboard activity list is unchanged (Q8).                                                                    | Hoan, 2026-11-04 |
+| D11 | No quiet hours for push; the phone's Do Not Disturb covers it (Q10).                                                                                         | Hoan, 2026-11-04 |
+| D12 | UX follows the familiar short-video-app DM pattern (Hoan cited TikTok's inbox as the reference): see section 8. Patterns only, no copied assets or branding. | Hoan, 2026-11-04 |
 
-Grill-me round 1 (Q1-Q6, Q9) answered 2026-11-04. Round 2 = Q7, Q8, Q10.
-
-### Open questions (round 2)
-
-1. **Q7** Should links in messages be clickable? Default: no in phase 1.
-2. **Q8** Should meal notes and messages appear in the admin dashboard activity list? Default: inbox only.
-3. **Q10** Quiet hours for push (e.g. no notifications 22:00-07:00 VN)? Default: none, the phone's own Do Not Disturb.
+Grill-me finished 2026-11-04: round 1 (Q1-Q6, Q9) and round 2 (Q7, Q8, Q10) all answered. No open questions left.
 
 ## 14. Test matrix
 
