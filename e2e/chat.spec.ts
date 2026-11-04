@@ -19,6 +19,7 @@ import { shot } from "./shots";
 // owns a seeded trainee and wipes its chat rows and permission first, so the
 // specs do not depend on each other or on a rerun (--repeat-each).
 const DB_ATTEMPTS = 5;
+const SEND_TIMEOUT_MS = 60_000;
 
 const withDb = async <T>(
   run: (client: ReturnType<typeof createClient>) => Promise<T>,
@@ -115,15 +116,28 @@ const logInAsAdmin = async (page: Page) => {
   await expect(page).toHaveURL(/\/admin(\?.*)?$/);
 };
 
+type NewSessionOptions = { keepInstallBanner?: boolean; userAgent?: string };
+
+const IPHONE_SAFARI =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
+
 // A browser context with its own cookies, like another device.
-const newSession = async (browser: Browser) => {
+const newSession = async (
+  browser: Browser,
+  { keepInstallBanner = false, userAgent }: NewSessionOptions = {},
+) => {
   const context = await browser.newContext({
     baseURL: test.info().project.use.baseURL,
     viewport: { width: 390, height: 844 },
+    ...(userAgent ? { userAgent, hasTouch: true } : {}),
   });
 
-  // The install banner floats over the composer on touch devices; it has its
-  // own specs (pwa.spec.ts), so it is dismissed here like a trainee would.
+  if (keepInstallBanner) {
+    return { context, page: await context.newPage() };
+  }
+
+  // The install banner has its own specs (pwa.spec.ts), so it is dismissed
+  // here like a trainee would; the banner spec below keeps it.
   await context.addInitScript(() => {
     try {
       window.localStorage.setItem(
@@ -155,6 +169,12 @@ const getComposer = (page: Page) => page.getByLabel("Nội dung tin nhắn");
 const sendFromComposer = async (page: Page, text: string) => {
   await getComposer(page).fill(text);
   await page.getByRole("button", { name: "Gửi tin nhắn" }).click();
+  // The bubble shows at once (optimistic) but the server action is still in
+  // flight; leaving the page now would drop it. Under a cold `next dev` (CI)
+  // the first call compiles the action, so wait longer than the default.
+  await expect(page.getByText("Đang gửi…")).toHaveCount(0, {
+    timeout: SEND_TIMEOUT_MS,
+  });
 };
 
 // Opens the member's chat page as the admin and flips the lock switch.
@@ -477,6 +497,49 @@ test("the service worker never caches /api/chat responses", async ({
     });
 
     expect(cachedChatUrls).toEqual([]);
+  } finally {
+    await trainee.context.close();
+  }
+});
+
+test("the install banner stays off the chat page so it never covers the composer", async ({
+  page: admin,
+  browser,
+}) => {
+  await resetChat(E2E_CHAT_NAME);
+  const userId = await getUserId(E2E_CHAT_NAME);
+  const text = `Banner e2e ${Date.now().toString(36)}`;
+  const trainee = await newSession(browser, {
+    keepInstallBanner: true,
+    userAgent: IPHONE_SAFARI,
+  });
+  const banner = trainee.page.getByRole("region", { name: "Cài ứng dụng" });
+
+  try {
+    await logInAsAdmin(admin);
+    await setChatSwitch(admin, userId, true);
+    await logInAsTrainee(trainee.page, E2E_CHAT_NAME);
+    // Shown on the other tabs, as before.
+    await expect(banner).toBeVisible();
+
+    await getTabBar(trainee.page)
+      .getByRole("link", { name: "Nhắn tin" })
+      .click();
+    await expect(trainee.page).toHaveURL(/\/messages$/);
+    await expect(banner).toHaveCount(0);
+    // A real tap (no force) reaches the send button.
+    await sendFromComposer(trainee.page, text);
+    await expect(
+      trainee.page.getByRole("log").getByText(text, { exact: true }),
+    ).toBeVisible();
+    await expect.poll(() => countMessages(E2E_CHAT_NAME)).toBe(1);
+    await shot(trainee.page, "chat-07-no-install-banner");
+
+    // Not dismissed: it comes back on the next tab.
+    await getTabBar(trainee.page)
+      .getByRole("link", { name: "Lịch tập" })
+      .click();
+    await expect(banner).toBeVisible();
   } finally {
     await trainee.context.close();
   }
