@@ -7,8 +7,9 @@ import { useMealPlanAction } from "@/features/meal-plans/hooks/use-meal-plan-act
 import { setMealMarkAction } from "@/features/meal-plans/services/meal-log-actions";
 import type { MealMark } from "@/features/meal-plans/types/meal-log";
 
-// "Đạt" and the note of one meal. The note is saved with its own button;
-// "Đạt" saves at once and keeps the note as typed.
+// "Đạt" and the note of one meal. The note is saved only with its own button;
+// "Đạt" saves at once with the saved note, so a half-typed note stays a
+// draft in the box (KAN-91).
 export const useMealMark = (mealId: number, mark: MealMark | null) => {
   const { isPending, run } = useMealPlanAction();
   const [note, setNote] = useState(mark?.note ?? "");
@@ -31,7 +32,7 @@ export const useMealMark = (mealId: number, mark: MealMark | null) => {
     setNote,
     isPending,
     isNoteChanged: note.trim() !== (mark?.note ?? ""),
-    toggleAchieved: () => save(!achieved, note),
+    toggleAchieved: () => save(!achieved, mark?.note ?? ""),
     saveNote: () => save(achieved, note),
   };
 };
