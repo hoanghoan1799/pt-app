@@ -20,6 +20,8 @@
 - **Tổng kết** (tab thứ 3): tuần tập luyện (buổi/bài đã tập từng ngày) và dinh dưỡng (gram từng ngày so với mục tiêu, số ngày ghi/đạt, kcal TB). Bấm vào ngày để mở chi tiết.
 - **Cân nặng theo tuần** (đầu tab Tổng kết): user ghi "cân hôm nay" (mỗi ngày 1 số, ghi lại thì thay), biểu đồ trung bình theo tuần trong 12 tuần (chạm để xem từng tuần, có dạng bảng), thay đổi so với tuần trước và cả kỳ. Cân mới nhất cập nhật luôn chỉ số cơ thể/TDEE; mục tiêu "tự tính từ TDEE" được tính lại theo.
 - **Nhắn tin với PT** (tab **Nhắn tin**, chỉ hiện khi PT đã bật chat cho bạn): nhắn tin trực tiếp với PT, tin mới hiện gần như ngay lập tức. Số trên tab là số tin chưa đọc. Tiêu đề hiện tên PT trả lời gần nhất. Khi PT tạm khoá, bạn vẫn xem được lịch sử nhưng không gửi được tin.
+  - **Thông báo tin nhắn**: lần đầu vào tab **Nhắn tin** (user) hoặc hộp thư `/admin/messages` (PT) sẽ có thẻ "Bật thông báo"; bấm **Bật thông báo** rồi cho phép trình duyệt. Bấm **Để sau** thì thẻ không hiện lại. Thông báo không chứa nội dung tin nhắn.
+  - iPhone/iPad (iOS 16.4 trở lên): phải **Thêm vào MH chính** trước, rồi mở app từ màn hình chính mới bật được thông báo. Cần cấu hình `VAPID_*` và `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (xem bảng biến môi trường).
 - **Cài app (PWA)**: cài PT App lên màn hình chính để mở như app thật. Android/Chrome: bấm **Cài đặt** ở banner phía trên thanh tab. iPhone/iPad: bấm nút **Chia sẻ** rồi chọn **Thêm vào MH chính**. Mở link từ Zalo/Facebook thì cần mở lại bằng Safari hoặc Chrome. Bấm **Để sau** để ẩn banner 14 ngày. Lưu ý: app trên màn hình chính của iPhone có bộ nhớ riêng nên phải đăng nhập lại một lần. Khi mất mạng, app chỉ hiện thông báo "Không có kết nối mạng" (không lưu lịch tập hay dữ liệu cá nhân offline).
 
 **Admin** (`/admin`)
