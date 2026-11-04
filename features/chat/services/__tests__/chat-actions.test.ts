@@ -17,6 +17,9 @@ vi.mock("@/features/chat/services/chat-realtime", () => ({
   publishRead: vi.fn(async () => undefined),
   publishChatStatus: vi.fn(async () => undefined),
 }));
+vi.mock("@/features/chat/services/chat-push", () => ({
+  schedulePush: vi.fn(),
+}));
 vi.mock("@/services/session", () => ({
   readSession: vi.fn(async () =>
     state.role === "admin"
@@ -52,6 +55,7 @@ vi.mock("@/db", () => ({
 const actions = await import("@/features/chat/services/chat-actions");
 const queries = await import("@/features/chat/services/chat-queries");
 const realtime = await import("@/features/chat/services/chat-realtime");
+const chatPush = await import("@/features/chat/services/chat-push");
 
 let db: TestDb;
 let userId: number;
@@ -71,6 +75,7 @@ const addUser = async (name: string, chatEnabled: boolean | null) => {
 const rows = () => db.select().from(chatMessages);
 
 beforeEach(async () => {
+  vi.mocked(chatPush.schedulePush).mockClear();
   db = await createTestDb();
   state.db = db;
   state.role = "user";
@@ -120,6 +125,20 @@ describe("sendMessageAction", () => {
     expect(await rows()).toHaveLength(1);
     expect(first.status).toBe("success");
     expect(second).toEqual(first);
+  });
+
+  it("schedules one push for a new message, none for a retried clientId", async () => {
+    const input = { body: "một", clientId: uuid(1) };
+
+    await actions.sendMessageAction(input);
+    await actions.sendMessageAction(input);
+
+    expect(chatPush.schedulePush).toHaveBeenCalledTimes(1);
+    expect(chatPush.schedulePush).toHaveBeenCalledWith({
+      senderRole: "user",
+      traineeUserId: userId,
+      conversationId: expect.any(Number),
+    });
   });
 
   it.each([null, false])("rejects chatEnabled %s", async (flag) => {
@@ -212,6 +231,21 @@ describe("adminSendMessageAction", () => {
 
     expect(await rows()).toHaveLength(1);
     expect(second).toEqual(first);
+  });
+
+  it("schedules one push to the trainee, none for a retried clientId", async () => {
+    state.role = "admin";
+    const input = { userId, body: "ok", clientId: uuid(1) };
+
+    await actions.adminSendMessageAction(input);
+    await actions.adminSendMessageAction(input);
+
+    expect(chatPush.schedulePush).toHaveBeenCalledTimes(1);
+    expect(chatPush.schedulePush).toHaveBeenCalledWith({
+      senderRole: "admin",
+      traineeUserId: userId,
+      conversationId: expect.any(Number),
+    });
   });
 
   it("rejects a locked trainee (D6) and writes nothing", async () => {

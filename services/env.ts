@@ -10,6 +10,22 @@ const readEnv = (name: string) => process.env[name]?.trim() || undefined;
 // Optional: without it chat falls back to polling only.
 export const getAblyApiKey = () => readEnv("ABLY_API_KEY");
 
+// Web Push (VAPID). Optional: without all three server values push is skipped.
+// The public key may also be set as NEXT_PUBLIC_VAPID_PUBLIC_KEY (inlined into
+// the browser bundle at build time).
+export const getVapidPublicKey = () =>
+  readEnv("VAPID_PUBLIC_KEY") ?? readEnv("NEXT_PUBLIC_VAPID_PUBLIC_KEY");
+
+export const getVapidConfig = () => {
+  const publicKey = getVapidPublicKey();
+  const privateKey = readEnv("VAPID_PRIVATE_KEY");
+  const subject = readEnv("VAPID_SUBJECT");
+
+  return publicKey && privateKey && subject
+    ? { publicKey, privateKey, subject }
+    : null;
+};
+
 // The Vercel ↔ Turso integration injects TURSO_DATABASE_URL/TURSO_AUTH_TOKEN;
 // DATABASE_URL/DATABASE_AUTH_TOKEN are the names used locally. The Turso pair
 // wins so a stale DATABASE_URL (e.g. copied from .env.example) can't shadow it.
