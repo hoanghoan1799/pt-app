@@ -288,9 +288,28 @@ Grill-me finished 2026-11-04: round 1 (Q1-Q6, Q9) and round 2 (Q7, Q8, Q10) all 
 | Trainee token: only `subscribe` on own channels; locked trainee gets 403                                                    | unit          | exact capability object asserted                                         |
 | Never-enabled trainee                                                                                                       | e2e           | no "Nhắn tin" tab, `/messages` redirects to `/workouts`                  |
 | Service worker does not cache `/api/chat/*`                                                                                 | e2e           | response not in Cache Storage                                            |
-| Push payload has no message body                                                                                            | unit          | phase 2                                                                  |
-| Push subscription returning 410 is deleted                                                                                  | unit          | phase 2                                                                  |
-| Real devices                                                                                                                | manual (Hoan) | Android Chrome + installed iPhone receive push, tap opens chat           |
+| Push payload has no message body                                                                                            | unit          | `push-rules.test.ts`: exact payload fields for both roles (KAN-103)      |
+| Push subscription returning 404/410 is deleted, 500 kept                                                                    | unit          | `chat-push.test.ts` (KAN-103)                                            |
+| Push endpoint outside FCM/Apple/WNS/Mozilla rejected (SSRF)                                                                 | unit          | `push-rules.test.ts` `isAllowedPushEndpoint` (KAN-103)                   |
+| Push opt-in card shows once (trainee chat, admin inbox); iPhone tab gets the install hint                                   | e2e           | `e2e/chat.spec.ts` (KAN-104)                                             |
+| Real devices                                                                                                                | manual (Hoan) | checklist below (KAN-105)                                                |
+
+### Push: real-device checklist (KAN-105)
+
+Run on production (or a Vercel preview) after the VAPID variables are set. Needs one trainee with chat enabled and one admin account.
+
+| #   | Device and step                                                                                                    | Expected                                                                                                   |
+| --- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| 1   | Android Chrome, trainee: open the site, go to Nhắn tin, tap "Bật thông báo", allow                                 | card disappears; no error line                                                                             |
+| 2   | Close Chrome (or lock the phone); admin replies from the member's chat tab                                         | notification "PT App / Bạn có tin nhắn mới từ PT" within a few seconds; no message text on the lock screen |
+| 3   | Tap the notification                                                                                               | app opens on `/messages` with the reply visible                                                            |
+| 4   | iPhone (iOS 16.4+) Safari tab, trainee: open Nhắn tin                                                              | card shows the "Thêm vào MH chính" steps, no enable button                                                 |
+| 5   | Add to Home Screen, open the installed app, Nhắn tin, "Bật thông báo", allow                                       | card disappears                                                                                            |
+| 6   | Swipe the app away; admin replies                                                                                  | notification arrives; tapping it opens the chat                                                            |
+| 7   | Admin (any device, installed admin app on iPhone): Tin nhắn inbox, "Bật thông báo", allow; trainee sends a message | notification "<Tên học viên> vừa nhắn tin"; tap opens `/admin/users/<id>/messages`                         |
+| 8   | iPhone Settings → Notifications → turn the app off, trainee/admin sends again                                      | no notification; the chat itself still updates when opened                                                 |
+
+If a step fails, note the device, OS version and step number on KAN-105.
 
 e2e runs on the existing throwaway SQLite (`e2e/.tmp`), without `ABLY_API_KEY`, so it exercises the polling transport with no vendor mock; the Ably path is covered by unit tests (token capabilities, publish payloads) and a manual check on the Vercel preview. Polling intervals are constants that e2e can shorten via an env var.
 
