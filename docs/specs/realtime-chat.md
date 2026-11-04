@@ -36,8 +36,8 @@ Out of scope: group chat, trainee-to-trainee chat, calls, typing indicators, mes
 ### Permission rule (S1)
 
 - New column `users.chat_enabled` (integer boolean, nullable, null = off). Every existing trainee starts **locked**.
-- Locked trainee: no "Nhắn tin" tab if they never had a conversation. If they have history, the tab stays and shows it **read-only** with a banner "PT đã tạm khoá nhắn tin" (open question Q2).
-- Every send checks `chat_enabled` on the server (both directions, see Q3); the UI state is only a hint.
+- Locked trainee: no "Nhắn tin" tab if they never had a conversation. If they have history, the tab stays and shows it **read-only** with a banner "PT đã tạm khoá nhắn tin" (D5).
+- Every send checks `chat_enabled` on the server (both directions, D6); the UI state is only a hint.
 - Admin toggles it on the member page (a switch in the chat panel) and from the inbox row menu. The toggle is an admin server action with `requireAdmin()` + Zod, and it is effective on the trainee's next poll or send (no session change needed).
 - Optional audit: `chat_enabled_changed_at` + `chat_enabled_by_admin_id` (nullable) so the inbox can say "Khoá bởi <admin> lúc ...".
 
@@ -117,23 +117,29 @@ Constraint: Vercel functions are short-lived and do not share memory, so there i
 | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **A. Adaptive polling** (route handler + Turso)     | `GET /api/chat/messages?after=<id>` every 3 s while the chat is open and visible; badge poll every 30-60 s on other pages; stop when the tab is hidden. | 0-3 s     | $0: function invocations and Turso row reads stay far inside the free tiers (estimate in section 10).                                                      | Lowest. No vendor, no secret, works on every browser and in e2e. Wasted requests when idle.                                                                  |
 | B. SSE from a Vercel function                       | Stream held open; the function itself polls Turso every 1-2 s and pushes new rows.                                                                      | 1-2 s     | Each open chat holds a function for up to its max duration; billed by active CPU + memory time. Still polls Turso inside.                                  | Medium. Needs reconnect logic at the duration limit; no gain over A without a pub/sub backend.                                                               |
-| C. Hosted pub/sub: Ably / Pusher Channels           | Server action inserts the row, then publishes to channel `conversation-<id>`; clients subscribe with a token minted by our route (private channels).    | <300 ms   | Free tiers (check current limits: Ably and Pusher both offer free plans with ~100-200 concurrent connections and daily/monthly message caps) cover pt-app. | Medium. New vendor + 2 secrets, token auth route, fallback to polling when the socket drops. Lock-in limited to a thin `ChatTransport` adapter.              |
+| **C. Hosted pub/sub: Ably** / Pusher Channels       | Server action inserts the row, then publishes to channel `conversation-<id>`; clients subscribe with a token minted by our route (private channels).    | <300 ms   | Free tiers (check current limits: Ably and Pusher both offer free plans with ~100-200 concurrent connections and daily/monthly message caps) cover pt-app. | Medium. New vendor + 2 secrets, token auth route, fallback to polling when the socket drops. Lock-in limited to a thin `ChatTransport` adapter.              |
 | D. Supabase Realtime                                | Broadcast channel (we would not move the DB, so no Postgres changes feed).                                                                              | <300 ms   | Free tier, but the project pauses after inactivity.                                                                                                        | Medium. A second platform account only for sockets; pausing is a real risk for a small app.                                                                  |
 | E. Upstash Redis                                    | Redis pub/sub needs a long-lived subscriber; with REST you end up polling a list (= option A with another store).                                       | same as A | Free tier.                                                                                                                                                 | Adds a store without removing polling. Useful only as a rate-limit store later.                                                                              |
 | F. Own WebSocket server (Fly.io / Railway / Render) | Node `ws` or Socket.IO process, verifies our JWT cookie (needs a shared `SESSION_SECRET` and a same-site domain).                                       | <100 ms   | ~$0-5/month, but free tiers sleep or are gone; second deploy target.                                                                                       | Highest. Cross-origin cookies on `*.vercel.app` do not work, so it needs a custom domain or a token handshake. Overlaps with the parked NestJS API (PR #63). |
 
-### Recommendation
+### Recommendation (updated after D3)
 
-**Phase 1: option A (adaptive polling), behind a `ChatTransport` interface. Phase 2 adds Web Push. Move to option C (Ably, Pusher as the fallback choice) only if measured need appears** (e.g. more than ~50 active trainees, or Hoan wants sub-second delivery).
+**Phase 1: option C with Ably, plus a polling fallback, behind a `ChatTransport` interface. Phase 2 adds Web Push.**
 
-Why: chat between a PT and a trainee is not a live game; a 0-3 s delay feels instant in practice. Polling costs nothing, adds no vendor or secret, keeps e2e deterministic, and every piece (route handler, cursor by message id, unread query) is reused if we switch to C later: only the "how do I learn there is something new" part changes. Push notifications (phase 2) cover the case the app is closed, which no socket covers anyway on iOS.
+Hoan requires instant delivery (D3), which rules out polling as the main path. Ably over Pusher: a larger free plan (Ably Free, checked 2026-11-04: 6M messages/month, 200 concurrent connections, 200 channels, 500 msg/s; Pusher's free plan is smaller), token auth with per-channel capabilities, connection-state recovery, and an official JS SDK for the browser and for serverless REST publish. Supabase (pauses when idle) and an own WebSocket host (second deploy target, overlaps the parked PR #63) cost more effort for no gain at this scale.
 
-Polling details:
+How it works:
 
-- Client hook `use-chat-messages.ts`: fetch `after=<lastId>` every 3 s while `document.visibilityState === "visible"` and the chat is mounted; back off to 10 s after 2 minutes with no new message; immediately poll on `focus`, `online` and after own send.
-- Badge hook `use-chat-unread.ts`: one call every 45 s on any page, paused when hidden; also refreshed on navigation.
-- Cheap empty responses: the handler first reads `last_message_id` (one row) and returns `204` when nothing is newer than the cursor and the read cursor did not move.
-- Route handlers, not server actions, for reads (server actions are POST and serialised per client). Sends stay server actions.
+- **Send** stays a server action: validate, check `chat_enabled`, insert into Turso (the source of truth), then publish the message to Ably channel `chat:conversation:<id>` with the REST client. If the publish fails, the message is still saved and clients catch up via the fallback.
+- **Receive**: the client subscribes with a short-lived Ably token (15 min TTL) minted by our route `GET /api/chat/ably-token`, guarded by `getApiUser`/`getApiAdmin`. Capabilities: a trainee gets `subscribe` on its own conversation channel and `chat:user:<id>` only; an admin gets `subscribe` on `chat:conversation:*` and `chat:inbox`. Nobody gets `publish`: only the server publishes, so a client cannot inject or spoof messages.
+- **Badges**: the server also publishes a small event to `chat:inbox` (admins) and `chat:user:<id>` (trainee), so unread badges update instantly on any page.
+- **Read receipts** ("Đã xem"): the mark-read action publishes a `read` event on the conversation channel.
+- **Fallback**: on connect and reconnect the client fetches `GET /api/chat/messages?after=<lastId>` to fill gaps. While Ably reports `suspended`/`failed`, the client polls every 5 s. With no `ABLY_API_KEY` (local dev, e2e) the transport is polling only (3 s), so dev and CI need no vendor account.
+- **Locking (D1, D6)**: the server publishes a `locked` event, refuses new tokens for that trainee, and rejects sends in both directions; an old token only lets the trainee hear events until it expires.
+
+Expected delivery latency: typically well under a second.
+
+Polling details (fallback and e2e): fetch `after=<lastId>`, immediately on `focus`, `online` and after own send; the handler reads `last_message_id` first and returns `204` when nothing is newer. Route handlers for reads (server actions are POST and serialised per client); sends stay server actions.
 
 ## 6. Auth, session and rate limiting reuse
 
@@ -184,16 +190,17 @@ Shared components in `features/chat/components`: `ChatThread`, `MessageBubble`, 
 | Tab bar with 3 tabs                               | **Change** to 4 (section 8). Check that labels still fit at 320 px.                                                                                                   |
 | "Contact your PT on Zalo" habit (outside the app) | Nothing in the app to remove. README gets a "Nhắn tin với PT" section.                                                                                                |
 
-## 10. Cost estimate (option A + Web Push)
+## 10. Cost estimate (Ably + polling fallback + Web Push)
 
-Assume 30 trainees, each with chat open 10 minutes a day, 3 admins with the inbox open 1 hour a day.
+Worst case if the app had to poll all the time (fallback). Assume 30 trainees, each with chat open 10 minutes a day, 3 admins with the inbox open 1 hour a day.
 
 - Chat polling: 30 × 600 s / 3 s ≈ 6,000 requests/day; admin inbox ≈ 3 × 3,600 / 3 ≈ 3,600/day; badges ≈ 30 × 4 h × 80/h ≈ 10,000/day. Total ≈ 20k requests/day ≈ 600k/month, each a few ms of CPU and 1-3 row reads.
 - Turso: ≈ 600k × ~3 rows ≈ 2M row reads/month; writes are just messages. Both well inside the free tier.
-- Vercel Hobby: function invocations and active CPU well inside the included usage. **Check the current Hobby limits before approval** (they have changed several times) and Hobby's non-commercial terms (same question as PR #63, Q4).
+- Vercel Hobby: function invocations and active CPU well inside the included usage. pt-app is non-commercial (D2), so Hobby's terms fit.
 - Web Push: free (browser push services). Library `web-push` (MIT), VAPID keys as two env vars.
 - Phase 3 images: Vercel Blob free storage/transfer is small; at ~200 KB per resized image, 1,000 images ≈ 200 MB. Check the Blob quota or keep attachments out (Q5).
-- Option C later: Ably/Pusher free plan, $0 until ~100+ concurrent users.
+- Ably Free (6M messages/month, 200 concurrent connections): pt-app sends at most a few thousand messages and events a month, and 200 connections covers every trainee and admin online at once. $0. Above that the next Ably tier is paid; re-check then.
+- The polling numbers above only apply while Ably is down, so they are a worst case.
 
 Expected monthly cost: **$0** for phases 1-2.
 
@@ -202,18 +209,19 @@ Expected monthly cost: **$0** for phases 1-2.
 Not started and not to be started by this work. Design choices that keep the split cheap later:
 
 - All chat logic in `features/chat/services` (pure functions over `db`) and `utils/` rules, called by thin route handlers and server actions. These move into `apps/api` as a NestJS module with little change.
-- The polling contract (`GET messages?after`, `GET unread`, `POST send`, `POST read`) is a plain JSON API, so the split's BFF can proxy it; a NestJS gateway (WebSocket) becomes an easy option F then, because the split already adds a long-lived API host.
+- The message API contract (`GET messages?after`, `GET unread`, `POST send`, `POST read`) is a plain JSON API, so the split's BFF can proxy it; Ably stays the realtime layer after the split (the API publishes instead of the server action); a NestJS WebSocket gateway is optional then.
 - The `ChatTransport` client interface hides polling vs socket, so moving transports touches one adapter.
 
 ## 12. Phased Jira breakdown (to file after approval)
 
 Parent Story: **"Trainees and PTs chat in the app"** (user stories S1-S11, link to this spec). Sub-tasks:
 
-Phase 1: text chat with permission and badges (~4-5 days)
+Phase 1: instant text chat with permission and badges (~5-6 days)
 
 - **[BE] Chat schema and permission flag** – tables `chat_conversations`, `chat_messages`, `chat_reads`, `rate_limits`; `users.chat_enabled*` columns; member delete cleans chat rows. Done: `db:push` on local SQLite, unit tests for delete path.
+- **[BE] Ably realtime transport** – `ABLY_API_KEY` in `services/env.ts`, token route with per-role capabilities, publish after send/read/lock, a failed publish never fails the send. Done: unit tests for the capability builder and channel names.
 - **[BE] Chat services and API** – `getApiUser/getApiAdmin`, send (Zod, `chat_enabled` check, idempotent `clientId`, rate limit), list with cursor, mark read, unread counts, admin inbox query, admin toggle action. Done: unit tests per rule in section 14.
-- **[FE] Trainee chat tab** – 4th tab, `/messages`, thread, composer, optimistic send/retry, polling hook, unread badge, locked state.
+- **[FE] Trainee chat tab** – 4th tab, `/messages`, thread, composer, optimistic send/retry, `ChatTransport` (Ably + polling fallback), unread badge, locked state.
 - **[FE] Admin inbox, member chat panel and lock switch** – `/admin/messages`, member page section, dashboard tile, header badge.
 - **[QA] Chat e2e and browser proof** – Playwright specs (section 14), browser proof at 390 px for trainee and admin, artifact.
 
@@ -234,24 +242,24 @@ Each sub-task: own branch `feat/KAN-<n>-...`, plan approved before code, PR per 
 
 ## 13. Decision log (grill-me)
 
-| #   | Decision                                                                                                                | Source           |
-| --- | ----------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| D1  | Chat is off by default; an admin enables or locks it per trainee at any time; only allowed trainees can message admins. | Hoan, 2026-11-04 |
+| #   | Decision                                                                                                                                               | Source           |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
+| D1  | Chat is off by default; an admin enables or locks it per trainee at any time; only allowed trainees can message admins.                                | Hoan, 2026-11-04 |
+| D2  | pt-app is non-commercial, so Vercel Hobby and free tiers are fine (Q4).                                                                                | Hoan, 2026-11-04 |
+| D3  | Delivery must be instant (Q9): phase 1 uses Ably (option C); polling is only the fallback when the socket is down, and the transport in local dev/e2e. | Hoan, 2026-11-04 |
+| D4  | Shared PT inbox: all admins see and answer every enabled trainee's chat; read state per admin (Q1).                                                    | Hoan, 2026-11-04 |
+| D5  | A locked trainee keeps read-only access to old messages with the banner "PT đã tạm khoá nhắn tin" (Q2).                                                | Hoan, 2026-11-04 |
+| D6  | Locking blocks both directions: admins cannot send to a locked trainee either (Q3).                                                                    | Hoan, 2026-11-04 |
+| D7  | Photo attachments come in phase 3 (Q5).                                                                                                                | Hoan, 2026-11-04 |
+| D8  | History is kept forever; it is deleted only when the member is deleted (Q6).                                                                           | Hoan, 2026-11-04 |
 
-Grill-me round 1 = Q1-Q7 below (asked 2026-11-04); Q8-Q10 come in round 2. Answers move into the table above.
+Grill-me round 1 (Q1-Q6, Q9) answered 2026-11-04. Round 2 = Q7, Q8, Q10.
 
-### Open questions
+### Open questions (round 2)
 
-1. **Q1** Shared PT inbox (all admins see all chats) or one assigned PT per trainee? Default: shared inbox.
-2. **Q2** When chat is locked, can the trainee still read old messages? Default: yes, read-only with a banner.
-3. **Q3** When chat is locked, can the admin still send to that trainee (e.g. announcements)? Default: no, locked means both directions.
-4. **Q4** Is pt-app commercial (Vercel Hobby is for non-commercial use)? Affects whether a paid tier is needed anyway.
-5. **Q5** Are photo attachments needed, and in which phase? Default: phase 3, after Hoan confirms.
-6. **Q6** Retention: keep history forever, or delete after N months? Default: forever.
-7. **Q7** Should links in messages be clickable? Default: no in phase 1.
-8. **Q8** Should meal notes and messages appear in the admin dashboard activity list? Default: inbox only.
-9. **Q9** Is a 0-3 s delay acceptable for phase 1, or is instant delivery a requirement (then start with Ably)? Default: polling.
-10. **Q10** Quiet hours for push (e.g. no notifications 22:00-07:00 VN)? Default: none, the phone's own Do Not Disturb.
+1. **Q7** Should links in messages be clickable? Default: no in phase 1.
+2. **Q8** Should meal notes and messages appear in the admin dashboard activity list? Default: inbox only.
+3. **Q10** Quiet hours for push (e.g. no notifications 22:00-07:00 VN)? Default: none, the phone's own Do Not Disturb.
 
 ## 14. Test matrix
 
@@ -260,7 +268,7 @@ Grill-me round 1 = Q1-Q7 below (asked 2026-11-04); Q8-Q10 come in round 2. Answe
 | Body empty / only spaces / 2001 chars                                                                                       | unit          | rejected by Zod                                                          |
 | Same `clientId` sent twice                                                                                                  | unit          | one row, second call returns the first message                           |
 | Trainee with `chat_enabled` null or false sends                                                                             | unit          | rejected, "PT đã tạm khoá nhắn tin"                                      |
-| Admin sends to a locked trainee                                                                                             | unit          | rejected (per Q3 default)                                                |
+| Admin sends to a locked trainee (D6)                                                                                        | unit          | rejected (D6)                                                            |
 | Trainee asks for another trainee's conversation id                                                                          | unit          | impossible: trainee routes take no conversation id; API returns own only |
 | Unread count: own messages ignored, per-admin read cursors                                                                  | unit          | admin A reading does not clear admin B                                   |
 | Rate limit window: 20 in a minute ok, 21st rejected, next window ok                                                         | unit          | pure rule test                                                           |
@@ -268,30 +276,33 @@ Grill-me round 1 = Q1-Q7 below (asked 2026-11-04); Q8-Q10 come in round 2. Answe
 | `GET messages` without session                                                                                              | e2e           | 401 JSON, no redirect                                                    |
 | Admin enables chat → trainee sees tab → sends → admin inbox shows it unread → admin replies → trainee sees reply within 5 s | e2e           | exact message texts asserted, unread counts asserted                     |
 | Admin locks chat → trainee composer hidden, banner shown, send via API rejected                                             | e2e           | specific banner text and 4xx status                                      |
+| Trainee token: only `subscribe` on own channels; locked trainee gets 403                                                    | unit          | exact capability object asserted                                         |
 | Never-enabled trainee                                                                                                       | e2e           | no "Nhắn tin" tab, `/messages` redirects to `/workouts`                  |
 | Service worker does not cache `/api/chat/*`                                                                                 | e2e           | response not in Cache Storage                                            |
 | Push payload has no message body                                                                                            | unit          | phase 2                                                                  |
 | Push subscription returning 410 is deleted                                                                                  | unit          | phase 2                                                                  |
 | Real devices                                                                                                                | manual (Hoan) | Android Chrome + installed iPhone receive push, tap opens chat           |
 
-e2e runs on the existing throwaway SQLite (`e2e/.tmp`), so polling works there with no vendor mock. Polling intervals are constants that e2e can shorten via an env var.
+e2e runs on the existing throwaway SQLite (`e2e/.tmp`), without `ABLY_API_KEY`, so it exercises the polling transport with no vendor mock; the Ably path is covered by unit tests (token capabilities, publish payloads) and a manual check on the Vercel preview. Polling intervals are constants that e2e can shorten via an env var.
 
 ## 15. CI/CD and deployment
 
 - CI unchanged (test, lint, typecheck, e2e). New e2e specs must keep the e2e job under 3 minutes (shorter poll interval in e2e).
 - Schema additive only: the Vercel build's `drizzle-kit push` creates the new tables and nullable columns. Existing trainees get `chat_enabled = null` (locked), so nothing changes for them until an admin enables chat.
+- Phase 1 env var: `ABLY_API_KEY` (server only, never `NEXT_PUBLIC_`), set in Vercel by Hoan; missing = polling-only transport, logged once as a warning. Not needed in CI.
 - Phase 2 env vars: `VAPID_PUBLIC_KEY` (also exposed as `NEXT_PUBLIC_VAPID_PUBLIC_KEY`), `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (mailto). Added to `.env.example` (empty) and `services/env.ts`; set in Vercel by Hoan. Push is skipped, not failed, when they are missing.
 - Rollout: phase 1 ships behind the per-trainee flag, which is itself the feature flag: Hoan enables one test trainee first.
 
 ## 16. Risks
 
-| Risk                                                          | Mitigation                                                                            |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Polling costs grow with users                                 | Visibility pause, back-off, 204 fast path; switch to option C behind `ChatTransport`. |
-| iOS push only in installed app; many trainees use Safari tabs | Install banner already exists (KAN-79); badge on next open still works.               |
-| Duplicate messages on flaky mobile networks                   | `clientId` unique per conversation.                                                   |
-| Personal data on lock screens                                 | Push payload without body.                                                            |
-| No FK cascade leaves orphan chat rows                         | Explicit delete in member delete path + unit test.                                    |
-| Admin expects chat to be on for everyone after deploy         | Release note: chat is off by default; enable per trainee on the member page.          |
-| Keyboard covering the composer on iOS                         | `visualViewport` handling + browser proof at 390 px.                                  |
-| Vercel Hobby limits/terms change                              | Re-check before approval (Q4); option A has no other vendor to renegotiate.           |
+| Risk                                                          | Mitigation                                                                              |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Ably outage or free-plan limit reached                        | Turso is the source of truth; the polling fallback keeps chat working with a 5 s delay. |
+| Ably key leaks                                                | Server-only env var; clients only get short-lived subscribe-only tokens.                |
+| iOS push only in installed app; many trainees use Safari tabs | Install banner already exists (KAN-79); badge on next open still works.                 |
+| Duplicate messages on flaky mobile networks                   | `clientId` unique per conversation.                                                     |
+| Personal data on lock screens                                 | Push payload without body.                                                              |
+| No FK cascade leaves orphan chat rows                         | Explicit delete in member delete path + unit test.                                      |
+| Admin expects chat to be on for everyone after deploy         | Release note: chat is off by default; enable per trainee on the member page.            |
+| Keyboard covering the composer on iOS                         | `visualViewport` handling + browser proof at 390 px.                                    |
+| Vercel Hobby limits/terms change                              | Non-commercial (D2); re-check limits yearly.                                            |
