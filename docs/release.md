@@ -41,5 +41,6 @@ The Vercel build runs `drizzle-kit push` against the database of the environment
 For both `stag` and `main` (Settings -> Branches, or Rules -> Rulesets):
 
 - Require a pull request before merging; block force pushes and deletion.
-- Require status checks: `checks` (CI). `e2e` optional until it is a required check.
+- Require status checks: `checks` (CI gate; it reports even when the `verify` job is skipped, so docs-only PRs can merge). `e2e` optional until it is a required check.
+- CI on task PRs into `stag` runs only the affected checks; the release PR `stag` -> `main` runs the full suite (all unit tests, lint, typecheck, build, e2e) once.
 - `main` only: restrict who can push/merge to Hoan, and require the PR to come from `stag` (or hotfix branches) by review.

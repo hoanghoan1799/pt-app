@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   index,
   integer,
+  primaryKey,
   real,
   sqliteTable,
   text,
@@ -43,6 +44,14 @@ export const users = sqliteTable("users", {
   passwordHash: text("password_hash"),
   // Sessions issued before this moment are rejected (whole seconds).
   passwordChangedAt: integer("password_changed_at", { mode: "timestamp" }),
+  // Realtime chat permission (KAN-97, S1). Null or false = locked; only the
+  // admin switch sets it. Audit: who changed it and when (admins.id, not
+  // enforced, D10).
+  chatEnabled: integer("chat_enabled", { mode: "boolean" }),
+  chatEnabledChangedAt: integer("chat_enabled_changed_at", {
+    mode: "timestamp",
+  }),
+  chatEnabledByAdminId: integer("chat_enabled_by_admin_id"),
   createdAt: createdAt(),
 });
 
@@ -403,3 +412,78 @@ export const mealMarkItems = sqliteTable(
   },
   (table) => [index("meal_mark_items_meal").on(table.mealId)],
 );
+
+// Realtime chat (KAN-97). One conversation per trainee, shared by all admins.
+// Foreign keys are not enforced (D10), so member delete removes these by hand.
+export const chatConversations = sqliteTable(
+  "chat_conversations",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id),
+    // Denormalised for the inbox sort and preview.
+    lastMessageId: integer("last_message_id"),
+    lastMessageAt: integer("last_message_at", { mode: "timestamp_ms" }),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    index("chat_conversations_last_message_at").on(table.lastMessageAt),
+  ],
+);
+
+export const chatMessages = sqliteTable(
+  "chat_messages",
+  {
+    // Monotonic: doubles as the poll cursor.
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    conversationId: integer("conversation_id")
+      .notNull()
+      .references(() => chatConversations.id),
+    senderRole: text("sender_role", { enum: ["user", "admin"] }).notNull(),
+    // admins.id; null when the sender is the trainee. Deliberately no
+    // reference: deleting an admin keeps their messages.
+    senderAdminId: integer("sender_admin_id"),
+    body: text("body").notNull().default(""),
+    // Phase 3 (photos).
+    attachmentUrl: text("attachment_url"),
+    attachmentMeta: text("attachment_meta"),
+    // Client-generated uuid so a retried send is a no-op.
+    clientId: text("client_id").notNull(),
+    deletedAt: integer("deleted_at", { mode: "timestamp" }),
+    hiddenByAdminId: integer("hidden_by_admin_id"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("chat_messages_conversation_client").on(
+      table.conversationId,
+      table.clientId,
+    ),
+    index("chat_messages_conversation_id").on(table.conversationId, table.id),
+  ],
+);
+
+// Read cursor per reader. readerKey is "user" or "admin:<id>".
+export const chatReads = sqliteTable(
+  "chat_reads",
+  {
+    conversationId: integer("conversation_id").notNull(),
+    readerKey: text("reader_key").notNull(),
+    lastReadMessageId: integer("last_read_message_id").notNull().default(0),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [primaryKey({ columns: [table.conversationId, table.readerKey] })],
+);
+
+// Fixed-window counters shared by all serverless instances. login_attempts
+// keeps its own lock semantics.
+export const rateLimits = sqliteTable("rate_limits", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull().default(0),
+  windowStartedAt: integer("window_started_at", {
+    mode: "timestamp_ms",
+  }).notNull(),
+});

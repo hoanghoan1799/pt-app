@@ -1,4 +1,4 @@
-import { Utensils } from "lucide-react";
+import { MessageCircle, Utensils } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -8,8 +8,11 @@ import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
 import { LogoutButton } from "@/features/auth/components/LogoutButton";
+import { UnreadBadge } from "@/features/chat/components/UnreadBadge";
+import { countUnreadForAdmin } from "@/features/chat/services/chat-queries";
 import { MemberProgressList } from "@/features/dashboard/components/MemberProgressList";
 import { RecentActivityList } from "@/features/dashboard/components/RecentActivityList";
+import { StatTile } from "@/features/dashboard/components/StatTile";
 import { WeekSummaryTiles } from "@/features/dashboard/components/WeekSummaryTiles";
 import { RECENT_ACTIVITY_LIMIT } from "@/features/dashboard/constants/dashboard";
 import {
@@ -41,9 +44,10 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     { week: readSearchParam(query.week) },
     today,
   );
-  const [members, activity] = await Promise.all([
+  const [members, activity, unreadMessages] = await Promise.all([
     getMemberProgress(schedule.weekStart),
     getRecentActivity({ limit: RECENT_ACTIVITY_LIMIT }),
+    countUnreadForAdmin(admin.id),
   ]);
   const rows = toMemberRows(members, {
     weekStart: schedule.weekStart,
@@ -59,6 +63,17 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
         title="Tổng quan"
         actions={
           <>
+            <Link
+              href={ROUTES.ADMIN_MESSAGES}
+              className={`${ICON_BUTTON} relative text-fg`}
+              aria-label="Tin nhắn"
+            >
+              <MessageCircle className="size-5" />
+              <UnreadBadge
+                count={unreadMessages}
+                className="absolute top-1 right-1"
+              />
+            </Link>
             <Link
               href={ROUTES.ADMIN_FOODS}
               className={`${ICON_BUTTON} text-fg`}
@@ -82,6 +97,18 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
             today={today}
           />
           <WeekSummaryTiles summary={summarizeWeek(members)} />
+          <Link href={ROUTES.ADMIN_MESSAGES} className="block">
+            <StatTile
+              icon={MessageCircle}
+              label="Tin nhắn chưa đọc"
+              value={String(unreadMessages)}
+              hint={
+                unreadMessages > 0
+                  ? "Chạm để mở hộp thư"
+                  : "Đã đọc hết tin nhắn"
+              }
+            />
+          </Link>
         </div>
         <section className="space-y-2">
           <h2 className={SECTION_TITLE}>User · {members.length}</h2>

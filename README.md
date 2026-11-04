@@ -19,6 +19,7 @@
 - **Chỉ số của bạn**: user tự nhập giới tính, tuổi, chiều cao, cân nặng, mức vận động, mục tiêu để xem BMR/TDEE. Nếu mục tiêu dinh dưỡng đang "tự tính từ TDEE" (hoặc chưa có), nó được tính lại ngay; nếu PT đã nhập tay thì giữ nguyên.
 - **Tổng kết** (tab thứ 3): tuần tập luyện (buổi/bài đã tập từng ngày) và dinh dưỡng (gram từng ngày so với mục tiêu, số ngày ghi/đạt, kcal TB). Bấm vào ngày để mở chi tiết.
 - **Cân nặng theo tuần** (đầu tab Tổng kết): user ghi "cân hôm nay" (mỗi ngày 1 số, ghi lại thì thay), biểu đồ trung bình theo tuần trong 12 tuần (chạm để xem từng tuần, có dạng bảng), thay đổi so với tuần trước và cả kỳ. Cân mới nhất cập nhật luôn chỉ số cơ thể/TDEE; mục tiêu "tự tính từ TDEE" được tính lại theo.
+- **Nhắn tin với PT** (tab **Nhắn tin**, chỉ hiện khi PT đã bật chat cho bạn): nhắn tin trực tiếp với PT, tin mới hiện gần như ngay lập tức. Số trên tab là số tin chưa đọc. Tiêu đề hiện tên PT trả lời gần nhất. Khi PT tạm khoá, bạn vẫn xem được lịch sử nhưng không gửi được tin.
 - **Cài app (PWA)**: cài PT App lên màn hình chính để mở như app thật. Android/Chrome: bấm **Cài đặt** ở banner phía trên thanh tab. iPhone/iPad: bấm nút **Chia sẻ** rồi chọn **Thêm vào MH chính**. Mở link từ Zalo/Facebook thì cần mở lại bằng Safari hoặc Chrome. Bấm **Để sau** để ẩn banner 14 ngày. Lưu ý: app trên màn hình chính của iPhone có bộ nhớ riêng nên phải đăng nhập lại một lần. Khi mất mạng, app chỉ hiện thông báo "Không có kết nối mạng" (không lưu lịch tập hay dữ liệu cá nhân offline).
 
 **Admin** (`/admin`)
@@ -35,6 +36,7 @@
 - Giao bài theo ngày cho từng user: tiêu đề + ghi chú của ngày; mỗi bài có tên, link YouTube (preview ngay khi dán), số hiệp, số lần/thời gian, mô tả.
 - Sửa, xóa, sắp xếp thứ tự bài tập.
 - Sao chép cả tuần sang tuần khác hoặc sang user khác.
+- **Tin nhắn**: chat mặc định tắt. Bật/khoá chat cho từng user bằng công tắc trong tab **Tin nhắn** của user đó (khoá thì giữ lịch sử, hai bên đều không gửi được). Hộp thư chung `/admin/messages` liệt kê các cuộc trò chuyện kèm số tin chưa đọc; dashboard có ô **Tin nhắn chưa đọc**.
 - "Xem như user" (biểu tượng con mắt) để xem trước đúng màn hình user thấy.
 
 ## Chạy local
@@ -106,12 +108,13 @@ db/                  schema + kết nối Drizzle
 1. Vercel → project → **Storage** → kết nối database Turso. Integration tự thêm `TURSO_DATABASE_URL` và `TURSO_AUTH_TOKEN` (app đọc 2 biến này trước, rồi mới tới `DATABASE_URL`/`DATABASE_AUTH_TOKEN`).
 2. Vercel → **Settings → Environment Variables** (Production + Preview):
 
-   | Biến                 | Giá trị                                                 |
-   | -------------------- | ------------------------------------------------------- |
-   | `SESSION_SECRET`     | chuỗi ngẫu nhiên ≥ 32 ký tự (`openssl rand -base64 32`) |
-   | `ADMIN_USERNAME`     | tài khoản admin đầu tiên (3–32 ký tự a-z 0-9 . _ -)     |
-   | `ADMIN_PASSWORD`     | mật khẩu admin đầu tiên (≥ 8 ký tự)                     |
-   | `HEALTH_CHECK_TOKEN` | (tuỳ chọn) ≥ 16 ký tự, để xem chi tiết `/api/health`    |
+   | Biến                 | Giá trị                                                                                   |
+   | -------------------- | ----------------------------------------------------------------------------------------- |
+   | `SESSION_SECRET`     | chuỗi ngẫu nhiên ≥ 32 ký tự (`openssl rand -base64 32`)                                   |
+   | `ADMIN_USERNAME`     | tài khoản admin đầu tiên (3–32 ký tự a-z 0-9 . _ -)                                       |
+   | `ADMIN_PASSWORD`     | mật khẩu admin đầu tiên (≥ 8 ký tự)                                                       |
+   | `HEALTH_CHECK_TOKEN` | (tuỳ chọn) ≥ 16 ký tự, để xem chi tiết `/api/health`                                      |
+   | `ABLY_API_KEY`       | (tuỳ chọn) key Ably cho chat realtime; thiếu thì chat tự chuyển sang hỏi lại mỗi vài giây |
 
    Không cần `DATABASE_URL` trên Vercel; nếu có, đừng để `file:local.db`.
 

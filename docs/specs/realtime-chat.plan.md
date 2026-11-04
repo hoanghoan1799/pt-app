@@ -20,12 +20,11 @@ PR 1, KAN-97 [BE] schema + permission (no visible change):
 PR 2, KAN-98 [BE] services + API:
 
 - `services/auth-guard.ts`: `getApiUser()`, `getApiAdmin()` (null, no redirect).
-- `utils/rate-limit-rules.ts` (+ test) and `services/rate-limiter.ts`: fixed-window counter on `rate_limits`.
 - `features/chat/utils/chat-rules.ts` (+ test): body schema, reader keys, unread rules, page size.
 - `features/chat/services/chat-queries.ts`: get-or-create conversation, list (`after` / `before` cursor, 30 per page), unread counts, admin inbox.
 - `features/chat/services/chat-actions.ts`: `sendMessageAction`, `markReadAction` (trainee and admin variants; idempotent `clientId`; D6 lock check).
 - `app/api/chat/messages/route.ts`, `app/api/chat/unread/route.ts`, `app/api/admin/chat/[conversationId]/messages/route.ts`: GET handlers, `dynamic`, 401 JSON, 204 fast path.
-- `features/chat/constants/messages.ts`: Vietnamese errors ("PT đã tạm khoá nhắn tin", rate limit).
+- `features/chat/constants/messages.ts`: Vietnamese errors ("PT đã tạm khoá nhắn tin", invalid message).
 
 PR 3, KAN-99 [BE] Ably:
 
@@ -34,7 +33,7 @@ PR 3, KAN-99 [BE] Ably:
 - `features/chat/utils/ably-capabilities.ts` (+ test): channel names and capability per role.
 - `features/chat/services/chat-realtime.ts`: `publishChatEvent()` (REST, swallow and log errors).
 - `app/api/chat/ably-token/route.ts`: token request, 403 for locked trainee, 204 when no key (client falls back to polling).
-- Hook publish into send, read and lock actions.
+- Hook publish into send, read and lock actions. Events: `message`, `inbox` (no body), `read`, `chat-status` (`CHAT_EVENTS`); `publishNewMessage(conversationId, message)` takes the id because `ChatMessage` has none.
 
 PR 4, KAN-100 [FE] trainee:
 
@@ -78,11 +77,11 @@ Each PR: own branch `feat/KAN-<n>-...`, ticket In Progress at start, In Review w
 
 ## Proof
 
-- Unit: `utils/__tests__/rate-limit-rules.test.ts`, `features/chat/utils/__tests__/chat-rules.test.ts`, `features/chat/utils/__tests__/ably-capabilities.test.ts`, member delete cleanup test.
+- Unit: `features/chat/utils/__tests__/chat-rules.test.ts`, `features/chat/utils/__tests__/ably-capabilities.test.ts`, member delete cleanup test.
 - e2e: `e2e/chat.spec.ts` covering spec section 14 rows.
 - `pnpm verify` green on every PR; e2e job under 3 minutes.
 - Manual on the Vercel preview with `ABLY_API_KEY`: message appears on the other device in under 1 s.
 
 ## Deviations
 
-None yet.
+- KAN-98: no send rate limit (D13, Hoan 2026-11-04); `utils/rate-limit-rules.ts` and `services/rate-limiter.ts` were dropped and the `rate_limits` table stays unused.
