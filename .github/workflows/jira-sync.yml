@@ -1,7 +1,8 @@
 name: Jira sync
 
 # Moves the KAN tickets named in a PR's title or branch to In Review when the
-# PR opens and to Done when it merges. Needs repo secrets JIRA_EMAIL and
+# PR opens and to Done when it merges (task PRs merge into stag). The release
+# PR (stag -> main) moves nothing. Needs repo secrets JIRA_EMAIL and
 # JIRA_API_TOKEN; without them the job logs a notice and passes.
 on:
   pull_request:

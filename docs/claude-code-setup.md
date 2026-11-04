@@ -4,27 +4,27 @@ The repo already carries the team setup (dojo Day 01-10, Jira epic KAN-9). This 
 
 ## What the repo gives you
 
-| Path                                             | What it does                                                                                                                    |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| `CLAUDE.md`                                      | Team rules loaded into every session: commands, layout, conventions, never-do list.                                             |
-| `.claude/settings.json`                          | Permissions (allow / ask / deny) and the two hooks below.                                                                       |
-| `.claude/hooks/block-forbidden.mjs`              | Before each Bash command: blocks push to `main`, force-push, `--no-verify`, Claude trailers in commits, shell access to `.env`. |
-| `.claude/hooks/format-on-edit.mjs`               | After each Edit/Write: `eslint --fix` on JS/TS files, then Prettier, using the repo's own config.                               |
-| `.claude/agents/bug-investigator.md`             | Read-only subagent that reproduces a bug and reports the root cause with `file:line`.                                           |
-| `.claude/skills/review-checklist/`               | Team review checklist, used by `/code-review` style reviews and before merging.                                                 |
-| `.claude/skills/grill-me/`, `actionable-ticket/` | Intake interview before planning; KAN tickets and PR descriptions a stranger can act on.                                        |
-| `.claude/skills/honest-commit-push/`             | Commit from the diff with the KAN key, run checks, push; never force-push.                                                      |
-| `.claude/skills/browser-proof/`                  | Prove a UI change with the Playwright MCP on a local DB and report it in an artifact.                                           |
-| `.claude/skills/ai-work-queue/`                  | Claim a KAN ticket, plan, fix, verify, move it across the board or release it.                                                  |
-| `.claude/skills/advisor-delegate/`               | Main session plans and reviews; Sonnet subagents build, Haiku runs checks.                                                      |
-| `.claude/skills/project-map-refresh/`            | Keep CLAUDE.md true when a convention changes.                                                                                  |
-| `docs/hoan-dev-skills.md`                        | hoan-dev-skills: the working standards, guardrails and checklists the skills follow.                                            |
-| `.claude/commands/standup.md`                    | `/standup [since]`: drafts a standup from your commits and KAN tickets (see below).                                             |
-| `scripts/cloud-session-setup.sh`                 | `SessionStart` hook for cloud sessions: install, local `.env.local`, local SQLite with first admin and starter foods.           |
-| `.mcp.json`                                      | Playwright MCP to open and check the app on http://localhost:3000; output goes to the ignored `.playwright-mcp/`.               |
-| `docs/review-false-positives.md`                 | Review findings that are by design; add rows during Day 10 and the retro.                                                       |
-| `.github/workflows/claude.yml`                   | GitHub Action: runs Claude when an issue or PR comment mentions `@claude`.                                                      |
-| `.github/workflows/claude-code-review.yml`       | GitHub Action: reviews every opened or updated PR with the `code-review` plugin and posts inline comments.                      |
+| Path                                             | What it does                                                                                                                               |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `CLAUDE.md`                                      | Team rules loaded into every session: commands, layout, conventions, never-do list.                                                        |
+| `.claude/settings.json`                          | Permissions (allow / ask / deny) and the two hooks below.                                                                                  |
+| `.claude/hooks/block-forbidden.mjs`              | Before each Bash command: blocks push to `main` and `stag`, force-push, `--no-verify`, Claude trailers in commits, shell access to `.env`. |
+| `.claude/hooks/format-on-edit.mjs`               | After each Edit/Write: `eslint --fix` on JS/TS files, then Prettier, using the repo's own config.                                          |
+| `.claude/agents/bug-investigator.md`             | Read-only subagent that reproduces a bug and reports the root cause with `file:line`.                                                      |
+| `.claude/skills/review-checklist/`               | Team review checklist, used by `/code-review` style reviews and before merging.                                                            |
+| `.claude/skills/grill-me/`, `actionable-ticket/` | Intake interview before planning; KAN tickets and PR descriptions a stranger can act on.                                                   |
+| `.claude/skills/honest-commit-push/`             | Commit from the diff with the KAN key, run checks, push; never force-push.                                                                 |
+| `.claude/skills/browser-proof/`                  | Prove a UI change with the Playwright MCP on a local DB and report it in an artifact.                                                      |
+| `.claude/skills/ai-work-queue/`                  | Claim a KAN ticket, plan, fix, verify, move it across the board or release it.                                                             |
+| `.claude/skills/advisor-delegate/`               | Main session plans and reviews; Sonnet subagents build, Haiku runs checks.                                                                 |
+| `.claude/skills/project-map-refresh/`            | Keep CLAUDE.md true when a convention changes.                                                                                             |
+| `docs/hoan-dev-skills.md`                        | hoan-dev-skills: the working standards, guardrails and checklists the skills follow.                                                       |
+| `.claude/commands/standup.md`                    | `/standup [since]`: drafts a standup from your commits and KAN tickets (see below).                                                        |
+| `scripts/cloud-session-setup.sh`                 | `SessionStart` hook for cloud sessions: install, local `.env.local`, local SQLite with first admin and starter foods.                      |
+| `.mcp.json`                                      | Playwright MCP to open and check the app on http://localhost:3000; output goes to the ignored `.playwright-mcp/`.                          |
+| `docs/review-false-positives.md`                 | Review findings that are by design; add rows during Day 10 and the retro.                                                                  |
+| `.github/workflows/claude.yml`                   | GitHub Action: runs Claude when an issue or PR comment mentions `@claude`.                                                                 |
+| `.github/workflows/claude-code-review.yml`       | GitHub Action: reviews every opened or updated PR with the `code-review` plugin and posts inline comments.                                 |
 
 Use Node.js 24 (the app's `engines`, also what Vercel builds with) and pnpm (`corepack enable` once picks the version in `packageManager`). After pulling, run `pnpm install --frozen-lockfile` (installs exactly the lock file; `pnpm install` may rewrite it), then restart Claude Code so it loads the new settings.
 
@@ -45,7 +45,7 @@ The script does nothing outside cloud sessions (`CLAUDE_CODE_REMOTE` is not `tru
 
 What still lives elsewhere:
 
-- The live app runs on Vercel (auto-deploys `main`, Turso database); it never depended on your machine.
+- The live app runs on Vercel (auto-deploys `main`, Turso database); it never depended on your machine. Task PRs go to `stag`; `main` changes only at release (`docs/release.md`).
 - CI, `@claude` and PR review run in GitHub Actions; Jira sync too.
 - Cloud containers ship a newer Chromium than the repo's Playwright pin, so for `pnpm test:e2e` in a cloud session use a temporary config with `launchOptions.executablePath: "/opt/pw-browsers/chromium"` (never `playwright install`, never commit that config). CI runs e2e with the pinned browser.
 - The cloud image defaults to Node 22 but ships Node 24 in `/opt/node24`; the script puts it first on `PATH` for the whole session (through `CLAUDE_ENV_FILE`), so `node -v` is 24 like Vercel and CI.

@@ -5,7 +5,7 @@ description: Review a pt-app branch or PR against the team checklist (scope, tes
 
 # pt-app review checklist
 
-Review the diff against the base branch (`git diff main...HEAD`, or the PR diff). Go through the sections in order and stop at the first section that fails badly: a PR without a ticket or with red tests is not worth a style review yet.
+Review the diff against the base branch (`git diff origin/stag...HEAD` for task branches, `origin/main...origin/stag` for a release PR, or the PR diff). Go through the sections in order and stop at the first section that fails badly: a PR without a ticket or with red tests is not worth a style review yet.
 
 ## 1. Scope
 

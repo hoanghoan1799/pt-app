@@ -55,6 +55,15 @@ describe("targetStatusFor", () => {
     expect(targetStatusFor(event({ action: "closed" }))).toBeNull();
   });
 
+  it("moves nothing for the release PR from stag", () => {
+    expect(
+      targetStatusFor(
+        event({ action: "closed", merged: true, headRef: "stag" }),
+      ),
+    ).toBeNull();
+    expect(targetStatusFor(event({ headRef: "stag" }))).toBeNull();
+  });
+
   it("ignores other actions", () => {
     expect(targetStatusFor(event({ action: "synchronize" }))).toBeNull();
   });

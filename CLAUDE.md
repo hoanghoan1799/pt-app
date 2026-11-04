@@ -26,9 +26,10 @@ Weekly PT workout app: admins (PTs) assign daily workouts, users log in by name.
 - Every admin server action calls `requireAdmin()` first; user actions call `requireUser()`. Validate input with Zod.
 - Errors go through `services/action-errors.ts`: production shows only a generic message plus a reference id.
 - UI copy is Vietnamese; code, comments, commits, PRs and Jira tickets are English.
+- Branches: `stag` is the integration branch. Every task branch starts from `stag` and its PR targets `stag`; `main` is production (Vercel) and only takes the release PR `stag` -> `main`, then a tag (`docs/release.md`).
 - One KAN ticket per branch, key in the branch name and commit subject, e.g. `fix(KAN-14): ...`.
 - CI (`.github/workflows/ci.yml`) runs test, lint and typecheck on every PR; keep it green.
-- `.github/workflows/jira-sync.yml` moves the KAN keys in a PR title or branch to In Review when the PR opens and to Done when it merges (secrets `JIRA_EMAIL`, `JIRA_API_TOKEN`); moving a ticket to In Progress stays manual.
+- `.github/workflows/jira-sync.yml` moves the KAN keys in a PR title or branch to In Review when the PR opens and to Done when it merges into `stag` (the release PR from `stag` moves nothing) (secrets `JIRA_EMAIL`, `JIRA_API_TOKEN`); moving a ticket to In Progress stays manual.
 
 ## Verifying your work
 
@@ -77,7 +78,7 @@ Two strikes: when Claude makes the same mistake twice, add it here.
 ## Never do
 
 - Never add `Co-Authored-By` or `Claude-Session` lines to commits.
-- Never push to `main` or force-push; open a PR.
+- Never push to `stag` or `main`, never force-push; open a PR into `stag`.
 - Never read, print or commit `.env*` files (only `.env.example`) or any secret.
 - Never skip, delete or `.skip` a failing test to get green; fix the cause.
 - Never run `db:push`, `db:setup` or scripts against a Turso/production URL.
