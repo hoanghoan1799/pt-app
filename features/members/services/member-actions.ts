@@ -9,6 +9,9 @@ import { ROUTES } from "@/constants/routes";
 import { db } from "@/db";
 import {
   bodyProfiles,
+  chatConversations,
+  chatMessages,
+  chatReads,
   exerciseCompletions,
   exercises,
   exerciseSets,
@@ -74,8 +77,25 @@ export const deleteMemberAction = withResultErrorHandling(
       .from(mealPlanDays)
       .where(eq(mealPlanDays.userId, id));
 
+    const conversations = await db
+      .select({ id: chatConversations.id })
+      .from(chatConversations)
+      .where(eq(chatConversations.userId, id));
+    const conversationIds = conversations.map((row) => row.id);
+
     await db.transaction(async (tx) => {
       // Children first: foreign keys are not enforced (D10).
+      if (conversationIds.length) {
+        await tx
+          .delete(chatReads)
+          .where(inArray(chatReads.conversationId, conversationIds));
+        await tx
+          .delete(chatMessages)
+          .where(inArray(chatMessages.conversationId, conversationIds));
+      }
+      await tx
+        .delete(chatConversations)
+        .where(eq(chatConversations.userId, id));
       await tx.delete(exerciseSets).where(eq(exerciseSets.userId, id));
       await tx
         .delete(exerciseCompletions)
