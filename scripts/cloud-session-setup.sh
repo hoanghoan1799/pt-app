@@ -17,6 +17,18 @@ fi
 
 cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/..}"
 
+# The cloud image defaults to Node 22 but ships Node 24 in /opt/node24 (the
+# version in package.json "engines" and on Vercel). Put it first on PATH for
+# this script and, through CLAUDE_ENV_FILE, for every Bash command of the session.
+node24_bin="/opt/node24/bin"
+if [ -x "$node24_bin/node" ] && [ "$(node -p 'process.versions.node.split(".")[0]')" != "24" ]; then
+  export PATH="$node24_bin:$PATH"
+  if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+    echo "export PATH=\"$node24_bin:\$PATH\"" >>"$CLAUDE_ENV_FILE"
+  fi
+  echo "▸ pt-app cloud setup: using Node $(node -v)"
+fi
+
 echo "▸ pt-app cloud setup: installing dependencies"
 pnpm install --frozen-lockfile --reporter=silent
 

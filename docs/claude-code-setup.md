@@ -36,9 +36,10 @@ Use Node.js 24 (the app's `engines`, also what Vercel builds with) and pnpm (`co
 
 Claude Code on the web (claude.ai/code, project threads, routines) clones the repo into a fresh cloud container, so work on pt-app does not need your Windows or Mac machine, Remote Control or the local clone. On the first start of a cloud session, the `SessionStart` hook runs `scripts/cloud-session-setup.sh`, which:
 
+1. switches the session to Node 24;
 1. runs `pnpm install --frozen-lockfile`;
-2. creates `.env.local` from `.env.example` when it is missing, with a random `SESSION_SECRET` and `DATABASE_URL=file:local.db`;
-3. runs `pnpm db:setup` on the local SQLite file: tables, the first admin (`admin` / `change-me-min-8-chars` from the template) and the starter foods.
+1. creates `.env.local` from `.env.example` when it is missing, with a random `SESSION_SECRET` and `DATABASE_URL=file:local.db`;
+1. runs `pnpm db:setup` on the local SQLite file: tables, the first admin (`admin` / `change-me-min-8-chars` from the template) and the starter foods.
 
 The script does nothing outside cloud sessions (`CLAUDE_CODE_REMOTE` is not `true`), and it skips the database step when `TURSO_DATABASE_URL` or `DATABASE_URL` in the environment points at a remote database, so it never touches production. After it runs, `pnpm verify` and `pnpm dev` (http://localhost:3000) work in the container.
 
@@ -47,7 +48,7 @@ What still lives elsewhere:
 - The live app runs on Vercel (auto-deploys `main`, Turso database); it never depended on your machine.
 - CI, `@claude` and PR review run in GitHub Actions; Jira sync too.
 - Cloud containers ship a newer Chromium than the repo's Playwright pin, so for `pnpm test:e2e` in a cloud session use a temporary config with `launchOptions.executablePath: "/opt/pw-browsers/chromium"` (never `playwright install`, never commit that config). CI runs e2e with the pinned browser.
-- Cloud containers may run an older Node than 24; pnpm warns about `engines` but `pnpm verify` passes. To pin Node 24, add a cloud environment whose setup script installs it.
+- The cloud image defaults to Node 22 but ships Node 24 in `/opt/node24`; the script puts it first on `PATH` for the whole session (through `CLAUDE_ENV_FILE`), so `node -v` is 24 like Vercel and CI.
 
 ## Steps to do on your machine
 
