@@ -1,8 +1,9 @@
+import { eq } from "drizzle-orm";
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
-import { users } from "@/db/schema";
+import { admins, users } from "@/db/schema";
 
 const state = vi.hoisted(() => ({
   db: null as unknown,
@@ -141,7 +142,26 @@ describe("GET /api/chat/messages", () => {
       hasMore: false,
       chatEnabled: false,
       peerReadUpTo: 0,
+      peerLastSeenAt: null,
     });
+  });
+
+  it("includes the newest admin last-seen on full payloads, not on 204", async () => {
+    await db.insert(admins).values({
+      username: "pt",
+      usernameKey: "pt",
+      passwordHash: "x",
+      lastSeenAt: new Date("2026-11-05T02:00:00Z"),
+    });
+    const full = await messagesRoute.GET(get("/api/chat/messages"));
+
+    expect((await full.json()).peerLastSeenAt).toBe("2026-11-05T02:00:00.000Z");
+
+    const fast = await messagesRoute.GET(
+      get(`/api/chat/messages?after=${lastId}&readUpTo=0&enabled=1`),
+    );
+
+    expect(fast.status).toBe(204);
   });
 
   it("answers 204 when nothing is new and state is unchanged", async () => {
@@ -336,6 +356,22 @@ describe("GET /api/admin/chat/[conversationId]/messages", () => {
       peerReadUpTo: 1,
       chatEnabled: true,
       userId,
+      peerLastSeenAt: null,
     });
+  });
+
+  it("returns the trainee's last-seen as an ISO string", async () => {
+    await db
+      .update(users)
+      .set({ lastSeenAt: new Date("2026-11-05T02:00:00Z") })
+      .where(eq(users.id, userId));
+    const response = await adminRoute.GET(
+      get(`/api/admin/chat/${conversationId}/messages`),
+      adminParams(String(conversationId)),
+    );
+
+    expect((await response.json()).peerLastSeenAt).toBe(
+      "2026-11-05T02:00:00.000Z",
+    );
   });
 });
