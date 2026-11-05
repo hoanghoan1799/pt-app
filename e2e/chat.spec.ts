@@ -340,6 +340,12 @@ test("enable, message, reply, unread badges and the PT name work end to end", as
     // Opening the thread and replying.
     await admin.goto(`/admin/users/${userId}/messages`);
     const adminLog = admin.getByRole("log");
+    // The trainee's app is open, so its heartbeat marks them online (KAN-129).
+    await expect(
+      admin.getByRole("status", {
+        name: "Trạng thái hoạt động: Đang hoạt động",
+      }),
+    ).toHaveText("Đang hoạt động");
 
     await expect(adminLog.getByText(question, { exact: true })).toBeVisible();
     await sendFromComposer(admin, reply);
