@@ -16,7 +16,7 @@ import { useFormFeedback } from "@/hooks/use-form-feedback";
 export const useCopyWeek = () => {
   const confirm = useConfirm();
   const [isOpen, setIsOpen] = useState(false);
-  const [state, formAction] = useActionState(
+  const [state, formAction, isPending] = useActionState(
     copyWeekAction,
     INITIAL_FORM_STATE,
   );
@@ -40,5 +40,5 @@ export const useCopyWeek = () => {
     }
   };
 
-  return { isOpen, setIsOpen, formAction, handleSubmit };
+  return { isOpen, setIsOpen, formAction, handleSubmit, isPending };
 };
