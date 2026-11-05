@@ -7,7 +7,7 @@ import { MEMBER_MESSAGES } from "@/features/members/constants/messages";
 import { hashPassword } from "@/services/password";
 import { toEmailKey } from "@/utils/email";
 
-import { fillTraineeLogin } from "./auth";
+import { fillTraineeLogin, logOutViaMenu } from "./auth";
 import {
   E2E_ADMIN,
   E2E_CHANGER_NAME,
@@ -225,7 +225,7 @@ test("a trainee changes the password; the old one fails and the new one works", 
   // Still signed in on this device after the change (D6).
   await page.goto("/workouts");
   await expect(page).toHaveURL(/\/workouts/);
-  await page.getByRole("button", { name: "Đăng xuất" }).click();
+  await logOutViaMenu(page);
   await expect(page).toHaveURL(/\/$/);
 
   const next = await newSession(browser);

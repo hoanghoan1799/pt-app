@@ -4,10 +4,10 @@ import Link from "next/link";
 
 import { WeekNavigator } from "@/components/common/WeekNavigator";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { HeaderMenus } from "@/components/layout/HeaderMenus";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
-import { LogoutButton } from "@/features/auth/components/LogoutButton";
 import { UnreadBadge } from "@/features/chat/components/UnreadBadge";
 import { countUnreadForAdmin } from "@/features/chat/services/chat-queries";
 import { MemberProgressList } from "@/features/dashboard/components/MemberProgressList";
@@ -74,21 +74,25 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
                 className="absolute top-1 right-1"
               />
             </Link>
-            <Link
-              href={ROUTES.ADMIN_FOODS}
-              className={`${ICON_BUTTON} text-fg`}
-              aria-label="Thực phẩm"
-            >
-              <Utensils className="size-5" />
-            </Link>
-            <AddMemberButton />
-            <LogoutButton role="admin" />
+            <HeaderMenus role="admin" />
           </>
         }
       />
       <main
         className={`${PAGE_CONTAINER} space-y-6 pt-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]`}
       >
+        {/* Temporary home of the two actions that left the header; the
+            "Thao tác" tiles of KAN-124 replace this row. */}
+        <div className="flex items-center gap-2">
+          <Link
+            href={ROUTES.ADMIN_FOODS}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface px-4 text-sm font-semibold text-fg"
+          >
+            <Utensils className="size-5" aria-hidden />
+            Thực phẩm
+          </Link>
+          <AddMemberButton />
+        </div>
         <div className="space-y-3">
           <WeekNavigator
             basePath={ROUTES.ADMIN}
