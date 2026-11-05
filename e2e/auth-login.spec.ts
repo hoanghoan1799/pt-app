@@ -212,9 +212,15 @@ test("a trainee changes the password; the old one fails and the new one works", 
   await page.getByLabel("Mật khẩu mới", { exact: true }).fill(NEW_PASSWORD);
   await page.getByLabel("Nhập lại mật khẩu mới").fill(NEW_PASSWORD);
   await page.getByRole("button", { name: "Đổi mật khẩu" }).click();
-  await expect(page.getByRole("status")).toHaveText(
-    AUTH_MESSAGES.PASSWORD_CHANGED,
+
+  // Redirected to the main page with a toast, no inline success message (KAN-123).
+  await expect(page).toHaveURL(/\/workouts$/);
+  await expect(page.locator("[data-sonner-toast]")).toHaveText(
+    AUTH_MESSAGES.PASSWORD_CHANGED_TOAST,
   );
+  await expect(
+    page.getByText(AUTH_MESSAGES.PASSWORD_CHANGED, { exact: true }),
+  ).toHaveCount(0);
 
   // Still signed in on this device after the change (D6).
   await page.goto("/workouts");
@@ -238,6 +244,38 @@ test("a trainee changes the password; the old one fails and the new one works", 
   }
 
   await restoreCredentials(E2E_CHANGER_NAME);
+});
+
+test("change password: wrong current password stays inline; the toggle shows the text", async ({
+  page,
+}) => {
+  await logInAs(page, E2E_CHANGER_NAME, E2E_USER_PASSWORD);
+  await expect(page).toHaveURL(/\/workouts/);
+  await page.goto("/account/password");
+
+  const current = page.getByLabel("Mật khẩu hiện tại");
+  const field = page.locator("div", { has: current }).last();
+  const toggle = field.getByRole("button", { name: "Hiện mật khẩu" });
+
+  await expect(current).toHaveAttribute("type", "password");
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await toggle.click();
+  await expect(current).toHaveAttribute("type", "text");
+  await expect(
+    field.getByRole("button", { name: "Ẩn mật khẩu" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await field.getByRole("button", { name: "Ẩn mật khẩu" }).click();
+  await expect(current).toHaveAttribute("type", "password");
+
+  await current.fill("not-the-current-password");
+  await page.getByLabel("Mật khẩu mới", { exact: true }).fill(NEW_PASSWORD);
+  await page.getByLabel("Nhập lại mật khẩu mới").fill(NEW_PASSWORD);
+  await page.getByRole("button", { name: "Đổi mật khẩu" }).click();
+
+  await expect(page.locator("#currentPassword-error")).toHaveText(
+    AUTH_MESSAGES.CURRENT_PASSWORD_WRONG,
+  );
+  await expect(page).toHaveURL(/\/account\/password$/);
 });
 
 test("an admin reset logs the trainee out of their open session; the new password works", async ({

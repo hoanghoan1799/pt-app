@@ -11,6 +11,7 @@ export const AUTH_MESSAGES = {
   NEW_PASSWORD_SAME: "Mật khẩu mới phải khác mật khẩu hiện tại",
   CONFIRM_MISMATCH: "Mật khẩu nhập lại không khớp",
   PASSWORD_CHANGED: "Đã đổi mật khẩu",
+  PASSWORD_CHANGED_TOAST: "Đã đổi mật khẩu. Thiết bị khác đã bị đăng xuất.",
 } as const;
 
 // Slows down password guessing on admin accounts.

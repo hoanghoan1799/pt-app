@@ -1,10 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { SubmitButton } from "@/components/common/SubmitButton";
 import { INITIAL_FORM_STATE } from "@/constants/form";
+import { ROUTES } from "@/constants/routes";
 import { BUTTON_PRIMARY, FIELD_ERROR, INPUT, LABEL } from "@/constants/styles";
+import { AUTH_MESSAGES } from "@/features/auth/constants/messages";
 import { changePasswordAction } from "@/features/auth/services/password-actions";
 import { describeErrorReference } from "@/utils/errors";
 
@@ -23,10 +28,22 @@ const FIELDS = [
 ] as const;
 
 export const ChangePasswordForm = () => {
+  const router = useRouter();
+  const [visible, setVisible] = useState<Record<string, boolean>>({});
   const [state, formAction] = useActionState(
     changePasswordAction,
     INITIAL_FORM_STATE,
   );
+
+  // The toaster lives in the root layout, so the toast outlives the redirect.
+  // Only trainees have this page; the admin app has no password page yet.
+  useEffect(() => {
+    if (state.status === "success") {
+      toast.success(AUTH_MESSAGES.PASSWORD_CHANGED_TOAST);
+      router.replace(ROUTES.WORKOUTS);
+    }
+  }, [state.status, state.submittedAt, router]);
+
   const isError = state.status === "error";
   const fieldErrors = state.fieldErrors ?? {};
   // Errors without a field (wrong current password is per-field, so this is
@@ -45,22 +62,43 @@ export const ChangePasswordForm = () => {
     >
       {FIELDS.map((field) => {
         const error = fieldErrors[field.name];
+        const isVisible = Boolean(visible[field.name]);
 
         return (
           <div key={field.name}>
             <label htmlFor={field.name} className={LABEL}>
               {field.label}
             </label>
-            <input
-              id={field.name}
-              name={field.name}
-              type="password"
-              autoComplete={field.autoComplete}
-              required
-              aria-invalid={Boolean(error)}
-              aria-describedby={error ? `${field.name}-error` : undefined}
-              className={INPUT}
-            />
+            <div className="relative">
+              <input
+                id={field.name}
+                name={field.name}
+                type={isVisible ? "text" : "password"}
+                autoComplete={field.autoComplete}
+                required
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? `${field.name}-error` : undefined}
+                className={`${INPUT} pr-12`}
+              />
+              <button
+                type="button"
+                aria-label={isVisible ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                aria-pressed={isVisible}
+                onClick={() =>
+                  setVisible((prev) => ({
+                    ...prev,
+                    [field.name]: !prev[field.name],
+                  }))
+                }
+                className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-muted hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none"
+              >
+                {isVisible ? (
+                  <EyeOff className="size-5" aria-hidden />
+                ) : (
+                  <Eye className="size-5" aria-hidden />
+                )}
+              </button>
+            </div>
             {error && (
               <p
                 id={`${field.name}-error`}
@@ -81,11 +119,6 @@ export const ChangePasswordForm = () => {
               {describeErrorReference(state.errorReference)}
             </span>
           )}
-        </p>
-      )}
-      {state.status === "success" && (
-        <p role="status" className="text-sm font-medium text-success">
-          {state.message}
         </p>
       )}
       <SubmitButton className={`${BUTTON_PRIMARY} w-full`}>
