@@ -39,11 +39,14 @@ Only the relative text is shown, never an exact time. The API returns the raw ti
 
 ## Test matrix
 
-| Ticket  | Case                                                                                                           | Level          |
-| ------- | -------------------------------------------------------------------------------------------------------------- | -------------- |
-| KAN-128 | 119 s online, 120 s "2 phút trước"; 59/60 min; local midnight; year boundary; null                             | unit           |
-| KAN-128 | POST 401/204/no-store; `as=admin` stamps admins only; 60 s write throttle                                      | route          |
-| KAN-128 | peer GET: trainee gets max admin; admin gets trainee; 400/404/401                                              | route          |
-| KAN-128 | messages payloads carry `peerLastSeenAt`; 204 path unchanged; inbox `lastSeenAt`                               | route/service  |
-| KAN-129 | heartbeat only while visible, every 60 s, stops when hidden; header and inbox render status; peer poll refresh | unit/component |
-| KAN-130 | admin heartbeat shows "Đang hoạt động" to the trainee and the reverse; last-seen text after going idle         | e2e            |
+| Ticket  | Case                                                                                                                         | Level          |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| KAN-128 | 119 s online, 120 s "2 phút trước"; 59/60 min; local midnight; year boundary; null                                           | unit           |
+| KAN-128 | POST 401/204/no-store; `as=admin` stamps admins only; 60 s write throttle                                                    | route          |
+| KAN-128 | peer GET: trainee gets max admin; admin gets trainee; 400/404/401                                                            | route          |
+| KAN-128 | messages payloads carry `peerLastSeenAt`; 204 path unchanged; inbox `lastSeenAt`                                             | route/service  |
+| KAN-129 | heartbeat only while visible, every 60 s, stops when hidden; header and inbox render status; peer poll refresh               | unit/component |
+| KAN-130 | trainee thread shows "Đang hoạt động" (`data-online="true"`) while an admin has the app open                                 | e2e            |
+| KAN-130 | admin thread shows "Hoạt động 5 phút trước" (`data-online="false"`) for an idle trainee; admin beat never stamps the trainee | e2e            |
+| KAN-130 | admin inbox: online trainee has the green dot, idle trainee shows "5 phút trước" and no dot                                  | e2e            |
+| KAN-130 | `POST /api/presence` and `?as=admin` answer 401 + `no-store` without a session                                               | e2e            |
