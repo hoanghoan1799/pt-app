@@ -14,14 +14,11 @@ import {
   getMonthEnd,
   getMonthOf,
   getMonthStart,
+  mergeMonthDates,
+  type MonthInfo,
   shiftMonth,
 } from "@/features/meal-plans/utils/copy-calendar";
 import { getOverwriteDates } from "@/features/meal-plans/utils/overwrite-message";
-
-interface MonthInfo {
-  planDates: string[];
-  logDates: string[];
-}
 
 interface CopyDayOptions {
   userId: number;
@@ -51,8 +48,9 @@ export const useCopyDay = ({
   const [month, setMonth] = useState(getMonthOf(today));
   const [selected, setSelected] = useState<string[]>([]);
   // Plans and logs per month, read from the server each time the sheet opens
-  // so the dots are never older than the sheet.
-  const [loaded, setLoaded] = useState<Record<string, MonthInfo>>({});
+  // so the dots are never older than the sheet. `null` marks a month whose
+  // read failed: it stops blocking the button but the page's data still applies.
+  const [loaded, setLoaded] = useState<Record<string, MonthInfo | null>>({});
   // True while the "Ghi đè" question is shown instead of the month grid.
   const [isConfirming, setIsConfirming] = useState(false);
   const { isPending, run } = useMealPlanAction();
@@ -93,7 +91,7 @@ export const useCopyDay = ({
         [month]:
           result.status === "success"
             ? { planDates: result.planDates, logDates: result.logDates }
-            : { planDates: [], logDates: [] },
+            : null,
       }));
     });
     return () => {
@@ -101,15 +99,8 @@ export const useCopyDay = ({
     };
   }, [isOpen, isMonthLoaded, month, userId]);
 
-  // A month that was read wins over the page's data for its dates.
-  const pick = (dates: string[], key: keyof MonthInfo) => {
-    const fromPage = dates.filter((date) => !(getMonthOf(date) in loaded));
-    const fromServer = Object.values(loaded).flatMap((info) => info[key]);
-
-    return [...fromPage, ...fromServer];
-  };
-  const planDates = pick(datesWithPlan, "planDates");
-  const logDates = pick(datesWithLogs, "logDates");
+  const planDates = mergeMonthDates(datesWithPlan, loaded, "planDates");
+  const logDates = mergeMonthDates(datesWithLogs, loaded, "logDates");
 
   const cells = buildCopyMonth({
     month,

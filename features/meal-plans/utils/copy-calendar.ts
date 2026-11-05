@@ -85,3 +85,24 @@ export const buildCopyMonth = ({
 
   return [...blanks, ...days];
 };
+
+export interface MonthInfo {
+  planDates: string[];
+  logDates: string[];
+}
+
+// A month read from the server wins over the page's data for its dates. A
+// month whose read failed (`null`) keeps the page's data, so a known plan is
+// never hidden and its overwrite confirm still shows.
+export const mergeMonthDates = (
+  pageDates: string[],
+  loaded: Record<string, MonthInfo | null>,
+  key: keyof MonthInfo,
+): string[] => {
+  const fromPage = pageDates.filter((date) => !loaded[getMonthOf(date)]);
+  const fromServer = Object.values(loaded).flatMap((info) =>
+    info ? info[key] : [],
+  );
+
+  return [...fromPage, ...fromServer];
+};

@@ -5,6 +5,7 @@ import {
   canGoToPreviousMonth,
   formatMonthLabel,
   getMonthEnd,
+  mergeMonthDates,
   shiftMonth,
 } from "@/features/meal-plans/utils/copy-calendar";
 
@@ -126,5 +127,35 @@ describe("month helpers", () => {
     expect(formatMonthLabel("2026-11")).toBe("Tháng 11, 2026");
     expect(canGoToPreviousMonth("2026-11", "2026-11-05")).toBe(false);
     expect(canGoToPreviousMonth("2026-12", "2026-11-05")).toBe(true);
+  });
+});
+
+describe("mergeMonthDates", () => {
+  const page = ["2026-11-06", "2026-11-09"];
+
+  it("uses the page's dates while no month is read", () => {
+    expect(mergeMonthDates(page, {}, "planDates")).toEqual(page);
+  });
+
+  it("lets a read month replace the page's dates for that month", () => {
+    const loaded = {
+      "2026-11": { planDates: ["2026-11-20"], logDates: [] },
+    };
+
+    expect(mergeMonthDates(page, loaded, "planDates")).toEqual(["2026-11-20"]);
+  });
+
+  it("keeps the page's dates for a month whose read failed", () => {
+    const loaded = {
+      "2026-11": null,
+      "2026-12": { planDates: ["2026-12-01"], logDates: ["2026-12-02"] },
+    };
+
+    expect(mergeMonthDates(page, loaded, "planDates")).toEqual([
+      "2026-11-06",
+      "2026-11-09",
+      "2026-12-01",
+    ]);
+    expect(mergeMonthDates([], loaded, "logDates")).toEqual(["2026-12-02"]);
   });
 });
