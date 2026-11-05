@@ -37,13 +37,15 @@ interface MemberRowOptions {
   timeZone: string;
   now: number;
   getHref: (memberId: number, weekStart: string) => string;
+  // Unread counts keyed by trainee id; trainees without unread are absent.
+  unreadByUserId?: ReadonlyMap<number, number>;
 }
 
 // Display-ready rows; relative times are computed once on the server so the
 // client list renders the same text it was hydrated with.
 export const toMemberRows = (
   members: MemberProgress[],
-  { weekStart, timeZone, now, getHref }: MemberRowOptions,
+  { weekStart, timeZone, now, getHref, unreadByUserId }: MemberRowOptions,
 ): MemberRow[] =>
   members.map((member) => ({
     ...member,
@@ -54,4 +56,5 @@ export const toMemberRows = (
         ? null
         : formatRelativeTime(member.lastActiveAt, timeZone, now),
     href: getHref(member.id, weekStart),
+    unread: unreadByUserId?.get(member.id) ?? 0,
   }));

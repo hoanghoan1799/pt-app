@@ -82,8 +82,8 @@ test("F8: the PT adds, edits and deletes Phở bò, and the trainee list follows
   page,
   browser,
 }) => {
-  // Entry point: the Thực phẩm button in the admin home header.
-  await page.getByRole("link", { name: "Thực phẩm" }).click();
+  // Entry point: the Thư viện món tile in the admin home "Thao tác" section.
+  await page.getByRole("link", { name: "Thư viện món" }).click();
   await expect(page).toHaveURL(/\/admin\/foods$/);
   await expect(getFoodLink(page, PHO)).toHaveCount(0);
 

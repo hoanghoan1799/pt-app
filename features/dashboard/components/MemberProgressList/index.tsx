@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { ProgressBar } from "@/components/common/ProgressBar";
 import { CARD, INPUT } from "@/constants/styles";
+import { UnreadBadge } from "@/features/chat/components/UnreadBadge";
 import { MEMBER_SEARCH_THRESHOLD } from "@/features/dashboard/constants/dashboard";
 import { useMemberSearch } from "@/features/dashboard/hooks/use-member-search";
 import type { MemberRow } from "@/features/dashboard/types/dashboard";
@@ -33,8 +34,8 @@ export const MemberProgressList = ({ members }: MemberProgressListProps) => {
         <Users className="size-10 text-muted" aria-hidden />
         <p className="mt-3 font-semibold text-fg">Chưa có user nào</p>
         <p className="mt-1 text-sm text-muted">
-          Bấm nút + ở góc trên để thêm user, sau đó họ chỉ cần nhập đúng tên để
-          vào xem bài tập.
+          Chọn Thêm user ở mục Thao tác, sau đó họ chỉ cần nhập đúng tên để vào
+          xem bài tập.
         </p>
       </div>
     );
@@ -58,9 +59,9 @@ export const MemberProgressList = ({ members }: MemberProgressListProps) => {
           />
         </div>
       )}
-      <ul className={`${CARD} divide-y divide-line overflow-hidden`}>
+      <ul className="space-y-2">
         {filteredMembers.map((member) => (
-          <li key={member.id}>
+          <li key={member.id} className={`${CARD} overflow-hidden`}>
             <Link
               href={member.href}
               className="flex items-center gap-3 px-4 py-3.5 transition active:bg-line/60"
@@ -77,8 +78,11 @@ export const MemberProgressList = ({ members }: MemberProgressListProps) => {
               </span>
               <span className="min-w-0 flex-1 space-y-1.5">
                 <span className="flex items-baseline justify-between gap-2">
-                  <span className="truncate font-semibold text-fg">
-                    {member.name}
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="truncate font-semibold text-fg">
+                      {member.name}
+                    </span>
+                    <UnreadBadge count={member.unread} className="shrink-0" />
                   </span>
                   {member.status !== "no-plan" && (
                     <span
@@ -131,7 +135,7 @@ export const MemberProgressList = ({ members }: MemberProgressListProps) => {
           </li>
         ))}
         {!filteredMembers.length && (
-          <li className="px-4 py-6 text-center text-sm text-muted">
+          <li className={`${CARD} px-4 py-6 text-center text-sm text-muted`}>
             Không có user nào khớp “{query}”
           </li>
         )}
