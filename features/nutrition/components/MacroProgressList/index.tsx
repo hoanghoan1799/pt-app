@@ -1,5 +1,5 @@
 import { CaloriesProgressRow } from "@/features/nutrition/components/CaloriesProgressRow";
-import { MacroProgressRow } from "@/features/nutrition/components/MacroProgressRow";
+import { MacroRing } from "@/features/nutrition/components/MacroRing";
 import { MACROS } from "@/features/nutrition/constants/nutrition";
 import type {
   MacroAmounts,
@@ -13,20 +13,25 @@ interface MacroProgressListProps {
   target: NutritionTarget | null;
 }
 
+// Calories as one line, then the three macros as rings in a row.
 export const MacroProgressList = ({
   totals,
   kcal,
   target,
 }: MacroProgressListProps) => (
-  <ul className="space-y-4">
-    <CaloriesProgressRow kcal={kcal} target={target} />
-    {MACROS.map((macro) => (
-      <MacroProgressRow
-        key={macro}
-        macro={macro}
-        eaten={totals[macro]}
-        target={target?.[macro]}
-      />
-    ))}
-  </ul>
+  <div className="space-y-4">
+    <ul>
+      <CaloriesProgressRow kcal={kcal} target={target} />
+    </ul>
+    <ul className="flex items-start justify-between gap-2">
+      {MACROS.map((macro) => (
+        <MacroRing
+          key={macro}
+          macro={macro}
+          eaten={totals[macro]}
+          target={target?.[macro]}
+        />
+      ))}
+    </ul>
+  </div>
 );

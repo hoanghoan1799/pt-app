@@ -9,12 +9,23 @@ import {
   getWeekdayShortLabel,
 } from "@/utils/week";
 
+export type WeekDayStatus = "complete" | "partial" | "none";
+
+// Dot colour per status (green, yellow, grey); shared with the legend.
+export const DAY_STATUS_DOT_CLASSES: Record<WeekDayStatus, string> = {
+  complete: "bg-success",
+  partial: "bg-warning",
+  none: "bg-muted/50",
+};
+
 export interface WeekDayTabItem {
   date: string;
   // "dot": something is planned/logged, "check": the day is done.
   marker: "none" | "dot" | "check";
   // Appended to the day name for screen readers, e.g. ", 3 bài".
   description?: string;
+  // Completion dot (green, yellow, grey); replaces `marker` when set.
+  status?: WeekDayStatus;
 }
 
 interface WeekDayTabsProps {
@@ -61,7 +72,18 @@ export const WeekDayTabs = ({
           <span className="mt-0.5 text-lg leading-none font-bold">
             {formatDayNumber(item.date)}
           </span>
-          {item.marker === "check" && (
+          {item.status && (
+            <span
+              data-testid="day-status"
+              data-status={item.status}
+              className={clsx(
+                "absolute bottom-1.5 size-2 rounded-full",
+                DAY_STATUS_DOT_CLASSES[item.status],
+                isSelected && "ring-2 ring-accent-fg/70",
+              )}
+            />
+          )}
+          {!item.status && item.marker === "check" && (
             <Check
               className={clsx(
                 "absolute bottom-1 size-3.5",
@@ -71,7 +93,7 @@ export const WeekDayTabs = ({
               aria-hidden
             />
           )}
-          {item.marker === "dot" && (
+          {!item.status && item.marker === "dot" && (
             <span
               className={clsx(
                 "absolute bottom-2 size-1.5 rounded-full",

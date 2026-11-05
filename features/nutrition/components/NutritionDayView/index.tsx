@@ -1,4 +1,5 @@
 import { MessageSquareQuote } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { CARD, SECTION_TITLE } from "@/constants/styles";
 import { FoodLog } from "@/features/nutrition/components/FoodLog";
@@ -12,6 +13,8 @@ interface NutritionDayViewProps {
   isEditable: boolean;
   // Old free-text entries: read-only history, hidden when there are none.
   isLegacyLog?: boolean;
+  // Rendered under the daily goals, before the old log (the meal plan).
+  children?: ReactNode;
 }
 
 export const NutritionDayView = ({
@@ -19,6 +22,7 @@ export const NutritionDayView = ({
   today,
   isEditable,
   isLegacyLog = false,
+  children,
 }: NutritionDayViewProps) => {
   const isFuture = day.date > today;
   const getEmptyMessage = () => {
@@ -83,6 +87,8 @@ export const NutritionDayView = ({
           </p>
         )}
       </div>
+
+      {children}
 
       {showLog && (
         <div className="space-y-2">
