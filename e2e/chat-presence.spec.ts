@@ -19,7 +19,10 @@ import {
 // it touches first and last, so a rerun (--repeat-each) starts clean.
 const DB_ATTEMPTS = 5;
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
-const FRESH_MS = 30_000;
+// The server skips a beat when the stored one is under 60 s old (one write a
+// minute), so a beat from an earlier spec can be up to 60 s old and still be
+// the newest one. Online means under 120 s; 90 s leaves room for both.
+const FRESH_MS = 90_000;
 
 const withDb = async <T>(
   run: (client: ReturnType<typeof createClient>) => Promise<T>,
@@ -144,12 +147,23 @@ const logInAsTrainee = async (page: Page, name: string) => {
 };
 
 // The page's own heartbeat is what makes someone online: wait for it to land.
-const expectFresh = (read: () => Promise<number | null>) =>
+// The next beat is a minute away, so when the first one was lost (a parallel
+// worker holding the SQLite write lock answers 500 SQLITE_BUSY), send the
+// same beat again from the page's session instead of waiting for the timer.
+const expectFresh = (
+  page: Page,
+  path: string,
+  read: () => Promise<number | null>,
+) =>
   expect
     .poll(async () => {
       const seen = await read();
+      const isFresh = seen !== null && Date.now() - seen < FRESH_MS;
 
-      return seen !== null && Date.now() - seen < FRESH_MS;
+      if (!isFresh) {
+        await page.request.post(path);
+      }
+      return isFresh;
     })
     .toBe(true);
 
@@ -181,7 +195,7 @@ test("the trainee sees the PT side online while an admin has the app open", asyn
   try {
     await logInAsAdmin(admin.page);
     await admin.page.goto("/admin/messages");
-    await expectFresh(() =>
+    await expectFresh(admin.page, "/api/presence?as=admin", () =>
       getLastSeenMs("admins", "username", E2E_ADMIN.username),
     );
 
@@ -246,7 +260,7 @@ test("the admin inbox shows a green dot for an online trainee and short last-see
 
   try {
     await logInAsTrainee(trainee.page, E2E_CHAT_NAME);
-    await expectFresh(() =>
+    await expectFresh(trainee.page, "/api/presence", () =>
       getLastSeenMs("users", "email_key", toEmailKey(e2eEmail(E2E_CHAT_NAME))),
     );
     await setUserLastSeen(E2E_CHAT_OFF_NAME, Date.now() - FIVE_MINUTES_MS);
