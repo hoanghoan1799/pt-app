@@ -10,6 +10,7 @@ import { MealPlanDay } from "@/features/meal-plans/components/MealPlanDay";
 import { PlanKcalNotices } from "@/features/meal-plans/components/PlanKcalNotices";
 import {
   getMealLogData,
+  getWeekCompletion,
   listDatesWithLogs,
 } from "@/features/meal-plans/services/meal-log-queries";
 import {
@@ -69,6 +70,7 @@ const AdminNutritionPage = async ({
     nextWeekPlanDates,
     notices,
     datesWithLogs,
+    completion,
   ] = await Promise.all([
     getNutritionWeek(user.id, schedule.weekStart),
     getLatestTarget(user.id),
@@ -87,6 +89,7 @@ const AdminNutritionPage = async ({
       schedule.weekStart,
       addDays(schedule.weekStart, 13),
     ),
+    getWeekCompletion(user.id, schedule.weekStart),
   ]);
   const selectedPlan =
     planDays.find((day) => day.date === schedule.selectedDate) ?? null;
@@ -130,6 +133,7 @@ const AdminNutritionPage = async ({
           selectedDate={schedule.selectedDate}
           today={today}
           isEditable={false}
+          completion={completion}
         >
           <MealPlanDay
             // A fresh tree per day: sheets and half-typed fields reset.

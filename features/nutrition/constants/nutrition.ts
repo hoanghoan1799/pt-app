@@ -18,19 +18,26 @@ export const MACRO_LABELS: Record<
 // Tailwind classes per macro, backed by the --macro-* tokens in globals.css.
 export const MACRO_COLORS: Record<
   Macro,
-  { bar: string; text: string; soft: string }
+  { bar: string; text: string; soft: string; ring: string }
 > = {
   carbs: {
     bar: "bg-macro-carbs",
     text: "text-macro-carbs",
     soft: "bg-macro-carbs/12",
+    ring: "stroke-macro-carbs",
   },
   protein: {
     bar: "bg-macro-protein",
     text: "text-macro-protein",
     soft: "bg-macro-protein/12",
+    ring: "stroke-macro-protein",
   },
-  fat: { bar: "bg-macro-fat", text: "text-macro-fat", soft: "bg-macro-fat/12" },
+  fat: {
+    bar: "bg-macro-fat",
+    text: "text-macro-fat",
+    soft: "bg-macro-fat/12",
+    ring: "stroke-macro-fat",
+  },
 };
 
 export const MEALS: Meal[] = ["breakfast", "lunch", "dinner", "snack"];

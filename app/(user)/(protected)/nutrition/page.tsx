@@ -8,7 +8,10 @@ import { UserHeaderActions } from "@/features/auth/components/UserHeaderActions"
 import { FoodLibraryLink } from "@/features/foods/components/FoodLibraryLink";
 import { MealPreferencesForm } from "@/features/meal-plans/components/MealPreferencesForm";
 import { TraineeMealPlan } from "@/features/meal-plans/components/TraineeMealPlan";
-import { getMealLogData } from "@/features/meal-plans/services/meal-log-queries";
+import {
+  getMealLogData,
+  getWeekCompletion,
+} from "@/features/meal-plans/services/meal-log-queries";
 import {
   getMealPlanWeek,
   listPlanFoods,
@@ -34,13 +37,14 @@ const NutritionPage = async ({ searchParams }: PageProps<"/nutrition">) => {
     { week: readSearchParam(params.week), day: readSearchParam(params.day) },
     today,
   );
-  const [days, bodyProfile, latestTarget, planDays, library] =
+  const [days, bodyProfile, latestTarget, planDays, library, completion] =
     await Promise.all([
       getNutritionWeek(user.id, weekStart),
       getBodyProfile(user.id),
       getLatestTarget(user.id),
       getMealPlanWeek(user.id, weekStart),
       listPlanFoods(),
+      getWeekCompletion(user.id, weekStart),
     ]);
   const selectedPlan =
     planDays.find((day) => day.date === selectedDate) ?? null;
@@ -75,6 +79,7 @@ const NutritionPage = async ({ searchParams }: PageProps<"/nutrition">) => {
           today={today}
           isEditable={false}
           isLegacyLog
+          completion={completion}
         >
           <TraineeMealPlan
             // A fresh tree per day: sheets and half-typed notes reset.

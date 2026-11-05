@@ -10,6 +10,7 @@ import {
   calculateCalories,
   compareToTarget,
   findTargetForDate,
+  getRingPercent,
   isDayOnTarget,
   sumEntries,
   summarizeNutritionWeek,
@@ -225,5 +226,24 @@ describe("week summary", () => {
       averageKcal: 1335,
       onTargetDays: 1,
     });
+  });
+});
+
+describe("getRingPercent", () => {
+  it("rounds the share of the target", () => {
+    expect(getRingPercent(111, 160)).toBe(69);
+    expect(getRingPercent(0, 160)).toBe(0);
+  });
+
+  it("clamps to 100 when the target is exceeded", () => {
+    expect(getRingPercent(300, 160)).toBe(100);
+    expect(getRingPercent(160, 160)).toBe(100);
+  });
+
+  it("is 0 without a usable target or amount", () => {
+    expect(getRingPercent(50, undefined)).toBe(0);
+    expect(getRingPercent(50, 0)).toBe(0);
+    expect(getRingPercent(-5, 100)).toBe(0);
+    expect(getRingPercent(Number.NaN, 100)).toBe(0);
   });
 });
