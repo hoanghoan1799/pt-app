@@ -40,7 +40,9 @@ export const MacroChips = ({ totals, target }: MacroChipsProps) => (
           {format(totals[macro])}
           {target ? (
             <span className="block text-xs font-normal text-muted">
-              / {format(target[macro])}
+              {/* The space keeps "70 / 70,1" readable as text when the
+                  block layout is not applied (screen readers, copy). */}
+              <span className="sr-only"> </span>/ {format(target[macro])}
             </span>
           ) : null}
         </p>
