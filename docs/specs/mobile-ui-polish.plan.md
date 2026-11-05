@@ -125,3 +125,6 @@ Each PR: branch `feat/KAN-<n>-...`, ticket In Progress at start, In Review when 
 - Browser proof (`browser-proof` skill) in KAN-125: nutrition tab, copy plan, header menus, confirm dialog, admin dashboard and add-user sheet.
 
 ## Deviations
+
+- KAN-115: no provider. `useConfirm` reads a module-level store and `ConfirmDialog` is mounted once in `app/layout.tsx`, so any hook can ask without wiring. The dialog is a floating card (16 px gutter) on `BottomSheet`, which gained optional `role`, `isFloating` and `onOpenAutoFocus` props. `use-copy-week` now always prevents the native submit and sends the form data after the confirm resolves. The unit test covers the store only (no DOM test setup). The copy-week and food-entry delete confirms have no e2e yet; KAN-125 adds them.
+- KAN-116 (decided 2026-11-05): the admin avatar menu keeps "Đổi mật khẩu" although the admin has no password page yet. Until that page exists it shows a "Tính năng đang cập nhật" toast.
