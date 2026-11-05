@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { UNREAD_REFRESH_EVENT } from "@/features/chat/hooks/use-chat-unread";
 import { INBOX_CHANNEL } from "@/features/chat/utils/ably-capabilities";
 import {
   type RealtimeState,
@@ -32,6 +33,7 @@ export const InboxLiveRefresh = () => {
         pending.current = setTimeout(() => {
           pending.current = null;
           router.refresh();
+          window.dispatchEvent(new Event(UNREAD_REFRESH_EVENT));
         }, COALESCE_MS);
       }
     };

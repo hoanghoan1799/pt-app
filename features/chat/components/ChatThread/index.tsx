@@ -16,6 +16,7 @@ import { LockedBanner } from "@/features/chat/components/LockedBanner";
 import { MessageBubble } from "@/features/chat/components/MessageBubble";
 import { NewMessagesChip } from "@/features/chat/components/NewMessagesChip";
 import { PushOptInCard } from "@/features/chat/components/PushOptInCard";
+import { TypingIndicator } from "@/features/chat/components/TypingIndicator";
 import { CHAT_MESSAGES } from "@/features/chat/constants/messages";
 import { useChatAdapter } from "@/features/chat/hooks/use-chat-adapter";
 import type { ThreadSnapshot } from "@/features/chat/hooks/use-chat-messages";
@@ -107,7 +108,7 @@ export const ChatThread = ({
   );
   const [showNewChip, setShowNewChip] = useState(false);
 
-  useChatTransport({
+  const { isPeerTyping, clearPeerTyping, sendTyping } = useChatTransport({
     role: viewer.role,
     userId,
     conversationId,
@@ -153,6 +154,23 @@ export const ChatThread = ({
       ? last.clientId
       : String(last.id)
     : null;
+
+  // The indicator ends the moment the peer's message arrives.
+  const lastPeerKey = last && last.senderRole !== viewer.role ? lastKey : null;
+
+  useEffect(() => {
+    if (lastPeerKey !== null) {
+      clearPeerTyping();
+    }
+  }, [lastPeerKey, clearPeerTyping]);
+
+  // The indicator row grows the log: keep the latest in view if the reader is
+  // already at the bottom.
+  useLayoutEffect(() => {
+    if (isPeerTyping && wasNearBottom.current) {
+      scrollToBottom(true);
+    }
+  }, [isPeerTyping, scrollToBottom]);
 
   useLayoutEffect(() => {
     if (lastKey === lastItemKey.current) {
@@ -218,8 +236,13 @@ export const ChatThread = ({
     void chat.loadOlder();
   };
 
+  const latestPeerName = latestAdminName(messages);
   const headerNode =
-    typeof header === "function" ? header(latestAdminName(messages)) : header;
+    typeof header === "function" ? header(latestPeerName) : header;
+  const typingName =
+    viewer.role === "admin"
+      ? (viewer.peerName ?? "Học viên")
+      : (latestPeerName ?? "PT");
 
   return (
     <div
@@ -294,6 +317,9 @@ export const ChatThread = ({
                 );
               })}
             </div>
+            {isPeerTyping && chatEnabled && (
+              <TypingIndicator name={typingName} />
+            )}
           </div>
         </div>
         {showNewChip && (
@@ -320,6 +346,7 @@ export const ChatThread = ({
         {chatEnabled ? (
           <Composer
             onSend={chat.send}
+            onTyping={sendTyping}
             placeholder={
               viewer.role === "admin" && viewer.peerName
                 ? `Nhắn tin cho ${viewer.peerName}…`

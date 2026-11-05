@@ -298,6 +298,9 @@ test("enable, message, reply, unread badges and the PT name work end to end", as
     await expect(traineeLog.getByText(question, { exact: true })).toBeVisible();
     await shot(trainee.page, "chat-02-trainee-sent");
     await expect.poll(() => countMessages(E2E_CHAT_NAME)).toBe(1);
+    // Leave the thread before the admin replies: an open thread keeps polling
+    // and would mark the reply read, racing the tab-badge check below.
+    await trainee.page.goto("/workouts");
 
     // Admin inbox: the exact text and one unread for this trainee only.
     await admin.goto("/admin/messages");
