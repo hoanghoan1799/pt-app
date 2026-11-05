@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
@@ -234,9 +235,24 @@ describe("listAdminInbox", () => {
     expect(inbox1.conversations[1].preview).toBe("x".repeat(80));
     expect(anLast).toBeGreaterThan(binhLast);
     expect(inbox1.withoutConversation).toEqual([
-      { userId: cuongId, userName: "Cuong" },
-      { userId: lanId, userName: "Lan" },
+      { userId: cuongId, userName: "Cuong", lastSeenAt: null },
+      { userId: lanId, userName: "Lan", lastSeenAt: null },
     ]);
+    expect(inbox1.conversations.map((c) => c.lastSeenAt)).toEqual([null, null]);
+  });
+
+  it("includes each trainee's lastSeenAt", async () => {
+    const seen = new Date("2026-11-05T02:00:00Z");
+    const anId = await addUser("An");
+    const lanId = await addUser("Lan");
+
+    await q.getOrCreateConversation(anId);
+    await db.update(users).set({ lastSeenAt: seen }).where(eq(users.id, anId));
+    await db.update(users).set({ lastSeenAt: seen }).where(eq(users.id, lanId));
+    const inbox = await q.listAdminInbox(1);
+
+    expect(inbox.conversations[0].lastSeenAt).toEqual(seen);
+    expect(inbox.withoutConversation[0].lastSeenAt).toEqual(seen);
   });
 
   it("flags a last message sent by an admin", async () => {

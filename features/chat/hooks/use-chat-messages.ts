@@ -22,6 +22,8 @@ export interface ThreadSnapshot {
   hasMore: boolean;
   chatEnabled: boolean;
   peerReadUpTo: number;
+  // The other side's last heartbeat (ISO) for the status line, KAN-128.
+  peerLastSeenAt?: string | null;
 }
 
 type ThreadResponse = ThreadSnapshot;

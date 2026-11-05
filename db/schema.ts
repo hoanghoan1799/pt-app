@@ -23,6 +23,9 @@ export const admins = sqliteTable("admins", {
   usernameKey: text("username_key").notNull().unique(),
   // scrypt hash, see services/password.ts.
   passwordHash: text("password_hash").notNull(),
+  // Presence heartbeat (KAN-128): last time the PT had the app open and
+  // visible. Throttled to one write a minute; null = never seen.
+  lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
   createdAt: createdAt(),
 });
 
@@ -52,6 +55,8 @@ export const users = sqliteTable("users", {
     mode: "timestamp",
   }),
   chatEnabledByAdminId: integer("chat_enabled_by_admin_id"),
+  // Presence heartbeat (KAN-128), see admins.lastSeenAt.
+  lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
   createdAt: createdAt(),
 });
 

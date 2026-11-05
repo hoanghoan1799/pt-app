@@ -16,6 +16,7 @@ import {
   listMessages,
 } from "@/features/chat/services/chat-queries";
 import { serializeMessage } from "@/features/chat/utils/chat-thread-rules";
+import { serializeLastSeen } from "@/features/chat/utils/presence";
 import { requireAdmin } from "@/services/auth-guard";
 import { findUserById } from "@/services/users";
 import { readSearchParam } from "@/utils/search-params";
@@ -105,6 +106,7 @@ const AdminMessagesPage = async ({
         hasMore,
         chatEnabled,
         peerReadUpTo,
+        peerLastSeenAt: serializeLastSeen(user.lastSeenAt),
       }}
     />
   );

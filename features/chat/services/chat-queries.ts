@@ -363,11 +363,14 @@ export interface InboxItem {
   lastSenderAdminName: string | null;
   lastMessageAt: Date | null;
   unread: number;
+  // Trainee's last heartbeat (KAN-128); null = never seen.
+  lastSeenAt: Date | null;
 }
 
 export interface InboxWithoutConversation {
   userId: number;
   userName: string;
+  lastSeenAt: Date | null;
 }
 
 export const listAdminInbox = async (adminId: number) => {
@@ -378,6 +381,7 @@ export const listAdminInbox = async (adminId: number) => {
         userId: users.id,
         userName: users.name,
         chatEnabled: users.chatEnabled,
+        lastSeenAt: users.lastSeenAt,
         lastBody: chatMessages.body,
         lastSenderRole: chatMessages.senderRole,
         lastSenderAdminId: chatMessages.senderAdminId,
@@ -398,7 +402,11 @@ export const listAdminInbox = async (adminId: number) => {
       ),
     unreadByConversation("user", adminReaderKey(adminId)),
     db
-      .select({ userId: users.id, userName: users.name })
+      .select({
+        userId: users.id,
+        userName: users.name,
+        lastSeenAt: users.lastSeenAt,
+      })
       .from(users)
       .leftJoin(chatConversations, eq(chatConversations.userId, users.id))
       .where(and(eq(users.chatEnabled, true), isNull(chatConversations.id)))
@@ -418,10 +426,11 @@ export const listAdminInbox = async (adminId: number) => {
     lastSenderAdminName: row.lastSenderAdminName,
     lastMessageAt: row.lastMessageAt,
     unread: unreadById.get(row.conversationId) ?? 0,
+    lastSeenAt: row.lastSeenAt,
   }));
 
   return {
     conversations,
-    withoutConversation: fresh as InboxWithoutConversation[],
+    withoutConversation: fresh satisfies InboxWithoutConversation[],
   };
 };

@@ -7,6 +7,7 @@ import {
   listMessages,
 } from "@/features/chat/services/chat-queries";
 import { parseHistoryQuery } from "@/features/chat/utils/chat-query";
+import { serializeLastSeen } from "@/features/chat/utils/presence";
 import { getApiAdmin } from "@/services/auth-guard";
 import { findUserById } from "@/services/users";
 
@@ -51,5 +52,6 @@ export const GET = async (
     peerReadUpTo,
     chatEnabled: trainee.chatEnabled === true,
     userId: trainee.id,
+    peerLastSeenAt: serializeLastSeen(trainee.lastSeenAt),
   });
 };
