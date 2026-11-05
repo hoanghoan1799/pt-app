@@ -10,6 +10,8 @@ import { ChatInboxList } from "@/features/chat/components/ChatInboxList";
 import { InboxLiveRefresh } from "@/features/chat/components/InboxLiveRefresh";
 import { PushOptInCard } from "@/features/chat/components/PushOptInCard";
 import { listAdminInbox } from "@/features/chat/services/chat-queries";
+import { isOnline, ONLINE_LABEL } from "@/features/chat/utils/presence";
+import { shortLastSeen } from "@/features/chat/utils/presence-status";
 import { requireAdmin } from "@/services/auth-guard";
 import { getAdminMessagesPath } from "@/utils/routes";
 import { readSearchParam } from "@/utils/search-params";
@@ -40,6 +42,7 @@ const AdminMessagesInboxPage = async ({
     : conversations;
   // Trainees nobody has written to yet only belong to the full list.
   const fresh = isUnreadOnly ? [] : withoutConversation;
+  const now = new Date(getRequestTime());
   const isEmpty = items.length === 0 && fresh.length === 0;
 
   return (
@@ -92,16 +95,33 @@ const AdminMessagesInboxPage = async ({
           <section className="space-y-2">
             <h2 className={SECTION_TITLE}>Chưa có tin nhắn</h2>
             <ul className={`${CARD} divide-y divide-line overflow-hidden`}>
-              {fresh.map((member) => (
-                <li key={member.userId}>
-                  <Link
-                    href={getAdminMessagesPath(member.userId)}
-                    className="flex min-h-12 items-center px-4 py-3 font-medium transition active:bg-line"
-                  >
-                    {member.userName}
-                  </Link>
-                </li>
-              ))}
+              {fresh.map((member) => {
+                const online = isOnline(member.lastSeenAt, now);
+                const lastSeen = shortLastSeen(member.lastSeenAt, now);
+
+                return (
+                  <li key={member.userId}>
+                    <Link
+                      href={getAdminMessagesPath(member.userId)}
+                      className="flex min-h-12 items-center gap-2 px-4 py-3 font-medium transition active:bg-line"
+                    >
+                      {online && (
+                        <span
+                          role="img"
+                          aria-label={ONLINE_LABEL}
+                          className="size-2.5 shrink-0 rounded-full bg-success"
+                        />
+                      )}
+                      <span className="truncate">{member.userName}</span>
+                      {lastSeen && (
+                        <span className="shrink-0 text-xs font-normal text-muted">
+                          {lastSeen}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         )}

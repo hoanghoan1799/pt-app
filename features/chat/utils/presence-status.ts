@@ -1,0 +1,62 @@
+import {
+  formatLastSeen,
+  isOnline,
+  latestSeen,
+  parseLastSeen,
+} from "@/features/chat/utils/presence";
+
+export interface PresenceView {
+  online: boolean;
+  // Null = never seen: the UI shows nothing.
+  text: string | null;
+}
+
+const LAST_SEEN_PREFIX = "Hoạt động ";
+
+export const presenceView = (
+  lastSeenAt: Date | null,
+  now: Date,
+): PresenceView => ({
+  online: isOnline(lastSeenAt, now),
+  text: formatLastSeen(lastSeenAt, now),
+});
+
+// Inbox rows have little room: "5 phút trước" instead of "Hoạt động 5 phút
+// trước". Null when online (the dot says it) or never seen.
+export const shortLastSeen = (
+  lastSeenAt: Date | null,
+  now: Date,
+): string | null => {
+  if (isOnline(lastSeenAt, now)) {
+    return null;
+  }
+  const text = formatLastSeen(lastSeenAt, now);
+
+  return text?.startsWith(LAST_SEEN_PREFIX)
+    ? text.slice(LAST_SEEN_PREFIX.length)
+    : text;
+};
+
+// Where the thread asks for the other side's last seen when the message poll
+// answered 204 (which carries no presence).
+export const peerPresenceUrl = (
+  role: "user" | "admin",
+  userId: number,
+): string =>
+  role === "admin"
+    ? `/api/presence/peer?as=admin&userId=${userId}`
+    : "/api/presence/peer";
+
+export const heartbeatUrl = (role: "user" | "admin"): string =>
+  role === "admin" ? "/api/presence?as=admin" : "/api/presence";
+
+// Merges what we know with a newer reading; presence never moves backwards
+// (a slow response must not overwrite a fresher one).
+export const mergeLastSeen = (
+  current: Date | null,
+  incoming: string | null | undefined,
+): Date | null => latestSeen([current, parseLastSeen(incoming)]);
+
+// Timers and fetches only run while the page is visible.
+export const shouldRunPresence = (visibility: DocumentVisibilityState) =>
+  visibility === "visible";
