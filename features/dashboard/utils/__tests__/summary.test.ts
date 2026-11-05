@@ -54,6 +54,10 @@ describe("toMemberRows", () => {
     timeZone: "Asia/Ho_Chi_Minh",
     now: NOW,
     getHref: (id, week) => `/admin/users/${id}?week=${week}`,
+    unreadByUserId: new Map([
+      [3, 2],
+      [99, 5],
+    ]),
   });
 
   it("derives a status per member", () => {
@@ -70,5 +74,20 @@ describe("toMemberRows", () => {
     expect(rows[2].lastActiveLabel).toBe("2 giờ trước");
     expect(rows[3].href).toBe("/admin/users/4?week=2026-10-05");
     expect(rows[2].percent).toBe(50);
+  });
+
+  it("attaches unread counts, zero when absent", () => {
+    expect(rows.map((row) => row.unread)).toEqual([0, 0, 2, 0]);
+  });
+
+  it("defaults unread to zero without a map", () => {
+    const plain = toMemberRows(MEMBERS, {
+      weekStart: "2026-10-05",
+      timeZone: "Asia/Ho_Chi_Minh",
+      now: NOW,
+      getHref: (id) => `/admin/users/${id}`,
+    });
+
+    expect(plain.every((row) => row.unread === 0)).toBe(true);
   });
 });

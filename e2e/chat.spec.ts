@@ -314,16 +314,28 @@ test("enable, message, reply, unread badges and the PT name work end to end", as
     await expect(row.getByRole("status")).toHaveText("1");
     await shot(admin, "chat-03-admin-inbox-unread");
 
-    // Admin dashboard tile and header badge.
+    // Admin dashboard: header badge, "Tin nhắn" tile badge and the trainee's
+    // own card badge.
     await admin.goto("/admin");
     await expect(
-      admin.getByRole("link", { name: "Tin nhắn chưa đọc" }),
-    ).toContainText("1");
-    await expect(
       admin
+        .getByRole("banner")
         .getByRole("link", { name: "Tin nhắn", exact: true })
         .getByRole("status"),
     ).toHaveText("1");
+    await expect(
+      admin
+        .getByRole("main")
+        .getByRole("link", { name: /^Tin nhắn/ })
+        .getByRole("status"),
+    ).toHaveText("1");
+    await expect(
+      admin
+        .getByRole("main")
+        .getByRole("link")
+        .filter({ hasText: E2E_CHAT_NAME })
+        .getByRole("status"),
+    ).toHaveAccessibleName("1 tin nhắn chưa đọc");
 
     // Opening the thread and replying.
     await admin.goto(`/admin/users/${userId}/messages`);

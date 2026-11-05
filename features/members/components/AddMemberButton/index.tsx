@@ -4,11 +4,15 @@ import { UserPlus } from "lucide-react";
 import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
-import { ICON_BUTTON } from "@/constants/styles";
 import { CreateMemberForm } from "@/features/members/components/CreateMemberForm";
 
+interface AddMemberButtonProps {
+  // Tile classes from the dashboard so it sits next to the link tiles.
+  className?: string;
+}
+
 // A plain open/closed toggle, so no separate hook/view.
-export const AddMemberButton = () => {
+export const AddMemberButton = ({ className }: AddMemberButtonProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -16,10 +20,10 @@ export const AddMemberButton = () => {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className={`${ICON_BUTTON} text-fg`}
-        aria-label="Thêm user"
+        className={className}
       >
-        <UserPlus className="size-5" />
+        <UserPlus className="size-6 text-accent" aria-hidden />
+        <span>Thêm user</span>
       </button>
       <BottomSheet
         isOpen={isOpen}
