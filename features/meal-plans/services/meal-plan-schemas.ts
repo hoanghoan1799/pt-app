@@ -6,7 +6,7 @@ import {
   MEAL_PLAN_MESSAGES,
 } from "@/features/meal-plans/constants/meal-plans";
 import { normalizeName } from "@/utils/name";
-import { isValidDate } from "@/utils/week";
+import { addDays, isValidDate } from "@/utils/week";
 
 const id = z.number().int().positive();
 
@@ -93,6 +93,15 @@ export const copyDaySchema = z.object({
     .min(1, MEAL_PLAN_MESSAGES.NO_TARGET_DAYS)
     .max(MAX_COPY_DATES),
 });
+
+// A month grid shows at most 6 weeks.
+const MAX_MONTH_SPAN_DAYS = 42;
+
+export const copyMonthInfoSchema = z
+  .object({ userId: id, from: date, to: date })
+  .refine(
+    ({ from, to }) => from <= to && to <= addDays(from, MAX_MONTH_SPAN_DAYS),
+  );
 
 export const applyLastWeekSchema = z.object({ userId: id, weekStart: date });
 

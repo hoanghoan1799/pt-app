@@ -940,6 +940,62 @@ describe("autoSolveMealAction", () => {
   });
 });
 
+describe("getCopyMonthInfoAction (KAN-122)", () => {
+  it("lists the plan dates in the range for the admin, and rejects bad input", async () => {
+    const { member } = await seed();
+
+    await actions.createDayPlanAction({ userId: member.id, date: MONDAY });
+    await actions.createDayPlanAction({ userId: member.id, date: NEXT_MONDAY });
+
+    expect(
+      await actions.getCopyMonthInfoAction({
+        userId: member.id,
+        from: "2026-11-01",
+        to: "2026-11-30",
+      }),
+    ).toEqual({
+      status: "success",
+      planDates: [MONDAY, NEXT_MONDAY],
+      logDates: [],
+    });
+    expect(
+      await actions.getCopyMonthInfoAction({
+        userId: member.id,
+        from: "2026-11-03",
+        to: "2026-11-30",
+      }),
+    ).toMatchObject({ status: "success", planDates: [NEXT_MONDAY] });
+    expect(
+      await actions.getCopyMonthInfoAction({
+        userId: member.id,
+        from: "2026-11-30",
+        to: "2026-11-01",
+      }),
+    ).toMatchObject({ status: "error" });
+    expect(
+      await actions.getCopyMonthInfoAction({
+        userId: member.id,
+        from: "2026-01-01",
+        to: "2026-12-31",
+      }),
+    ).toMatchObject({ status: "error" });
+  });
+
+  it("refuses a trainee", async () => {
+    const { member } = await seed();
+
+    state.role = "user";
+    state.userId = member.id;
+    await expectRedirect(
+      actions.getCopyMonthInfoAction({
+        userId: member.id,
+        from: "2026-11-01",
+        to: "2026-11-30",
+      }),
+    );
+  });
+});
+
 describe("copyDayAction", () => {
   const setup = async () => {
     const data = await seed();

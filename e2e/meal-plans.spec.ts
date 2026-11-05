@@ -5,7 +5,6 @@ import { TIME_ZONE } from "@/constants/time";
 import {
   addDays,
   formatDayMonth,
-  formatFullDay,
   getTodayDate,
   getWeekdayShortLabel,
   getWeekStart,
@@ -13,6 +12,7 @@ import {
 
 import { fillTraineeLogin } from "./auth";
 import { E2E_ADMIN, E2E_DB_URL, E2E_PLANNER_NAME } from "./config";
+import { getCopyDay, pickCopyDay } from "./copy-day";
 import { E2E_FOODS } from "./seed";
 import { shot } from "./shots";
 
@@ -27,7 +27,11 @@ const TUESDAY = addDays(WEEK, 1);
 const WEDNESDAY = addDays(WEEK, 2);
 const NEXT_MONDAY = addDays(WEEK, 7);
 const NEXT_TUESDAY = addDays(WEEK, 8);
+// Two weeks on: a copy there leaves the weeks the later specs count alone.
+const FAR_MONDAY = addDays(WEEK, 14);
 const NEXT_WEDNESDAY = addDays(WEEK, 9);
+
+const getTodayMonth = (date: string) => date.slice(0, 7);
 
 const query = async <T>(sql: string, args: (string | number)[] = []) => {
   const client = createClient({ url: E2E_DB_URL });
@@ -344,12 +348,19 @@ test("Copy: Monday is copied to Tuesday and the copy is independent", async ({
   await expect(
     page.getByRole("heading", { name: "Sao chép sang ngày khác" }),
   ).toBeVisible();
-  // Monday itself is not offered; Tuesday has no plan yet.
+  // Monday itself is not selectable; Tuesday has no plan yet.
+  const monday = await getCopyDay(page, MONDAY);
+
+  await expect(monday).toHaveAttribute("aria-disabled", "true");
+  await expect(monday).toHaveAccessibleName(/ngày nguồn/);
+  await monday.dispatchEvent("click");
   await expect(
-    page.getByRole("dialog").getByLabel(formatFullDay(MONDAY)),
-  ).toHaveCount(0);
-  await expect(page.getByText("Đã có plan, sẽ ghi đè")).toHaveCount(0);
-  await page.getByRole("dialog").getByLabel(formatFullDay(TUESDAY)).check();
+    page.getByRole("button", { name: "Sao chép", exact: true }),
+  ).toBeDisabled();
+  await expect(await getCopyDay(page, TUESDAY)).not.toHaveAccessibleName(
+    /đã có plan/,
+  );
+  await pickCopyDay(page, TUESDAY);
   await page.getByRole("button", { name: "Sao chép (1 ngày)" }).click();
   await expect(page.getByText("Đã sao chép sang 1 ngày")).toBeVisible();
 
@@ -370,8 +381,10 @@ test("Copy: Monday is copied to Tuesday and the copy is independent", async ({
 
   // Copying again to Tuesday warns that it replaces (KAN-78).
   await page.getByRole("button", { name: "Sao chép sang ngày khác" }).click();
-  await expect(page.getByText("Đã có plan, sẽ ghi đè")).toHaveCount(1);
-  await page.getByRole("dialog").getByLabel(formatFullDay(TUESDAY)).check();
+  await expect(await getCopyDay(page, TUESDAY)).toHaveAccessibleName(
+    /đã có plan/,
+  );
+  await pickCopyDay(page, TUESDAY);
   await page.getByRole("button", { name: "Sao chép (1 ngày)" }).click();
 
   const confirm = page.getByRole("alertdialog", { name: "Xác nhận ghi đè" });
@@ -438,6 +451,108 @@ test("R2: next week starts empty and 'Áp dụng tuần trước' copies the pla
     page.getByText("Đã áp dụng 0 ngày, giữ 2 ngày đã có plan"),
   ).toBeVisible();
   await expect(page.getByText("Chưa có plan", { exact: true })).toBeVisible();
+});
+
+test("Copy grid: Monday-first month, past days locked, today and tomorrow labelled", async ({
+  page,
+}) => {
+  const today = getTodayDate(TIME_ZONE);
+  const tomorrow = addDays(today, 1);
+  const yesterday = addDays(today, -1);
+
+  await logInAsAdmin(page);
+  // The source is next week's Monday, so every other cell is a copy target.
+  await openDay(page, MONDAY);
+  await page.getByRole("button", { name: "Sao chép sang ngày khác" }).click();
+
+  const dialog = page.getByRole("dialog");
+  const [year, month] = today.split("-").map(Number);
+
+  // Opens on today's month; the previous-month button is locked there.
+  await expect(dialog.getByText(`Tháng ${month}, ${year}`)).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "Tháng trước" }),
+  ).toBeDisabled();
+
+  // Header row starts on Monday.
+  await expect(dialog.getByText("T2", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("CN", { exact: true })).toBeVisible();
+
+  // Today and tomorrow carry their labels and can be picked.
+  const todayCell = await getCopyDay(page, today);
+
+  await expect(todayCell).toHaveText(/Hôm nay/);
+  await expect(todayCell).not.toHaveAttribute("aria-disabled", "true");
+  if (getTodayMonth(tomorrow) === getTodayMonth(today)) {
+    const tomorrowCell = await getCopyDay(page, tomorrow);
+
+    await expect(tomorrowCell).toHaveText(/Ngày mai/);
+    await expect(tomorrowCell).not.toHaveAttribute("aria-disabled", "true");
+  }
+
+  // A past day is disabled and cannot be selected (unless today is the 1st).
+  if (getTodayMonth(yesterday) === getTodayMonth(today)) {
+    const past = await getCopyDay(page, yesterday);
+
+    await expect(past).toHaveAttribute("aria-disabled", "true");
+    await past.dispatchEvent("click");
+    await expect(past).not.toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.getByRole("button", { name: "Sao chép", exact: true }),
+    ).toBeDisabled();
+  }
+
+  // The next month opens and the previous-month button works again.
+  await dialog.getByRole("button", { name: "Tháng sau" }).click();
+  await expect(
+    dialog.getByRole("button", { name: "Tháng trước" }),
+  ).toBeEnabled();
+  await shot(page, "kan-122-copy-month-grid");
+
+  // 320 px: the grid and the sticky button fit without sideways scroll.
+  await page.setViewportSize({ width: 320, height: 640 });
+  expect(
+    await dialog.evaluate((node) => ({
+      sheet: node.scrollWidth - node.clientWidth,
+      page:
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    })),
+  ).toEqual({ sheet: 0, page: 0 });
+  await expect(
+    dialog.getByRole("button", { name: "Sao chép", exact: true }),
+  ).toBeInViewport();
+});
+
+test("Copy grid: a future day is picked by keyboard, counted and copied", async ({
+  page,
+}) => {
+  await logInAsAdmin(page);
+  await openDay(page, TUESDAY);
+  await page.getByRole("button", { name: "Sao chép sang ngày khác" }).click();
+
+  const dialog = page.getByRole("dialog");
+  const target = await getCopyDay(page, FAR_MONDAY);
+
+  await expect(target).toHaveAttribute("aria-pressed", "false");
+  await target.focus();
+  await page.keyboard.press("Space");
+  await expect(target).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    dialog.getByRole("button", { name: "Sao chép (1 ngày)" }),
+  ).toBeVisible();
+
+  // The same key unpicks it; the button goes back to disabled.
+  await page.keyboard.press("Enter");
+  await expect(target).toHaveAttribute("aria-pressed", "false");
+  await expect(
+    dialog.getByRole("button", { name: "Sao chép", exact: true }),
+  ).toBeDisabled();
+
+  await page.keyboard.press("Space");
+  await dialog.getByRole("button", { name: "Sao chép (1 ngày)" }).click();
+  await expect(page.getByText("Đã sao chép sang 1 ngày")).toBeVisible();
+  expect(await getRiceGrams(FAR_MONDAY)).toBe(await getRiceGrams(TUESDAY));
 });
 
 test("Q4: the PT splits a day by percent and the total must be 100", async ({

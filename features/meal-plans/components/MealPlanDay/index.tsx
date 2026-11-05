@@ -36,9 +36,9 @@ interface MealPlanDayProps {
   preferredMealCount: number | null;
   foodNote: string | null;
   lastWeekPlanCount: number;
-  // Dates the plan can be copied to (without this day) and which of them
-  // already have a plan.
-  copyDates: string[];
+  // Today in the app time zone, for the copy sheet's month picker.
+  today: string;
+  // Plans of the loaded weeks; the sheet reads other months itself.
   datesWithPlan: string[];
   datesWithLogs: string[];
 }
@@ -56,7 +56,7 @@ export const MealPlanDay = ({
   preferredMealCount,
   foodNote,
   lastWeekPlanCount,
-  copyDates,
+  today,
   datesWithPlan,
   datesWithLogs,
 }: MealPlanDayProps) => {
@@ -191,7 +191,7 @@ export const MealPlanDay = ({
         userId={userId}
         dayId={plan.id}
         sourceDate={date}
-        dates={copyDates}
+        today={today}
         datesWithPlan={datesWithPlan}
         datesWithLogs={datesWithLogs}
         isOpen={day.isCopyOpen}

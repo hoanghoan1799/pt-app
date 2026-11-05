@@ -14,6 +14,7 @@ import {
 import { fillTraineeLogin } from "./auth";
 import { E2E_ADMIN, E2E_DB_URL, E2E_LOGGER_NAME } from "./config";
 import { answerConfirm } from "./confirm";
+import { pickCopyDay } from "./copy-day";
 import { E2E_FOODS } from "./seed";
 import { shot } from "./shots";
 
@@ -599,7 +600,7 @@ test("KAN-78: overwriting or deleting a day with the trainee's logs warns that t
 
   // Copy today's plan to tomorrow, which has no plan: no confirmation.
   await page.getByRole("button", { name: "Sao chép sang ngày khác" }).click();
-  await page.getByRole("dialog").getByLabel(formatFullDay(tomorrow)).check();
+  await pickCopyDay(page, tomorrow);
   await page.getByRole("button", { name: "Sao chép (1 ngày)" }).click();
   await expect(page.getByText("Đã sao chép sang 1 ngày")).toBeVisible();
 
@@ -610,7 +611,7 @@ test("KAN-78: overwriting or deleting a day with the trainee's logs warns that t
     `/admin/users/${id}/nutrition?week=${getWeekStart(tomorrow)}&day=${tomorrow}`,
   );
   await page.getByRole("button", { name: "Sao chép sang ngày khác" }).click();
-  await page.getByRole("dialog").getByLabel(formatFullDay(TODAY)).check();
+  await pickCopyDay(page, TODAY);
   await page.getByRole("button", { name: "Sao chép (1 ngày)" }).click();
 
   const confirm = page.getByRole("alertdialog", { name: "Xác nhận ghi đè" });
@@ -639,7 +640,7 @@ test("KAN-78: overwriting or deleting a day with the trainee's logs warns that t
     `/admin/users/${id}/nutrition?week=${getWeekStart(tomorrow)}&day=${tomorrow}`,
   );
   await page.getByRole("button", { name: "Sao chép sang ngày khác" }).click();
-  await page.getByRole("dialog").getByLabel(formatFullDay(TODAY)).check();
+  await pickCopyDay(page, TODAY);
   await page.getByRole("button", { name: "Sao chép (1 ngày)" }).click();
   await confirm.getByRole("button", { name: "Ghi đè" }).click();
   await expect(page.getByText("Đã sao chép sang 1 ngày")).toBeVisible();

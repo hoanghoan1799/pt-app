@@ -32,12 +32,7 @@ import { requireAdmin } from "@/services/auth-guard";
 import { findUserById } from "@/services/users";
 import { getAdminNutritionPath } from "@/utils/routes";
 import { readSearchParam } from "@/utils/search-params";
-import {
-  addDays,
-  getTodayDate,
-  getWeekDates,
-  resolveSchedule,
-} from "@/utils/week";
+import { addDays, getTodayDate, resolveSchedule } from "@/utils/week";
 
 export const metadata: Metadata = { title: "Dinh dưỡng" };
 
@@ -97,10 +92,6 @@ const AdminNutritionPage = async ({
     selectedPlan?.meals.map((meal) => meal.id) ?? [],
   );
   const selectedDay = days.find((day) => day.date === schedule.selectedDate);
-  const copyDates = [
-    ...getWeekDates(schedule.weekStart),
-    ...getWeekDates(addDays(schedule.weekStart, 7)),
-  ].filter((date) => date !== schedule.selectedDate);
 
   return (
     <>
@@ -149,7 +140,7 @@ const AdminNutritionPage = async ({
             preferredMealCount={user.preferredMealCount}
             foodNote={user.foodNote}
             lastWeekPlanCount={lastWeekCount}
-            copyDates={copyDates}
+            today={today}
             datesWithLogs={datesWithLogs}
             datesWithPlan={[
               ...planDays.map((day) => day.date),
