@@ -61,6 +61,7 @@ export const MEAL_PLAN_MESSAGES = {
   REORDER_MISMATCH: "Danh sách bữa đã thay đổi, tải lại trang",
   NO_LAST_WEEK: "Tuần trước chưa có plan nào",
   NO_TARGET_DAYS: "Chọn ít nhất một ngày",
+  PAST_TARGET_DAYS: "Không thể sao chép sang ngày đã qua.",
   PREFERENCES_SAVED: "Đã lưu yêu cầu của bạn",
 } as const;
 

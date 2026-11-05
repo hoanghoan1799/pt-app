@@ -4,6 +4,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { z } from "zod";
 
+import { TIME_ZONE } from "@/constants/time";
 import { db } from "@/db";
 import { mealPlanDays, mealPlanItems, mealPlanMeals } from "@/db/schema";
 import { getFood } from "@/features/foods/services/food-queries";
@@ -53,7 +54,12 @@ import { findUserById } from "@/services/users";
 import type { ActionErrorResult } from "@/types/error";
 import { isUniqueViolation } from "@/utils/errors";
 import { getAdminNutritionPath } from "@/utils/routes";
-import { addDays, getWeekDates, getWeekStart } from "@/utils/week";
+import {
+  addDays,
+  getTodayDate,
+  getWeekDates,
+  getWeekStart,
+} from "@/utils/week";
 
 const DEFAULT_ITEM_GRAMS = 100;
 
@@ -566,6 +572,14 @@ export const copyDayAction = withResultErrorHandling(
 
     if (!dates.length) {
       return fail(MEAL_PLAN_MESSAGES.NO_TARGET_DAYS);
+    }
+
+    // KAN-121: a past day is never a target. One past date rejects the whole
+    // request, so nothing is written and the PT picks again.
+    const today = getTodayDate(TIME_ZONE);
+
+    if (dates.some((date) => date < today)) {
+      return fail(MEAL_PLAN_MESSAGES.PAST_TARGET_DAYS);
     }
 
     const copied = await db.transaction(async (tx) => {
