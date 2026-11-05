@@ -192,20 +192,90 @@ describe("GET /api/chat/messages", () => {
 describe("GET /api/chat/unread", () => {
   it("answers 401 without a session", async () => {
     state.user = null;
-    const response = await unreadRoute.GET();
+    const response = await unreadRoute.GET(get("/api/chat/unread"));
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: "unauthorized" });
   });
 
   it("returns count, chatEnabled and hasHistory", async () => {
-    const response = await unreadRoute.GET();
+    const response = await unreadRoute.GET(get("/api/chat/unread"));
 
     expect(await response.json()).toEqual({
       count: 1,
       chatEnabled: true,
       hasHistory: true,
     });
+  });
+});
+
+describe("GET /api/chat/unread?as=admin", () => {
+  const adminUnread = () => unreadRoute.GET(get("/api/chat/unread?as=admin"));
+
+  it("answers 401 without any session", async () => {
+    state.user = null;
+    state.admin = null;
+    const response = await adminUnread();
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.json()).toEqual({ error: "unauthorized" });
+  });
+
+  it("does not give a trainee session admin counts", async () => {
+    state.admin = null;
+    const response = await adminUnread();
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: "unauthorized" });
+  });
+
+  it("returns the total and the count per trainee for an admin", async () => {
+    const [other] = await db
+      .insert(users)
+      .values({ name: "Binh", nameKey: "binh", chatEnabled: true })
+      .returning({ id: users.id });
+    const otherConversation = await q.getOrCreateConversation(other.id);
+
+    for (const n of [1, 2]) {
+      await q.insertMessage({
+        conversationId: otherConversation.id,
+        senderRole: "user",
+        senderAdminId: null,
+        body: `b${n}`,
+        clientId: `00000000-0000-4000-8000-00000000010${n}`,
+      });
+    }
+    const response = await adminUnread();
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.count).toBe(3);
+    expect(body.perTrainee).toHaveLength(2);
+    expect(body.perTrainee).toEqual(
+      expect.arrayContaining([
+        { userId, conversationId, unread: 1 },
+        {
+          userId: other.id,
+          conversationId: otherConversation.id,
+          unread: 2,
+        },
+      ]),
+    );
+  });
+
+  it("drops a conversation once the admin has read it", async () => {
+    await q.saveReadCursor(conversationId, "admin:1", lastId, lastId);
+    const body = await (await adminUnread()).json();
+
+    expect(body).toEqual({ count: 0, perTrainee: [] });
+  });
+
+  it("keeps the trainee shape without ?as=admin", async () => {
+    state.admin = null;
+    const body = await (await unreadRoute.GET(get("/api/chat/unread"))).json();
+
+    expect(body).toEqual({ count: 1, chatEnabled: true, hasHistory: true });
   });
 });
 

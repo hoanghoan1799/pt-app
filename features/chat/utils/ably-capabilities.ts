@@ -10,6 +10,7 @@ export const CHAT_EVENTS = {
   READ: "read",
   CHAT_STATUS: "chat-status",
   INBOX: "inbox",
+  TYPING: "typing",
 } as const;
 
 const assertId = (value: number, label: string) => {
@@ -27,8 +28,10 @@ export const userChannel = (userId: number) =>
 
 export type AblyCapability = Record<string, string[]>;
 
-// Subscribe only: nobody publishes from the browser (messages go through
-// server actions), and there is no presence or history.
+// Subscribe only: nobody publishes from the browser (messages and typing go
+// through the server, see POST /api/chat/typing), and there is no presence or
+// history. A publish right on a channel would also allow forged "message"
+// events, because Ably capabilities are per channel, not per event name.
 export const traineeCapability = (
   userId: number,
   conversationId: number,
@@ -85,4 +88,11 @@ export const inboxEvent = (
   conversationId: assertId(conversationId, "conversationId"),
   messageId: assertId(messageId, "messageId"),
   senderRole,
+});
+
+// Who is typing: the role plus the sender's Ably client id, so a second tab of
+// the same person can ignore its own echo. Never carries text.
+export const typingEvent = (role: "user" | "admin", senderKey: string) => ({
+  role,
+  senderKey,
 });

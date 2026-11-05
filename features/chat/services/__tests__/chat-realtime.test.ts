@@ -52,6 +52,9 @@ describe("without a key", () => {
 
     await realtime.publishNewMessage(5, message);
     await realtime.publishRead(5, "user", 9);
+    await expect(
+      realtime.publishTyping(5, "user", "user:1"),
+    ).resolves.toBeUndefined();
 
     expect(ably.ctor).not.toHaveBeenCalled();
     expect(ably.publish).not.toHaveBeenCalled();
@@ -123,6 +126,16 @@ describe("with a key", () => {
       "chat:conversation:5",
       "read",
       { readerKey: "admin:7", lastReadMessageId: 12 },
+    );
+  });
+
+  it("publishes typing with only the role and sender key", async () => {
+    await realtime.publishTyping(5, "admin", "admin:7");
+
+    expect(ably.publish).toHaveBeenCalledExactlyOnceWith(
+      "chat:conversation:5",
+      "typing",
+      { role: "admin", senderKey: "admin:7" },
     );
   });
 

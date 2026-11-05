@@ -13,6 +13,7 @@ import {
   readEvent,
   traineeCapability,
   traineeClientId,
+  typingEvent,
   userChannel,
 } from "@/features/chat/utils/ably-capabilities";
 
@@ -73,6 +74,7 @@ describe("event payloads", () => {
       READ: "read",
       CHAT_STATUS: "chat-status",
       INBOX: "inbox",
+      TYPING: "typing",
     });
   });
 
@@ -113,5 +115,14 @@ describe("event payloads", () => {
       senderRole: "user",
     });
     expect(() => inboxEvent(0, 9, "user")).toThrow();
+  });
+});
+
+describe("typing event", () => {
+  it("carries only the role and sender key", () => {
+    expect(typingEvent("user", "user:3")).toEqual({
+      role: "user",
+      senderKey: "user:3",
+    });
   });
 });

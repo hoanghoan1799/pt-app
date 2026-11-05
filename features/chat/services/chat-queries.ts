@@ -7,6 +7,7 @@ import {
   desc,
   eq,
   gt,
+  inArray,
   isNull,
   like,
   lt,
@@ -298,6 +299,36 @@ export const countUnreadForAdmin = async (adminId: number) => {
   const rows = await unreadByConversation("user", adminReaderKey(adminId));
 
   return rows.reduce((total, row) => total + row.unread, 0);
+};
+
+// Unread per trainee for the admin, only trainees with something unread.
+export const listUnreadByTraineeForAdmin = async (adminId: number) => {
+  const unreadRows = await unreadByConversation(
+    "user",
+    adminReaderKey(adminId),
+  );
+
+  if (unreadRows.length === 0) {
+    return [];
+  }
+  const owners = await db
+    .select({ id: chatConversations.id, userId: chatConversations.userId })
+    .from(chatConversations)
+    .where(
+      inArray(
+        chatConversations.id,
+        unreadRows.map((row) => row.conversationId),
+      ),
+    );
+  const userByConversation = new Map(owners.map((row) => [row.id, row.userId]));
+
+  return unreadRows.flatMap((row) => {
+    const userId = userByConversation.get(row.conversationId);
+
+    return userId === undefined
+      ? []
+      : [{ userId, conversationId: row.conversationId, unread: row.unread }];
+  });
 };
 
 // Username of the PT who wrote the newest admin message, for the trainee's
