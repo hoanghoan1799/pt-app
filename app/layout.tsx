@@ -3,6 +3,7 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 
 import { AppToaster } from "@/components/common/AppToaster";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ServiceWorkerRegister } from "@/features/pwa/components/ServiceWorkerRegister";
 import { INSTALL_CAPTURE_SCRIPT } from "@/features/pwa/constants/capture-script";
 
@@ -33,6 +34,7 @@ const RootLayout = ({ children }: LayoutProps<"/">) => (
     <body className="min-h-dvh antialiased">
       {children}
       <AppToaster />
+      <ConfirmDialog />
       <ServiceWorkerRegister />
     </body>
   </html>

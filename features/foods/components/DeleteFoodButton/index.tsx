@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { ROUTES } from "@/constants/routes";
 import { BUTTON_DANGER } from "@/constants/styles";
 import { FOOD_MESSAGES } from "@/features/foods/constants/foods";
@@ -18,10 +19,17 @@ interface DeleteFoodButtonProps {
 // "Xóa" archives the food: it disappears from both lists but the row stays.
 export const DeleteFoodButton = ({ foodId }: DeleteFoodButtonProps) => {
   const router = useRouter();
+  const confirm = useConfirm();
   const [isPending, startTransition] = useTransition();
 
-  const handleClick = () => {
-    if (!window.confirm(FOOD_MESSAGES.DELETE_CONFIRM)) {
+  const handleClick = async () => {
+    const isConfirmed = await confirm({
+      title: FOOD_MESSAGES.DELETE_CONFIRM,
+      confirmLabel: "Xóa",
+      isDanger: true,
+    });
+
+    if (!isConfirmed) {
       return;
     }
     startTransition(async () => {

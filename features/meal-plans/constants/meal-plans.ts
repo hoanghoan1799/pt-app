@@ -64,6 +64,9 @@ export const MEAL_PLAN_MESSAGES = {
   PREFERENCES_SAVED: "Đã lưu yêu cầu của bạn",
 } as const;
 
+export const formatDeleteMealQuestion = (mealName: string) =>
+  `Xóa ${mealName} và các món trong bữa?`;
+
 export const MACRO_GAP_LABELS = {
   protein: "protein",
   carbs: "carb",

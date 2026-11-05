@@ -27,7 +27,8 @@ export const CopyWeekButton = ({
   defaultTargetDate,
   members,
 }: CopyWeekButtonProps) => {
-  const { isOpen, setIsOpen, formAction, handleSubmit } = useCopyWeek();
+  const { isOpen, setIsOpen, formAction, handleSubmit, isPending } =
+    useCopyWeek();
 
   return (
     <>
@@ -88,7 +89,10 @@ export const CopyWeekButton = ({
               Chọn ngày bất kỳ trong tuần đích. Lịch tuần đó sẽ được thay thế.
             </p>
           </div>
-          <SubmitButton className={`${BUTTON_PRIMARY} w-full`}>
+          <SubmitButton
+            className={`${BUTTON_PRIMARY} w-full`}
+            isPending={isPending}
+          >
             Sao chép
           </SubmitButton>
         </form>

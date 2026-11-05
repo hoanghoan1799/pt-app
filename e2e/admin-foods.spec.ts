@@ -3,6 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { fillTraineeLogin } from "./auth";
 import { E2E_ADMIN, E2E_DB_URL, E2E_USER_NAME } from "./config";
+import { answerConfirm } from "./confirm";
 import { E2E_FOODS } from "./seed";
 
 // PT views of the food library test matrix (docs/specs/food-library.md): F4,
@@ -137,21 +138,21 @@ test("F8: the PT adds, edits and deletes Phở bò, and the trainee list follows
   // Delete: dismissing keeps it, accepting archives it from both lists.
   await getFoodLink(page, PHO_EDITED).click();
 
-  const messages: string[] = [];
-  let shouldAccept = false;
-
-  page.on("dialog", (dialog) => {
-    messages.push(dialog.message());
-    void (shouldAccept ? dialog.accept() : dialog.dismiss());
-  });
-
   await page.getByRole("button", { name: "Xóa", exact: true }).click();
-  await expect.poll(() => messages.length).toBe(1);
-  expect(messages[0]).toBe("Xóa món này?");
+  await answerConfirm(page, "Hủy", "Xóa món này?");
   await expect(page).toHaveURL(/\/admin\/foods\/\d+$/);
 
-  shouldAccept = true;
+  // Esc cancels too, and no native dialog is involved.
   await page.getByRole("button", { name: "Xóa", exact: true }).click();
+  await expect(
+    page.getByRole("alertdialog", { name: "Xóa món này?" }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("alertdialog")).toHaveCount(0);
+  await expect(page).toHaveURL(/\/admin\/foods\/\d+$/);
+
+  await page.getByRole("button", { name: "Xóa", exact: true }).click();
+  await answerConfirm(page, "Xóa", "Xóa món này?");
   await expect(page).toHaveURL(/\/admin\/foods$/);
   await expect(getFoodLink(page, PHO_EDITED)).toHaveCount(0);
   expect(await traineeSees(browser, PHO_EDITED)).toBe(0);

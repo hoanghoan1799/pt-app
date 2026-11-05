@@ -7,6 +7,7 @@ import {
   E2E_EMPTY_NAME,
   E2E_LIFTER_NAME,
 } from "./config";
+import { answerConfirm } from "./confirm";
 import { E2E_NEW_VIDEO_ID, E2E_PT_EXERCISES } from "./seed";
 
 const NEW_LINK = `https://youtu.be/${E2E_NEW_VIDEO_ID}`;
@@ -159,14 +160,7 @@ test("C11: changing the video link of an exercise with sets asks first, then wip
 }) => {
   await openMember(page, E2E_LIFTER_NAME);
 
-  const messages: string[] = [];
-  let shouldAccept = false;
-
-  page.on("dialog", (dialog) => {
-    messages.push(dialog.message());
-    void (shouldAccept ? dialog.accept() : dialog.dismiss());
-  });
-
+  const confirm = page.getByRole("alertdialog");
   const card = getCard(page, E2E_PT_EXERCISES.LINK);
   // A CSS locator: the open sheet hides the page behind it from role queries.
   const oldLink = card.locator("a", { hasText: "Mở trên YouTube" });
@@ -185,23 +179,23 @@ test("C11: changing the video link of an exercise with sets asks first, then wip
   await page.getByLabel(/Tên bài tập/).fill(`${E2E_PT_EXERCISES.LINK} `);
   await page.getByRole("button", { name: "Lưu thay đổi" }).click();
   await expect(page.getByText("Đã cập nhật bài tập")).toBeVisible();
-  expect(messages).toHaveLength(0);
+  await expect(confirm).toHaveCount(0);
   await expect(card.getByText("Đã ghi:")).toBeVisible();
 
   // Dismissing the confirm keeps the sets and the old link.
   await card.getByRole("button", { name: "Sửa" }).click();
   await submitNewLink();
-  await expect.poll(() => messages.length).toBe(1);
-  expect(messages[0]).toBe(
+  await answerConfirm(
+    page,
+    "Hủy",
     "Học viên đã ghi số liệu cho bài này. Đổi link video sẽ xóa luôn số liệu và bắt đầu lịch sử mới. Tiếp tục?",
   );
   await expect(card.getByText("Đã ghi:")).toBeVisible();
   await expect(oldLink).toHaveAttribute("href", oldHref ?? "");
 
   // Accepting removes the sets and shows the new link.
-  shouldAccept = true;
   await page.getByRole("button", { name: "Lưu thay đổi" }).click();
-  await expect.poll(() => messages.length).toBe(2);
+  await answerConfirm(page, "Tiếp tục");
   await expect(card.getByText("Đã ghi:")).toHaveCount(0);
   await expect(oldLink).toHaveAttribute(
     "href",
@@ -214,29 +208,18 @@ test("C9: deleting an exercise warns about its sets only when it has sets", asyn
 }) => {
   await openMember(page, E2E_LIFTER_NAME);
 
-  const messages: string[] = [];
-  let shouldAccept = false;
-
-  page.on("dialog", (dialog) => {
-    messages.push(dialog.message());
-    void (shouldAccept ? dialog.accept() : dialog.dismiss());
-  });
-
   // With sets: the confirm says the sets go too; dismissing keeps the exercise.
   await getCard(page, E2E_PT_EXERCISES.SQUAT)
     .getByRole("button", { name: "Xóa", exact: true })
     .click();
-  await expect.poll(() => messages.length).toBe(1);
-  expect(messages[0]).toContain("xóa luôn số liệu");
+  await answerConfirm(page, "Hủy", /xóa luôn số liệu/);
   await expect(getCard(page, E2E_PT_EXERCISES.SQUAT)).toBeVisible();
 
   // Without sets: the old message, and accepting deletes the exercise.
-  shouldAccept = true;
   await getCard(page, E2E_PT_EXERCISES.TEMP)
     .getByRole("button", { name: "Xóa", exact: true })
     .click();
-  await expect.poll(() => messages.length).toBe(2);
-  expect(messages[1]).toBe("Xóa bài tập này?");
+  await answerConfirm(page, "Xóa", "Xóa bài tập này?");
   await expect(getCard(page, E2E_PT_EXERCISES.TEMP)).toHaveCount(0);
   await expect(getCard(page, E2E_PT_EXERCISES.SQUAT)).toBeVisible();
 });
@@ -246,7 +229,6 @@ test("C13: deleting an exercise whose sets were logged after the page loaded sti
 }) => {
   await openMember(page, E2E_LIFTER_NAME);
 
-  const messages: string[] = [];
   const card = getCard(page, E2E_PT_EXERCISES.STALE);
 
   // The page was loaded without sets, so the PT sees no "Đã ghi" line.
@@ -269,14 +251,9 @@ test("C13: deleting an exercise whose sets were logged after the page loaded sti
   }
 
   // The PT accepts the plain confirm, the server asks again, the PT dismisses.
-  page.on("dialog", (dialog) => {
-    messages.push(dialog.message());
-    void (messages.length === 1 ? dialog.accept() : dialog.dismiss());
-  });
   await card.getByRole("button", { name: "Xóa", exact: true }).click();
-  await expect.poll(() => messages.length).toBe(2);
-  expect(messages[0]).toBe("Xóa bài tập này?");
-  expect(messages[1]).toContain("xóa luôn số liệu");
+  await answerConfirm(page, "Xóa", "Xóa bài tập này?");
+  await answerConfirm(page, "Hủy", /xóa luôn số liệu/);
 
   // Dismissing the warning keeps the exercise and its sets, and the refreshed
   // page now shows them.

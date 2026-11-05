@@ -13,6 +13,7 @@ import {
 
 import { fillTraineeLogin } from "./auth";
 import { E2E_ADMIN, E2E_DB_URL, E2E_LOGGER_NAME } from "./config";
+import { answerConfirm } from "./confirm";
 import { E2E_FOODS } from "./seed";
 import { shot } from "./shots";
 
@@ -278,8 +279,8 @@ test("C5: the trainee logs a library food and a free food, edits and removes one
   });
 
   // Remove the free food.
-  page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Xóa Phở bò" }).click();
+  await answerConfirm(page, "Xóa", "Xóa món này khỏi nhật ký?");
   await expect(page.getByText("Đã xóa món ăn")).toBeVisible();
   await expect(breakfast).not.toContainText("Phở bò");
 
@@ -526,14 +527,8 @@ test("KAN-78: overwriting or deleting a day with the trainee's logs warns that t
   // Deleting a day with logs says so too (dismissed here).
   await openAdminDay(page);
 
-  let message = "";
-
-  page.once("dialog", (dialog) => {
-    message = dialog.message();
-    void dialog.dismiss();
-  });
   await page.getByRole("button", { name: "Xóa plan của ngày này" }).click();
-  await expect.poll(() => message).toContain("xóa plan sẽ xóa nhật ký đó");
+  await answerConfirm(page, "Hủy", /xóa plan sẽ xóa nhật ký đó/);
   expect(await getLogs()).toHaveLength(1);
 
   // "Ghi đè": the plan is replaced and the logs and the mark go with it.

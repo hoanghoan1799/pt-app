@@ -18,6 +18,7 @@ import {
   E2E_USER_PASSWORD,
   e2eEmail,
 } from "./config";
+import { answerConfirm } from "./confirm";
 import { shot } from "./shots";
 
 // Email + password login test matrix (docs/specs/email-password-login.md,
@@ -259,8 +260,8 @@ test("an admin reset logs the trainee out of their open session; the new passwor
 
     await logInAsAdmin(admin.page);
     await admin.page.goto(`/admin/users/${userId}`);
-    admin.page.once("dialog", (dialog) => dialog.accept());
     await admin.page.getByRole("button", { name: "Đặt lại mật khẩu" }).click();
+    await answerConfirm(admin.page, "Đặt lại");
     const passwordText = admin.page.getByTestId("one-time-password");
 
     await expect(passwordText).toHaveText(PASSWORD_PATTERN);

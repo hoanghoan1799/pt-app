@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { WORKOUT_MESSAGES } from "@/features/workouts/constants/messages";
 import {
   deleteExerciseAction,
@@ -17,6 +18,7 @@ export const useExerciseItemActions = (
   userId: number,
   hasSets: boolean,
 ) => {
+  const confirm = useConfirm();
   const [isPending, startTransition] = useTransition();
 
   const handleMove = (direction: MoveDirection) => {
@@ -31,8 +33,15 @@ export const useExerciseItemActions = (
     });
   };
 
-  const handleDelete = () => {
-    if (!window.confirm(getDeleteConfirmMessage(hasSets))) {
+  const confirmDelete = (withSets: boolean) =>
+    confirm({
+      title: getDeleteConfirmMessage(withSets),
+      confirmLabel: "Xóa",
+      isDanger: true,
+    });
+
+  const handleDelete = async () => {
+    if (!(await confirmDelete(hasSets))) {
       return;
     }
 
@@ -44,7 +53,7 @@ export const useExerciseItemActions = (
       // Sets were logged after this page loaded: the server changed nothing
       // and refreshed the page, so only the warning is missing.
       if (result.status === "needs-confirm") {
-        if (!window.confirm(getDeleteConfirmMessage(true))) {
+        if (!(await confirmDelete(true))) {
           return;
         }
         result = await deleteExerciseAction(exerciseId, userId, {
