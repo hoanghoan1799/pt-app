@@ -20,7 +20,8 @@ import { shot } from "./shots";
 // seeded DB and run in order: the trainee asks for 4 meals first, then the PT
 // builds Monday (the spec's worked example), copies it to Tuesday and applies
 // it to next week. Target of E2E Planner: P 160 / C 235 / F 55 g.
-const WEEK = getWeekStart(getTodayDate(TIME_ZONE));
+// Next week, so every copy target is in the future (KAN-121 rejects past days).
+const WEEK = getWeekStart(addDays(getTodayDate(TIME_ZONE), 7));
 const MONDAY = WEEK;
 const TUESDAY = addDays(WEEK, 1);
 const WEDNESDAY = addDays(WEEK, 2);

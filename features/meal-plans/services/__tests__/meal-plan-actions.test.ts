@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { INITIAL_FORM_STATE } from "@/constants/form";
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
@@ -156,9 +156,17 @@ const countAll = async () => ({
 });
 
 beforeEach(async () => {
+  // "Today" is Tuesday 2026-11-03 (Ho Chi Minh), so the copy tests below do
+  // not depend on the real date. Only Date is faked; timers stay real.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-11-03T05:00:00Z"));
   db = await createTestDb();
   state.db = db;
   state.role = "admin";
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("createDayPlanAction", () => {
@@ -1045,6 +1053,86 @@ describe("copyDayAction", () => {
       }),
     ).toEqual({ status: "success", copied: 1, skipped: 0 });
     expect((await countAll()).days).toBe(2);
+  });
+
+  describe("target dates (KAN-121, today is Tuesday)", () => {
+    const PAST_MESSAGE = "Không thể sao chép sang ngày đã qua.";
+    const SUNDAY = "2026-11-01";
+    const WEDNESDAY = "2026-11-04";
+
+    it("rejects a past date and writes nothing", async () => {
+      const { member, day } = await setup();
+      const before = await countAll();
+
+      expect(
+        await actions.copyDayAction({
+          userId: member.id,
+          dayId: day.id,
+          dates: [SUNDAY],
+        }),
+      ).toEqual({ status: "error", message: PAST_MESSAGE });
+      expect(await countAll()).toEqual(before);
+      expect(
+        (await getMealPlanWeek(member.id, SUNDAY)).map((d) => d.date),
+      ).toEqual([MONDAY]);
+    });
+
+    it("rejects the whole request when one date is past and the rest are valid", async () => {
+      const { member, day } = await setup();
+      const before = await countAll();
+
+      expect(
+        await actions.copyDayAction({
+          userId: member.id,
+          dayId: day.id,
+          dates: [WEDNESDAY, SUNDAY, TUESDAY],
+        }),
+      ).toEqual({ status: "error", message: PAST_MESSAGE });
+      expect(await countAll()).toEqual(before);
+    });
+
+    it("keeps the existing plan of a past date it refused to overwrite", async () => {
+      const { member, day } = await setup();
+
+      await actions.createDayPlanAction({ userId: member.id, date: SUNDAY });
+
+      const before = await countAll();
+
+      await actions.copyDayAction({
+        userId: member.id,
+        dayId: day.id,
+        dates: [SUNDAY],
+      });
+      expect(await countAll()).toEqual(before);
+    });
+
+    it("allows today", async () => {
+      const { member, day } = await setup();
+
+      expect(
+        await actions.copyDayAction({
+          userId: member.id,
+          dayId: day.id,
+          dates: [TUESDAY],
+        }),
+      ).toEqual({ status: "success", copied: 1, skipped: 0 });
+      expect(
+        (await getMealPlanWeek(member.id, MONDAY)).map((d) => d.date),
+      ).toEqual([MONDAY, TUESDAY]);
+    });
+
+    it("allows a future date", async () => {
+      const { member, day } = await setup();
+
+      expect(
+        await actions.copyDayAction({
+          userId: member.id,
+          dayId: day.id,
+          dates: [WEDNESDAY, NEXT_MONDAY],
+        }),
+      ).toEqual({ status: "success", copied: 2, skipped: 0 });
+      expect((await countAll()).days).toBe(3);
+    });
   });
 
   it("copies archived foods too", async () => {
