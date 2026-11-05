@@ -292,3 +292,31 @@ test("F11: search ignores accents and the group chips narrow the list", async ({
   await page.getByRole("button", { name: "Tất cả" }).click();
   await expect(getFoodLink(page, "Ức gà \\(sống\\)")).toBeVisible();
 });
+
+test("the group chips scroll sideways, snap, and the page does not", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.goto("/admin/foods");
+
+  const chips = page.getByRole("group", { name: "Lọc theo nhóm" });
+
+  await expect(chips.getByRole("button", { name: "Tất cả" })).toBeVisible();
+  // More chips than fit: the row scrolls by itself and snaps (KAN-124).
+  const row = await chips.evaluate((element) => ({
+    canScroll: element.scrollWidth > element.clientWidth,
+    snap: getComputedStyle(element).scrollSnapType,
+    overflowX: getComputedStyle(element).overflowX,
+  }));
+
+  expect(row.canScroll).toBe(true);
+  expect(row.overflowX).toBe("auto");
+  expect(row.snap).toContain("x");
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    ),
+  ).toBeLessThanOrEqual(0);
+});

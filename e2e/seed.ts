@@ -20,6 +20,7 @@ import {
   E2E_LOGGER_NAME,
   E2E_PLANNER_NAME,
   E2E_RESET_NAME,
+  E2E_RINGS_NAME,
   E2E_USER_NAME,
   E2E_USER_PASSWORD,
   e2eEmail,
@@ -198,13 +199,10 @@ const LOGGER_PLAN = [
   },
 ];
 
-const seedLogger = async (db: LibSQLDatabase<typeof schema>, today: string) => {
-  const [logger] = await db
-    .insert(schema.users)
-    .values(await traineeValues(E2E_LOGGER_NAME))
-    .returning();
+const getFoodIdResolver = async (db: LibSQLDatabase<typeof schema>) => {
   const library = await db.select().from(schema.foods);
-  const foodId = (name: string) => {
+
+  return (name: string) => {
     const food = library.find((row) => row.name === name);
 
     if (!food) {
@@ -213,6 +211,74 @@ const seedLogger = async (db: LibSQLDatabase<typeof schema>, today: string) => {
 
     return food.id;
   };
+};
+
+// Inserts LOGGER_PLAN for one day and returns the ids of its meals in order.
+const insertLoggerPlan = async (
+  db: LibSQLDatabase<typeof schema>,
+  userId: number,
+  date: string,
+  foodId: (name: string) => number,
+) => {
+  const [day] = await db
+    .insert(schema.mealPlanDays)
+    .values({ userId, date })
+    .returning();
+  const mealIds: number[] = [];
+
+  for (const [position, meal] of LOGGER_PLAN.entries()) {
+    const [row] = await db
+      .insert(schema.mealPlanMeals)
+      .values({ dayId: day.id, position, name: meal.name })
+      .returning();
+
+    mealIds.push(row.id);
+    await db.insert(schema.mealPlanItems).values(
+      meal.items.map((item) => ({
+        mealId: row.id,
+        foodId: foodId(item.food),
+        grams: item.grams,
+      })),
+    );
+  }
+
+  return mealIds;
+};
+
+// Trainee of the nutrition tab spec (KAN-125): target P 160 / C 235 / F 55 g
+// and LOGGER_PLAN for yesterday and today. The marks and the extra food are
+// added by e2e/nutrition-tab.spec.ts itself, because meal-log.spec.ts counts
+// every row of meal_logs and meal_marks.
+const seedRings = async (
+  db: LibSQLDatabase<typeof schema>,
+  today: string,
+  yesterday: string,
+) => {
+  const [rings] = await db
+    .insert(schema.users)
+    .values(await traineeValues(E2E_RINGS_NAME))
+    .returning();
+  const foodId = await getFoodIdResolver(db);
+
+  await db.insert(schema.nutritionTargets).values({
+    userId: rings.id,
+    effectiveFrom: "2020-01-01",
+    protein: 160,
+    carbs: 235,
+    fat: 55,
+    source: "manual",
+  });
+
+  await insertLoggerPlan(db, rings.id, yesterday, foodId);
+  await insertLoggerPlan(db, rings.id, today, foodId);
+};
+
+const seedLogger = async (db: LibSQLDatabase<typeof schema>, today: string) => {
+  const [logger] = await db
+    .insert(schema.users)
+    .values(await traineeValues(E2E_LOGGER_NAME))
+    .returning();
+  const foodId = await getFoodIdResolver(db);
 
   await db.insert(schema.nutritionTargets).values({
     userId: logger.id,
@@ -222,26 +288,7 @@ const seedLogger = async (db: LibSQLDatabase<typeof schema>, today: string) => {
     fat: 55,
     source: "manual",
   });
-
-  const [day] = await db
-    .insert(schema.mealPlanDays)
-    .values({ userId: logger.id, date: today })
-    .returning();
-
-  for (const [position, meal] of LOGGER_PLAN.entries()) {
-    const [row] = await db
-      .insert(schema.mealPlanMeals)
-      .values({ dayId: day.id, position, name: meal.name })
-      .returning();
-
-    await db.insert(schema.mealPlanItems).values(
-      meal.items.map((item) => ({
-        mealId: row.id,
-        foodId: foodId(item.food),
-        grams: item.grams,
-      })),
-    );
-  }
+  await insertLoggerPlan(db, logger.id, today, foodId);
 
   // From before meal plans: still shown, read-only (C5).
   await db.insert(schema.foodEntries).values({
@@ -447,6 +494,7 @@ export const seedE2eDatabase = async (url: string) => {
   });
 
   await seedLogger(db, today);
+  await seedRings(db, today, addDays(today, -1));
 
   client.close();
 };
