@@ -18,6 +18,6 @@ export const StatTile = ({ icon: Icon, label, value, hint }: StatTileProps) => (
     <p className="mt-2 text-2xl leading-none font-bold text-fg tabular-nums">
       {value}
     </p>
-    <p className="mt-1.5 truncate text-xs text-muted">{hint}</p>
+    <p className="mt-1.5 line-clamp-2 text-xs text-muted">{hint}</p>
   </div>
 );

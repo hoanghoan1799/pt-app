@@ -101,10 +101,10 @@ export const MemberProgressList = ({ members }: MemberProgressListProps) => {
                     label={`Tiến độ của ${member.name}`}
                   />
                 )}
-                <span className="flex items-center justify-between gap-2 text-xs">
+                <span className="flex flex-wrap items-start justify-between gap-x-2 gap-y-0.5 text-xs">
                   <span
                     className={clsx(
-                      "truncate",
+                      "min-w-0",
                       member.status === "no-plan"
                         ? "font-medium text-accent"
                         : "text-muted",
@@ -112,7 +112,7 @@ export const MemberProgressList = ({ members }: MemberProgressListProps) => {
                   >
                     {getStatusText(member)}
                   </span>
-                  <span className="flex shrink-0 items-center gap-2 text-muted">
+                  <span className="ml-auto flex shrink-0 items-center gap-2 text-muted">
                     <span
                       className="inline-flex items-center gap-0.5"
                       title="Số ngày ghi nhật ký ăn tuần này"
