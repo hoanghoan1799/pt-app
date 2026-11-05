@@ -13,6 +13,8 @@ import {
 
 import { fillTraineeLogin } from "./auth";
 import { E2E_ADMIN, E2E_DB_URL, E2E_LOGGER_NAME } from "./config";
+import { answerConfirm } from "./confirm";
+import { pickCopyDay } from "./copy-day";
 import { E2E_FOODS } from "./seed";
 import { shot } from "./shots";
 
@@ -66,6 +68,12 @@ const getLogs = () =>
      FROM meal_logs l LEFT JOIN foods f ON f.id = l.food_id ORDER BY l.id`,
   );
 
+// The status dot of today's tab on the week strip.
+const todayMarker = (page: Page) =>
+  page
+    .getByRole("link", { name: new RegExp(`^${formatFullDay(TODAY)}`) })
+    .getByTestId("day-status");
+
 const logInAsTrainee = async (page: Page) => {
   await page.goto("/");
   await fillTraineeLogin(page, E2E_LOGGER_NAME);
@@ -112,7 +120,48 @@ test("R6: the trainee sees today's plan read-only and the old log as history", a
   await expect(breakfast).toContainText(
     "Mục tiêu bữa: 703 kcal · P 54 · C 79 · F 19",
   );
-  await expect(breakfast).toContainText("Chưa ghi món nào.");
+  // KAN-120: with no extra food the block (label and empty text) is hidden,
+  // the meal is not green, and there is no all-day card.
+  await expect(breakfast.getByText("Đã ăn thêm ngoài plan")).toHaveCount(0);
+  await expect(breakfast).not.toContainText("Chưa ghi món nào.");
+  await expect(breakfast).toHaveAttribute("data-achieved", "false");
+  await expect(page.getByRole("region", { name: "Đã ăn cả ngày" })).toHaveCount(
+    0,
+  );
+  await expect(page.getByText("Đã ăn cả ngày")).toHaveCount(0);
+  await expect(page.getByText(/Đạt macro không có nghĩa/)).toHaveCount(0);
+  // Nothing is marked yet: today's marker is grey, and the legend is shown.
+  await expect(todayMarker(page)).toHaveAttribute("data-status", "none");
+  await expect(
+    page.getByRole("list", { name: "Chú thích màu ngày" }),
+  ).toContainText("Đủ bữa");
+  await expect(
+    page.getByRole("list", { name: "Chú thích màu ngày" }),
+  ).toContainText("Một số bữa");
+  await expect(
+    page.getByRole("list", { name: "Chú thích màu ngày" }),
+  ).toContainText("Chưa có");
+  // Order: calendar, daily goals, meal plan.
+  const calendarY = (await page
+    .getByRole("list", { name: "Chú thích màu ngày" })
+    .boundingBox())!.y;
+  const goalsY = (await page
+    .getByRole("heading", { name: "Mục tiêu trong ngày" })
+    .boundingBox())!.y;
+  const planY = (await page
+    .getByRole("heading", { name: "Plan bữa ăn" })
+    .boundingBox())!.y;
+
+  expect(calendarY).toBeLessThan(goalsY);
+  expect(goalsY).toBeLessThan(planY);
+  // Three macro rings in a row, no horizontal overflow at 320 px.
+  await expect(page.getByRole("progressbar")).toHaveCount(3);
+  await page.setViewportSize({ width: 320, height: 700 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
   // The plan has no edit controls; only the log can change.
   await expect(breakfast.getByLabel(/^Gram /)).toHaveCount(0);
 
@@ -221,10 +270,15 @@ test("C5: the trainee logs a library food and a free food, edits and removes one
   await page.getByRole("button", { name: "Thêm món" }).click();
   await expect(breakfast).toContainText("Phở bò450 kcal · P 25 · C 0 · F 0");
 
-  // Eaten 282 + 450 = 732 kcal against the day's plan of 2,084 kcal.
-  await expect(
-    page.getByRole("region", { name: "Đã ăn cả ngày" }),
-  ).toContainText("732 kcal / 2084 kcal (plan)");
+  // The extra-food block now shows, under its new label; the all-day card
+  // is gone (KAN-120). The meal's own total stays.
+  await expect(breakfast.getByText("Đã ăn thêm ngoài plan")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Đã ăn cả ngày" })).toHaveCount(
+    0,
+  );
+  await expect(breakfast.getByLabel("Đã ăn Bữa sáng")).toContainText(
+    "732 kcal",
+  );
 
   // The day's progress card counts the old entry and the meal logs:
   // P 30 + 55.8 + 25 = 110.8 -> 111; C 60; F 10 + 6.48 -> 16.
@@ -237,6 +291,16 @@ test("C5: the trainee logs a library food and a free food, edits and removes one
   await expect(
     page.getByRole("progressbar", { name: "Fat: 16/55 g" }),
   ).toBeVisible();
+  // Rings clamp and show the value / target text: 111 / 160 g = 69%.
+  const proteinRing = page.getByRole("progressbar", {
+    name: "Protein: 111/160 g",
+  });
+
+  await expect(proteinRing).toHaveAttribute("aria-valuenow", "69");
+  await expect(proteinRing).toContainText("69%");
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "111 / 160 g" }),
+  ).toContainText("còn 49 g");
 
   expect(await getLogs()).toEqual([
     {
@@ -278,8 +342,8 @@ test("C5: the trainee logs a library food and a free food, edits and removes one
   });
 
   // Remove the free food.
-  page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Xóa Phở bò" }).click();
+  await answerConfirm(page, "Xóa", "Xóa món này khỏi nhật ký?");
   await expect(page.getByText("Đã xóa món ăn")).toBeVisible();
   await expect(breakfast).not.toContainText("Phở bò");
 
@@ -340,6 +404,37 @@ test("S4: the trainee marks a meal Đạt with a note about what was over", asyn
   expect(Number(marks[0].achieved)).toBe(1);
   expect(marks[0].note).toBe("Cơm hơi dư 30 g");
 
+  // KAN-120: the marked meal is green and today's marker turns yellow (one of
+  // several planned meals is marked); the other meals stay plain.
+  await expect(meal(page, "Bữa sáng")).toHaveAttribute("data-achieved", "true");
+  await expect(meal(page, "Bữa sáng")).toHaveClass(/bg-success\/10/);
+  await expect(meal(page, "Bữa trưa")).toHaveAttribute(
+    "data-achieved",
+    "false",
+  );
+  await expect(todayMarker(page)).toHaveAttribute("data-status", "partial");
+
+  // Every other planned meal marked too: the marker turns green. The extra
+  // marks are removed again so the later specs see the same data.
+  const id = await getLoggerId();
+
+  await run(
+    `INSERT INTO meal_marks (meal_id, user_id, achieved)
+     SELECT m.id, ?, 1 FROM meal_plan_meals m
+     JOIN meal_plan_days d ON d.id = m.day_id
+     WHERE d.user_id = ? AND d.date = ?
+       AND m.id NOT IN (SELECT meal_id FROM meal_marks)`,
+    [id, id, TODAY],
+  );
+  await page.reload();
+  await expect(todayMarker(page)).toHaveAttribute("data-status", "complete");
+  await run(
+    `DELETE FROM meal_marks WHERE note = '' AND meal_id NOT IN (
+       SELECT meal_id FROM meal_marks WHERE note <> '')`,
+  );
+  await page.reload();
+  await expect(todayMarker(page)).toHaveAttribute("data-status", "partial");
+
   // Centre the "Đạt" button and its note, clear of the sticky bars.
   await meal(page, "Bữa sáng")
     .getByLabel("Ghi chú Bữa sáng")
@@ -368,6 +463,16 @@ test("S4 + S3: the PT sees the marks and logs, and is told when the plan no long
   await expect(meal(page, "Bữa trưa")).toContainText(
     "Học viên chưa ghi gì cho bữa này.",
   );
+
+  // KAN-120: the PT's week strip uses the same colours (one meal marked).
+  await expect(
+    page
+      .getByRole("link", { name: new RegExp(`^${formatFullDay(TODAY)}`) })
+      .getByTestId("day-status"),
+  ).toHaveAttribute("data-status", "partial");
+  await expect(
+    page.getByRole("list", { name: "Chú thích màu ngày" }),
+  ).toBeVisible();
 
   // The plan (2,084 kcal) is 9 kcal from the target (2,075): nothing to say.
   await expect(page.getByText(/Plan lệch/)).toHaveCount(0);
@@ -439,9 +544,9 @@ test("KAN-93: the PT edits a marked meal's grams and the trainee's eaten total d
   // And so is the trainee's day total (the plan moved, what was eaten did not).
   await page.context().clearCookies();
   await logInAsTrainee(page);
-  await expect(
-    page.getByRole("region", { name: "Đã ăn cả ngày" }),
-  ).toContainText("692 kcal /");
+  await expect(page.getByRole("region", { name: "Đã ăn cả ngày" })).toHaveCount(
+    0,
+  );
   // Old entry (P 30, C 60, F 10) plus the frozen breakfast (P 70,1 / C 84,6 /
   // F 8,1); with the new 500 g of rice carbs would read 201.
   await expect(
@@ -495,7 +600,7 @@ test("KAN-78: overwriting or deleting a day with the trainee's logs warns that t
 
   // Copy today's plan to tomorrow, which has no plan: no confirmation.
   await page.getByRole("button", { name: "Sao chép sang ngày khác" }).click();
-  await page.getByRole("dialog").getByLabel(formatFullDay(tomorrow)).check();
+  await pickCopyDay(page, tomorrow);
   await page.getByRole("button", { name: "Sao chép (1 ngày)" }).click();
   await expect(page.getByText("Đã sao chép sang 1 ngày")).toBeVisible();
 
@@ -506,7 +611,7 @@ test("KAN-78: overwriting or deleting a day with the trainee's logs warns that t
     `/admin/users/${id}/nutrition?week=${getWeekStart(tomorrow)}&day=${tomorrow}`,
   );
   await page.getByRole("button", { name: "Sao chép sang ngày khác" }).click();
-  await page.getByRole("dialog").getByLabel(formatFullDay(TODAY)).check();
+  await pickCopyDay(page, TODAY);
   await page.getByRole("button", { name: "Sao chép (1 ngày)" }).click();
 
   const confirm = page.getByRole("alertdialog", { name: "Xác nhận ghi đè" });
@@ -526,14 +631,8 @@ test("KAN-78: overwriting or deleting a day with the trainee's logs warns that t
   // Deleting a day with logs says so too (dismissed here).
   await openAdminDay(page);
 
-  let message = "";
-
-  page.once("dialog", (dialog) => {
-    message = dialog.message();
-    void dialog.dismiss();
-  });
   await page.getByRole("button", { name: "Xóa plan của ngày này" }).click();
-  await expect.poll(() => message).toContain("xóa plan sẽ xóa nhật ký đó");
+  await answerConfirm(page, "Hủy", /xóa plan sẽ xóa nhật ký đó/);
   expect(await getLogs()).toHaveLength(1);
 
   // "Ghi đè": the plan is replaced and the logs and the mark go with it.
@@ -541,7 +640,7 @@ test("KAN-78: overwriting or deleting a day with the trainee's logs warns that t
     `/admin/users/${id}/nutrition?week=${getWeekStart(tomorrow)}&day=${tomorrow}`,
   );
   await page.getByRole("button", { name: "Sao chép sang ngày khác" }).click();
-  await page.getByRole("dialog").getByLabel(formatFullDay(TODAY)).check();
+  await pickCopyDay(page, TODAY);
   await page.getByRole("button", { name: "Sao chép (1 ngày)" }).click();
   await confirm.getByRole("button", { name: "Ghi đè" }).click();
   await expect(page.getByText("Đã sao chép sang 1 ngày")).toBeVisible();

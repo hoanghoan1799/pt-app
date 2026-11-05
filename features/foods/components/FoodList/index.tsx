@@ -18,7 +18,9 @@ interface FoodListProps {
 }
 
 const CHIP =
-  "inline-flex min-h-10 shrink-0 items-center rounded-full border px-4 text-sm font-semibold transition";
+  "inline-flex min-h-10 shrink-0 snap-start items-center rounded-full border px-4 text-sm font-semibold transition";
+const CHIP_SELECTED = "border-accent bg-accent text-accent-fg shadow-sm";
+const CHIP_IDLE = "border-line bg-surface text-fg";
 
 export const FoodList = ({ foods, basePath, emptyHint }: FoodListProps) => {
   const { query, setQuery, group, setGroup, groupsInUse, filteredFoods } =
@@ -54,40 +56,37 @@ export const FoodList = ({ foods, basePath, emptyHint }: FoodListProps) => {
           className={`${INPUT} pl-11`}
         />
       </div>
-      <div
-        role="group"
-        aria-label="Lọc theo nhóm"
-        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]"
-      >
-        <button
-          type="button"
-          aria-pressed={group === "all"}
-          onClick={() => setGroup("all")}
-          className={clsx(
-            CHIP,
-            group === "all"
-              ? "border-accent bg-accent text-accent-fg"
-              : "border-line bg-surface text-fg",
-          )}
+      <div className="relative -mx-4">
+        <div
+          role="group"
+          aria-label="Lọc theo nhóm"
+          className="flex snap-x snap-proximity scroll-px-4 gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]"
         >
-          Tất cả
-        </button>
-        {groupsInUse.map((item) => (
           <button
-            key={item}
             type="button"
-            aria-pressed={group === item}
-            onClick={() => setGroup(item)}
-            className={clsx(
-              CHIP,
-              group === item
-                ? "border-accent bg-accent text-accent-fg"
-                : "border-line bg-surface text-fg",
-            )}
+            aria-pressed={group === "all"}
+            onClick={() => setGroup("all")}
+            className={clsx(CHIP, group === "all" ? CHIP_SELECTED : CHIP_IDLE)}
           >
-            {FOOD_GROUPS[item].label}
+            Tất cả
           </button>
-        ))}
+          {groupsInUse.map((item) => (
+            <button
+              key={item}
+              type="button"
+              aria-pressed={group === item}
+              onClick={() => setGroup(item)}
+              className={clsx(CHIP, group === item ? CHIP_SELECTED : CHIP_IDLE)}
+            >
+              {FOOD_GROUPS[item].label}
+            </button>
+          ))}
+        </div>
+        {/* Right-edge fade hints that more chips scroll in. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-bg to-transparent"
+        />
       </div>
       <p className="text-xs text-muted" aria-live="polite">
         {filteredFoods.length} món

@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 
+import { DayStatusLegend } from "@/components/common/DayStatusLegend";
 import { WeekDayTabs } from "@/components/common/WeekDayTabs";
 import { WeekNavigator } from "@/components/common/WeekNavigator";
+import type { DayCompletion } from "@/features/meal-plans/utils/day-completion";
 import { NutritionDayView } from "@/features/nutrition/components/NutritionDayView";
 import type { NutritionDay } from "@/features/nutrition/types/nutrition";
-import { isDayOnTarget } from "@/features/nutrition/utils/nutrition";
 
 interface NutritionWeekProps {
   basePath: string;
@@ -15,15 +16,16 @@ interface NutritionWeekProps {
   isEditable: boolean;
   // The trainee's page: the old free-text log is read-only history (KAN-71).
   isLegacyLog?: boolean;
-  // Shown between the day tabs and the day (the PT's meal plan).
+  // Meal-plan completion per date (green, yellow or grey marker).
+  completion: Record<string, DayCompletion>;
+  // Shown under the daily goals (the PT's meal plan).
   children?: ReactNode;
 }
 
-const getMarker = (day: NutritionDay) => {
-  if (isDayOnTarget(day)) {
-    return "check";
-  }
-  return day.loggedCount ? "dot" : "none";
+const STATUS_DESCRIPTIONS: Record<DayCompletion, string> = {
+  complete: ", đã ăn đủ các bữa",
+  partial: ", đã ăn một số bữa",
+  none: "",
 };
 
 export const NutritionWeek = ({
@@ -34,6 +36,7 @@ export const NutritionWeek = ({
   today,
   isEditable,
   isLegacyLog = false,
+  completion,
   children,
 }: NutritionWeekProps) => {
   const selectedDay = days.find((day) => day.date === selectedDate) ?? days[0];
@@ -54,18 +57,21 @@ export const NutritionWeek = ({
           today={today}
           items={days.map((day) => ({
             date: day.date,
-            marker: getMarker(day),
-            description: `${day.loggedCount ? `, ${day.loggedCount} món đã ghi` : ""}${isDayOnTarget(day) ? ", đạt mục tiêu" : ""}`,
+            marker: "none",
+            status: completion[day.date] ?? "none",
+            description: STATUS_DESCRIPTIONS[completion[day.date] ?? "none"],
           }))}
         />
+        <DayStatusLegend />
       </div>
-      {children}
       <NutritionDayView
         day={selectedDay}
         today={today}
         isEditable={isEditable}
         isLegacyLog={isLegacyLog}
-      />
+      >
+        {children}
+      </NutritionDayView>
     </div>
   );
 };

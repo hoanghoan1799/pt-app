@@ -1,4 +1,5 @@
 import { UserTabBar } from "@/components/layout/UserTabBar";
+import { PresenceHeartbeat } from "@/features/chat/components/PresenceHeartbeat";
 import { isChatEnabled } from "@/features/chat/services/chat-permission";
 import { findConversationByUserId } from "@/features/chat/services/chat-queries";
 import { InstallPrompt } from "@/features/pwa/components/InstallPrompt";
@@ -15,6 +16,7 @@ const UserProtectedLayout = async ({ children }: LayoutProps<"/">) => {
   return (
     <>
       {children}
+      <PresenceHeartbeat role="user" />
       <InstallPrompt />
       <UserTabBar showMessages={showMessages} />
     </>

@@ -4,6 +4,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { z } from "zod";
 
+import { TIME_ZONE } from "@/constants/time";
 import { db } from "@/db";
 import { mealPlanDays, mealPlanItems, mealPlanMeals } from "@/db/schema";
 import { getFood } from "@/features/foods/services/food-queries";
@@ -12,12 +13,14 @@ import {
   MEAL_PLAN_MESSAGES,
 } from "@/features/meal-plans/constants/meal-plans";
 import { fail, ok, read } from "@/features/meal-plans/services/action-helpers";
+import { listDatesWithLogs } from "@/features/meal-plans/services/meal-log-queries";
 import {
   addItemSchema,
   addMealSchema,
   applyLastWeekSchema,
   autoSolveSchema,
   copyDaySchema,
+  copyMonthInfoSchema,
   createDayPlanSchema,
   deleteDayPlanSchema,
   removeItemSchema,
@@ -53,13 +56,22 @@ import { findUserById } from "@/services/users";
 import type { ActionErrorResult } from "@/types/error";
 import { isUniqueViolation } from "@/utils/errors";
 import { getAdminNutritionPath } from "@/utils/routes";
-import { addDays, getWeekDates, getWeekStart } from "@/utils/week";
+import {
+  addDays,
+  getTodayDate,
+  getWeekDates,
+  getWeekStart,
+} from "@/utils/week";
 
 const DEFAULT_ITEM_GRAMS = 100;
 
 const refresh = (userId: number) => {
   revalidatePath(getAdminNutritionPath(userId));
 };
+
+export type CopyMonthInfoResult =
+  | { status: "success"; planDates: string[]; logDates: string[] }
+  | ActionErrorResult;
 
 export type CopyResult =
   { status: "success"; copied: number; skipped: number } | ActionErrorResult;
@@ -568,6 +580,14 @@ export const copyDayAction = withResultErrorHandling(
       return fail(MEAL_PLAN_MESSAGES.NO_TARGET_DAYS);
     }
 
+    // KAN-121: a past day is never a target. One past date rejects the whole
+    // request, so nothing is written and the PT picks again.
+    const today = getTodayDate(TIME_ZONE);
+
+    if (dates.some((date) => date < today)) {
+      return fail(MEAL_PLAN_MESSAGES.PAST_TARGET_DAYS);
+    }
+
     const copied = await db.transaction(async (tx) => {
       const existing = await tx
         .select({ id: mealPlanDays.id })
@@ -602,6 +622,32 @@ export const copyDayAction = withResultErrorHandling(
       copied,
       skipped: dates.length - copied,
     };
+  },
+);
+
+// KAN-122: the copy sheet's month picker marks days that already have a plan
+// (and warns about logs) beyond the weeks the page loaded.
+export const getCopyMonthInfoAction = withResultErrorHandling(
+  "getCopyMonthInfo",
+  async (
+    input: z.input<typeof copyMonthInfoSchema>,
+  ): Promise<CopyMonthInfoResult> => {
+    await requireAdmin();
+
+    const { data, error } = read(copyMonthInfoSchema, input);
+
+    if (!data) {
+      return error;
+    }
+
+    const [planDates, logDates] = await Promise.all([
+      listDaysInRange(data.userId, data.from, data.to).then((days) =>
+        days.map((day) => day.date),
+      ),
+      listDatesWithLogs(data.userId, data.from, data.to),
+    ]);
+
+    return { status: "success", planDates, logDates };
   },
 );
 

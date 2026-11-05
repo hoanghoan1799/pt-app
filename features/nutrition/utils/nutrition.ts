@@ -108,6 +108,16 @@ export const compareToTarget = (
   return { status: "on", difference: Math.abs(actual - target), percent };
 };
 
+// Share of the target eaten, clamped to 0-100 for a progress ring; 0 without
+// a target or for bad numbers.
+export const getRingPercent = (eaten: number, target?: number) => {
+  if (!target || target <= 0 || !Number.isFinite(eaten) || eaten <= 0) {
+    return 0;
+  }
+
+  return Math.min(100, Math.round(calculatePercent(eaten, target)));
+};
+
 // A logged day is on target when kcal (4/4/9 from the macros), protein, carbs
 // and fat are all "on"; macros without a target are ignored.
 export const isDayOnTarget = (day: NutritionDay) => {

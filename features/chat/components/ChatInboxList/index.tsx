@@ -9,6 +9,8 @@ import {
   inboxPreviewPrefix,
 } from "@/features/chat/utils/chat-inbox";
 import { initialsOf } from "@/features/chat/utils/chat-thread-rules";
+import { isOnline, ONLINE_LABEL } from "@/features/chat/utils/presence";
+import { shortLastSeen } from "@/features/chat/utils/presence-status";
 import { getAdminMessagesPath } from "@/utils/routes";
 
 interface ChatInboxListProps {
@@ -38,17 +40,30 @@ export const ChatInboxList = ({
         nowMs,
       );
 
+      const now = new Date(nowMs);
+      const online = isOnline(item.lastSeenAt, now);
+      const lastSeen = shortLastSeen(item.lastSeenAt, now);
+
       return (
         <li key={item.conversationId}>
           <Link
             href={getAdminMessagesPath(item.userId)}
             className="flex min-h-16 items-center gap-3 px-4 py-3 transition active:bg-line"
           >
-            <span
-              aria-hidden
-              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent/15 text-sm font-bold text-accent"
-            >
-              {initialsOf(item.userName)}
+            <span className="relative shrink-0">
+              <span
+                aria-hidden
+                className="flex size-11 items-center justify-center rounded-full bg-accent/15 text-sm font-bold text-accent"
+              >
+                {initialsOf(item.userName)}
+              </span>
+              {online && (
+                <span
+                  role="img"
+                  aria-label={ONLINE_LABEL}
+                  className="absolute right-0 bottom-0 size-3 rounded-full bg-success ring-2 ring-surface"
+                />
+              )}
             </span>
             <span className="min-w-0 flex-1">
               <span className="flex items-baseline justify-between gap-2">
@@ -59,6 +74,11 @@ export const ChatInboxList = ({
                   )}
                 >
                   <span className="truncate">{item.userName}</span>
+                  {lastSeen && (
+                    <span className="shrink-0 text-xs font-normal text-muted">
+                      {lastSeen}
+                    </span>
+                  )}
                   {!item.chatEnabled && (
                     <Lock
                       className="size-3.5 shrink-0 text-muted"

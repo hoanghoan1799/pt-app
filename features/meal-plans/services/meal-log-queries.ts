@@ -13,7 +13,12 @@ import {
 } from "@/db/schema";
 import { MEAL_LOG_MESSAGES } from "@/features/meal-plans/constants/meal-plans";
 import type { MealLog, MealMark } from "@/features/meal-plans/types/meal-log";
+import {
+  buildWeekCompletion,
+  type DayCompletion,
+} from "@/features/meal-plans/utils/day-completion";
 import { resolveLogNutrition } from "@/features/meal-plans/utils/meal-log";
+import { getWeekDates } from "@/utils/week";
 
 const NO_NUMBERS = { kcal: null, protein: null, carbs: null, fat: null };
 
@@ -136,4 +141,44 @@ export const listDatesWithLogs = async (
   ]);
 
   return [...new Set([...logged, ...marked].map((row) => row.date))].sort();
+};
+
+// Completion status (KAN-119) of each date of the week starting `weekStart`
+// for one member: the trainee's and the PT's calendar read the same. Only
+// "achieved" marks of meals that are in the member's plan for that week count,
+// so a mark whose meal is gone, extra food and note-only marks add nothing.
+export const getWeekCompletion = async (
+  userId: number,
+  weekStart: string,
+): Promise<Record<string, DayCompletion>> => {
+  const dates = getWeekDates(weekStart);
+  const rows = await db
+    .select({
+      date: mealPlanDays.date,
+      mealId: mealPlanMeals.id,
+      achieved: mealMarks.achieved,
+    })
+    .from(mealPlanDays)
+    .innerJoin(mealPlanMeals, eq(mealPlanMeals.dayId, mealPlanDays.id))
+    .leftJoin(mealMarks, eq(mealMarks.mealId, mealPlanMeals.id))
+    .where(
+      and(
+        eq(mealPlanDays.userId, userId),
+        between(mealPlanDays.date, dates[0], dates[dates.length - 1]),
+      ),
+    );
+  const mealIdsByDate = new Map<string, number[]>();
+
+  for (const row of rows) {
+    mealIdsByDate.set(row.date, [
+      ...(mealIdsByDate.get(row.date) ?? []),
+      row.mealId,
+    ]);
+  }
+
+  return buildWeekCompletion(
+    dates,
+    mealIdsByDate,
+    rows.filter((row) => row.achieved === true).map((row) => row.mealId),
+  );
 };

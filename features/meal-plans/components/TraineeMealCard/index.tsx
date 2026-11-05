@@ -1,8 +1,9 @@
 "use client";
 
+import clsx from "clsx";
 import { Plus } from "lucide-react";
 
-import { BUTTON_PRIMARY, CARD } from "@/constants/styles";
+import { BUTTON_PRIMARY } from "@/constants/styles";
 import { MacroChips } from "@/features/meal-plans/components/MacroChips";
 import { MealCollapseToggle } from "@/features/meal-plans/components/MealCollapseToggle";
 import { MealLogList } from "@/features/meal-plans/components/MealLogList";
@@ -55,7 +56,13 @@ export const TraineeMealCard = ({
 
   return (
     <section
-      className={`${CARD} flex flex-col gap-3 p-4`}
+      data-achieved={isAchieved}
+      className={clsx(
+        "flex flex-col gap-3 rounded-2xl border p-4",
+        isAchieved
+          ? "border-success/40 bg-success/10"
+          : "border-line bg-surface",
+      )}
       aria-label={`Bữa ${index + 1}: ${meal.name}`}
     >
       <div className="flex items-start gap-1">
@@ -110,21 +117,19 @@ export const TraineeMealCard = ({
           )}
         </div>
 
-        <div>
-          <p className="text-xs font-semibold tracking-wide text-muted uppercase">
-            Đã ăn
-          </p>
-          {logs.length ? (
+        {logs.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold tracking-wide text-muted uppercase">
+              Đã ăn thêm ngoài plan
+            </p>
             <MealLogList
               logs={logs}
               onEdit={isLoggable ? card.openEdit : undefined}
               onRemove={isLoggable ? card.remove : undefined}
               isDisabled={card.isPending}
             />
-          ) : (
-            <p className="mt-1 text-sm text-muted">Chưa ghi món nào.</p>
-          )}
-        </div>
+          </div>
+        )}
 
         {(logs.length > 0 || isAchieved) && (
           <div className="space-y-2">

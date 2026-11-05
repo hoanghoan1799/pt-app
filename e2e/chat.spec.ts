@@ -284,18 +284,23 @@ test("enable, message, reply, unread badges and the PT name work end to end", as
     // Same account actions as the other trainee tabs.
     const header = trainee.page.getByRole("banner");
 
+    await header.getByRole("button", { name: "Tài khoản" }).click();
     await expect(
-      header.getByRole("link", { name: "Đổi mật khẩu" }),
+      header.getByRole("menuitem", { name: "Đổi mật khẩu" }),
     ).toHaveAttribute("href", "/account/password");
     await expect(
-      header.getByRole("button", { name: "Đăng xuất" }),
+      header.getByRole("menuitem", { name: "Đăng xuất" }),
     ).toBeVisible();
+    await trainee.page.keyboard.press("Escape");
     await sendFromComposer(trainee.page, question);
     const traineeLog = trainee.page.getByRole("log");
 
     await expect(traineeLog.getByText(question, { exact: true })).toBeVisible();
     await shot(trainee.page, "chat-02-trainee-sent");
     await expect.poll(() => countMessages(E2E_CHAT_NAME)).toBe(1);
+    // Leave the thread before the admin replies: an open thread keeps polling
+    // and would mark the reply read, racing the tab-badge check below.
+    await trainee.page.goto("/workouts");
 
     // Admin inbox: the exact text and one unread for this trainee only.
     await admin.goto("/admin/messages");
@@ -309,20 +314,38 @@ test("enable, message, reply, unread badges and the PT name work end to end", as
     await expect(row.getByRole("status")).toHaveText("1");
     await shot(admin, "chat-03-admin-inbox-unread");
 
-    // Admin dashboard tile and header badge.
+    // Admin dashboard: header badge, "Tin nhắn" tile badge and the trainee's
+    // own card badge.
     await admin.goto("/admin");
     await expect(
-      admin.getByRole("link", { name: "Tin nhắn chưa đọc" }),
-    ).toContainText("1");
-    await expect(
       admin
+        .getByRole("banner")
         .getByRole("link", { name: "Tin nhắn", exact: true })
         .getByRole("status"),
     ).toHaveText("1");
+    await expect(
+      admin
+        .getByRole("main")
+        .getByRole("link", { name: /^Tin nhắn/ })
+        .getByRole("status"),
+    ).toHaveText("1");
+    await expect(
+      admin
+        .getByRole("main")
+        .getByRole("link")
+        .filter({ hasText: E2E_CHAT_NAME })
+        .getByRole("status"),
+    ).toHaveAccessibleName("1 tin nhắn chưa đọc");
 
     // Opening the thread and replying.
     await admin.goto(`/admin/users/${userId}/messages`);
     const adminLog = admin.getByRole("log");
+    // The trainee's app is open, so its heartbeat marks them online (KAN-129).
+    await expect(
+      admin.getByRole("status", {
+        name: "Trạng thái hoạt động: Đang hoạt động",
+      }),
+    ).toHaveText("Đang hoạt động");
 
     await expect(adminLog.getByText(question, { exact: true })).toBeVisible();
     await sendFromComposer(admin, reply);
@@ -344,6 +367,9 @@ test("enable, message, reply, unread badges and the PT name work end to end", as
     ).toHaveCount(0);
 
     // Trainee on another page: the tab badge shows the one unread reply.
+    // The badge skips polling while its page is hidden, so bring the trainee
+    // page back to the front after the admin steps.
+    await trainee.page.bringToFront();
     await trainee.page.goto("/workouts");
     await expect(
       getTabBar(trainee.page).getByRole("status", {

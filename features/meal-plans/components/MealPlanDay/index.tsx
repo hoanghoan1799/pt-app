@@ -2,6 +2,7 @@
 
 import { Copy, Percent, Plus, Trash2 } from "lucide-react";
 
+import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { BUTTON_SECONDARY } from "@/constants/styles";
 import { CopyDaySheet } from "@/features/meal-plans/components/CopyDaySheet";
 import { DayPlanSummary } from "@/features/meal-plans/components/DayPlanSummary";
@@ -35,9 +36,9 @@ interface MealPlanDayProps {
   preferredMealCount: number | null;
   foodNote: string | null;
   lastWeekPlanCount: number;
-  // Dates the plan can be copied to (without this day) and which of them
-  // already have a plan.
-  copyDates: string[];
+  // Today in the app time zone, for the copy sheet's month picker.
+  today: string;
+  // Plans of the loaded weeks; the sheet reads other months itself.
   datesWithPlan: string[];
   datesWithLogs: string[];
 }
@@ -55,10 +56,11 @@ export const MealPlanDay = ({
   preferredMealCount,
   foodNote,
   lastWeekPlanCount,
-  copyDates,
+  today,
   datesWithPlan,
   datesWithLogs,
 }: MealPlanDayProps) => {
+  const confirm = useConfirm();
   const day = useMealPlanDay(userId, plan);
   const collapse = useMealCollapse(plan?.meals.map((meal) => meal.id) ?? []);
 
@@ -165,12 +167,16 @@ export const MealPlanDay = ({
       </div>
       <button
         type="button"
-        onClick={() => {
-          if (
-            window.confirm(
-              formatDeletePlanQuestion(logs.length > 0 || marks.length > 0),
-            )
-          ) {
+        onClick={async () => {
+          const isConfirmed = await confirm({
+            title: formatDeletePlanQuestion(
+              logs.length > 0 || marks.length > 0,
+            ),
+            confirmLabel: "Xóa",
+            isDanger: true,
+          });
+
+          if (isConfirmed) {
             day.dayPlan.remove(plan.id);
           }
         }}
@@ -185,7 +191,7 @@ export const MealPlanDay = ({
         userId={userId}
         dayId={plan.id}
         sourceDate={date}
-        dates={copyDates}
+        today={today}
         datesWithPlan={datesWithPlan}
         datesWithLogs={datesWithLogs}
         isOpen={day.isCopyOpen}

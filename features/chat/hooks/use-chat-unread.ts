@@ -2,13 +2,24 @@
 
 import { useEffect, useState } from "react";
 
-const UNREAD_URL = "/api/chat/unread";
+const USER_UNREAD_URL = "/api/chat/unread";
+const ADMIN_UNREAD_URL = "/api/chat/unread?as=admin";
 const UNREAD_POLL_MS = 15_000;
+// Dispatched on window by live inbox events so badges refetch right away.
+export const UNREAD_REFRESH_EVENT = "chat:unread-refresh";
 
-// Tab-bar badge: polls the cheap unread endpoint and refreshes on focus.
-// `paused` (on /messages itself) stops all requests; the thread is live there.
-export const useChatUnread = (paused: boolean) => {
-  const [count, setCount] = useState(0);
+// Badge: polls the cheap unread endpoint, refreshes on focus and on
+// UNREAD_REFRESH_EVENT. Trainee: the tab-bar badge; `paused` (on /messages
+// itself) stops all requests, the thread is live there. Admin: the total from
+// `?as=admin`; `initialCount` is the server-rendered value shown until the
+// first poll lands.
+export const useChatUnread = (
+  paused: boolean,
+  role: "user" | "admin" = "user",
+  initialCount = 0,
+) => {
+  const [count, setCount] = useState(initialCount);
+  const url = role === "admin" ? ADMIN_UNREAD_URL : USER_UNREAD_URL;
 
   useEffect(() => {
     if (paused) {
@@ -24,7 +35,7 @@ export const useChatUnread = (paused: boolean) => {
       }
       inFlight = true;
       try {
-        const response = await fetch(UNREAD_URL, { cache: "no-store" });
+        const response = await fetch(url, { cache: "no-store" });
 
         if (response.ok && !cancelled) {
           const data: { count?: unknown } = await response.json();
@@ -44,13 +55,15 @@ export const useChatUnread = (paused: boolean) => {
 
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onVisible);
+    window.addEventListener(UNREAD_REFRESH_EVENT, onVisible);
     return () => {
       cancelled = true;
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onVisible);
+      window.removeEventListener(UNREAD_REFRESH_EVENT, onVisible);
     };
-  }, [paused]);
+  }, [paused, url]);
 
   return paused ? 0 : count;
 };

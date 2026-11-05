@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { MEMBER_MESSAGES } from "@/features/members/constants/messages";
 import {
   changeMemberEmailAction,
@@ -13,6 +14,7 @@ import { describeErrorReference } from "@/utils/errors";
 
 export const useMemberLogin = (userId: number, email: string | null) => {
   const router = useRouter();
+  const confirm = useConfirm();
   const [isEditing, setIsEditing] = useState(false);
   const [emailError, setEmailError] = useState<string>();
   const [password, setPassword] = useState<string>();
@@ -47,8 +49,14 @@ export const useMemberLogin = (userId: number, email: string | null) => {
     });
   };
 
-  const resetPassword = () => {
-    if (!window.confirm(MEMBER_MESSAGES.RESET_CONFIRM)) {
+  const resetPassword = async () => {
+    const isConfirmed = await confirm({
+      title: MEMBER_MESSAGES.RESET_CONFIRM,
+      confirmLabel: "Đặt lại",
+      isDanger: true,
+    });
+
+    if (!isConfirmed) {
       return;
     }
     startReset(async () => {

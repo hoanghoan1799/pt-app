@@ -15,12 +15,15 @@ import { Composer } from "@/features/chat/components/Composer";
 import { LockedBanner } from "@/features/chat/components/LockedBanner";
 import { MessageBubble } from "@/features/chat/components/MessageBubble";
 import { NewMessagesChip } from "@/features/chat/components/NewMessagesChip";
+import { PresenceStatus } from "@/features/chat/components/PresenceStatus";
 import { PushOptInCard } from "@/features/chat/components/PushOptInCard";
+import { TypingIndicator } from "@/features/chat/components/TypingIndicator";
 import { CHAT_MESSAGES } from "@/features/chat/constants/messages";
 import { useChatAdapter } from "@/features/chat/hooks/use-chat-adapter";
 import type { ThreadSnapshot } from "@/features/chat/hooks/use-chat-messages";
 import { useChatMessages } from "@/features/chat/hooks/use-chat-messages";
 import { useChatTransport } from "@/features/chat/hooks/use-chat-transport";
+import { usePeerPresence } from "@/features/chat/hooks/use-peer-presence";
 import {
   buildThreadItems,
   firstStoredId,
@@ -97,6 +100,11 @@ export const ChatThread = ({
   const adapter = useChatAdapter(viewer, userId, conversationId);
   const chat = useChatMessages({ adapter, initial, isViewing: isVisible });
   const { messages, hasMore, chatEnabled, peerReadUpTo, sync } = chat;
+  const presence = usePeerPresence({
+    role: viewer.role,
+    userId,
+    fromThread: chat.peerLastSeenAt,
+  });
   const viewport = useVisualViewport();
   const scroller = useRef<HTMLDivElement>(null);
   const wasNearBottom = useRef(true);
@@ -107,7 +115,7 @@ export const ChatThread = ({
   );
   const [showNewChip, setShowNewChip] = useState(false);
 
-  useChatTransport({
+  const { isPeerTyping, clearPeerTyping, sendTyping } = useChatTransport({
     role: viewer.role,
     userId,
     conversationId,
@@ -153,6 +161,23 @@ export const ChatThread = ({
       ? last.clientId
       : String(last.id)
     : null;
+
+  // The indicator ends the moment the peer's message arrives.
+  const lastPeerKey = last && last.senderRole !== viewer.role ? lastKey : null;
+
+  useEffect(() => {
+    if (lastPeerKey !== null) {
+      clearPeerTyping();
+    }
+  }, [lastPeerKey, clearPeerTyping]);
+
+  // The indicator row grows the log: keep the latest in view if the reader is
+  // already at the bottom.
+  useLayoutEffect(() => {
+    if (isPeerTyping && wasNearBottom.current) {
+      scrollToBottom(true);
+    }
+  }, [isPeerTyping, scrollToBottom]);
 
   useLayoutEffect(() => {
     if (lastKey === lastItemKey.current) {
@@ -218,8 +243,13 @@ export const ChatThread = ({
     void chat.loadOlder();
   };
 
+  const latestPeerName = latestAdminName(messages);
   const headerNode =
-    typeof header === "function" ? header(latestAdminName(messages)) : header;
+    typeof header === "function" ? header(latestPeerName) : header;
+  const typingName =
+    viewer.role === "admin"
+      ? (viewer.peerName ?? "Học viên")
+      : (latestPeerName ?? "PT");
 
   return (
     <div
@@ -240,6 +270,16 @@ export const ChatThread = ({
         </div>
       ) : (
         headerNode
+      )}
+      {presence?.text && (
+        // Under the header so it stays visible when the admin header folds
+        // away for the keyboard.
+        <div className="shrink-0 border-b border-line bg-bg px-4 py-1.5">
+          <PresenceStatus
+            presence={presence}
+            className="mx-auto w-full max-w-lg"
+          />
+        </div>
       )}
       <div className="relative min-h-0 flex-1">
         <div
@@ -294,6 +334,9 @@ export const ChatThread = ({
                 );
               })}
             </div>
+            {isPeerTyping && chatEnabled && (
+              <TypingIndicator name={typingName} />
+            )}
           </div>
         </div>
         {showNewChip && (
@@ -320,6 +363,7 @@ export const ChatThread = ({
         {chatEnabled ? (
           <Composer
             onSend={chat.send}
+            onTyping={sendTyping}
             placeholder={
               viewer.role === "admin" && viewer.peerName
                 ? `Nhắn tin cho ${viewer.peerName}…`

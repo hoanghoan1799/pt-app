@@ -3,7 +3,7 @@
 import { UserPlus } from "lucide-react";
 
 import { SubmitButton } from "@/components/common/SubmitButton";
-import { BUTTON_PRIMARY, FIELD_ERROR, INPUT } from "@/constants/styles";
+import { BUTTON_PRIMARY, FIELD_ERROR, INPUT, LABEL } from "@/constants/styles";
 import { OneTimePassword } from "@/features/members/components/OneTimePassword";
 import { useCreateMember } from "@/features/members/hooks/use-create-member";
 
@@ -28,9 +28,9 @@ export const CreateMemberForm = ({ onDone }: CreateMemberFormProps) => {
   }
 
   return (
-    <form action={formAction} className="space-y-3">
+    <form action={formAction} className="space-y-4">
       <div>
-        <label htmlFor="member-name" className="sr-only">
+        <label htmlFor="member-name" className={LABEL}>
           Tên user mới
         </label>
         <input
@@ -53,7 +53,7 @@ export const CreateMemberForm = ({ onDone }: CreateMemberFormProps) => {
         )}
       </div>
       <div>
-        <label htmlFor="member-email" className="sr-only">
+        <label htmlFor="member-email" className={LABEL}>
           Email đăng nhập
         </label>
         <input
@@ -78,10 +78,14 @@ export const CreateMemberForm = ({ onDone }: CreateMemberFormProps) => {
           </p>
         )}
       </div>
-      <SubmitButton className={`${BUTTON_PRIMARY} w-full`}>
-        <UserPlus className="size-5" aria-hidden />
-        Thêm
-      </SubmitButton>
+      {/* Pinned to the sheet's bottom edge so it stays reachable while the
+          keyboard is up; the negative margin cancels the sheet's own padding. */}
+      <div className="sticky bottom-0 -mb-[calc(env(safe-area-inset-bottom)+1.25rem)] bg-bg pt-2 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
+        <SubmitButton className={`${BUTTON_PRIMARY} w-full`}>
+          <UserPlus className="size-5" aria-hidden />
+          Thêm
+        </SubmitButton>
+      </div>
     </form>
   );
 };

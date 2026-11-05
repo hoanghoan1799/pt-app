@@ -22,6 +22,8 @@ export interface ThreadSnapshot {
   hasMore: boolean;
   chatEnabled: boolean;
   peerReadUpTo: number;
+  // The other side's last heartbeat (ISO) for the status line, KAN-128.
+  peerLastSeenAt?: string | null;
 }
 
 type ThreadResponse = ThreadSnapshot;
@@ -58,6 +60,7 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
   const [hasMore, setHasMore] = useState(initial.hasMore);
   const [chatEnabled, setChatEnabled] = useState(initial.chatEnabled);
   const [peerReadUpTo, setPeerReadUpTo] = useState(initial.peerReadUpTo);
+  const [peerLastSeenAt, setPeerLastSeenAt] = useState(initial.peerLastSeenAt);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
@@ -78,6 +81,9 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
   });
 
   const apply = useCallback((data: ThreadResponse, isForward: boolean) => {
+    if (data.peerLastSeenAt !== undefined) {
+      setPeerLastSeenAt(data.peerLastSeenAt);
+    }
     setMessages((current) => mergeMessages(current, data.messages));
     setChatEnabled(data.chatEnabled);
     setPeerReadUpTo((current) => Math.max(current, data.peerReadUpTo));
@@ -295,6 +301,7 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
     hasMore,
     chatEnabled,
     peerReadUpTo,
+    peerLastSeenAt,
     isLoadingOlder,
     sendError,
     sync,

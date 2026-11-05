@@ -3,6 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { fillTraineeLogin } from "./auth";
 import { E2E_ADMIN, E2E_DB_URL, E2E_USER_NAME } from "./config";
+import { answerConfirm } from "./confirm";
 import { E2E_FOODS } from "./seed";
 
 // PT views of the food library test matrix (docs/specs/food-library.md): F4,
@@ -81,8 +82,8 @@ test("F8: the PT adds, edits and deletes Phở bò, and the trainee list follows
   page,
   browser,
 }) => {
-  // Entry point: the Thực phẩm button in the admin home header.
-  await page.getByRole("link", { name: "Thực phẩm" }).click();
+  // Entry point: the Thư viện món tile in the admin home "Thao tác" section.
+  await page.getByRole("link", { name: "Thư viện món" }).click();
   await expect(page).toHaveURL(/\/admin\/foods$/);
   await expect(getFoodLink(page, PHO)).toHaveCount(0);
 
@@ -137,21 +138,21 @@ test("F8: the PT adds, edits and deletes Phở bò, and the trainee list follows
   // Delete: dismissing keeps it, accepting archives it from both lists.
   await getFoodLink(page, PHO_EDITED).click();
 
-  const messages: string[] = [];
-  let shouldAccept = false;
-
-  page.on("dialog", (dialog) => {
-    messages.push(dialog.message());
-    void (shouldAccept ? dialog.accept() : dialog.dismiss());
-  });
-
   await page.getByRole("button", { name: "Xóa", exact: true }).click();
-  await expect.poll(() => messages.length).toBe(1);
-  expect(messages[0]).toBe("Xóa món này?");
+  await answerConfirm(page, "Hủy", "Xóa món này?");
   await expect(page).toHaveURL(/\/admin\/foods\/\d+$/);
 
-  shouldAccept = true;
+  // Esc cancels too, and no native dialog is involved.
   await page.getByRole("button", { name: "Xóa", exact: true }).click();
+  await expect(
+    page.getByRole("alertdialog", { name: "Xóa món này?" }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("alertdialog")).toHaveCount(0);
+  await expect(page).toHaveURL(/\/admin\/foods\/\d+$/);
+
+  await page.getByRole("button", { name: "Xóa", exact: true }).click();
+  await answerConfirm(page, "Xóa", "Xóa món này?");
   await expect(page).toHaveURL(/\/admin\/foods$/);
   await expect(getFoodLink(page, PHO_EDITED)).toHaveCount(0);
   expect(await traineeSees(browser, PHO_EDITED)).toBe(0);
@@ -290,4 +291,32 @@ test("F11: search ignores accents and the group chips narrow the list", async ({
   // Back to all.
   await page.getByRole("button", { name: "Tất cả" }).click();
   await expect(getFoodLink(page, "Ức gà \\(sống\\)")).toBeVisible();
+});
+
+test("the group chips scroll sideways, snap, and the page does not", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.goto("/admin/foods");
+
+  const chips = page.getByRole("group", { name: "Lọc theo nhóm" });
+
+  await expect(chips.getByRole("button", { name: "Tất cả" })).toBeVisible();
+  // More chips than fit: the row scrolls by itself and snaps (KAN-124).
+  const row = await chips.evaluate((element) => ({
+    canScroll: element.scrollWidth > element.clientWidth,
+    snap: getComputedStyle(element).scrollSnapType,
+    overflowX: getComputedStyle(element).overflowX,
+  }));
+
+  expect(row.canScroll).toBe(true);
+  expect(row.overflowX).toBe("auto");
+  expect(row.snap).toContain("x");
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    ),
+  ).toBeLessThanOrEqual(0);
 });

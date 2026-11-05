@@ -29,6 +29,18 @@ interface Environment {
 const subscribeUrl = (role: PushRole) =>
   role === "admin" ? "/api/push/subscribe?as=admin" : "/api/push/subscribe";
 
+const deleteSubscription = async (role: PushRole, endpoint: string) => {
+  const response = await fetch(subscribeUrl(role), {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ endpoint }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`unsubscribe failed: ${response.status}`);
+  }
+};
+
 const readDismissed = (role: PushRole) => {
   try {
     return window.localStorage.getItem(DISMISS_KEY_PREFIX + role) === "1";
@@ -174,5 +186,55 @@ export const usePushSubscription = (role: PushRole) => {
     }
   }, [role]);
 
-  return { state, busy, error, enable, dismiss };
+  // Turns push off for this browser: drops the server row, then the browser
+  // subscription, so no message can reach it any more.
+  const disable = useCallback(async () => {
+    if (busyRef.current) {
+      return;
+    }
+    busyRef.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const existing = await registration.pushManager.getSubscription();
+
+      if (existing) {
+        await deleteSubscription(role, existing.endpoint);
+        await existing.unsubscribe();
+      }
+      resyncedRoles.delete(role);
+      setSubscribed(false);
+    } catch {
+      setError(ERROR_MESSAGE);
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  }, [role]);
+
+  // What the settings menu needs, independent of the one-time card's
+  // "Để sau": whether push can work here at all, and whether it is on.
+  const isReady = environment !== null;
+  const isAvailable =
+    isReady &&
+    VAPID_PUBLIC_KEY.length > 0 &&
+    (environment.supported || (environment.isIos && !environment.standalone));
+  const needsInstall =
+    isAvailable && environment.isIos && !environment.standalone;
+  const isBlocked = isAvailable && environment.permission === "denied";
+
+  return {
+    state,
+    busy,
+    error,
+    enable,
+    dismiss,
+    disable,
+    isReady,
+    isAvailable,
+    needsInstall,
+    isBlocked,
+    isSubscribed: subscribed,
+  };
 };

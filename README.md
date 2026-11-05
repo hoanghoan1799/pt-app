@@ -7,15 +7,18 @@
 **User** (`/`)
 
 - Đăng nhập bằng email + mật khẩu (email không phân biệt hoa/thường). PT tạo tài khoản kèm email; mật khẩu tạo sẵn chỉ hiện **một lần** khi tạo (hoặc khi PT đặt lại) để PT gửi cho học viên.
-- Giữ đăng nhập: cookie tự gia hạn mỗi lần mở app (400 ngày), nên lần sau vào thẳng lịch tập. Chỉ khi bấm **Đăng xuất** (hoặc PT đặt lại mật khẩu) mới phải nhập lại. Trình duyệt/trình quản lý mật khẩu sẽ nhớ email và mật khẩu.
-- **Đổi mật khẩu**: bấm biểu tượng chìa khóa trên thanh tiêu đề (`/account/password`), nhập mật khẩu hiện tại, mật khẩu mới (8-128 ký tự, khác mật khẩu cũ) và nhập lại. Các thiết bị khác sẽ bị đăng xuất.
+- Giữ đăng nhập: cookie tự gia hạn mỗi lần mở app (400 ngày), nên lần sau vào thẳng lịch tập. Chỉ khi chọn **Đăng xuất** trong menu tài khoản (app hỏi lại trước khi thoát) hoặc PT đặt lại mật khẩu mới phải nhập lại. Trình duyệt/trình quản lý mật khẩu sẽ nhớ email và mật khẩu.
+- **Đổi mật khẩu**: mở menu **tài khoản** (biểu tượng người ở góc phải thanh tiêu đề) → **Đổi mật khẩu** (`/account/password`), nhập mật khẩu hiện tại, mật khẩu mới (8-128 ký tự, khác mật khẩu cũ) và nhập lại. Đổi xong app quay về **Lịch tập** và hiện thông báo; các thiết bị khác sẽ bị đăng xuất.
 - **Quên mật khẩu**: liên hệ PT để đặt lại. PT sẽ đặt mật khẩu mới trong trang user và gửi lại cho bạn.
 - Đăng nhập sai 5 lần trong 15 phút sẽ bị khóa 15 phút.
+- **Thanh tiêu đề** (cả user và PT): menu **bánh răng** chọn giao diện **Sáng / Tối / Hệ thống** (lưu bằng cookie, áp dụng ngay từ server nên không bị nháy) và bật/tắt **thông báo đẩy**; menu **tài khoản** có **Đổi mật khẩu** và **Đăng xuất**. Mọi thao tác xóa/ghi đè/đăng xuất đều hỏi lại bằng hộp thoại trong app, không dùng hộp thoại của trình duyệt.
 - Lịch theo tuần (T2 → CN), mặc định mở hôm nay, chuyển tuần trước/sau.
 - Mỗi bài tập: video YouTube phát ngay trong trang, số hiệp × số lần, mô tả.
 - Ngày không có bài hiển thị "Ngày nghỉ".
 - **Đánh dấu đã tập** từng bài (hôm nay hoặc ngày đã qua; bấm lại để bỏ). Có thanh tiến độ ngày/tuần, dấu ✓ trên ngày đã tập xong.
 - **Dinh dưỡng** (tab dưới cùng): xem mục tiêu carb/protein/fat mỗi ngày (gram, quy đổi lạng) và lời dặn của PT; ghi từng bữa đã ăn (món + gram ước lượng) cho hôm nay hoặc ngày đã qua; tiến độ trong ngày (còn thiếu/đạt/vượt) và bảng tổng kết tuần.
+  - Thứ tự màn hình: **lịch tuần** (chấm xanh = đã đánh dấu đủ các bữa, vàng = đánh dấu một số bữa, xám = chưa có plan hoặc chưa đánh dấu; có chú thích màu) → **Mục tiêu trong ngày** (calo một thanh, Carb/Protein/Fat là ba vòng tròn kèm "đã ăn / mục tiêu g" và còn/vượt) → **Plan bữa ăn**.
+  - Bữa đã đánh dấu **Đạt** có nền xanh; mục **Đã ăn thêm ngoài plan** chỉ hiện ở bữa có món ăn thêm.
 - **Chỉ số của bạn**: user tự nhập giới tính, tuổi, chiều cao, cân nặng, mức vận động, mục tiêu để xem BMR/TDEE. Nếu mục tiêu dinh dưỡng đang "tự tính từ TDEE" (hoặc chưa có), nó được tính lại ngay; nếu PT đã nhập tay thì giữ nguyên.
 - **Tổng kết** (tab thứ 3): tuần tập luyện (buổi/bài đã tập từng ngày) và dinh dưỡng (gram từng ngày so với mục tiêu, số ngày ghi/đạt, kcal TB). Bấm vào ngày để mở chi tiết.
 - **Cân nặng theo tuần** (đầu tab Tổng kết): user ghi "cân hôm nay" (mỗi ngày 1 số, ghi lại thì thay), biểu đồ trung bình theo tuần trong 12 tuần (chạm để xem từng tuần, có dạng bảng), thay đổi so với tuần trước và cả kỳ. Cân mới nhất cập nhật luôn chỉ số cơ thể/TDEE; mục tiêu "tự tính từ TDEE" được tính lại theo.
@@ -29,7 +32,9 @@
 - Đăng nhập bằng tài khoản + mật khẩu riêng (lưu trong DB, mật khẩu hash bằng scrypt). Tạo bằng `pnpm admin:create`.
 - **App PT Admin**: mở `/admin` trên điện thoại rồi **Thêm vào MH chính** (iPhone) hoặc **Cài đặt ứng dụng** (menu Chrome) để có icon riêng "PT Admin" mở thẳng vào dashboard, tách biệt với app của học viên.
 - **Dashboard** (`/admin`) theo tuần: số user, số user đang tập, % hoàn thành, số bài đã tập; danh sách user kèm tiến độ, lần tập gần nhất và nhãn "Chưa có lịch"; nhật ký hoạt động gần đây.
-- Thêm (nút + trên dashboard) / xóa user.
+- Khu **Thao tác** trên dashboard có ba ô: **Thêm user**, **Thư viện món**, **Tin nhắn** (kèm số tin chưa đọc). Thẻ user có huy hiệu tin chưa đọc riêng. Thêm user mở một tờ nhập có nhãn rõ ràng và nút gửi cố định; tạo xong, mật khẩu một lần và nút **Sao chép** hiện ngay đầu tờ.
+- Xóa user.
+- Thanh tiêu đề admin: biểu tượng tin nhắn (có số chưa đọc cập nhật trực tiếp), menu bánh răng (giao diện, thông báo đẩy) và menu tài khoản (đăng xuất có hỏi lại).
 - Trang từng user: tiến độ tuần, bài nào đã tập lúc nào, lịch sử tập.
 - Tab **Dinh dưỡng** của từng user: đặt mục tiêu gram/ngày cho carb, protein, fat + lời dặn (áp dụng từ hôm nay, ngày cũ giữ mục tiêu cũ); xem nhật ký ăn, tổng kết ngày/tuần. Dashboard hiện số ngày user đã ghi nhật ký ăn.
 - **TDEE**: admin nhập giới tính, tuổi, chiều cao, cân nặng, mức vận động, mục tiêu (giảm mỡ / giữ cân / tăng cơ) → app tính BMR (Mifflin-St Jeor), TDEE, calo mục tiêu (−20% / 0 / +10%) và chia macro (protein 2,2 / 1,8 / 2,0 g/kg, fat 25% calo, carb phần còn lại), rồi tự điền vào mục tiêu dinh dưỡng từ hôm nay (có thể bỏ tick để tự nhập tay). Mục tiêu hiển thị kèm kcal và món tương đương (≈ lạng cơm chín, lạng ức gà, thìa dầu).
@@ -38,7 +43,8 @@
 - Giao bài theo ngày cho từng user: tiêu đề + ghi chú của ngày; mỗi bài có tên, link YouTube (preview ngay khi dán), số hiệp, số lần/thời gian, mô tả.
 - Sửa, xóa, sắp xếp thứ tự bài tập.
 - Sao chép cả tuần sang tuần khác hoặc sang user khác.
-- **Tin nhắn**: chat mặc định tắt. Bật/khoá chat cho từng user bằng công tắc trong tab **Tin nhắn** của user đó (khoá thì giữ lịch sử, hai bên đều không gửi được). Hộp thư chung `/admin/messages` liệt kê các cuộc trò chuyện kèm số tin chưa đọc; dashboard có ô **Tin nhắn chưa đọc**.
+- Sao chép plan bữa ăn sang ngày khác bằng lịch tháng (T2 đầu tuần): ngày đã qua bị khóa, hôm nay và ngày mai có nhãn, chọn nhiều ngày, ngày đã có plan sẽ hỏi trước khi ghi đè.
+- **Tin nhắn**: chat mặc định tắt. Bật/khoá chat cho từng user bằng công tắc trong tab **Tin nhắn** của user đó (khoá thì giữ lịch sử, hai bên đều không gửi được). Hộp thư chung `/admin/messages` liệt kê các cuộc trò chuyện kèm số tin chưa đọc; số chưa đọc cập nhật trực tiếp không cần tải lại, và khi có Ably thì hiện "đang nhập…" ở hai phía.
 - "Xem như user" (biểu tượng con mắt) để xem trước đúng màn hình user thấy.
 
 ## Chạy local

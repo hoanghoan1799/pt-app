@@ -7,6 +7,7 @@ import {
   desc,
   eq,
   gt,
+  inArray,
   isNull,
   like,
   lt,
@@ -300,6 +301,36 @@ export const countUnreadForAdmin = async (adminId: number) => {
   return rows.reduce((total, row) => total + row.unread, 0);
 };
 
+// Unread per trainee for the admin, only trainees with something unread.
+export const listUnreadByTraineeForAdmin = async (adminId: number) => {
+  const unreadRows = await unreadByConversation(
+    "user",
+    adminReaderKey(adminId),
+  );
+
+  if (unreadRows.length === 0) {
+    return [];
+  }
+  const owners = await db
+    .select({ id: chatConversations.id, userId: chatConversations.userId })
+    .from(chatConversations)
+    .where(
+      inArray(
+        chatConversations.id,
+        unreadRows.map((row) => row.conversationId),
+      ),
+    );
+  const userByConversation = new Map(owners.map((row) => [row.id, row.userId]));
+
+  return unreadRows.flatMap((row) => {
+    const userId = userByConversation.get(row.conversationId);
+
+    return userId === undefined
+      ? []
+      : [{ userId, conversationId: row.conversationId, unread: row.unread }];
+  });
+};
+
 // Username of the PT who wrote the newest admin message, for the trainee's
 // header. Null when no admin has written yet or that admin was deleted.
 export const findLatestAdminSenderName = async (conversationId: number) => {
@@ -332,11 +363,14 @@ export interface InboxItem {
   lastSenderAdminName: string | null;
   lastMessageAt: Date | null;
   unread: number;
+  // Trainee's last heartbeat (KAN-128); null = never seen.
+  lastSeenAt: Date | null;
 }
 
 export interface InboxWithoutConversation {
   userId: number;
   userName: string;
+  lastSeenAt: Date | null;
 }
 
 export const listAdminInbox = async (adminId: number) => {
@@ -347,6 +381,7 @@ export const listAdminInbox = async (adminId: number) => {
         userId: users.id,
         userName: users.name,
         chatEnabled: users.chatEnabled,
+        lastSeenAt: users.lastSeenAt,
         lastBody: chatMessages.body,
         lastSenderRole: chatMessages.senderRole,
         lastSenderAdminId: chatMessages.senderAdminId,
@@ -367,7 +402,11 @@ export const listAdminInbox = async (adminId: number) => {
       ),
     unreadByConversation("user", adminReaderKey(adminId)),
     db
-      .select({ userId: users.id, userName: users.name })
+      .select({
+        userId: users.id,
+        userName: users.name,
+        lastSeenAt: users.lastSeenAt,
+      })
       .from(users)
       .leftJoin(chatConversations, eq(chatConversations.userId, users.id))
       .where(and(eq(users.chatEnabled, true), isNull(chatConversations.id)))
@@ -387,10 +426,11 @@ export const listAdminInbox = async (adminId: number) => {
     lastSenderAdminName: row.lastSenderAdminName,
     lastMessageAt: row.lastMessageAt,
     unread: unreadById.get(row.conversationId) ?? 0,
+    lastSeenAt: row.lastSeenAt,
   }));
 
   return {
     conversations,
-    withoutConversation: fresh as InboxWithoutConversation[],
+    withoutConversation: fresh satisfies InboxWithoutConversation[],
   };
 };

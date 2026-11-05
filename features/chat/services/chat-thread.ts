@@ -8,6 +8,8 @@ import {
   listMessages,
   type ListMessagesOptions,
 } from "@/features/chat/services/chat-queries";
+import { getAdminTeamLastSeen } from "@/features/chat/services/presence";
+import { serializeLastSeen } from "@/features/chat/utils/presence";
 
 export interface ThreadPayload {
   messages: ChatMessage[];
@@ -15,6 +17,10 @@ export interface ThreadPayload {
   chatEnabled: boolean;
   // Highest message id the other side has read ("Đã xem").
   peerReadUpTo: number;
+  // Newest heartbeat across all PTs as an ISO string, null if never seen.
+  // Only on full payloads: the 204 fast path carries no presence, the client
+  // refreshes it via GET /api/presence/peer.
+  peerLastSeenAt: string | null;
 }
 
 // What the polling client already knows. Only when `after`, `readUpTo` and
@@ -39,7 +45,13 @@ export const loadTraineeThread = async (
   if (!conversation) {
     return {
       notModified: false,
-      payload: { messages: [], hasMore: false, chatEnabled, peerReadUpTo: 0 },
+      payload: {
+        messages: [],
+        hasMore: false,
+        chatEnabled,
+        peerReadUpTo: 0,
+        peerLastSeenAt: serializeLastSeen(await getAdminTeamLastSeen()),
+      },
     };
   }
   const peerReadUpTo = await getPeerReadCursor(conversation.id, "user");
@@ -52,10 +64,19 @@ export const loadTraineeThread = async (
   ) {
     return { notModified: true };
   }
-  const { messages, hasMore } = await listMessages(conversation.id, query);
+  const [{ messages, hasMore }, teamLastSeen] = await Promise.all([
+    listMessages(conversation.id, query),
+    getAdminTeamLastSeen(),
+  ]);
 
   return {
     notModified: false,
-    payload: { messages, hasMore, chatEnabled, peerReadUpTo },
+    payload: {
+      messages,
+      hasMore,
+      chatEnabled,
+      peerReadUpTo,
+      peerLastSeenAt: serializeLastSeen(teamLastSeen),
+    },
   };
 };

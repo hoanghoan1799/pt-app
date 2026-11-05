@@ -20,6 +20,8 @@ export interface MemberRow extends MemberProgress {
   status: "no-plan" | "not-started" | "in-progress" | "done";
   lastActiveLabel: string | null;
   href: string;
+  // Unread chat messages from this trainee for the signed-in admin.
+  unread: number;
 }
 
 export interface WeekSummary {
