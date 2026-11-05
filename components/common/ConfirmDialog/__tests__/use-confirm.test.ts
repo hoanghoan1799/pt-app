@@ -16,6 +16,7 @@ describe("confirm store", () => {
     expect(createConfirmStore().getSnapshot()).toEqual({
       isOpen: false,
       options: null,
+      requestId: 0,
     });
   });
 
