@@ -49,6 +49,11 @@ export const E2E_PLANNER_NAME = "E2E Planner";
 // and one old free-text food entry.
 export const E2E_LOGGER_NAME = "E2E Logger";
 
+// Trainee of the nutrition tab spec (KAN-125): a marked and an unmarked day, an
+// extra food and a manual target (see seedRings in seed.ts).
+export const E2E_RINGS_NAME = "E2E Rings";
+export const E2E_RINGS_EXTRA_FOOD = "E2E Bánh quy";
+
 // Trainees of the login specs (KAN-86). Each spec that changes credentials or
 // locks an account owns its trainee, so the specs do not depend on each other.
 export const E2E_LOCKED_NAME = "E2E Locked";
