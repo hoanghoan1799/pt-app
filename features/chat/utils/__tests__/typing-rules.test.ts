@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  isPeerTyping,
   isTypingActive,
+  parseTypingEvent,
   shouldSendTyping,
   TYPING_EXPIRY_MS,
   TYPING_THROTTLE_MS,
@@ -50,5 +52,40 @@ describe("isTypingActive", () => {
 
   it("ignores an event stamped in the future", () => {
     expect(isTypingActive(5000, 1000)).toBe(false);
+  });
+});
+
+describe("parseTypingEvent", () => {
+  it("accepts the typing payload shape", () => {
+    expect(parseTypingEvent({ role: "admin", senderKey: "admin:3" })).toEqual({
+      role: "admin",
+      senderKey: "admin:3",
+    });
+  });
+
+  it("drops anything else", () => {
+    expect(parseTypingEvent(null)).toBeNull();
+    expect(parseTypingEvent("typing")).toBeNull();
+    expect(parseTypingEvent({ role: "owner", senderKey: "x" })).toBeNull();
+    expect(parseTypingEvent({ role: "user", senderKey: 5 })).toBeNull();
+    expect(parseTypingEvent({ role: "user" })).toBeNull();
+  });
+});
+
+describe("isPeerTyping", () => {
+  const fromTrainee = { role: "user", senderKey: "user:7" } as const;
+
+  it("shows the other side", () => {
+    expect(isPeerTyping(fromTrainee, "admin", "admin:1")).toBe(true);
+  });
+
+  it("ignores events from our own role", () => {
+    expect(isPeerTyping(fromTrainee, "user", null)).toBe(false);
+  });
+
+  it("ignores our own echo by client id", () => {
+    expect(
+      isPeerTyping({ role: "admin", senderKey: "admin:1" }, "user", "admin:1"),
+    ).toBe(false);
   });
 });

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  CHAT_EVENTS,
   conversationChannel,
   userChannel,
 } from "@/features/chat/utils/ably-capabilities";
@@ -11,9 +12,17 @@ import {
   type RealtimeState,
   realtimeStateFor,
 } from "@/features/chat/utils/chat-thread-rules";
+import {
+  isPeerTyping,
+  parseTypingEvent,
+  shouldSendTyping,
+  TYPING_EXPIRY_MS,
+} from "@/features/chat/utils/typing-rules";
 
 const USER_TOKEN_URL = "/api/chat/ably-token";
 const ADMIN_TOKEN_URL = "/api/chat/ably-token?as=admin";
+const USER_TYPING_URL = "/api/chat/typing";
+const ADMIN_TYPING_URL = "/api/chat/typing?as=admin";
 
 interface UseChatTransportOptions {
   role: "user" | "admin";
@@ -37,7 +46,20 @@ export const useChatTransport = ({
 }: UseChatTransportOptions) => {
   const [state, setState] = useState<RealtimeState>("connecting");
   const [isHidden, setIsHidden] = useState(false);
+  const [isPeerTypingNow, setIsPeerTypingNow] = useState(false);
   const syncRef = useRef(onSync);
+  const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingSentAt = useRef<number | null>(null);
+  // Mirrors the connection for sendTyping without re-creating it.
+  const connectedRef = useRef(false);
+
+  const clearPeerTyping = useCallback(() => {
+    if (typingTimer.current !== null) {
+      clearTimeout(typingTimer.current);
+      typingTimer.current = null;
+    }
+    setIsPeerTypingNow(false);
+  }, []);
 
   useEffect(() => {
     syncRef.current = onSync;
@@ -88,12 +110,38 @@ export const useChatTransport = ({
           },
         });
         const trigger = () => syncRef.current();
+        // Typing events are not a reason to fetch; they only drive the
+        // indicator, which expires on its own if the peer goes quiet.
+        const handleEvent = (message: { name?: string; data?: unknown }) => {
+          if (message.name !== CHAT_EVENTS.TYPING) {
+            trigger();
+            return;
+          }
+          const event = parseTypingEvent(message.data);
+
+          if (
+            cancelled ||
+            !event ||
+            !isPeerTyping(event, role, client.auth.clientId ?? null)
+          ) {
+            return;
+          }
+          if (typingTimer.current !== null) {
+            clearTimeout(typingTimer.current);
+          }
+          setIsPeerTypingNow(true);
+          typingTimer.current = setTimeout(() => {
+            typingTimer.current = null;
+            setIsPeerTypingNow(false);
+          }, TYPING_EXPIRY_MS);
+        };
 
         close = () => client.close();
         client.connection.on((change) => {
           if (cancelled || change.current === "closed") {
             return;
           }
+          connectedRef.current = change.current === "connected";
           setState(realtimeStateFor(change.current));
           if (change.current === "connected") {
             // One gap-fill after every (re)connect.
@@ -106,7 +154,7 @@ export const useChatTransport = ({
 
         client.channels
           .get(conversationChannel(conversationId))
-          .subscribe(trigger)
+          .subscribe(handleEvent)
           .catch(ignore);
         if (role === "user") {
           client.channels
@@ -124,9 +172,33 @@ export const useChatTransport = ({
     void connect();
     return () => {
       cancelled = true;
+      connectedRef.current = false;
       close?.();
+      clearPeerTyping();
     };
-  }, [canConnect, conversationId, role, userId]);
+  }, [canConnect, conversationId, role, userId, clearPeerTyping]);
+
+  // Throttled, fire and forget. Polling-only mode (no live connection) sends
+  // nothing, so there is no request and no error to handle.
+  const sendTyping = useCallback(() => {
+    const now = Date.now();
+
+    if (
+      !connectedRef.current ||
+      conversationId === null ||
+      !shouldSendTyping(lastTypingSentAt.current, now)
+    ) {
+      return;
+    }
+    lastTypingSentAt.current = now;
+    const isAdmin = role === "admin";
+
+    fetch(isAdmin ? ADMIN_TYPING_URL : USER_TYPING_URL, {
+      method: "POST",
+      headers: isAdmin ? { "Content-Type": "application/json" } : undefined,
+      body: isAdmin ? JSON.stringify({ conversationId }) : undefined,
+    }).catch(() => undefined);
+  }, [conversationId, role]);
 
   // Pause while the tab is hidden; fetch once on return.
   useEffect(() => {
@@ -158,5 +230,10 @@ export const useChatTransport = ({
     return () => clearInterval(timer);
   }, [interval]);
 
-  return { realtimeState: effectiveState };
+  return {
+    realtimeState: effectiveState,
+    isPeerTyping: canConnect && isPeerTypingNow,
+    clearPeerTyping,
+    sendTyping,
+  };
 };

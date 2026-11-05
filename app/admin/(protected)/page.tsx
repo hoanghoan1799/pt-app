@@ -8,7 +8,7 @@ import { HeaderMenus } from "@/components/layout/HeaderMenus";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
-import { UnreadBadge } from "@/features/chat/components/UnreadBadge";
+import { AdminUnreadBadge } from "@/features/chat/components/UnreadBadge";
 import { countUnreadForAdmin } from "@/features/chat/services/chat-queries";
 import { MemberProgressList } from "@/features/dashboard/components/MemberProgressList";
 import { RecentActivityList } from "@/features/dashboard/components/RecentActivityList";
@@ -69,8 +69,8 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
               aria-label="Tin nhắn"
             >
               <MessageCircle className="size-5" />
-              <UnreadBadge
-                count={unreadMessages}
+              <AdminUnreadBadge
+                initialCount={unreadMessages}
                 className="absolute top-1 right-1"
               />
             </Link>

@@ -8,6 +8,8 @@ import { CHAT_BODY_MAX_LENGTH } from "@/features/chat/utils/chat-rules";
 
 interface ComposerProps {
   onSend: (body: string) => void;
+  // Called on every edit that leaves text in the box; the owner throttles.
+  onTyping?: () => void;
   placeholder?: string;
 }
 
@@ -18,6 +20,7 @@ const MAX_HEIGHT_PX = 120;
 // and the button sends.
 export const Composer = ({
   onSend,
+  onTyping,
   placeholder = "Nhắn tin cho PT…",
 }: ComposerProps) => {
   const [value, setValue] = useState("");
@@ -75,6 +78,9 @@ export const Composer = ({
         enterKeyHint="enter"
         onChange={(event) => {
           setValue(event.target.value);
+          if (event.target.value.trim().length > 0) {
+            onTyping?.();
+          }
           resize();
         }}
         onKeyDown={handleKeyDown}
