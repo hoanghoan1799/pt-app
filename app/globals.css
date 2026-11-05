@@ -20,8 +20,11 @@
   color-scheme: light;
 }
 
+/* The root layout sets data-theme to light | dark | system from the theme
+   cookie. "system" (and no attribute) follows the OS; light and dark win over
+   it. Keep the two dark blocks identical. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
     --bg: #0c0c0e;
     --surface: #18181b;
     --fg: #f4f4f5;
@@ -38,6 +41,24 @@
     --macro-fat: #38bdf8;
     color-scheme: dark;
   }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0c0c0e;
+  --surface: #18181b;
+  --fg: #f4f4f5;
+  --muted: #a1a1aa;
+  --line: #2a2a30;
+  --accent: #ff7a2e;
+  --accent-fg: #1a0a00;
+  --danger: #f87171;
+  --success: #4ade80;
+  --success-fg: #052e16;
+  --warning: #fbbf24;
+  --macro-carbs: #fbbf24;
+  --macro-protein: #fb7185;
+  --macro-fat: #38bdf8;
+  color-scheme: dark;
 }
 
 @theme inline {

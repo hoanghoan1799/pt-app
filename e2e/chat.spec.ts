@@ -284,12 +284,14 @@ test("enable, message, reply, unread badges and the PT name work end to end", as
     // Same account actions as the other trainee tabs.
     const header = trainee.page.getByRole("banner");
 
+    await header.getByRole("button", { name: "Tài khoản" }).click();
     await expect(
-      header.getByRole("link", { name: "Đổi mật khẩu" }),
+      header.getByRole("menuitem", { name: "Đổi mật khẩu" }),
     ).toHaveAttribute("href", "/account/password");
     await expect(
-      header.getByRole("button", { name: "Đăng xuất" }),
+      header.getByRole("menuitem", { name: "Đăng xuất" }),
     ).toBeVisible();
+    await trainee.page.keyboard.press("Escape");
     await sendFromComposer(trainee.page, question);
     const traineeLog = trainee.page.getByRole("log");
 
