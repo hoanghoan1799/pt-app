@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { NUTRITION_MESSAGES } from "@/features/nutrition/constants/nutrition";
 import { deleteFoodEntryAction } from "@/features/nutrition/services/nutrition-actions";
 import type { FoodEntry } from "@/features/nutrition/types/nutrition";
@@ -16,6 +17,7 @@ interface EntrySheetState {
 }
 
 export const useFoodLog = () => {
+  const confirm = useConfirm();
   const [sheet, setSheet] = useState<EntrySheetState>({
     isOpen: false,
     entry: null,
@@ -37,8 +39,14 @@ export const useFoodLog = () => {
     setSheet((previous) => ({ ...previous, isOpen }));
   };
 
-  const handleDelete = (entry: FoodEntry) => {
-    if (!window.confirm(NUTRITION_MESSAGES.DELETE_CONFIRM)) {
+  const handleDelete = async (entry: FoodEntry) => {
+    const isConfirmed = await confirm({
+      title: NUTRITION_MESSAGES.DELETE_CONFIRM,
+      confirmLabel: "Xóa",
+      isDanger: true,
+    });
+
+    if (!isConfirmed) {
       return;
     }
 

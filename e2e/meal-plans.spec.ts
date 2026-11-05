@@ -189,7 +189,6 @@ test("Q1: the trainee asks for 4 meals and a food note; both are kept", async ({
 test("S5: the PT builds Monday, auto solves the worked example and the day is on target", async ({
   page,
 }) => {
-  page.on("dialog", (dialog) => void dialog.accept());
   await logInAsAdmin(page);
   await openDay(page, MONDAY);
 

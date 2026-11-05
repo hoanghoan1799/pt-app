@@ -1,5 +1,6 @@
 "use client";
 
+import clsx from "clsx";
 import type { ReactNode } from "react";
 import { Drawer } from "vaul";
 
@@ -9,6 +10,11 @@ interface BottomSheetProps {
   title: string;
   description?: string;
   children: ReactNode;
+  // "alertdialog" for confirmations that need an answer.
+  role?: "dialog" | "alertdialog";
+  // A card with a 16px gutter instead of a full-width sheet.
+  isFloating?: boolean;
+  onOpenAutoFocus?: (event: Event) => void;
 }
 
 export const BottomSheet = ({
@@ -17,13 +23,23 @@ export const BottomSheet = ({
   title,
   description,
   children,
+  role,
+  isFloating = false,
+  onOpenAutoFocus,
 }: BottomSheetProps) => (
   <Drawer.Root open={isOpen} onOpenChange={onOpenChange}>
     <Drawer.Portal>
       <Drawer.Overlay className="fixed inset-0 z-40 bg-black/50" />
       <Drawer.Content
         {...(description ? {} : { "aria-describedby": undefined })}
-        className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[94dvh] w-full max-w-lg flex-col rounded-t-3xl bg-bg outline-none"
+        {...(role ? { role } : {})}
+        onOpenAutoFocus={onOpenAutoFocus}
+        className={clsx(
+          "fixed inset-x-0 z-50 mx-auto flex max-h-[94dvh] flex-col bg-bg outline-none",
+          isFloating
+            ? "bottom-[max(1rem,env(safe-area-inset-bottom))] w-full max-w-[min(32rem,calc(100%-2rem))] rounded-3xl border border-line"
+            : "bottom-0 w-full max-w-lg rounded-t-3xl",
+        )}
       >
         <div className="mx-auto mt-2.5 h-1.5 w-10 shrink-0 rounded-full bg-line" />
         <div className="shrink-0 px-4 pt-3 pb-3">

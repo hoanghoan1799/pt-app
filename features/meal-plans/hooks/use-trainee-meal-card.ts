@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { MEAL_LOG_MESSAGES } from "@/features/meal-plans/constants/meal-plans";
 import { useMealPlanAction } from "@/features/meal-plans/hooks/use-meal-plan-action";
 import { removeMealLogAction } from "@/features/meal-plans/services/meal-log-actions";
@@ -14,6 +15,7 @@ interface SheetState {
 }
 
 export const useTraineeMealCard = () => {
+  const confirm = useConfirm();
   const { isPending, run } = useMealPlanAction();
   const [sheet, setSheet] = useState<SheetState>({
     isOpen: false,
@@ -28,8 +30,14 @@ export const useTraineeMealCard = () => {
     // Keeps `editing` while closing so the sheet doesn't flash.
     setIsOpen: (isOpen: boolean) =>
       setSheet((previous) => ({ ...previous, isOpen })),
-    remove: (log: MealLog) => {
-      if (!window.confirm(MEAL_LOG_MESSAGES.REMOVE_CONFIRM)) {
+    remove: async (log: MealLog) => {
+      const isConfirmed = await confirm({
+        title: MEAL_LOG_MESSAGES.REMOVE_CONFIRM,
+        confirmLabel: "Xóa",
+        isDanger: true,
+      });
+
+      if (!isConfirmed) {
         return;
       }
       run(() => removeMealLogAction({ logId: log.id }), {

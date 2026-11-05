@@ -8,6 +8,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { INITIAL_FORM_STATE } from "@/constants/form";
 import { CONFIRM_MESSAGES } from "@/features/workouts/constants/messages";
 import { saveExerciseAction } from "@/features/workouts/services/workout-actions";
@@ -30,6 +31,7 @@ export const useExerciseForm = ({
   hasSets,
   onSaved,
 }: UseExerciseFormOptions) => {
+  const confirm = useConfirm();
   const [state, formAction, isPending] = useActionState(
     saveExerciseAction,
     INITIAL_FORM_STATE,
@@ -43,7 +45,7 @@ export const useExerciseForm = ({
 
   // Submitted through a transition instead of <form action> so React doesn't
   // reset the fields when the server returns validation errors.
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const formData = new FormData(event.currentTarget);
@@ -53,7 +55,13 @@ export const useExerciseForm = ({
       exercise &&
       shouldConfirmLinkChange(exercise.youtubeId, youtubeId, hasSets)
     ) {
-      if (!window.confirm(CONFIRM_MESSAGES.CHANGE_LINK_WITH_SETS)) {
+      const isConfirmed = await confirm({
+        title: CONFIRM_MESSAGES.CHANGE_LINK_WITH_SETS,
+        confirmLabel: "Tiếp tục",
+        isDanger: true,
+      });
+
+      if (!isConfirmed) {
         return;
       }
       formData.set("confirmResetSets", "true");

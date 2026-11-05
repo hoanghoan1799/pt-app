@@ -2,6 +2,7 @@
 
 import { ChevronDown, ChevronUp, Sparkles, Trash2 } from "lucide-react";
 
+import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { BUTTON_PRIMARY, CARD, ICON_BUTTON } from "@/constants/styles";
 import { FoodPicker } from "@/features/meal-plans/components/FoodPicker";
 import { MacroChips } from "@/features/meal-plans/components/MacroChips";
@@ -9,6 +10,7 @@ import { MealCollapseToggle } from "@/features/meal-plans/components/MealCollaps
 import { MealGapNotice } from "@/features/meal-plans/components/MealGapNotice";
 import { MealItemRow } from "@/features/meal-plans/components/MealItemRow";
 import { MealLogSummary } from "@/features/meal-plans/components/MealLogSummary";
+import { formatDeleteMealQuestion } from "@/features/meal-plans/constants/meal-plans";
 import { useMealCard } from "@/features/meal-plans/hooks/use-meal-card";
 import { useMealNameInput } from "@/features/meal-plans/hooks/use-meal-name-input";
 import type { MealLog, MealMark } from "@/features/meal-plans/types/meal-log";
@@ -57,6 +59,7 @@ export const MealCard = ({
   isCollapsed,
   onToggleCollapse,
 }: MealCardProps) => {
+  const confirm = useConfirm();
   const card = useMealCard(userId, meal);
   const nameInput = useMealNameInput(meal.name, card.rename);
   const totals = sumItems(meal.items);
@@ -118,10 +121,14 @@ export const MealCard = ({
         </button>
         <button
           type="button"
-          onClick={() => {
+          onClick={async () => {
             if (
               !meal.items.length ||
-              window.confirm(`Xóa ${meal.name} và các món trong bữa?`)
+              (await confirm({
+                title: formatDeleteMealQuestion(meal.name),
+                confirmLabel: "Xóa",
+                isDanger: true,
+              }))
             ) {
               card.remove();
             }
