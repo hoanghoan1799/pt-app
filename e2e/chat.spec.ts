@@ -344,6 +344,9 @@ test("enable, message, reply, unread badges and the PT name work end to end", as
     ).toHaveCount(0);
 
     // Trainee on another page: the tab badge shows the one unread reply.
+    // The badge skips polling while its page is hidden, so bring the trainee
+    // page back to the front after the admin steps.
+    await trainee.page.bringToFront();
     await trainee.page.goto("/workouts");
     await expect(
       getTabBar(trainee.page).getByRole("status", {
