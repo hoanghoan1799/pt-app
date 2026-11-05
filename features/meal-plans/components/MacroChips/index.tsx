@@ -23,16 +23,23 @@ export const MacroChips = ({ totals, target }: MacroChipsProps) => (
     {MACROS.map((macro) => (
       <li
         key={macro}
-        className={clsx("rounded-xl px-2.5 py-2", MACRO_COLORS[macro].soft)}
+        className={clsx(
+          "min-w-0 rounded-xl px-2 py-2",
+          MACRO_COLORS[macro].soft,
+        )}
       >
-        <p className={clsx("text-xs font-semibold", MACRO_COLORS[macro].text)}>
+        <p
+          className={clsx(
+            "text-xs font-semibold whitespace-nowrap",
+            MACRO_COLORS[macro].text,
+          )}
+        >
           {MACRO_LABELS[macro].name} (g)
         </p>
         <p className="text-sm leading-tight font-bold text-fg tabular-nums">
           {format(totals[macro])}
           {target ? (
-            <span className="font-normal text-muted">
-              {" "}
+            <span className="block text-xs font-normal text-muted">
               / {format(target[macro])}
             </span>
           ) : null}

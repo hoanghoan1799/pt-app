@@ -215,14 +215,14 @@ export const CopyDaySheet = ({
               );
             })}
           </div>
-          <p className="mt-2 flex items-center gap-2 text-xs text-muted">
-            <span
-              aria-hidden
-              className="size-1.5 shrink-0 rounded-full bg-warning"
-            />
-            Đã có plan, sẽ ghi đè
-          </p>
           <div className="sticky bottom-0 -mx-4 -mb-[calc(env(safe-area-inset-bottom)+1.25rem)] mt-3 bg-bg px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
+            <p className="mb-2 flex items-center gap-2 text-xs text-muted">
+              <span
+                aria-hidden
+                className="size-1.5 shrink-0 rounded-full bg-warning"
+              />
+              Đã có plan, sẽ ghi đè
+            </p>
             <button
               type="button"
               onClick={copy.submit}
