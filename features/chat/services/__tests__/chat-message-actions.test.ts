@@ -689,6 +689,7 @@ describe("reply", () => {
     expect(result.message.replyTo).toEqual({
       id: admin1Msg,
       body: "chào An",
+      isSticker: false,
       senderRole: "admin",
       deleted: false,
     });
@@ -796,6 +797,7 @@ describe("payload shape", () => {
     expect(message?.replyTo).toEqual({
       id: admin1Msg,
       body: "",
+      isSticker: false,
       senderRole: "admin",
       deleted: true,
     });

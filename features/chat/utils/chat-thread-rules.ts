@@ -7,6 +7,7 @@ import {
 } from "@/features/chat/utils/chat-rules";
 import { adminLabel } from "@/features/chat/utils/chat-settings";
 import { displayNameFor } from "@/features/chat/utils/display-name";
+import type { ChatSticker } from "@/features/chat/utils/sticker-rules";
 
 // Pure helpers behind the trainee chat thread: merging, grouping, separators
 // and the polling schedule. No React, no network, so every rule is testable.
@@ -18,6 +19,8 @@ export interface SerializedChatMessage {
   senderAdminId: number | null;
   senderAdminName: string | null;
   body: string;
+  // KAN-144: set for a sticker message (body is empty).
+  sticker?: ChatSticker | null;
   clientId: string;
   createdAt: string;
   replyTo: SerializedReplyTo | null;
@@ -40,6 +43,8 @@ export interface SerializedReplyTo {
   id: number;
   // Truncated snippet; empty when the original was unsent.
   body: string;
+  // The quoted message is a sticker: the UI shows "Sticker".
+  isSticker?: boolean;
   senderRole: "user" | "admin";
   deleted: boolean;
 }

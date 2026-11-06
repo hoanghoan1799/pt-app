@@ -127,6 +127,7 @@ describe("listMessages", () => {
       "senderAdminId",
       "senderAdminName",
       "senderRole",
+      "sticker",
       "updatedAt",
     ]);
     expect(messages.map((m) => m.senderAdminName)).toEqual(["pt-one", null]);

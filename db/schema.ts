@@ -467,6 +467,10 @@ export const chatMessages = sqliteTable(
     hiddenByAdminId: integer("hidden_by_admin_id"),
     // KAN-138: quoted message (same conversation, checked in the action).
     replyToMessageId: integer("reply_to_message_id"),
+    // KAN-144: a sticker message has an empty body. Ref is "pack:<id>" or
+    // "giphy:<id>"; the URL is a bundled path or a GIPHY media URL.
+    stickerRef: text("sticker_ref"),
+    stickerUrl: text("sticker_url"),
     editedAt: integer("edited_at", { mode: "timestamp_ms" }),
     // Null until the first edit, unsend or reaction.
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }),

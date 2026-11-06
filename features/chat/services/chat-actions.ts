@@ -26,9 +26,15 @@ import {
 } from "@/features/chat/services/chat-realtime";
 import {
   adminReaderKey,
+  hasBodyOrSticker,
   sendMessageSchema,
+  sendMessageShape,
   USER_READER_KEY,
 } from "@/features/chat/utils/chat-rules";
+import {
+  type StickerInput,
+  toStoredSticker,
+} from "@/features/chat/utils/sticker-rules";
 import { withResultErrorHandling } from "@/services/action-errors";
 import { requireAdmin, requireUser } from "@/services/auth-guard";
 import { findUserById } from "@/services/users";
@@ -41,16 +47,27 @@ type SendResult =
 
 const fail = (message: string) => ({ status: "error" as const, message });
 
+// Text or a sticker (KAN-144); the schema has already ruled out both/neither.
+// `input` is untrusted: the client only names a manifest sticker or a GIPHY
+// media URL, and what is stored comes from the validated value.
+interface SendInput {
+  body?: string;
+  sticker?: { pack: string; id: string } | { giphyId: string; url: string };
+  clientId: string;
+  replyToMessageId?: number;
+}
+
+const toNewContent = (parsed: { body?: string; sticker?: StickerInput }) =>
+  parsed.sticker
+    ? { body: "", ...toStoredSticker(parsed.sticker) }
+    : { body: parsed.body ?? "" };
+
 // Trainee send. The conversation always comes from the session user, never
 // from the client. insertMessage is idempotent: a retried clientId returns
 // the stored message. No send limit (D13, Hoan 2026-11-04).
 export const sendMessageAction = withResultErrorHandling(
   "sendChatMessage",
-  async (input: {
-    body: string;
-    clientId: string;
-    replyToMessageId?: number;
-  }): Promise<SendResult> => {
+  async (input: SendInput): Promise<SendResult> => {
     const user = await requireUser();
 
     if (!isChatEnabled(user)) {
@@ -61,7 +78,7 @@ export const sendMessageAction = withResultErrorHandling(
     if (!parsed.success) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
-    const { body, clientId, replyToMessageId } = parsed.data;
+    const { clientId, replyToMessageId } = parsed.data;
     const conversation = await getOrCreateConversation(user.id);
 
     if (!(await isReplyTargetValid(conversation, replyToMessageId))) {
@@ -71,7 +88,7 @@ export const sendMessageAction = withResultErrorHandling(
       conversationId: conversation.id,
       senderRole: "user",
       senderAdminId: null,
-      body,
+      ...toNewContent(parsed.data),
       clientId,
       replyToMessageId,
     });
@@ -85,32 +102,28 @@ export const sendMessageAction = withResultErrorHandling(
         senderRole: "user",
         traineeUserId: user.id,
         conversationId: conversation.id,
+        ...(parsed.data.sticker ? { sticker: true } : {}),
       });
     }
     return { status: "success", message };
   },
 );
 
-const adminSendSchema = sendMessageSchema.extend({
-  userId: z.number().int().positive(),
-});
+const adminSendSchema = sendMessageShape
+  .extend({ userId: z.number().int().positive() })
+  .refine(hasBodyOrSticker);
 
 // Admin reply to one trainee. D6: a locked trainee cannot be written to either.
 export const adminSendMessageAction = withResultErrorHandling(
   "adminSendChatMessage",
-  async (input: {
-    userId: number;
-    body: string;
-    clientId: string;
-    replyToMessageId?: number;
-  }): Promise<SendResult> => {
+  async (input: SendInput & { userId: number }): Promise<SendResult> => {
     const admin = await requireAdmin();
     const parsed = adminSendSchema.safeParse(input);
 
     if (!parsed.success) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
-    const { userId, body, clientId, replyToMessageId } = parsed.data;
+    const { userId, clientId, replyToMessageId } = parsed.data;
     const trainee = await findUserById(userId);
 
     if (!trainee) {
@@ -128,7 +141,7 @@ export const adminSendMessageAction = withResultErrorHandling(
       conversationId: conversation.id,
       senderRole: "admin",
       senderAdminId: admin.id,
-      body,
+      ...toNewContent(parsed.data),
       clientId,
       replyToMessageId,
     });
@@ -141,6 +154,7 @@ export const adminSendMessageAction = withResultErrorHandling(
         senderRole: "admin",
         traineeUserId: trainee.id,
         conversationId: conversation.id,
+        ...(parsed.data.sticker ? { sticker: true } : {}),
       });
     }
     return { status: "success", message };
