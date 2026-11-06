@@ -566,6 +566,7 @@ export const toReplyTo = (message: ThreadMessage): SerializedReplyTo | null =>
     : {
         id: message.id,
         body: message.deleted ? "" : toReplySnippet(message.body),
+        ...(!message.deleted && message.sticker ? { isSticker: true } : {}),
         senderRole: message.senderRole,
         deleted: message.deleted,
       };
@@ -596,6 +597,19 @@ export const markUnsentQuotes = (
 };
 
 export const UNSENT_TEXT = "Tin nhắn đã bị thu hồi";
+export const STICKER_TEXT = "Sticker";
+
+// One line for a quote or the reply bar: the tombstone, "Sticker" or the text.
+export const quoteText = (quote: {
+  deleted: boolean;
+  isSticker?: boolean;
+  body: string;
+}) => {
+  if (quote.deleted) {
+    return UNSENT_TEXT;
+  }
+  return quote.isSticker ? STICKER_TEXT : quote.body;
+};
 
 // "10:42, 06/11" for the actions sheet.
 export const formatSentAt = (iso: string) => {

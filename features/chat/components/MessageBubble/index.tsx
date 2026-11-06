@@ -1,6 +1,7 @@
 "use client";
 
 import clsx from "clsx";
+import Image from "next/image";
 
 import { useBubbleGesture } from "@/features/chat/hooks/use-bubble-gesture";
 import {
@@ -12,11 +13,14 @@ import {
   groupReactions,
   initialsOf,
   quoteLabel,
+  quoteText,
   type ThreadItem,
   type ThreadMessage,
   type ThreadViewer,
   UNSENT_TEXT,
 } from "@/features/chat/utils/chat-thread-rules";
+
+const STICKER_SIZE_PX = 120;
 
 type MessageItem = Extract<ThreadItem, { kind: "message" }>;
 
@@ -67,6 +71,9 @@ export const MessageBubble = ({
   const isFailed = message.delivery === "failed";
   const isSending = message.delivery === "sending";
   const isUnsent = message.deleted;
+  const { sticker } = message;
+  // A sticker is just the picture: no bubble, no background (KAN-145).
+  const isSticker = Boolean(sticker) && !isUnsent;
   // Only stored, not unsent messages have actions.
   const isInteractive = message.id !== null && !isUnsent;
   const gesture = useBubbleGesture(isInteractive, {
@@ -76,7 +83,8 @@ export const MessageBubble = ({
   const groups = isUnsent ? [] : groupReactions(message.reactions, viewer);
   const { replyTo } = message;
   const sideMargin = mine ? "mr-1" : "ml-9";
-  const isColored = color !== null && !isUnsent && !(mine && isFailed);
+  const isColored =
+    color !== null && !isUnsent && !isSticker && !(mine && isFailed);
 
   return (
     <div
@@ -119,6 +127,7 @@ export const MessageBubble = ({
           {...gesture}
           tabIndex={isInteractive ? 0 : undefined}
           data-bubble
+          data-sticker={isSticker ? "" : undefined}
           data-bubble-color={isColored ? color : undefined}
           style={
             isColored
@@ -132,11 +141,15 @@ export const MessageBubble = ({
             "flex max-w-[75%] touch-manipulation flex-col rounded-[1.25rem] text-[15px] leading-snug select-none [-webkit-touch-callout:none] focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:outline-none",
             isUnsent
               ? "border border-line px-3.5 py-2 text-muted italic"
-              : isColored
-                ? "px-3.5 py-2"
-                : mine
-                  ? "bg-accent px-3.5 py-2 text-accent-fg"
-                  : "border border-line bg-surface px-3.5 py-2 text-fg",
+              : isSticker
+                ? mine
+                  ? "items-end"
+                  : "items-start"
+                : isColored
+                  ? "px-3.5 py-2"
+                  : mine
+                    ? "bg-accent px-3.5 py-2 text-accent-fg"
+                    : "border border-line bg-surface px-3.5 py-2 text-fg",
             mine && !isUnsent && isSending && "opacity-70",
             mine && !isUnsent && isFailed && "bg-danger text-white",
             isHighlighted && "ring-2 ring-accent",
@@ -151,9 +164,11 @@ export const MessageBubble = ({
                 "mb-1.5 block max-w-full border-l-2 py-0.5 pl-2 text-left text-xs",
                 isColored
                   ? "border-white/60 text-white/85"
-                  : mine
-                    ? "border-accent-fg/60 text-accent-fg/80"
-                    : "border-accent text-muted",
+                  : isSticker
+                    ? "border-accent text-muted"
+                    : mine
+                      ? "border-accent-fg/60 text-accent-fg/80"
+                      : "border-accent text-muted",
               )}
             >
               <span className="block truncate font-semibold">
@@ -165,13 +180,29 @@ export const MessageBubble = ({
                   replyTo.deleted && "italic",
                 )}
               >
-                {replyTo.deleted ? UNSENT_TEXT : replyTo.body}
+                {quoteText(replyTo)}
               </span>
             </button>
           )}
-          <p className="break-words whitespace-pre-wrap">
-            {isUnsent ? UNSENT_TEXT : message.body}
-          </p>
+          {sticker && !isUnsent ? (
+            <Image
+              src={sticker.url}
+              alt={sticker.alt}
+              width={STICKER_SIZE_PX}
+              height={STICKER_SIZE_PX}
+              loading="lazy"
+              unoptimized
+              draggable={false}
+              className={clsx(
+                "pointer-events-none size-[120px] object-contain",
+                mine && isSending && "opacity-70",
+              )}
+            />
+          ) : (
+            <p className="break-words whitespace-pre-wrap">
+              {isUnsent ? UNSENT_TEXT : message.body}
+            </p>
+          )}
         </div>
       </div>
       {groups.length > 0 && (

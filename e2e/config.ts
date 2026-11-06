@@ -26,6 +26,8 @@ export const E2E_ENV = {
     "BAJsAp4wk0Cxz0Iys4LFcY5E1Mc_wHsarOMSC5zGuuYn81Ueki43JyI0Ui3R2C9j4LADRP5CFBh2JlsnW8O9b1Q",
   // Skips the image optimizer so no thumbnail is fetched server-side (KAN-95).
   E2E_UNOPTIMIZED_IMAGES: "1",
+  // No GIPHY key: the sticker tab stays hidden and no spec reaches GIPHY (KAN-146).
+  GIPHY_API_KEY: "",
 } as const;
 
 export const E2E_USER_NAME = "E2E Trainee";

@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { Settings } from "lucide-react";
+import dynamic from "next/dynamic";
 import {
   type ReactNode,
   useCallback,
@@ -44,10 +45,10 @@ import {
   latestAdminName,
   markUnsentQuotes,
   myReactionOf,
+  quoteText,
   senderLabel,
   type ThreadMessage,
   type ThreadViewer,
-  UNSENT_TEXT,
   USER_VIEWER,
 } from "@/features/chat/utils/chat-thread-rules";
 import { displayNameFor } from "@/features/chat/utils/display-name";
@@ -87,6 +88,16 @@ const TRAINEE_ARIA_LABEL = "Cuộc trò chuyện với PT";
 
 const KEYBOARD_MIN_PX = 120;
 const HEART = "❤️";
+// Loaded on the first tap of the sticker button, so the picker (and its GIPHY
+// code) is not in the main chat bundle.
+const StickerPanel = dynamic(
+  () =>
+    import("@/features/chat/components/StickerPanel").then(
+      (module) => module.StickerPanel,
+    ),
+  { ssr: false },
+);
+
 const HIGHLIGHT_MS = 1500;
 
 type SheetKind = "actions" | "reactors" | "history";
@@ -170,6 +181,9 @@ export const ChatThread = ({
   const [highlightId, setHighlightId] = useState<number | null>(null);
   const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  // The panel mounts on the first tap and stays, so its sheet can animate out.
+  const [isStickerOpen, setIsStickerOpen] = useState(false);
+  const [hasStickerPanel, setHasStickerPanel] = useState(false);
   const { profile } = chat;
 
   const { isPeerTyping, clearPeerTyping, sendTyping } = useChatTransport({
@@ -320,7 +334,8 @@ export const ChatThread = ({
   };
 
   const openActions = (message: ThreadMessage) => {
-    if (!message.deleted) {
+    // A locked chat leaves a sticker nothing to offer (no Copy, no reactions).
+    if (!message.deleted && (chatEnabled || !message.sticker)) {
       openSheet("actions", message);
     }
   };
@@ -409,6 +424,18 @@ export const ChatThread = ({
 
   const handleSend = (body: string) => {
     chat.send(body, replyMessage);
+    setReplyId(null);
+  };
+
+  const openStickers = () => {
+    setHasStickerPanel(true);
+    setIsStickerOpen(true);
+  };
+
+  const handleStickerPick = (
+    sticker: Parameters<typeof chat.sendSticker>[0],
+  ) => {
+    chat.sendSticker(sticker, replyMessage);
     setReplyId(null);
   };
 
@@ -613,7 +640,11 @@ export const ChatThread = ({
         {chatEnabled && !activeEditing && replyMessage && (
           <ReplyBar
             title={`Đang trả lời ${senderLabel(replyMessage, adapter.viewer, profile.nicknames)}`}
-            snippet={replyMessage.deleted ? UNSENT_TEXT : replyMessage.body}
+            snippet={quoteText({
+              deleted: replyMessage.deleted,
+              isSticker: Boolean(replyMessage.sticker),
+              body: replyMessage.body,
+            })}
             closeLabel="Huỷ trả lời"
             onClose={() => setReplyId(null)}
           />
@@ -624,6 +655,7 @@ export const ChatThread = ({
             editing={activeEditing}
             onSaveEdit={handleSaveEdit}
             replyId={replyMessage?.id ?? null}
+            onOpenStickers={openStickers}
             onTyping={sendTyping}
             placeholder={
               viewer.role === "admin" && viewer.peerName
@@ -641,6 +673,13 @@ export const ChatThread = ({
           />
         )}
       </div>
+      {hasStickerPanel && chatEnabled && (
+        <StickerPanel
+          isOpen={isStickerOpen}
+          onOpenChange={setIsStickerOpen}
+          onPick={handleStickerPick}
+        />
+      )}
       {sheet?.kind === "actions" && sheetMessage && (
         <MessageActionsSheet
           isOpen={isSheetOpen}
