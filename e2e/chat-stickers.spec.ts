@@ -136,9 +136,10 @@ const longPress = async (page: Page, target: ReturnType<typeof sticker>) => {
   await expect(sheet(page).getByText(/^Gửi lúc /)).toBeVisible();
 };
 
-// Opens the panel on its first tab and taps the sticker.
+// Opens the panel, goes to the first group and taps the sticker.
 const sendSticker = async (page: Page, alt: string) => {
   await stickerButton(page).click();
+  await sheet(page).getByRole("tab", { name: "Tập luyện" }).click();
   await expect(
     sheet(page).getByRole("tab", { name: "Tập luyện" }),
   ).toHaveAttribute("aria-selected", "true");
@@ -242,7 +243,10 @@ test("the trainee sends a bundled sticker and the PT sees the image; GIPHY stays
       await expect(image).toHaveAttribute("src", FIRE.src);
       await expect(image).toHaveAttribute("alt", FIRE.alt);
       await expect(image).toHaveAttribute("loading", "lazy");
-      expect((await image.boundingBox())?.width).toBe(120);
+      // The pop animation scales the image for a moment; wait for it to settle.
+      await expect
+        .poll(async () => (await image.boundingBox())?.width)
+        .toBe(120);
       await expect(bubble.locator("p")).toHaveCount(0);
       await expect(bubble).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     }
@@ -253,6 +257,74 @@ test("the trainee sends a bundled sticker and the PT sees the image; GIPHY stays
       TROPHY.src,
       SYNC,
     );
+  });
+});
+
+test("a sent sticker is first in Gần đây, newest first, and survives a reload", async ({
+  browser,
+}) => {
+  await withScene(browser, async ({ trainee }) => {
+    // Nothing sent yet: no Gần đây tab and the panel opens on Tập luyện.
+    await stickerButton(trainee).click();
+    await expect(
+      sheet(trainee).getByRole("tab", { name: "Gần đây" }),
+    ).toHaveCount(0);
+    await expect(
+      sheet(trainee).getByRole("tab", { name: "Tập luyện" }),
+    ).toHaveAttribute("aria-selected", "true");
+    await trainee.keyboard.press("Escape");
+    await expect(sheet(trainee)).toHaveCount(0);
+
+    await sendSticker(trainee, FIRE.alt);
+    await sendSticker(trainee, TROPHY.alt);
+
+    // Resend the first one from Gần đây: it moves back to the front.
+    await stickerButton(trainee).click();
+    await expect(
+      sheet(trainee).locator('[data-sticker-grid="recent"] > button').first(),
+    ).toHaveAttribute("aria-label", TROPHY.alt);
+    await sheet(trainee)
+      .locator('[data-sticker-grid="recent"] > button')
+      .nth(1)
+      .click();
+    await expect(sheet(trainee)).toHaveCount(0);
+    await expect(sticker(trainee, FIRE.alt)).toHaveCount(2);
+    await expect(trainee.getByText("Đang gửi…")).toHaveCount(0, {
+      timeout: 60_000,
+    });
+
+    await stickerButton(trainee).click();
+    const recent = sheet(trainee).getByRole("tab", { name: "Gần đây" });
+
+    await expect(sheet(trainee).getByRole("tab").first()).toHaveText("Gần đây");
+    await expect(recent).toHaveAttribute("aria-selected", "true");
+    // Newest first, and the repeat moved up instead of duplicating.
+    await expect(
+      sheet(trainee).locator('[data-sticker-grid="recent"] > button'),
+    ).toHaveCount(2);
+    const first = sheet(trainee)
+      .locator('[data-sticker-grid="recent"] > button')
+      .first();
+
+    await expect(first).toHaveAttribute("aria-label", FIRE.alt);
+    await expect(first.locator("img")).toHaveAttribute("src", FIRE.src);
+    await expect(
+      sheet(trainee).locator('[data-sticker-grid="recent"] > button').nth(1),
+    ).toHaveAttribute("aria-label", TROPHY.alt);
+
+    // It is remembered across a reload and sends straight from the group.
+    await trainee.keyboard.press("Escape");
+    await trainee.reload();
+    await stickerButton(trainee).click();
+    await expect(
+      sheet(trainee).locator('[data-sticker-grid="recent"] > button').first(),
+    ).toHaveAttribute("aria-label", FIRE.alt);
+    await sheet(trainee)
+      .locator('[data-sticker-grid="recent"] > button')
+      .nth(1)
+      .click();
+    await expect(sheet(trainee)).toHaveCount(0);
+    await expect(sticker(trainee, TROPHY.alt).last()).toBeVisible();
   });
 });
 

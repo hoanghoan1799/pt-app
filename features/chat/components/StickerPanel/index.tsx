@@ -14,6 +14,14 @@ import {
 } from "@/features/chat/constants/stickers";
 import type { SendContent } from "@/features/chat/hooks/use-chat-messages";
 import { useGiphyStickers } from "@/features/chat/hooks/use-giphy-stickers";
+import {
+  addRecentSticker,
+  loadRecentStickers,
+  type RecentSticker,
+  recentStickerKey,
+  recentStickerView,
+  saveRecentStickers,
+} from "@/features/chat/utils/recent-stickers";
 
 type PickedSticker = Extract<SendContent, { sticker: unknown }>["sticker"];
 
@@ -25,10 +33,11 @@ interface StickerPanelProps {
 }
 
 const GIPHY_TAB = "giphy";
+const RECENT_TAB = "recent";
 const TAB =
-  "min-h-10 shrink-0 rounded-full border px-3.5 text-sm font-semibold transition active:scale-95";
+  "min-h-10 shrink-0 rounded-full border px-3.5 text-sm font-semibold transition active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100";
 const CELL =
-  "flex aspect-square items-center justify-center rounded-xl p-1.5 transition active:scale-90 active:bg-line";
+  "flex aspect-square items-center justify-center rounded-xl p-1.5 transition active:scale-90 active:bg-line motion-reduce:transition-none motion-reduce:active:scale-100";
 
 const StateText = ({ children }: { children: string }) => (
   <p
@@ -47,7 +56,11 @@ export const StickerPanel = ({
   onOpenChange,
   onPick,
 }: StickerPanelProps) => {
-  const [tab, setTab] = useState<string>(STICKER_GROUPS[0].key);
+  // Read once when the panel mounts (it only mounts on the client, on demand).
+  const [recent, setRecent] = useState<RecentSticker[]>(loadRecentStickers);
+  const [tab, setTab] = useState<string>(() =>
+    recent.length > 0 ? RECENT_TAB : STICKER_GROUPS[0].key,
+  );
   const [query, setQuery] = useState("");
   const giphy = useGiphyStickers(query);
   const showGiphy = giphy.enabled === true;
@@ -57,7 +70,24 @@ export const StickerPanel = ({
   const group = STICKER_GROUPS.find((item) => item.key === activeTab);
   const isLoading = giphy.status === "loading" || giphy.isSearching;
 
+  const showRecent = recent.length > 0;
+
   const pick = (sticker: PickedSticker) => {
+    const entry: RecentSticker =
+      "pack" in sticker.input
+        ? { kind: "pack", pack: sticker.input.pack, id: sticker.input.id }
+        : {
+            kind: "giphy",
+            giphyId: sticker.input.giphyId,
+            url: sticker.input.url,
+            alt: sticker.display.alt,
+          };
+    const next = addRecentSticker(recent, entry);
+
+    setRecent(next);
+    // The next opening starts on what was just sent.
+    setTab(RECENT_TAB);
+    saveRecentStickers(next);
     onOpenChange(false);
     onPick(sticker);
   };
@@ -74,6 +104,24 @@ export const StickerPanel = ({
         aria-label="Nhóm sticker"
         className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-3"
       >
+        {showRecent && (
+          <button
+            type="button"
+            role="tab"
+            id={`sticker-tab-${RECENT_TAB}`}
+            aria-selected={activeTab === RECENT_TAB}
+            aria-controls="sticker-grid"
+            onClick={() => setTab(RECENT_TAB)}
+            className={clsx(
+              TAB,
+              activeTab === RECENT_TAB
+                ? "border-accent bg-accent text-accent-fg"
+                : "border-line bg-surface text-fg",
+            )}
+          >
+            Gần đây
+          </button>
+        )}
         {STICKER_GROUPS.map((item) => (
           <button
             key={item.key}
@@ -136,6 +184,42 @@ export const StickerPanel = ({
         data-sticker-grid={activeTab}
         className="grid h-[42dvh] min-h-48 grid-cols-4 content-start gap-1 overflow-y-auto overscroll-contain"
       >
+        {activeTab === RECENT_TAB &&
+          recent.map((item) => {
+            const view = recentStickerView(item);
+
+            return (
+              <button
+                key={recentStickerKey(item)}
+                type="button"
+                aria-label={view.alt}
+                onClick={() =>
+                  pick(
+                    item.kind === "pack"
+                      ? {
+                          input: { pack: item.pack, id: item.id },
+                          display: { kind: "pack", ...view },
+                        }
+                      : {
+                          input: { giphyId: item.giphyId, url: item.url },
+                          display: { kind: "giphy", ...view },
+                        },
+                  )
+                }
+                className={CELL}
+              >
+                <Image
+                  src={view.url}
+                  alt=""
+                  width={64}
+                  height={64}
+                  unoptimized
+                  draggable={false}
+                  className="size-full object-contain"
+                />
+              </button>
+            );
+          })}
         {group?.stickers.map((sticker) => {
           const url = bundledStickerUrl(STICKER_PACK_ID, sticker.id);
 
