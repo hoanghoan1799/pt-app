@@ -10,6 +10,10 @@ const readEnv = (name: string) => process.env[name]?.trim() || undefined;
 // Optional: without it chat falls back to polling only.
 export const getAblyApiKey = () => readEnv("ABLY_API_KEY");
 
+// Optional (KAN-144): without it the GIPHY sticker tab is hidden. Server only,
+// never sent to the browser.
+export const getGiphyApiKey = () => readEnv("GIPHY_API_KEY");
+
 // Web Push (VAPID). Optional: without all three server values push is skipped.
 // The public key may also be set as NEXT_PUBLIC_VAPID_PUBLIC_KEY (inlined into
 // the browser bundle at build time).

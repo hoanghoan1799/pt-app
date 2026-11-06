@@ -26,6 +26,8 @@ export const admins = sqliteTable("admins", {
   // Presence heartbeat (KAN-128): last time the PT had the app open and
   // visible. Throttled to one write a minute; null = never seen.
   lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
+  // Chat bubble colour (KAN-141): a key of chat-palette.ts; null = default.
+  chatColor: text("chat_color"),
   createdAt: createdAt(),
 });
 
@@ -57,6 +59,8 @@ export const users = sqliteTable("users", {
   chatEnabledByAdminId: integer("chat_enabled_by_admin_id"),
   // Presence heartbeat (KAN-128), see admins.lastSeenAt.
   lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
+  // Chat bubble colour (KAN-141), see admins.chatColor.
+  chatColor: text("chat_color"),
   createdAt: createdAt(),
 });
 
@@ -431,6 +435,9 @@ export const chatConversations = sqliteTable(
     // Denormalised for the inbox sort and preview.
     lastMessageId: integer("last_message_id"),
     lastMessageAt: integer("last_message_at", { mode: "timestamp_ms" }),
+    // KAN-138: bumped (strictly increasing) by every edit, unsend and
+    // reaction; the change cursor of the polling client.
+    lastChangeAt: integer("last_change_at", { mode: "timestamp_ms" }),
     createdAt: createdAt(),
   },
   (table) => [
@@ -458,6 +465,15 @@ export const chatMessages = sqliteTable(
     clientId: text("client_id").notNull(),
     deletedAt: integer("deleted_at", { mode: "timestamp" }),
     hiddenByAdminId: integer("hidden_by_admin_id"),
+    // KAN-138: quoted message (same conversation, checked in the action).
+    replyToMessageId: integer("reply_to_message_id"),
+    // KAN-144: a sticker message has an empty body. Ref is "pack:<id>" or
+    // "giphy:<id>"; the URL is a bundled path or a GIPHY media URL.
+    stickerRef: text("sticker_ref"),
+    stickerUrl: text("sticker_url"),
+    editedAt: integer("edited_at", { mode: "timestamp_ms" }),
+    // Null until the first edit, unsend or reaction.
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [
@@ -467,6 +483,58 @@ export const chatMessages = sqliteTable(
     ),
     index("chat_messages_conversation_id").on(table.conversationId, table.id),
   ],
+);
+
+// One reaction per reactor per message (KAN-138). reactorKey is "user" or
+// "admin:<id>", the same format as chat_reads.reader_key.
+export const chatReactions = sqliteTable(
+  "chat_reactions",
+  {
+    messageId: integer("message_id").notNull(),
+    reactorKey: text("reactor_key").notNull(),
+    emoji: text("emoji").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.messageId, table.reactorKey] })],
+);
+
+// Every previous body of an edited message (KAN-138, spec C4).
+export const chatMessageEdits = sqliteTable(
+  "chat_message_edits",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    messageId: integer("message_id").notNull(),
+    previousBody: text("previous_body").notNull(),
+    editedAt: integer("edited_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("chat_message_edits_message_id").on(table.messageId)],
+);
+
+// Nicknames per conversation (KAN-141). targetKey is "user", "pt" (the PT side
+// as a whole) or "admin:<id>"; setByKey is the reader key of who set it. A
+// cleared nickname deletes the row.
+export const chatNicknames = sqliteTable(
+  "chat_nicknames",
+  {
+    conversationId: integer("conversation_id").notNull(),
+    targetKey: text("target_key").notNull(),
+    nickname: text("nickname").notNull(),
+    setByKey: text("set_by_key").notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.conversationId, table.targetKey] })],
+);
+
+// An admin's bubble colour for one conversation only (KAN-141, Q7); it wins
+// over admins.chat_color there.
+export const chatColorOverrides = sqliteTable(
+  "chat_color_overrides",
+  {
+    conversationId: integer("conversation_id").notNull(),
+    adminId: integer("admin_id").notNull(),
+    color: text("color").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.conversationId, table.adminId] })],
 );
 
 // Read cursor per reader. readerKey is "user" or "admin:<id>".

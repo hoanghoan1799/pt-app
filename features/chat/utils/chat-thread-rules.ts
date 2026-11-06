@@ -1,4 +1,13 @@
 import { TIME_ZONE } from "@/constants/time";
+import {
+  adminReaderKey,
+  CHAT_REACTION_EMOJIS,
+  toReplySnippet,
+  USER_READER_KEY,
+} from "@/features/chat/utils/chat-rules";
+import { adminLabel } from "@/features/chat/utils/chat-settings";
+import { displayNameFor } from "@/features/chat/utils/display-name";
+import type { ChatSticker } from "@/features/chat/utils/sticker-rules";
 
 // Pure helpers behind the trainee chat thread: merging, grouping, separators
 // and the polling schedule. No React, no network, so every rule is testable.
@@ -10,8 +19,34 @@ export interface SerializedChatMessage {
   senderAdminId: number | null;
   senderAdminName: string | null;
   body: string;
+  // KAN-144: set for a sticker message (body is empty).
+  sticker?: ChatSticker | null;
   clientId: string;
   createdAt: string;
+  replyTo: SerializedReplyTo | null;
+  // ISO string of the last edit, null if never edited.
+  editedAt: string | null;
+  // Unsent for everyone: body is empty, no reactions, no quote.
+  deleted: boolean;
+  updatedAt: string;
+  reactions: SerializedReaction[];
+}
+
+export interface SerializedReaction {
+  emoji: string;
+  // "user" or "admin:<id>".
+  reactorKey: string;
+  reactorName: string;
+}
+
+export interface SerializedReplyTo {
+  id: number;
+  // Truncated snippet; empty when the original was unsent.
+  body: string;
+  // The quoted message is a sticker: the UI shows "Sticker".
+  isSticker?: boolean;
+  senderRole: "user" | "admin";
+  deleted: boolean;
 }
 
 // `sent` = stored on the server; `sending` / `failed` = optimistic own bubble
@@ -23,7 +58,9 @@ export interface ThreadMessage extends Omit<SerializedChatMessage, "id"> {
   delivery: DeliveryState;
 }
 
-export const GROUP_GAP_MS = 15 * 60 * 1000;
+// A time stamp appears after a pause longer than this (exactly 30:00 does not
+// break the run, 30:01 does).
+export const GROUP_GAP_MS = 30 * 60 * 1000;
 export const NEAR_BOTTOM_PX = 120;
 
 export const POLL_INTERVAL_MS = {
@@ -70,6 +107,29 @@ export const mergeMessages = (
     pending.delete(message.clientId);
   }
   return [...byId.values(), ...pending.values()].sort(compareThread);
+};
+
+// Folds changed messages (edit, unsend, reaction) into the list: a stored
+// message with the same id is replaced in place. An id that is not loaded
+// (older than the page, or not fetched yet) is skipped: adding it would leave a
+// gap, and newer ones arrive through the `after` fetch.
+export const mergeChanges = (
+  current: ThreadMessage[],
+  changes: SerializedChatMessage[],
+): ThreadMessage[] => {
+  if (changes.length === 0) {
+    return current;
+  }
+  const byId = new Map<number, SerializedChatMessage>();
+
+  for (const change of changes) {
+    byId.set(change.id, change);
+  }
+  return current.map((message) => {
+    const change = message.id === null ? undefined : byId.get(message.id);
+
+    return change ? toThreadMessage(change) : message;
+  });
 };
 
 export const lastStoredId = (messages: ThreadMessage[]) => {
@@ -246,20 +306,30 @@ const senderNameFor = (
   message: ThreadMessage,
   viewer: ThreadViewer,
   continuesRun: boolean,
+  nicknames: Readonly<Record<string, string>>,
 ) => {
   if (continuesRun) {
     return null;
   }
   if (viewer.role === "user") {
     return message.senderRole === "admin"
-      ? (message.senderAdminName ?? PEER_DELETED_NAME)
+      ? message.senderAdminName === null
+        ? PEER_DELETED_NAME
+        : adminLabel(
+            nicknames,
+            message.senderAdminId,
+            message.senderAdminName,
+            "pt",
+          )
       : null;
   }
   // Admin viewer: the trainee needs no label, my own runs neither; a
   // colleague's run is named (a deleted account has no id or name left).
   return message.senderRole === "admin" &&
     message.senderAdminId !== viewer.adminId
-    ? (message.senderAdminName ?? PEER_DELETED_NAME)
+    ? message.senderAdminName === null
+      ? PEER_DELETED_NAME
+      : adminLabel(nicknames, message.senderAdminId, message.senderAdminName)
     : null;
 };
 
@@ -270,6 +340,7 @@ export const buildThreadItems = (
   peerReadUpTo: number,
   nowMs: number,
   viewer: ThreadViewer = USER_VIEWER,
+  nicknames: Readonly<Record<string, string>> = {},
 ): ThreadItem[] => {
   // "Mine" is the right-hand side: the trainee's own messages, or for an
   // admin every admin message (the PT inbox is shared, D4).
@@ -332,10 +403,26 @@ export const buildThreadItems = (
       mine,
       isFirstInRun: !continuesRun,
       isLastInRun,
-      senderName: senderNameFor(message, viewer, Boolean(continuesRun)),
+      senderName: senderNameFor(
+        message,
+        viewer,
+        Boolean(continuesRun),
+        nicknames,
+      ),
       showAvatar: !mine && isLastInRun,
       avatarName:
-        viewer.role === "admin" ? viewer.peerName : message.senderAdminName,
+        viewer.role === "admin"
+          ? viewer.peerName === null
+            ? null
+            : displayNameFor(nicknames, "user", viewer.peerName)
+          : message.senderAdminName === null
+            ? null
+            : adminLabel(
+                nicknames,
+                message.senderAdminId,
+                message.senderAdminName,
+                "pt",
+              ),
       statusLine:
         mine && message.id !== null && message.id === lastMineStoredId
           ? message.id <= peerReadUpTo
@@ -370,9 +457,202 @@ export const isNearBottom = (
 ) => scrollHeight - scrollTop - clientHeight <= NEAR_BOTTOM_PX;
 
 // Server → client: Dates cannot be assumed to survive as-is, ISO strings do.
+// Accepts the Date or ISO form so action results and page props share it.
+type DateLike = Date | string;
+
+export type ServerChatMessage = Omit<
+  SerializedChatMessage,
+  "createdAt" | "editedAt" | "updatedAt"
+> & {
+  createdAt: DateLike;
+  editedAt: DateLike | null;
+  updatedAt: DateLike;
+};
+
+const toIso = (value: DateLike) => new Date(value).toISOString();
+
 export const serializeMessage = (
-  message: Omit<SerializedChatMessage, "createdAt"> & { createdAt: Date },
+  message: ServerChatMessage,
 ): SerializedChatMessage => ({
   ...message,
-  createdAt: message.createdAt.toISOString(),
+  createdAt: toIso(message.createdAt),
+  editedAt: message.editedAt === null ? null : toIso(message.editedAt),
+  updatedAt: toIso(message.updatedAt),
 });
+
+// "user" or "admin:<id>": how reactions identify me.
+export const viewerReactorKey = (viewer: ThreadViewer) =>
+  viewer.role === "admin" ? adminReaderKey(viewer.adminId) : USER_READER_KEY;
+
+// Edit and unsend: only my own messages. For an admin "mine" is narrower than
+// the right-hand side: only what this admin wrote.
+export const isOwnMessage = (message: ThreadMessage, viewer: ThreadViewer) =>
+  viewer.role === "admin"
+    ? message.senderRole === "admin" && message.senderAdminId === viewer.adminId
+    : message.senderRole === "user";
+
+export const canEditOrUnsend = (message: ThreadMessage, viewer: ThreadViewer) =>
+  message.id !== null && !message.deleted && isOwnMessage(message, viewer);
+
+// The emoji I reacted with, if any.
+export const myReactionOf = (
+  message: Pick<ThreadMessage, "reactions">,
+  viewer: ThreadViewer,
+) => {
+  const key = viewerReactorKey(viewer);
+
+  return (
+    message.reactions.find((reaction) => reaction.reactorKey === key)?.emoji ??
+    null
+  );
+};
+
+// One reaction per person: replaces mine, or removes it with null.
+export const withMyReaction = (
+  reactions: SerializedReaction[],
+  viewer: ThreadViewer,
+  emoji: string | null,
+): SerializedReaction[] => {
+  const key = viewerReactorKey(viewer);
+  const others = reactions.filter((reaction) => reaction.reactorKey !== key);
+
+  if (emoji === null) {
+    return others;
+  }
+  return [
+    ...others,
+    {
+      emoji,
+      reactorKey: key,
+      reactorName: viewer.role === "admin" ? viewer.adminName : "Bạn",
+    },
+  ];
+};
+
+export interface ReactionGroup {
+  emoji: string;
+  count: number;
+  mine: boolean;
+  names: string[];
+}
+
+// Chips under a bubble: one per emoji, in the picker's order.
+export const groupReactions = (
+  reactions: SerializedReaction[],
+  viewer: ThreadViewer,
+): ReactionGroup[] => {
+  const key = viewerReactorKey(viewer);
+  const groups: ReactionGroup[] = [];
+
+  for (const emoji of CHAT_REACTION_EMOJIS) {
+    const matching = reactions.filter((reaction) => reaction.emoji === emoji);
+
+    if (matching.length > 0) {
+      groups.push({
+        emoji,
+        count: matching.length,
+        mine: matching.some((reaction) => reaction.reactorKey === key),
+        names: matching.map((reaction) => reaction.reactorName),
+      });
+    }
+  }
+  return groups;
+};
+
+// What a reply carries about its original (null while it is not stored yet).
+export const toReplyTo = (message: ThreadMessage): SerializedReplyTo | null =>
+  message.id === null
+    ? null
+    : {
+        id: message.id,
+        body: message.deleted ? "" : toReplySnippet(message.body),
+        ...(!message.deleted && message.sticker ? { isSticker: true } : {}),
+        senderRole: message.senderRole,
+        deleted: message.deleted,
+      };
+
+// A reply keeps the snippet it was stored with, and an unsent original does
+// not touch the reply row (so no change event reaches it). When the original is
+// in the list and unsent, the quote shows the tombstone too.
+export const markUnsentQuotes = (
+  messages: ThreadMessage[],
+): ThreadMessage[] => {
+  const unsent = new Set<number>();
+
+  for (const message of messages) {
+    if (message.id !== null && message.deleted) {
+      unsent.add(message.id);
+    }
+  }
+  if (unsent.size === 0) {
+    return messages;
+  }
+  return messages.map((message) =>
+    message.replyTo &&
+    !message.replyTo.deleted &&
+    unsent.has(message.replyTo.id)
+      ? { ...message, replyTo: { ...message.replyTo, body: "", deleted: true } }
+      : message,
+  );
+};
+
+export const UNSENT_TEXT = "Tin nhắn đã bị thu hồi";
+export const STICKER_TEXT = "Sticker";
+
+// One line for a quote or the reply bar: the tombstone, "Sticker" or the text.
+export const quoteText = (quote: {
+  deleted: boolean;
+  isSticker?: boolean;
+  body: string;
+}) => {
+  if (quote.deleted) {
+    return UNSENT_TEXT;
+  }
+  return quote.isSticker ? STICKER_TEXT : quote.body;
+};
+
+// "10:42, 06/11" for the actions sheet.
+export const formatSentAt = (iso: string) => {
+  const [, month, day] = dayKey(iso).split("-");
+
+  return `${formatTime(iso)}, ${day}/${month}`;
+};
+
+// Who wrote a message, for "Đang trả lời <name>"; nicknames apply (D2).
+export const senderLabel = (
+  message: ThreadMessage,
+  viewer: ThreadViewer,
+  nicknames: Readonly<Record<string, string>> = {},
+) => {
+  if (isOwnMessage(message, viewer)) {
+    return "chính mình";
+  }
+  if (message.senderRole === "admin") {
+    return message.senderAdminName === null
+      ? PEER_DELETED_NAME
+      : adminLabel(
+          nicknames,
+          message.senderAdminId,
+          message.senderAdminName,
+          viewer.role === "user" ? "pt" : undefined,
+        );
+  }
+  return viewer.role === "admin"
+    ? displayNameFor(nicknames, "user", viewer.peerName ?? "Học viên")
+    : "bạn";
+};
+
+// Name above a quoted snippet inside a bubble (only the role is known, so the
+// PT side uses the shared "pt" nickname).
+export const quoteLabel = (
+  replyTo: SerializedReplyTo,
+  viewer: ThreadViewer,
+  nicknames: Readonly<Record<string, string>> = {},
+) => {
+  if (replyTo.senderRole === viewer.role) {
+    return viewer.role === "admin" ? "PT" : "Bạn";
+  }
+  return viewer.role === "admin"
+    ? displayNameFor(nicknames, "user", viewer.peerName ?? "Học viên")
+    : displayNameFor(nicknames, "pt", "PT");
+};

@@ -10,6 +10,10 @@ import { ChatLockSwitch } from "@/features/chat/components/ChatLockSwitch";
 import { ChatThread } from "@/features/chat/components/ChatThread";
 import { isChatEnabled } from "@/features/chat/services/chat-permission";
 import {
+  loadAdminAccountColor,
+  loadChatProfile,
+} from "@/features/chat/services/chat-profile";
+import {
   findConversationByUserId,
   getOrCreateConversation,
   getPeerReadCursor,
@@ -80,10 +84,13 @@ const AdminMessagesPage = async ({
       </>
     );
   }
-  const [{ messages, hasMore }, peerReadUpTo] = await Promise.all([
-    listMessages(conversation.id),
-    getPeerReadCursor(conversation.id, "admin"),
-  ]);
+  const [{ messages, hasMore }, peerReadUpTo, profile, accountColor] =
+    await Promise.all([
+      listMessages(conversation.id),
+      getPeerReadCursor(conversation.id, "admin"),
+      loadChatProfile(conversation.id),
+      loadAdminAccountColor(admin.id),
+    ]);
 
   return (
     <ChatThread
@@ -99,14 +106,19 @@ const AdminMessagesPage = async ({
         adminName: admin.username,
         peerName: user.name,
       }}
+      accountColor={accountColor}
       emptyText={EMPTY_TEXT}
       ariaLabel={`Cuộc trò chuyện với ${user.name}`}
       initial={{
         messages: messages.map(serializeMessage),
+        // Read before the messages: a change made in between is fetched again,
+        // never missed.
+        lastChangeAt: conversation.lastChangeAt?.getTime() ?? 0,
         hasMore,
         chatEnabled,
         peerReadUpTo,
         peerLastSeenAt: serializeLastSeen(user.lastSeenAt),
+        profile,
       }}
     />
   );

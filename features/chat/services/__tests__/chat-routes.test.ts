@@ -140,6 +140,9 @@ describe("GET /api/chat/messages", () => {
     expect(await response.json()).toEqual({
       messages: [],
       hasMore: false,
+      changes: [],
+      lastChangeAt: 0,
+      profile: { nicknames: {}, colors: {} },
       chatEnabled: false,
       peerReadUpTo: 0,
       peerLastSeenAt: null,

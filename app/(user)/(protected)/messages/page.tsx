@@ -20,10 +20,8 @@ const MessagesPage = async () => {
   const chatEnabled = isChatEnabled(user);
   const existing = await findConversationByUserId(user.id);
 
-  // Chat is off and there is nothing to read: the tab is hidden, so is this.
-  if (!chatEnabled && existing?.lastMessageId == null) {
-    redirect(ROUTES.WORKOUTS);
-  }
+  // Chat off: the thread opens read-only (old messages, if any, and the
+  // locked banner); no conversation is created for it.
   // The realtime token is scoped to the conversation, so make sure it exists.
   const conversation =
     existing ?? (chatEnabled ? await getOrCreateConversation(user.id) : null);
@@ -41,11 +39,14 @@ const MessagesPage = async () => {
   return (
     <TraineeChatThread
       initialPeerName={peerName}
+      userName={user.name}
       userId={user.id}
       conversationId={conversation?.id ?? null}
       initial={{
         ...payload,
         messages: payload.messages.map(serializeMessage),
+        // Without `changedSince` the payload has no changes to carry.
+        changes: [],
       }}
     />
   );

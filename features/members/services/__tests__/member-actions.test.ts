@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
 import {
+  chatColorOverrides,
   chatConversations,
   chatMessages,
+  chatNicknames,
   chatReads,
   pushSubscriptions,
   users,
@@ -109,6 +111,37 @@ describe("deleteMemberAction chat cleanup", () => {
     expect(
       (await db.select().from(chatMessages)).map((row) => row.conversationId),
     ).toEqual([kept.conversationId, kept.conversationId]);
+  });
+
+  it("removes the trainee's nicknames and colour overrides only", async () => {
+    const gone = await seedTrainee("An");
+    const kept = await seedTrainee("Binh");
+
+    await db.insert(chatNicknames).values(
+      [gone, kept].map((member) => ({
+        conversationId: member.conversationId,
+        targetKey: "pt",
+        nickname: "Coach",
+        setByKey: "user",
+        updatedAt: new Date(),
+      })),
+    );
+    await db.insert(chatColorOverrides).values(
+      [gone, kept].map((member) => ({
+        conversationId: member.conversationId,
+        adminId: 1,
+        color: "green",
+      })),
+    );
+
+    await deleteMemberAction(gone.userId);
+
+    expect(
+      (await db.select().from(chatNicknames)).map((r) => r.conversationId),
+    ).toEqual([kept.conversationId]);
+    expect(
+      (await db.select().from(chatColorOverrides)).map((r) => r.conversationId),
+    ).toEqual([kept.conversationId]);
   });
 
   it("removes the trainee's push subscriptions only", async () => {

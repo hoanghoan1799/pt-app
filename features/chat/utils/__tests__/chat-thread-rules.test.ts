@@ -4,18 +4,29 @@ import {
   buildThreadItems,
   dayLabel,
   firstStoredId,
+  formatSentAt,
+  groupReactions,
   initialsOf,
   isNearBottom,
+  isOwnMessage,
   lastStoredId,
   latestAdminName,
+  markUnsentQuotes,
+  mergeChanges,
   mergeMessages,
+  myReactionOf,
   newestPeerMessageId,
   pollIntervalFor,
+  quoteLabel,
+  quoteText,
   realtimeStateFor,
+  senderLabel,
   type SerializedChatMessage,
   shouldMarkRead,
   type ThreadMessage,
+  toReplyTo,
   toThreadMessage,
+  withMyReaction,
 } from "@/features/chat/utils/chat-thread-rules";
 
 const msg = (
@@ -29,6 +40,11 @@ const msg = (
   body: `m${id}`,
   clientId: `c${id}`,
   createdAt: "2026-11-04T03:00:00.000Z",
+  replyTo: null,
+  editedAt: null,
+  deleted: false,
+  updatedAt: "2026-11-04T03:00:00.000Z",
+  reactions: [],
   ...overrides,
 });
 
@@ -43,6 +59,11 @@ const pendingMsg = (
   body: "đang gửi",
   clientId,
   createdAt,
+  replyTo: null,
+  editedAt: null,
+  deleted: false,
+  updatedAt: createdAt,
+  reactions: [],
   delivery: "sending",
 });
 
@@ -183,12 +204,12 @@ describe("buildThreadItems", () => {
     });
   });
 
-  it("inserts a time stamp after more than 15 minutes and restarts the run", () => {
+  it("inserts a time stamp after 30 minutes and 1 second and restarts the run", () => {
     const list = mergeMessages(
       [],
       [
         msg(1, { createdAt: "2026-11-04T03:00:00.000Z" }),
-        msg(2, { createdAt: "2026-11-04T03:16:00.000Z" }),
+        msg(2, { createdAt: "2026-11-04T03:30:01.000Z" }),
       ],
     );
     const items = buildThreadItems(list, 0, now);
@@ -199,17 +220,17 @@ describe("buildThreadItems", () => {
       "time",
       "message",
     ]);
-    expect(items[2]).toMatchObject({ kind: "time", label: "10:16" });
+    expect(items[2]).toMatchObject({ kind: "time", label: "10:30" });
     expect(items[3]).toMatchObject({ isFirstInRun: true, senderName: "Hoan" });
     expect(items[1]).toMatchObject({ isLastInRun: true, showAvatar: true });
   });
 
-  it("exactly 15 minutes does not break the run", () => {
+  it("exactly 30 minutes does not break the run", () => {
     const list = mergeMessages(
       [],
       [
         msg(1, { createdAt: "2026-11-04T03:00:00.000Z" }),
-        msg(2, { createdAt: "2026-11-04T03:15:00.000Z" }),
+        msg(2, { createdAt: "2026-11-04T03:30:00.000Z" }),
       ],
     );
 
@@ -419,5 +440,213 @@ describe("latestAdminName", () => {
         mergeMessages([], [msg(1), msg(2, { senderAdminName: null })]),
       ),
     ).toBeNull();
+  });
+});
+
+describe("mergeChanges", () => {
+  it("replaces a loaded message in place by id and keeps the order", () => {
+    const current = mergeMessages([], [msg(1), msg(2), msg(3)]);
+    const merged = mergeChanges(current, [
+      msg(2, { body: "sửa", editedAt: "2026-11-04T03:10:00.000Z" }),
+    ]);
+
+    expect(ids(merged)).toEqual([1, 2, 3]);
+    expect(merged[1].body).toBe("sửa");
+    expect(merged[1].editedAt).toBe("2026-11-04T03:10:00.000Z");
+    expect(merged[1].delivery).toBe("sent");
+    expect(merged[0]).toBe(current[0]);
+  });
+
+  it("skips ids that are not loaded instead of leaving a gap", () => {
+    const current = mergeMessages([], [msg(5), msg(6)]);
+    const merged = mergeChanges(current, [msg(2, { deleted: true })]);
+
+    expect(ids(merged)).toEqual([5, 6]);
+  });
+
+  it("leaves pending bubbles alone and returns the same list for no changes", () => {
+    const current = [toThreadMessage(msg(1)), pendingMsg("p")];
+
+    expect(mergeChanges(current, [])).toBe(current);
+    expect(mergeChanges(current, [msg(1, { body: "x" })])[1]).toBe(current[1]);
+  });
+
+  it("applies the last of several changes to the same message", () => {
+    const current = mergeMessages([], [msg(1)]);
+    const merged = mergeChanges(current, [
+      msg(1, { body: "một" }),
+      msg(1, { body: "hai" }),
+    ]);
+
+    expect(merged[0].body).toBe("hai");
+  });
+});
+
+describe("reactions", () => {
+  const user = { role: "user" } as const;
+  const admin = {
+    role: "admin",
+    adminId: 7,
+    adminName: "Hoan",
+    peerName: "Lan",
+  } as const;
+  const reactions = [
+    { emoji: "👍", reactorKey: "user", reactorName: "Lan" },
+    { emoji: "❤️", reactorKey: "admin:7", reactorName: "Hoan" },
+    { emoji: "❤️", reactorKey: "admin:8", reactorName: "Minh" },
+  ];
+
+  it("groups by emoji in picker order with counts and my flag", () => {
+    expect(groupReactions(reactions, admin)).toEqual([
+      { emoji: "❤️", count: 2, mine: true, names: ["Hoan", "Minh"] },
+      { emoji: "👍", count: 1, mine: false, names: ["Lan"] },
+    ]);
+    expect(groupReactions(reactions, user)[0].mine).toBe(false);
+    expect(groupReactions([], user)).toEqual([]);
+  });
+
+  it("finds my reaction per viewer", () => {
+    expect(myReactionOf({ reactions }, admin)).toBe("❤️");
+    expect(myReactionOf({ reactions }, user)).toBe("👍");
+    expect(myReactionOf({ reactions: [] }, user)).toBeNull();
+  });
+
+  it("replaces or removes only my reaction", () => {
+    const replaced = withMyReaction(reactions, admin, "😂");
+
+    expect(replaced).toHaveLength(3);
+    expect(myReactionOf({ reactions: replaced }, admin)).toBe("😂");
+    expect(replaced.filter((r) => r.emoji === "❤️")).toHaveLength(1);
+    expect(withMyReaction(reactions, admin, null)).toHaveLength(2);
+    expect(withMyReaction([], user, "💪")).toEqual([
+      { emoji: "💪", reactorKey: "user", reactorName: "Bạn" },
+    ]);
+  });
+});
+
+describe("ownership and labels", () => {
+  const admin = {
+    role: "admin",
+    adminId: 7,
+    adminName: "Hoan",
+    peerName: "Lan",
+  } as const;
+  const mine = toThreadMessage(msg(1, { senderAdminId: 7 }));
+  const colleague = toThreadMessage(
+    msg(2, { senderAdminId: 8, senderAdminName: "Minh" }),
+  );
+  const trainee = toThreadMessage(
+    msg(3, { senderRole: "user", senderAdminId: null, senderAdminName: null }),
+  );
+
+  it("an admin owns only their own messages", () => {
+    expect(isOwnMessage(mine, admin)).toBe(true);
+    expect(isOwnMessage(colleague, admin)).toBe(false);
+    expect(isOwnMessage(trainee, admin)).toBe(false);
+  });
+
+  it("a trainee owns only the trainee side", () => {
+    expect(isOwnMessage(trainee, { role: "user" })).toBe(true);
+    expect(isOwnMessage(mine, { role: "user" })).toBe(false);
+  });
+
+  it("names the sender for the reply bar", () => {
+    expect(senderLabel(mine, admin)).toBe("chính mình");
+    expect(senderLabel(colleague, admin)).toBe("Minh");
+    expect(senderLabel(trainee, admin)).toBe("Lan");
+    expect(senderLabel(mine, { role: "user" })).toBe("Hoan");
+    expect(senderLabel(trainee, { role: "user" })).toBe("chính mình");
+  });
+
+  it("labels the quoted original by role", () => {
+    const quote = {
+      id: 1,
+      body: "x",
+      senderRole: "admin" as const,
+      deleted: false,
+    };
+    const fromUser = { ...quote, senderRole: "user" as const };
+
+    expect(quoteLabel(fromUser, { role: "user" })).toBe("Bạn");
+    expect(quoteLabel(quote, { role: "user" })).toBe("PT");
+    expect(quoteLabel(fromUser, admin)).toBe("Lan");
+    expect(quoteLabel(quote, admin)).toBe("PT");
+  });
+});
+
+describe("markUnsentQuotes", () => {
+  const quote = (id: number) => ({
+    id,
+    body: "nội dung cũ",
+    senderRole: "admin" as const,
+    deleted: false,
+  });
+
+  it("turns a quote of a loaded, unsent original into the tombstone", () => {
+    const list = mergeMessages(
+      [],
+      [
+        msg(1, { deleted: true, body: "" }),
+        msg(2, { replyTo: quote(1) }),
+        msg(3, { replyTo: quote(9) }),
+      ],
+    );
+    const marked = markUnsentQuotes(list);
+
+    expect(marked[1].replyTo).toEqual({ ...quote(1), body: "", deleted: true });
+    // An original that is not loaded keeps what the server sent.
+    expect(marked[2].replyTo).toEqual(quote(9));
+  });
+
+  it("returns the same list when nothing is unsent", () => {
+    const list = mergeMessages([], [msg(1), msg(2, { replyTo: quote(1) })]);
+
+    expect(markUnsentQuotes(list)).toBe(list);
+  });
+});
+
+describe("reply and time helpers", () => {
+  it("builds the reply snippet, empty for an unsent original", () => {
+    const long = "a".repeat(200);
+
+    expect(
+      toReplyTo(toThreadMessage(msg(4, { body: long })))?.body,
+    ).toHaveLength(120);
+    expect(
+      toReplyTo(toThreadMessage(msg(4, { deleted: true, body: "" }))),
+    ).toEqual({ id: 4, body: "", senderRole: "admin", deleted: true });
+    expect(toReplyTo(pendingMsg("p"))).toBeNull();
+  });
+
+  it('marks a quoted sticker and shows it as "Sticker"', () => {
+    const sticker = {
+      kind: "pack" as const,
+      url: "/stickers/fluent/fire.svg",
+      alt: "Lửa",
+    };
+    const quoted = toReplyTo(toThreadMessage(msg(5, { body: "", sticker })));
+
+    expect(quoted).toEqual({
+      id: 5,
+      body: "",
+      isSticker: true,
+      senderRole: "admin",
+      deleted: false,
+    });
+    expect(quoteText(quoted!)).toBe("Sticker");
+    // An unsent sticker is the tombstone, not "Sticker".
+    expect(
+      toReplyTo(toThreadMessage(msg(5, { body: "", sticker, deleted: true })))
+        ?.isSticker,
+    ).toBeUndefined();
+    expect(quoteText({ deleted: true, isSticker: true, body: "" })).toBe(
+      "Tin nhắn đã bị thu hồi",
+    );
+    expect(quoteText({ deleted: false, body: "xin chào" })).toBe("xin chào");
+  });
+
+  it("formats the exact send time as HH:mm, dd/MM in the app time zone", () => {
+    // 03:42 UTC = 10:42 in Asia/Ho_Chi_Minh (UTC+7).
+    expect(formatSentAt("2026-11-06T03:42:00.000Z")).toBe("10:42, 06/11");
   });
 });

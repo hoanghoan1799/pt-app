@@ -19,17 +19,45 @@ import { db } from "@/db";
 import {
   admins,
   chatConversations,
+  chatMessageEdits,
   chatMessages,
+  chatNicknames,
+  chatReactions,
   chatReads,
   users,
 } from "@/db/schema";
 import {
   adminReaderKey,
+  CHANGES_PAGE_SIZE,
   CHAT_PAGE_SIZE,
   nextReadCursor,
   toPreview,
+  toReplySnippet,
   USER_READER_KEY,
 } from "@/features/chat/utils/chat-rules";
+import { resolveDisplayName } from "@/features/chat/utils/display-name";
+import {
+  type ChatSticker,
+  STICKER_PREVIEW,
+  toChatSticker,
+} from "@/features/chat/utils/sticker-rules";
+
+export interface ChatReaction {
+  emoji: string;
+  // "user" or "admin:<id>".
+  reactorKey: string;
+  reactorName: string;
+}
+
+export interface ChatReplyTo {
+  id: number;
+  // Truncated snippet; empty when the original was unsent.
+  body: string;
+  // The quoted message is a sticker: the UI shows "Sticker".
+  isSticker: boolean;
+  senderRole: "user" | "admin";
+  deleted: boolean;
+}
 
 export interface ChatMessage {
   id: number;
@@ -37,20 +65,168 @@ export interface ChatMessage {
   senderAdminId: number | null;
   // Null when the admin was deleted afterwards (the UI shows "PT (đã xoá)").
   senderAdminName: string | null;
+  // Empty once the message was unsent (`deleted`).
   body: string;
+  // KAN-144: set for a sticker message (body is empty); null once unsent.
+  sticker: ChatSticker | null;
   clientId: string;
   createdAt: Date;
+  replyTo: ChatReplyTo | null;
+  editedAt: Date | null;
+  deleted: boolean;
+  // Last edit, unsend or reaction; createdAt before any of those.
+  updatedAt: Date;
+  reactions: ChatReaction[];
 }
 
 // The only columns that ever leave the server (no attachment/moderation data).
 const messageColumns = {
   id: chatMessages.id,
+  conversationId: chatMessages.conversationId,
   senderRole: chatMessages.senderRole,
   senderAdminId: chatMessages.senderAdminId,
   senderAdminName: admins.username,
   body: chatMessages.body,
+  stickerRef: chatMessages.stickerRef,
+  stickerUrl: chatMessages.stickerUrl,
   clientId: chatMessages.clientId,
   createdAt: chatMessages.createdAt,
+  replyToMessageId: chatMessages.replyToMessageId,
+  editedAt: chatMessages.editedAt,
+  deletedAt: chatMessages.deletedAt,
+  updatedAt: chatMessages.updatedAt,
+};
+
+interface MessageRow {
+  id: number;
+  conversationId: number;
+  senderRole: "user" | "admin";
+  senderAdminId: number | null;
+  senderAdminName: string | null;
+  body: string;
+  stickerRef: string | null;
+  stickerUrl: string | null;
+  clientId: string;
+  createdAt: Date;
+  replyToMessageId: number | null;
+  editedAt: Date | null;
+  deletedAt: Date | null;
+  updatedAt: Date | null;
+}
+
+// Adds reply snippets and reactions to raw rows with batched queries. Unsent
+// messages lose their body, quote and reactions here, so every reader of this
+// module gets the same redaction.
+const hydrateMessages = async (rows: MessageRow[]): Promise<ChatMessage[]> => {
+  if (rows.length === 0) {
+    return [];
+  }
+  const replyIds = [
+    ...new Set(
+      rows.flatMap((row) =>
+        row.replyToMessageId !== null && row.deletedAt === null
+          ? [row.replyToMessageId]
+          : [],
+      ),
+    ),
+  ];
+  const liveIds = rows.filter((row) => !row.deletedAt).map((row) => row.id);
+  const conversationIds = [...new Set(rows.map((row) => row.conversationId))];
+  const [targets, reactionRows, traineeRows] = await Promise.all([
+    replyIds.length === 0
+      ? []
+      : db
+          .select({
+            id: chatMessages.id,
+            conversationId: chatMessages.conversationId,
+            body: chatMessages.body,
+            stickerRef: chatMessages.stickerRef,
+            senderRole: chatMessages.senderRole,
+            deletedAt: chatMessages.deletedAt,
+          })
+          .from(chatMessages)
+          .where(inArray(chatMessages.id, replyIds)),
+    liveIds.length === 0
+      ? []
+      : db
+          .select({
+            messageId: chatReactions.messageId,
+            reactorKey: chatReactions.reactorKey,
+            emoji: chatReactions.emoji,
+            adminName: admins.username,
+          })
+          .from(chatReactions)
+          .leftJoin(
+            admins,
+            sql`${chatReactions.reactorKey} = 'admin:' || ${admins.id}`,
+          )
+          .where(inArray(chatReactions.messageId, liveIds))
+          .orderBy(asc(chatReactions.createdAt)),
+    db
+      .select({ conversationId: chatConversations.id, name: users.name })
+      .from(chatConversations)
+      .innerJoin(users, eq(users.id, chatConversations.userId))
+      .where(inArray(chatConversations.id, conversationIds)),
+  ]);
+  const targetById = new Map(targets.map((row) => [row.id, row]));
+  const traineeName = new Map(
+    traineeRows.map((row) => [row.conversationId, row.name]),
+  );
+  const conversationByMessage = new Map(
+    rows.map((row) => [row.id, row.conversationId]),
+  );
+  const reactionsByMessage = new Map<number, ChatReaction[]>();
+
+  for (const reaction of reactionRows) {
+    const name =
+      reaction.reactorKey === USER_READER_KEY
+        ? (traineeName.get(
+            conversationByMessage.get(reaction.messageId) ?? 0,
+          ) ?? "Học viên")
+        : (reaction.adminName ?? "PT");
+    const list = reactionsByMessage.get(reaction.messageId) ?? [];
+
+    list.push({
+      emoji: reaction.emoji,
+      reactorKey: reaction.reactorKey,
+      reactorName: name,
+    });
+    reactionsByMessage.set(reaction.messageId, list);
+  }
+  return rows.map((row) => {
+    const deleted = row.deletedAt !== null;
+    const target =
+      row.replyToMessageId === null
+        ? undefined
+        : targetById.get(row.replyToMessageId);
+    // A quote from another conversation never leaks a snippet.
+    const replyTo: ChatReplyTo | null =
+      !deleted && target && target.conversationId === row.conversationId
+        ? {
+            id: target.id,
+            body: target.deletedAt ? "" : toReplySnippet(target.body),
+            isSticker: target.deletedAt === null && target.stickerRef !== null,
+            senderRole: target.senderRole,
+            deleted: target.deletedAt !== null,
+          }
+        : null;
+
+    return {
+      id: row.id,
+      senderRole: row.senderRole,
+      senderAdminId: row.senderAdminId,
+      senderAdminName: row.senderAdminName,
+      body: deleted ? "" : row.body,
+      sticker: deleted ? null : toChatSticker(row.stickerRef, row.stickerUrl),
+      clientId: row.clientId,
+      createdAt: row.createdAt,
+      replyTo,
+      editedAt: row.editedAt,
+      deleted,
+      updatedAt: row.updatedAt ?? row.createdAt,
+      reactions: deleted ? [] : (reactionsByMessage.get(row.id) ?? []),
+    };
+  });
 };
 
 export const findConversationByUserId = async (userId: number) => {
@@ -92,7 +268,7 @@ export const findMessageByClientId = async (
   conversationId: number,
   clientId: string,
 ): Promise<ChatMessage | null> => {
-  const [row] = await db
+  const rows = await db
     .select(messageColumns)
     .from(chatMessages)
     .leftJoin(admins, eq(admins.id, chatMessages.senderAdminId))
@@ -104,7 +280,7 @@ export const findMessageByClientId = async (
     )
     .limit(1);
 
-  return row ?? null;
+  return (await hydrateMessages(rows))[0] ?? null;
 };
 
 interface NewMessage {
@@ -112,7 +288,10 @@ interface NewMessage {
   senderRole: "user" | "admin";
   senderAdminId: number | null;
   body: string;
+  stickerRef?: string | null;
+  stickerUrl?: string | null;
   clientId: string;
+  replyToMessageId?: number | null;
 }
 
 // Idempotent insert: a retried send (same clientId) stores nothing and returns
@@ -187,10 +366,121 @@ export const listMessages = async (
   const page = rows.slice(0, CHAT_PAGE_SIZE);
 
   return {
-    messages: (forward ? page : page.reverse()) as ChatMessage[],
+    messages: await hydrateMessages(forward ? page : page.reverse()),
     hasMore,
   };
 };
+
+// Messages edited, unsent or reacted to after `changedSince` (epoch ms),
+// oldest change first. When more than one page changed, lastChangeAt is the
+// newest change actually returned so the next request continues from there.
+export const listChanges = async (
+  conversationId: number,
+  changedSince: number,
+  lastChangeAt: number,
+) => {
+  const rows = await db
+    .select(messageColumns)
+    .from(chatMessages)
+    .leftJoin(admins, eq(admins.id, chatMessages.senderAdminId))
+    .where(
+      and(
+        eq(chatMessages.conversationId, conversationId),
+        gt(chatMessages.updatedAt, new Date(changedSince)),
+      ),
+    )
+    .orderBy(asc(chatMessages.updatedAt), asc(chatMessages.id))
+    .limit(CHANGES_PAGE_SIZE + 1);
+  const truncated = rows.length > CHANGES_PAGE_SIZE;
+  const page = rows.slice(0, CHANGES_PAGE_SIZE);
+
+  return {
+    changes: await hydrateMessages(page),
+    lastChangeAt: truncated
+      ? (page[page.length - 1].updatedAt?.getTime() ?? lastChangeAt)
+      : lastChangeAt,
+  };
+};
+
+// The raw stored row (real body, even when unsent) for ownership checks in
+// the mutation services. Never send it to a client.
+export const findStoredMessage = async (messageId: number) => {
+  const [row] = await db
+    .select()
+    .from(chatMessages)
+    .where(eq(chatMessages.id, messageId))
+    .limit(1);
+
+  return row ?? null;
+};
+
+export const findMessageById = async (
+  messageId: number,
+): Promise<ChatMessage | null> => {
+  const rows = await db
+    .select(messageColumns)
+    .from(chatMessages)
+    .leftJoin(admins, eq(admins.id, chatMessages.senderAdminId))
+    .where(eq(chatMessages.id, messageId))
+    .limit(1);
+
+  return (await hydrateMessages(rows))[0] ?? null;
+};
+
+// Moves the change cursor of one conversation (strictly increasing) without
+// touching a message; used by nickname and colour changes (KAN-141), which
+// are not tied to a message but must still defeat the 204 fast path.
+export const bumpConversationChange = async (conversationId: number) => {
+  const [conversation] = await db
+    .update(chatConversations)
+    .set({
+      lastChangeAt: sql`max(coalesce(${chatConversations.lastChangeAt}, 0) + 1, ${Date.now()})`,
+    })
+    .where(eq(chatConversations.id, conversationId))
+    .returning({ lastChangeAt: chatConversations.lastChangeAt });
+
+  return conversation?.lastChangeAt ?? new Date();
+};
+
+// Same for every conversation (an admin changed their account colour).
+// Returns the conversation ids so the caller can publish to each.
+export const bumpAllConversationChanges = async () => {
+  const rows = await db
+    .update(chatConversations)
+    .set({
+      lastChangeAt: sql`max(coalesce(${chatConversations.lastChangeAt}, 0) + 1, ${Date.now()})`,
+    })
+    .returning({ id: chatConversations.id });
+
+  return rows.map((row) => row.id);
+};
+
+// Bumps the conversation's change cursor and stamps the message with it. The
+// cursor is strictly increasing, so a change in the same millisecond as a poll
+// is never lost to `updated_at > changedSince`.
+export const touchMessage = async (
+  conversationId: number,
+  messageId: number,
+) => {
+  const changedAt = await bumpConversationChange(conversationId);
+
+  await db
+    .update(chatMessages)
+    .set({ updatedAt: changedAt })
+    .where(eq(chatMessages.id, messageId));
+  return changedAt;
+};
+
+// Previous bodies of one message, oldest first.
+export const listEditHistory = async (messageId: number) =>
+  db
+    .select({
+      previousBody: chatMessageEdits.previousBody,
+      editedAt: chatMessageEdits.editedAt,
+    })
+    .from(chatMessageEdits)
+    .where(eq(chatMessageEdits.messageId, messageId))
+    .orderBy(asc(chatMessageEdits.id));
 
 // "Đã xem" for the other side. A trainee sees the furthest any PT has read
 // (any admin counts); a PT sees the trainee's own cursor.
@@ -354,6 +644,8 @@ export interface InboxItem {
   conversationId: number;
   userId: number;
   userName: string;
+  // The nickname an admin set for the trainee, else the real name (KAN-154).
+  displayName: string;
   chatEnabled: boolean;
   preview: string;
   lastFromAdmin: boolean;
@@ -383,6 +675,8 @@ export const listAdminInbox = async (adminId: number) => {
         chatEnabled: users.chatEnabled,
         lastSeenAt: users.lastSeenAt,
         lastBody: chatMessages.body,
+        lastStickerRef: chatMessages.stickerRef,
+        lastDeletedAt: chatMessages.deletedAt,
         lastSenderRole: chatMessages.senderRole,
         lastSenderAdminId: chatMessages.senderAdminId,
         lastSenderAdminName: admins.username,
@@ -412,6 +706,27 @@ export const listAdminInbox = async (adminId: number) => {
       .where(and(eq(users.chatEnabled, true), isNull(chatConversations.id)))
       .orderBy(asc(users.name)),
   ]);
+  const nicknameRows =
+    rows.length === 0
+      ? []
+      : await db
+          .select({
+            conversationId: chatNicknames.conversationId,
+            nickname: chatNicknames.nickname,
+          })
+          .from(chatNicknames)
+          .where(
+            and(
+              eq(chatNicknames.targetKey, USER_READER_KEY),
+              inArray(
+                chatNicknames.conversationId,
+                rows.map((row) => row.conversationId),
+              ),
+            ),
+          );
+  const nicknameById = new Map(
+    nicknameRows.map((row) => [row.conversationId, row.nickname]),
+  );
   const unreadById = new Map(
     unreadRows.map((row) => [row.conversationId, row.unread]),
   );
@@ -419,8 +734,16 @@ export const listAdminInbox = async (adminId: number) => {
     conversationId: row.conversationId,
     userId: row.userId,
     userName: row.userName,
+    displayName: resolveDisplayName(
+      nicknameById.get(row.conversationId),
+      row.userName,
+    ),
     chatEnabled: row.chatEnabled === true,
-    preview: toPreview(row.lastBody ?? ""),
+    preview: row.lastDeletedAt
+      ? ""
+      : row.lastStickerRef
+        ? STICKER_PREVIEW
+        : toPreview(row.lastBody ?? ""),
     lastFromAdmin: row.lastSenderRole === "admin",
     lastSenderAdminId: row.lastSenderAdminId,
     lastSenderAdminName: row.lastSenderAdminName,

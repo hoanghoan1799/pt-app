@@ -1,4 +1,3 @@
-import { WeekNavigator } from "@/components/common/WeekNavigator";
 import { DayEditor } from "@/features/workouts/components/DayEditor";
 import { DayTabs } from "@/features/workouts/components/DayTabs";
 import { WeekProgress } from "@/features/workouts/components/WeekProgress";
@@ -27,12 +26,6 @@ export const WorkoutWeekEditor = ({
   return (
     <div className="space-y-5">
       <div className="space-y-3">
-        <WeekNavigator
-          basePath={basePath}
-          weekStart={weekStart}
-          selectedDate={selectedDate}
-          today={today}
-        />
         <DayTabs
           basePath={basePath}
           weekStart={weekStart}

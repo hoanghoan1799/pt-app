@@ -18,6 +18,19 @@ describe("owner keys", () => {
 });
 
 describe("buildChatPushPayload", () => {
+  it("says a sticker was sent, to either side, without any content", () => {
+    const base = { traineeName: "Lan", traineeUserId: 9, conversationId: 5 };
+
+    expect(
+      buildChatPushPayload({ ...base, recipientRole: "user", sticker: true })
+        .body,
+    ).toBe("PT đã gửi một sticker");
+    expect(
+      buildChatPushPayload({ ...base, recipientRole: "admin", sticker: true })
+        .body,
+    ).toBe("Lan đã gửi một sticker");
+  });
+
   it("tells the trainee only that the PT wrote, and opens their chat", () => {
     expect(
       buildChatPushPayload({

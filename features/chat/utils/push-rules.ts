@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { ROUTES } from "@/constants/routes";
+import { STICKER_PREVIEW } from "@/features/chat/utils/sticker-rules";
 import { getAdminMessagesPath } from "@/utils/routes";
 
 export type PushRecipientRole = "user" | "admin";
@@ -70,6 +71,7 @@ export interface ChatPushPayload {
 
 export const PUSH_TITLE = "PT App";
 export const PUSH_BODY_TO_TRAINEE = "Bạn có tin nhắn mới từ PT";
+export const PUSH_BODY_STICKER_TO_TRAINEE = "PT đã gửi một sticker";
 
 // Lock-screen privacy (spec section 7): the payload never carries the message
 // body, and this function deliberately cannot accept one.
@@ -78,23 +80,55 @@ export const buildChatPushPayload = ({
   traineeName,
   traineeUserId,
   conversationId,
+  sticker = false,
 }: {
   recipientRole: PushRecipientRole;
   traineeName: string;
   traineeUserId: number;
   conversationId: number;
+  // A sticker is a kind, not text: the payload still carries no body.
+  sticker?: boolean;
 }): ChatPushPayload => ({
   title: PUSH_TITLE,
   body:
     recipientRole === "user"
-      ? PUSH_BODY_TO_TRAINEE
-      : `${traineeName} vừa nhắn tin`,
+      ? sticker
+        ? PUSH_BODY_STICKER_TO_TRAINEE
+        : PUSH_BODY_TO_TRAINEE
+      : sticker
+        ? `${traineeName} ${STICKER_PREVIEW}`
+        : `${traineeName} vừa nhắn tin`,
   url:
     recipientRole === "user"
       ? ROUTES.MESSAGES
       : getAdminMessagesPath(traineeUserId),
   // One notification per conversation: a newer one replaces the older.
   tag: `chat-${conversationId}`,
+});
+
+// Reaction push (KAN-138, C7): who reacted and with what, never the text of
+// the message that was reacted to. Its own tag, so it does not replace a
+// pending "new message" notification.
+export const buildReactionPushPayload = ({
+  recipientRole,
+  reactorName,
+  emoji,
+  traineeUserId,
+  conversationId,
+}: {
+  recipientRole: PushRecipientRole;
+  reactorName: string;
+  emoji: string;
+  traineeUserId: number;
+  conversationId: number;
+}): ChatPushPayload => ({
+  title: PUSH_TITLE,
+  body: `${reactorName} đã thả ${emoji} vào tin nhắn của bạn`,
+  url:
+    recipientRole === "user"
+      ? ROUTES.MESSAGES
+      : getAdminMessagesPath(traineeUserId),
+  tag: `chat-react-${conversationId}`,
 });
 
 // The push service says the subscription is dead for good.

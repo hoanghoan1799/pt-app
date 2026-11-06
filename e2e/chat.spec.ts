@@ -235,7 +235,7 @@ test("chat API routes answer 401 with a JSON body without a session", async ({
   expect(await adminResponse.json()).toEqual({ error: "unauthorized" });
 });
 
-test("a trainee who was never enabled has no chat tab and /messages sends them to the workouts", async ({
+test("a trainee who was never enabled still has the chat tab; /messages opens read-only and creates no conversation", async ({
   browser,
 }) => {
   await resetChat(E2E_CHAT_OFF_NAME);
@@ -243,14 +243,25 @@ test("a trainee who was never enabled has no chat tab and /messages sends them t
 
   try {
     await logInAsTrainee(trainee.page, E2E_CHAT_OFF_NAME);
-    await expect(getTabBar(trainee.page).getByRole("link")).toHaveCount(3);
-    await expect(
-      getTabBar(trainee.page).getByRole("link", { name: "Nhắn tin" }),
-    ).toHaveCount(0);
+    await expect(getTabBar(trainee.page).getByRole("link")).toHaveCount(4);
+    await getTabBar(trainee.page)
+      .getByRole("link", { name: "Nhắn tin" })
+      .click();
 
-    await trainee.page.goto("/messages");
-    await expect(trainee.page).toHaveURL(/\/workouts$/);
+    await expect(trainee.page).toHaveURL(/\/messages$/);
     await expect(getComposer(trainee.page)).toHaveCount(0);
+    await expect(
+      trainee.page.getByRole("status").filter({
+        hasText: CHAT_MESSAGES.CHAT_LOCKED,
+      }),
+    ).toHaveText(CHAT_MESSAGES.CHAT_LOCKED);
+    await expect(
+      trainee.page.getByText("PT chưa mở nhắn tin cho bạn", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      trainee.page.getByRole("log").getByRole("paragraph"),
+    ).toHaveCount(0);
+    await expect.poll(() => countMessages(E2E_CHAT_OFF_NAME)).toBe(0);
   } finally {
     await trainee.context.close();
   }
@@ -281,17 +292,19 @@ test("enable, message, reply, unread badges and the PT name work end to end", as
     await expect(
       trainee.page.getByRole("heading", { name: "PT của bạn" }),
     ).toBeVisible();
-    // Same account actions as the other trainee tabs.
-    const header = trainee.page.getByRole("banner");
-
-    await header.getByRole("button", { name: "Tài khoản" }).click();
+    // The thread has its own header: Back replaces the account actions, and
+    // the tab bar is hidden.
     await expect(
-      header.getByRole("menuitem", { name: "Đổi mật khẩu" }),
-    ).toHaveAttribute("href", "/account/password");
-    await expect(
-      header.getByRole("menuitem", { name: "Đăng xuất" }),
+      trainee.page.getByRole("banner").getByRole("button", {
+        name: "Quay lại",
+      }),
     ).toBeVisible();
-    await trainee.page.keyboard.press("Escape");
+    await expect(
+      trainee.page.getByRole("banner").getByRole("button", {
+        name: "Tài khoản",
+      }),
+    ).toHaveCount(0);
+    await expect(getTabBar(trainee.page)).toHaveCount(0);
     await sendFromComposer(trainee.page, question);
     const traineeLog = trainee.page.getByRole("log");
 
@@ -601,10 +614,10 @@ test("the install banner stays off the chat page so it never covers the composer
     await expect.poll(() => countMessages(E2E_CHAT_NAME)).toBe(1);
     await shot(trainee.page, "chat-07-no-install-banner");
 
-    // Not dismissed: it comes back on the next tab.
-    await getTabBar(trainee.page)
-      .getByRole("link", { name: "Lịch tập" })
-      .click();
+    // Not dismissed: it comes back on the next page (Back, the tab bar is
+    // hidden here).
+    await trainee.page.getByRole("button", { name: "Quay lại" }).click();
+    await expect(trainee.page).toHaveURL(/\/workouts$/);
     await expect(banner).toBeVisible();
   } finally {
     await trainee.context.close();

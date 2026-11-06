@@ -11,6 +11,8 @@ import {
   INBOX_CHANNEL,
   inboxEvent,
   messageEvent,
+  messageUpdateEvent,
+  profileUpdateEvent,
   readEvent,
   typingEvent,
   userChannel,
@@ -88,6 +90,35 @@ export const publishNewMessage = async (
     ]);
   } catch (error) {
     logServerError("publishNewMessage", error, { conversationId });
+  }
+};
+
+// Edit, unsend or reaction. Ids only; never throws.
+export const publishMessageUpdate = async (
+  conversationId: number,
+  messageId: number,
+) => {
+  try {
+    await publishChatEvent(
+      conversationChannel(conversationId),
+      CHAT_EVENTS.MESSAGE_UPDATE,
+      messageUpdateEvent(conversationId, messageId),
+    );
+  } catch (error) {
+    logServerError("publishMessageUpdate", error, { conversationId });
+  }
+};
+
+// Nickname or colour change. Ids only; never throws.
+export const publishProfileUpdate = async (conversationId: number) => {
+  try {
+    await publishChatEvent(
+      conversationChannel(conversationId),
+      CHAT_EVENTS.PROFILE_UPDATE,
+      profileUpdateEvent(conversationId),
+    );
+  } catch (error) {
+    logServerError("publishProfileUpdate", error, { conversationId });
   }
 };
 

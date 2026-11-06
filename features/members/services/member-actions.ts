@@ -9,8 +9,12 @@ import { ROUTES } from "@/constants/routes";
 import { db } from "@/db";
 import {
   bodyProfiles,
+  chatColorOverrides,
   chatConversations,
+  chatMessageEdits,
   chatMessages,
+  chatNicknames,
+  chatReactions,
   chatReads,
   exerciseCompletions,
   exercises,
@@ -91,6 +95,23 @@ export const deleteMemberAction = withResultErrorHandling(
         await tx
           .delete(chatReads)
           .where(inArray(chatReads.conversationId, conversationIds));
+        await tx
+          .delete(chatNicknames)
+          .where(inArray(chatNicknames.conversationId, conversationIds));
+        await tx
+          .delete(chatColorOverrides)
+          .where(inArray(chatColorOverrides.conversationId, conversationIds));
+        const messageIds = tx
+          .select({ id: chatMessages.id })
+          .from(chatMessages)
+          .where(inArray(chatMessages.conversationId, conversationIds));
+
+        await tx
+          .delete(chatReactions)
+          .where(inArray(chatReactions.messageId, messageIds));
+        await tx
+          .delete(chatMessageEdits)
+          .where(inArray(chatMessageEdits.messageId, messageIds));
         await tx
           .delete(chatMessages)
           .where(inArray(chatMessages.conversationId, conversationIds));

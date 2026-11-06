@@ -10,6 +10,7 @@ import {
   INBOX_CHANNEL,
   inboxEvent,
   messageEvent,
+  messageUpdateEvent,
   readEvent,
   traineeCapability,
   traineeClientId,
@@ -71,11 +72,21 @@ describe("event payloads", () => {
   it("exposes event names", () => {
     expect(CHAT_EVENTS).toEqual({
       MESSAGE: "message",
+      MESSAGE_UPDATE: "message-update",
+      PROFILE_UPDATE: "profile-update",
       READ: "read",
       CHAT_STATUS: "chat-status",
       INBOX: "inbox",
       TYPING: "typing",
     });
+  });
+
+  it("publishes message updates with ids only", () => {
+    expect(messageUpdateEvent(5, 9)).toEqual({
+      conversationId: 5,
+      messageId: 9,
+    });
+    expect(() => messageUpdateEvent(0, 9)).toThrow();
   });
 
   it("passes only public message fields", () => {
