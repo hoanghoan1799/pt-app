@@ -37,8 +37,8 @@ KAN-136:
 
 - `components/layout/UserTabBar/index.tsx`: return null under `ROUTES.MESSAGES`.
 - `features/chat/components/ChatHeader/index.tsx` (new): Back, avatar, name + dot, status line.
-- `features/chat/components/ChatThread/index.tsx`: drop the presence row; header receives presence.
-- `features/chat/components/TraineeChatThread/index.tsx`, `app/admin/(protected)/users/[id]/messages/page.tsx`: use `ChatHeader`.
+- `features/chat/components/ChatThread/index.tsx`: the presence row is rendered only for the admin viewer; the trainee header receives presence.
+- `features/chat/components/TraineeChatThread/index.tsx`: use `ChatHeader`. The admin thread page is unchanged (Hoan, Q1).
 - `features/chat/utils/chat-thread-rules.ts`: `GROUP_GAP_MS` 30 min; tests in `features/chat/utils/__tests__/`.
 
 KAN-138:
