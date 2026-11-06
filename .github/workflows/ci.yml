@@ -138,13 +138,13 @@ jobs:
         run: pnpm build
 
   # Playwright e2e on a throwaway SQLite file (e2e/.tmp). Not part of the
-  # `checks` gate yet: keep it under 3 minutes or move it back to a local-only
-  # command.
+  # `checks` gate yet. The suite takes about 8 minutes with the chat specs, and
+  # `playwright install --with-deps` can spend minutes on apt, hence 15.
   e2e:
     needs: changes
     if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
