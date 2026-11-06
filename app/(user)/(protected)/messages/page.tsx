@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { ROUTES } from "@/constants/routes";
+import {
+  getAvatarUrl,
+  listAdminAvatarUrls,
+} from "@/features/avatar/services/avatar";
 import { TraineeChatThread } from "@/features/chat/components/TraineeChatThread";
 import { isChatEnabled } from "@/features/chat/services/chat-permission";
 import {
@@ -32,6 +36,10 @@ const MessagesPage = async () => {
     redirect(ROUTES.WORKOUTS);
   }
   const { payload } = result;
+  const [adminAvatars, selfAvatarUrl] = await Promise.all([
+    listAdminAvatarUrls(),
+    getAvatarUrl("user", user.id),
+  ]);
   const peerName = existing
     ? await findLatestAdminSenderName(existing.id)
     : null;
@@ -41,6 +49,10 @@ const MessagesPage = async () => {
       initialPeerName={peerName}
       userName={user.name}
       userId={user.id}
+      avatars={Object.fromEntries(
+        [...adminAvatars].map(([id, url]) => [`admin:${id}`, url]),
+      )}
+      selfAvatarUrl={selfAvatarUrl}
       conversationId={conversation?.id ?? null}
       initial={{
         ...payload,

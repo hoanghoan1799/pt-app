@@ -18,6 +18,8 @@ const userIdSchema = z.coerce.number().int().positive();
 
 // The other side's last heartbeat as an ISO string (or null), so the thread
 // header can refresh its status every minute even when no message changed.
+// `serverNow` lets the client measure its clock skew: last-seen is stamped
+// by the server, so "online" must be judged on the server's clock.
 // Trainee: newest last-seen across all PTs. `?as=admin&userId=N`: that
 // trainee's last-seen; 404 when the user does not exist.
 export const GET = async (request: NextRequest) => {
@@ -41,6 +43,7 @@ export const GET = async (request: NextRequest) => {
     }
     return reply({
       peerLastSeenAt: serializeLastSeen(await getUserLastSeen(trainee.id)),
+      serverNow: new Date().toISOString(),
     });
   }
   const user = await getApiUser();
@@ -50,5 +53,6 @@ export const GET = async (request: NextRequest) => {
   }
   return reply({
     peerLastSeenAt: serializeLastSeen(await getAdminTeamLastSeen()),
+    serverNow: new Date().toISOString(),
   });
 };

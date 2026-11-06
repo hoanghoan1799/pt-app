@@ -1,6 +1,12 @@
 import { z } from "zod";
 
 import { findBundledSticker } from "@/features/chat/constants/stickers";
+import {
+  customStickerRef,
+  customStickerUrl,
+  parseCustomRef,
+  STICKER_ALT_CUSTOM,
+} from "@/features/chat/utils/custom-sticker-rules";
 
 export const STICKER_PREVIEW = "đã gửi một sticker";
 export const STICKER_ALT_GIPHY = "Sticker GIPHY";
@@ -45,29 +51,46 @@ const giphyInput = z.object({
   url: z.string().refine(isGiphyMediaUrl),
 });
 
-export const stickerInputSchema = z.union([bundledInput, giphyInput]).refine(
-  (value) => {
-    if ("pack" in value) {
-      return findBundledSticker(value.pack, value.id) !== null;
-    }
-    return new URL(value.url).pathname.split("/").includes(value.giphyId);
-  },
-  { message: "unknown sticker" },
-);
+// A personal sticker (KAN-158) is only an id here; that the sender owns it is
+// checked against the database in the send action.
+const customInput = z.object({ customId: z.number().int().positive() });
+
+export const stickerInputSchema = z
+  .union([bundledInput, giphyInput, customInput])
+  .refine(
+    (value) => {
+      if ("pack" in value) {
+        return findBundledSticker(value.pack, value.id) !== null;
+      }
+      if ("customId" in value) {
+        return true;
+      }
+      return new URL(value.url).pathname.split("/").includes(value.giphyId);
+    },
+    { message: "unknown sticker" },
+  );
 
 export type StickerInput = z.infer<typeof stickerInputSchema>;
 
 // What is stored on the message row.
-export const toStoredSticker = (input: StickerInput) =>
-  "pack" in input
-    ? {
-        stickerRef: `pack:${input.id}`,
-        stickerUrl: findBundledSticker(input.pack, input.id)?.url ?? null,
-      }
-    : { stickerRef: `giphy:${input.giphyId}`, stickerUrl: input.url };
+export const toStoredSticker = (input: StickerInput) => {
+  if ("pack" in input) {
+    return {
+      stickerRef: `pack:${input.id}`,
+      stickerUrl: findBundledSticker(input.pack, input.id)?.url ?? null,
+    };
+  }
+  if ("customId" in input) {
+    return {
+      stickerRef: customStickerRef(input.customId),
+      stickerUrl: customStickerUrl(input.customId),
+    };
+  }
+  return { stickerRef: `giphy:${input.giphyId}`, stickerUrl: input.url };
+};
 
 export interface ChatSticker {
-  kind: "pack" | "giphy";
+  kind: "pack" | "giphy" | "custom";
   url: string;
   alt: string;
 }
@@ -84,6 +107,13 @@ export const toChatSticker = (
   if (stickerRef.startsWith("giphy:")) {
     return isGiphyMediaUrl(stickerUrl)
       ? { kind: "giphy", url: stickerUrl, alt: STICKER_ALT_GIPHY }
+      : null;
+  }
+  if (stickerRef.startsWith("custom:")) {
+    const id = parseCustomRef(stickerRef);
+
+    return id !== null && stickerUrl === customStickerUrl(id)
+      ? { kind: "custom", url: stickerUrl, alt: STICKER_ALT_CUSTOM }
       : null;
   }
   if (stickerRef.startsWith("pack:")) {

@@ -2,13 +2,13 @@ import clsx from "clsx";
 import { Lock } from "lucide-react";
 import Link from "next/link";
 
+import { Avatar } from "@/components/common/Avatar";
 import { CARD } from "@/constants/styles";
 import type { InboxItem } from "@/features/chat/services/chat-queries";
 import {
   formatInboxTime,
   inboxPreviewPrefix,
 } from "@/features/chat/utils/chat-inbox";
-import { initialsOf } from "@/features/chat/utils/chat-thread-rules";
 import { isOnline, ONLINE_LABEL } from "@/features/chat/utils/presence";
 import { shortLastSeen } from "@/features/chat/utils/presence-status";
 import { getAdminMessagesPath } from "@/utils/routes";
@@ -51,12 +51,12 @@ export const ChatInboxList = ({
             className="flex min-h-16 items-center gap-3 px-4 py-3 transition active:bg-line"
           >
             <span className="relative shrink-0">
-              <span
-                aria-hidden
-                className="flex size-11 items-center justify-center rounded-full bg-accent/15 text-sm font-bold text-accent"
-              >
-                {initialsOf(item.displayName)}
-              </span>
+              <Avatar
+                name={item.displayName}
+                src={item.avatarUrl}
+                tone="soft"
+                className="size-11 text-sm"
+              />
               {online && (
                 <span
                   role="img"

@@ -248,7 +248,17 @@ test.describe("chat settings", () => {
         hasText: "Chào PT, hôm nay tập gì ạ?",
       }),
     ).toBeVisible({ timeout: SYNC_TIMEOUT_MS });
-    await expect(a.getByText("Hiển thị: Bé Na")).toBeVisible();
+    // The admin title carries the trainee's nickname, not the real name.
+    await expect(
+      a.getByRole("heading", { level: 1, name: "Nhắn tin với Bé Na" }),
+    ).toBeVisible();
+    await expect(a.getByRole("heading", { level: 1 })).not.toContainText(
+      E2E_CHAT_NAME,
+    );
+    // The gear is an icon only: named for screen readers, no visible text.
+    await expect(
+      a.getByRole("button", { name: "Biệt danh và màu" }),
+    ).toHaveText("");
 
     // Admin: nickname for the trainee, conversation colour and account colour.
     await openSheet(a, "Biệt danh và màu");
@@ -282,7 +292,9 @@ test.describe("chat settings", () => {
       .click();
     await a.keyboard.press("Escape");
     await expect(a.locator("[data-chat-settings]")).toHaveCount(0);
-    await expect(a.getByText("Hiển thị: Na nhỏ")).toBeVisible();
+    await expect(
+      a.getByRole("heading", { level: 1, name: "Nhắn tin với Na nhỏ" }),
+    ).toBeVisible();
     await expect(
       a.locator('[data-bubble-color="teal"]').filter({
         hasText: "Chào em, hôm nay tập chân nhé.",

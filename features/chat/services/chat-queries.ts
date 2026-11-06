@@ -26,6 +26,7 @@ import {
   chatReads,
   users,
 } from "@/db/schema";
+import { avatarUrl } from "@/features/avatar/utils/avatar-rules";
 import {
   adminReaderKey,
   CHANGES_PAGE_SIZE,
@@ -657,12 +658,15 @@ export interface InboxItem {
   unread: number;
   // Trainee's last heartbeat (KAN-128); null = never seen.
   lastSeenAt: Date | null;
+  // Versioned /api/avatar URL of the trainee's photo (KAN-157); null = none.
+  avatarUrl: string | null;
 }
 
 export interface InboxWithoutConversation {
   userId: number;
   userName: string;
   lastSeenAt: Date | null;
+  avatarUrl: string | null;
 }
 
 export const listAdminInbox = async (adminId: number) => {
@@ -674,6 +678,7 @@ export const listAdminInbox = async (adminId: number) => {
         userName: users.name,
         chatEnabled: users.chatEnabled,
         lastSeenAt: users.lastSeenAt,
+        avatarUpdatedAt: users.avatarUpdatedAt,
         lastBody: chatMessages.body,
         lastStickerRef: chatMessages.stickerRef,
         lastDeletedAt: chatMessages.deletedAt,
@@ -700,6 +705,7 @@ export const listAdminInbox = async (adminId: number) => {
         userId: users.id,
         userName: users.name,
         lastSeenAt: users.lastSeenAt,
+        avatarUpdatedAt: users.avatarUpdatedAt,
       })
       .from(users)
       .leftJoin(chatConversations, eq(chatConversations.userId, users.id))
@@ -750,10 +756,14 @@ export const listAdminInbox = async (adminId: number) => {
     lastMessageAt: row.lastMessageAt,
     unread: unreadById.get(row.conversationId) ?? 0,
     lastSeenAt: row.lastSeenAt,
+    avatarUrl: avatarUrl("user", row.userId, row.avatarUpdatedAt),
   }));
+  const withoutConversation: InboxWithoutConversation[] = fresh.map(
+    ({ avatarUpdatedAt, ...row }) => ({
+      ...row,
+      avatarUrl: avatarUrl("user", row.userId, avatarUpdatedAt),
+    }),
+  );
 
-  return {
-    conversations,
-    withoutConversation: fresh satisfies InboxWithoutConversation[],
-  };
+  return { conversations, withoutConversation };
 };

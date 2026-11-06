@@ -1,21 +1,31 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { eq, getTableColumns } from "drizzle-orm";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { toEmailKey } from "@/utils/email";
 import { toNameKey } from "@/utils/name";
 
+// Every column except the profile photo (up to ~100 KB of base64): the session
+// guard loads the user on each request and must not drag the image along. The
+// photo is read on its own by /api/avatar.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { avatar: _avatar, ...userColumns } = getTableColumns(users);
+
 export const findUserById = async (id: number) => {
-  const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  const [user] = await db
+    .select(userColumns)
+    .from(users)
+    .where(eq(users.id, id))
+    .limit(1);
 
   return user ?? null;
 };
 
 export const findUserByName = async (name: string) => {
   const [user] = await db
-    .select()
+    .select(userColumns)
     .from(users)
     .where(eq(users.nameKey, toNameKey(name)))
     .limit(1);
@@ -25,7 +35,7 @@ export const findUserByName = async (name: string) => {
 
 export const findUserByEmail = async (email: string) => {
   const [user] = await db
-    .select()
+    .select(userColumns)
     .from(users)
     .where(eq(users.emailKey, toEmailKey(email)))
     .limit(1);

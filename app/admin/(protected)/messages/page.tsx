@@ -3,6 +3,7 @@ import { MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { Avatar } from "@/components/common/Avatar";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { CARD, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
@@ -112,6 +113,12 @@ const AdminMessagesInboxPage = async ({
                           className="size-2.5 shrink-0 rounded-full bg-success"
                         />
                       )}
+                      <Avatar
+                        name={member.userName}
+                        src={member.avatarUrl}
+                        tone="soft"
+                        className="size-8 text-xs"
+                      />
                       <span className="truncate">{member.userName}</span>
                       {lastSeen && (
                         <span className="shrink-0 text-xs font-normal text-muted">

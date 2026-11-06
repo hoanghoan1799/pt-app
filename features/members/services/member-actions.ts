@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -11,6 +11,7 @@ import {
   bodyProfiles,
   chatColorOverrides,
   chatConversations,
+  chatCustomStickers,
   chatMessageEdits,
   chatMessages,
   chatNicknames,
@@ -119,6 +120,14 @@ export const deleteMemberAction = withResultErrorHandling(
       await tx
         .delete(chatConversations)
         .where(eq(chatConversations.userId, id));
+      await tx
+        .delete(chatCustomStickers)
+        .where(
+          and(
+            eq(chatCustomStickers.ownerKind, "user"),
+            eq(chatCustomStickers.ownerId, id),
+          ),
+        );
       await tx
         .delete(pushSubscriptions)
         .where(eq(pushSubscriptions.ownerKey, userOwnerKey(id)));

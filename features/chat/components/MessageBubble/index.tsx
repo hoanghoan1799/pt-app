@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import Image from "next/image";
 
+import { Avatar } from "@/components/common/Avatar";
 import { useBubbleGesture } from "@/features/chat/hooks/use-bubble-gesture";
 import {
   CHAT_TEXT_ON_COLOR,
@@ -11,7 +12,6 @@ import {
 } from "@/features/chat/utils/chat-palette";
 import {
   groupReactions,
-  initialsOf,
   quoteLabel,
   quoteText,
   type ThreadItem,
@@ -36,6 +36,8 @@ interface MessageBubbleProps {
   onOpenHistory: (message: ThreadMessage) => void;
   onJumpToReply: (messageId: number) => void;
   nicknames?: Readonly<Record<string, string>>;
+  // The sender's photo (versioned URL) beside their bubbles; initials if null.
+  avatarSrc?: string | null;
   // The sender's palette colour (white text, AA on every entry); null keeps
   // the neutral surface style (KAN-142).
   color?: ChatColorKey | null;
@@ -57,6 +59,7 @@ export const MessageBubble = ({
   onJumpToReply,
   color = null,
   nicknames,
+  avatarSrc = null,
 }: MessageBubbleProps) => {
   const {
     message,
@@ -113,14 +116,13 @@ export const MessageBubble = ({
         )}
       >
         {!mine && (
-          <span
-            aria-hidden
-            className={clsx(
-              "flex size-7 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[11px] font-bold text-accent",
-              !showAvatar && "invisible",
-            )}
-          >
-            {initialsOf(avatarName)}
+          <span className={clsx(!showAvatar && "invisible")}>
+            <Avatar
+              name={avatarName}
+              src={avatarSrc}
+              tone="soft"
+              className="size-7 text-[11px]"
+            />
           </span>
         )}
         <div
@@ -220,10 +222,8 @@ export const MessageBubble = ({
               onClick={() => onOpenReactors(message, group.emoji)}
               aria-label={`${group.emoji} ${group.count}`}
               className={clsx(
-                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
-                group.mine
-                  ? "border-accent bg-accent/15 text-fg"
-                  : "border-line bg-surface text-muted",
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                group.mine ? "bg-accent/15 text-fg" : "bg-fg/5 text-muted",
               )}
             >
               <span aria-hidden>{group.emoji}</span>
