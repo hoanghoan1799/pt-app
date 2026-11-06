@@ -25,6 +25,7 @@ Gaps: the status lives in its own row under the header, not under the name; the 
 - B1. The trainee tab bar is hidden on `/messages` (the tab bar already reads `usePathname`).
 - B2. Trainee only: a new `ChatHeader` with Back (left), avatar, then the name with a green dot right after it when online, and the status text ("Đang hoạt động", "Hoạt động 5 phút trước") on the line under the name. It replaces, for the trainee, the separate presence row, the "Nhắn tin với" eyebrow and the account buttons (account actions stay on every other tab). The admin thread keeps its current header, member tabs and presence row (Hoan, Q1).
 - B3. Back = `router.back()` when there is history inside the app, otherwise `/workouts`.
+- B5. The "Nhắn tin" tab is always visible to trainees (Hoan, 2026-11-06). When the admin has not enabled chat, `/messages` opens read-only: old messages (if any) show, the composer is replaced by the existing locked banner, and an empty thread says the PT has not opened chat yet. Server checks on send are unchanged. This replaces the `showMessages` rule in the protected layout and the redirect to `/workouts` in the messages page.
 - B4. Time break after a gap over 30 min (was 15). Day separators unchanged. The exact send time of any message also shows in the long-press sheet (B is UI only, the time comes from `createdAt`).
 
 ### C. Reactions and actions (KAN-133)
@@ -67,6 +68,7 @@ Gaps: the status lives in its own row under the header, not under the name; the 
 
 ## Older behaviour this replaces
 
+- Hiding the "Nhắn tin" tab and redirecting `/messages` when chat is off (B5).
 - Trainee chat only: the separate presence row (moves into the header), the "Nhắn tin với" eyebrow and the account buttons. The admin thread is unchanged.
 - The 15 min time break (now 30 min).
 - `hidden_by_admin_id` stays unused; admin moderation of trainee messages is not part of this work (Q6).

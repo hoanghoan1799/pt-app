@@ -39,6 +39,7 @@ KAN-136:
 - `features/chat/components/ChatHeader/index.tsx` (new): Back, avatar, name + dot, status line.
 - `features/chat/components/ChatThread/index.tsx`: the presence row is rendered only for the admin viewer; the trainee header receives presence.
 - `features/chat/components/TraineeChatThread/index.tsx`: use `ChatHeader`. The admin thread page is unchanged (Hoan, Q1).
+- `app/(user)/(protected)/layout.tsx`: drop `showMessages`, tab always shown; `components/layout/UserTabBar/index.tsx`: remove the prop; `app/(user)/(protected)/messages/page.tsx`: no redirect when chat is off, render read-only (B5).
 - `features/chat/utils/chat-thread-rules.ts`: `GROUP_GAP_MS` 30 min; tests in `features/chat/utils/__tests__/`.
 
 KAN-138:
