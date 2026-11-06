@@ -13,3 +13,18 @@ export const toNameKey = (name: string) =>
 
 export const getInitial = (name: string) =>
   normalizeName(name).charAt(0).toLocaleUpperCase("vi");
+
+// Up to two letters for the round PT avatar.
+export const initialsOf = (name: string | null) => {
+  const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
+
+  if (words.length === 0) {
+    return "PT";
+  }
+  const letters =
+    words.length === 1
+      ? Array.from(words[0]).slice(0, 2)
+      : [Array.from(words[0])[0], Array.from(words[words.length - 1])[0]];
+
+  return letters.join("").toUpperCase();
+};

@@ -227,9 +227,29 @@ test("the admin thread shows the trainee's last seen when the trainee is idle", 
     await logInAsAdmin(admin.page);
     await admin.page.goto(`/admin/users/${userId}/messages`);
     const status = getStatus(admin.page);
+    const title = admin.page.getByRole("heading", { level: 1 });
 
+    await expect(title).toHaveText(`Nhắn tin với ${E2E_CHAT_OFF_NAME}`);
     await expect(status).toHaveAttribute("data-online", "false");
     await expect(status).toHaveText("Hoạt động 5 phút trước");
+    // Idle: no green dot, and the status sits directly under the title, in
+    // the header itself.
+    await expect(status.locator("span[aria-hidden]")).toHaveCount(0);
+    const titleBox = await title.boundingBox();
+    const statusBox = await status.boundingBox();
+
+    expect(titleBox).not.toBeNull();
+    expect(statusBox).not.toBeNull();
+    expect(statusBox!.y).toBeGreaterThanOrEqual(
+      titleBox!.y + titleBox!.height - 1,
+    );
+    expect(statusBox!.y).toBeLessThan(titleBox!.y + titleBox!.height + 24);
+    await expect(
+      admin.page
+        .locator("header")
+        .first()
+        .getByRole("status", { name: /^Trạng thái hoạt động/ }),
+    ).toHaveCount(1);
     await expect(status).toHaveAccessibleName(
       "Trạng thái hoạt động: Hoạt động 5 phút trước",
     );
@@ -244,6 +264,30 @@ test("the admin thread shows the trainee's last seen when the trainee is idle", 
       ),
     ).toBeLessThan(Date.now() - FIVE_MINUTES_MS + 60_000);
     await expect(status).toHaveText("Hoạt động 5 phút trước");
+  } finally {
+    await admin.context.close();
+    await resetChatTrainee(E2E_CHAT_OFF_NAME);
+  }
+});
+
+test("the admin thread shows an idle trainee as offline even when the admin's device clock runs behind the server", async ({
+  browser,
+}) => {
+  const userId = await prepareChatTrainee(E2E_CHAT_OFF_NAME);
+  const admin = await newSession(browser);
+
+  try {
+    // Last seen 5 minutes ago on the server clock; the browser's clock is
+    // 10 minutes behind, which used to read that heartbeat as "now".
+    await setUserLastSeen(E2E_CHAT_OFF_NAME, Date.now() - FIVE_MINUTES_MS);
+    await admin.page.clock.install({ time: Date.now() - 2 * FIVE_MINUTES_MS });
+    await logInAsAdmin(admin.page);
+    await admin.page.goto(`/admin/users/${userId}/messages`);
+    const status = getStatus(admin.page);
+
+    await expect(status).toHaveAttribute("data-online", "false");
+    await expect(status).toHaveText("Hoạt động 5 phút trước");
+    await expect(status.locator("span[aria-hidden]")).toHaveCount(0);
   } finally {
     await admin.context.close();
     await resetChatTrainee(E2E_CHAT_OFF_NAME);

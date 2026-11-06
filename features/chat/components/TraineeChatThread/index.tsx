@@ -11,7 +11,7 @@ export const FALLBACK_PEER_TITLE = "PT của bạn";
 
 interface TraineeChatThreadProps extends Pick<
   ChatThreadProps,
-  "initial" | "userId" | "conversationId"
+  "initial" | "userId" | "conversationId" | "avatars" | "selfAvatarUrl"
 > {
   // Username of the PT who wrote last, from the server; the live thread
   // takes over once a newer PT message arrives.
@@ -32,7 +32,11 @@ export const TraineeChatThread = ({
     {...thread}
     selfName={userName}
     fallbackPeerName={initialPeerName ?? FALLBACK_PEER_TITLE}
-    header={(latestPeerName, presence, { profile, openSettings }) => (
+    header={(
+      latestPeerName,
+      presence,
+      { profile, openSettings, peerAvatar },
+    ) => (
       <ChatHeader
         name={adminLabel(
           profile.nicknames,
@@ -41,6 +45,7 @@ export const TraineeChatThread = ({
           "pt",
         )}
         presence={presence}
+        avatarSrc={peerAvatar}
         onOpenSettings={openSettings}
       />
     )}

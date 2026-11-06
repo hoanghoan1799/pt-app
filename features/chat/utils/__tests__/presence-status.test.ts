@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  clockSkewMs,
   heartbeatUrl,
   mergeLastSeen,
   peerPresenceUrl,
   presenceView,
+  serverClockNow,
   shortLastSeen,
   shouldRunPresence,
 } from "@/features/chat/utils/presence-status";
@@ -86,5 +88,45 @@ describe("shouldRunPresence", () => {
   it("runs only while visible", () => {
     expect(shouldRunPresence("visible")).toBe(true);
     expect(shouldRunPresence("hidden")).toBe(false);
+  });
+});
+
+// KAN-156: the admin thread showed an idle trainee as "Đang hoạt động" when
+// the admin's device clock ran behind the server's. Last-seen is stamped by
+// the server; judging it on the device clock put it inside (or after) "now".
+describe("device clock behind the server", () => {
+  const FIVE_MIN = 5 * 60_000;
+  const lastSeen = ago(FIVE_MIN);
+  const deviceNow = new Date(NOW.getTime() - 10 * 60_000);
+
+  it("reproduces the bug: the raw device clock reads an idle trainee as online", () => {
+    expect(presenceView(lastSeen, deviceNow)).toEqual({
+      online: true,
+      text: "Đang hoạt động",
+    });
+  });
+
+  it("measures the skew from the server timestamp and judges on the server clock", () => {
+    const skew = clockSkewMs(NOW.toISOString(), deviceNow.getTime());
+
+    expect(skew).toBe(10 * 60_000);
+    expect(
+      presenceView(lastSeen, serverClockNow(deviceNow.getTime(), skew)),
+    ).toEqual({ online: false, text: "Hoạt động 5 phút trước" });
+  });
+
+  it("keeps a fresh heartbeat online on a correct clock", () => {
+    const skew = clockSkewMs(NOW.toISOString(), NOW.getTime());
+
+    expect(skew).toBe(0);
+    expect(
+      presenceView(ago(30_000), serverClockNow(NOW.getTime(), skew)).online,
+    ).toBe(true);
+  });
+
+  it("falls back to no skew without a usable server time", () => {
+    expect(clockSkewMs(null, 1)).toBe(0);
+    expect(clockSkewMs(undefined, 1)).toBe(0);
+    expect(clockSkewMs("nope", 1)).toBe(0);
   });
 });

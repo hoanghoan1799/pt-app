@@ -29,6 +29,11 @@ export const admins = sqliteTable("admins", {
   lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
   // Chat bubble colour (KAN-141): a key of chat-palette.ts; null = default.
   chatColor: text("chat_color"),
+  // Profile photo (KAN-157): a 256x256 WebP/JPEG/PNG data URL resized in the
+  // browser, validated on write. Null = initials. `avatarUpdatedAt` is set
+  // whenever `avatar` is, and versions the /api/avatar URL.
+  avatar: text("avatar"),
+  avatarUpdatedAt: integer("avatar_updated_at", { mode: "timestamp" }),
   createdAt: createdAt(),
 });
 
@@ -62,6 +67,9 @@ export const users = sqliteTable("users", {
   lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
   // Chat bubble colour (KAN-141), see admins.chatColor.
   chatColor: text("chat_color"),
+  // Profile photo (KAN-157), see admins.avatar.
+  avatar: text("avatar"),
+  avatarUpdatedAt: integer("avatar_updated_at", { mode: "timestamp" }),
   createdAt: createdAt(),
 });
 

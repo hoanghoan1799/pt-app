@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 
 import { PRESENCE_HEARTBEAT_MS } from "@/features/chat/utils/presence";
 import {
+  clockSkewMs,
   mergeLastSeen,
   peerPresenceUrl,
   type PresenceView,
   presenceView,
+  serverClockNow,
   shouldRunPresence,
 } from "@/features/chat/utils/presence-status";
 
@@ -30,6 +32,10 @@ export const usePeerPresence = ({
   fromThread,
 }: Options): PresenceView | null => {
   const [fetched, setFetched] = useState<Date | null>(null);
+  // Device clock minus server clock, measured from the peer endpoint. Null
+  // until the first answer (or its failure): without it a device clock that
+  // runs behind would show an idle peer as online.
+  const [skewMs, setSkewMs] = useState<number | null>(null);
   // Null until mounted: the server render and first client render agree.
   const [now, setNow] = useState<Date | null>(null);
 
@@ -55,21 +61,31 @@ export const usePeerPresence = ({
           return;
         }
         const data: unknown = await response.json();
-        const value = (data as { peerLastSeenAt?: unknown } | null)
-          ?.peerLastSeenAt;
+        const body = data as {
+          peerLastSeenAt?: unknown;
+          serverNow?: unknown;
+        } | null;
+        const value = body?.peerLastSeenAt;
 
+        if (typeof body?.serverNow === "string") {
+          setSkewMs(clockSkewMs(body.serverNow, Date.now()));
+        }
         if (typeof value === "string") {
           setFetched((current) => mergeLastSeen(current, value));
           setNow(new Date());
         }
       } catch {
         // Next tick retries.
+      } finally {
+        // A failed measurement falls back to the device clock.
+        setSkewMs((current) => current ?? 0);
       }
     };
     const onVisibility = () => void refresh();
     const timer = setInterval(() => void refresh(), PRESENCE_HEARTBEAT_MS);
 
     document.addEventListener("visibilitychange", onVisibility);
+    void refresh();
     return () => {
       cancelled = true;
       clearInterval(timer);
@@ -77,10 +93,10 @@ export const usePeerPresence = ({
     };
   }, [role, userId]);
 
-  if (now === null) {
+  if (now === null || skewMs === null) {
     return null;
   }
   const lastSeenAt = mergeLastSeen(fetched, fromThread ?? undefined);
 
-  return presenceView(lastSeenAt, now);
+  return presenceView(lastSeenAt, serverClockNow(now.getTime(), skewMs));
 };

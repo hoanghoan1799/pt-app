@@ -60,3 +60,21 @@ export const mergeLastSeen = (
 // Timers and fetches only run while the page is visible.
 export const shouldRunPresence = (visibility: DocumentVisibilityState) =>
   visibility === "visible";
+
+// Last-seen is stamped by the server clock, but "now" came from the viewer's
+// device. A device clock that runs behind made an old heartbeat look recent
+// (or even in the future, which reads as online), so an idle trainee showed
+// "Đang hoạt động". The skew (server minus device, in ms) is measured from a
+// server timestamp and added to the device clock.
+export const clockSkewMs = (
+  serverNow: string | null | undefined,
+  deviceNowMs: number,
+): number => {
+  const server = parseLastSeen(serverNow);
+
+  return server === null ? 0 : server.getTime() - deviceNowMs;
+};
+
+// The current time on the server's clock.
+export const serverClockNow = (deviceNowMs: number, skewMs: number): Date =>
+  new Date(deviceNowMs + skewMs);

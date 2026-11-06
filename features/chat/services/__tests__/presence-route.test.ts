@@ -140,7 +140,10 @@ describe("GET /api/presence/peer", () => {
     const empty = await getPeer();
 
     expect(empty.headers.get("Cache-Control")).toBe("no-store");
-    expect(await empty.json()).toEqual({ peerLastSeenAt: null });
+    expect(await empty.json()).toEqual({
+      peerLastSeenAt: null,
+      serverNow: expect.any(String),
+    });
 
     const [second] = await db
       .insert(admins)
@@ -158,6 +161,7 @@ describe("GET /api/presence/peer", () => {
 
     expect(await (await getPeer()).json()).toEqual({
       peerLastSeenAt: "2026-11-05T02:00:00.000Z",
+      serverNow: expect.any(String),
     });
   });
 
@@ -169,6 +173,7 @@ describe("GET /api/presence/peer", () => {
 
     expect(await (await getPeer(`?as=admin&userId=${userId}`)).json()).toEqual({
       peerLastSeenAt: "2026-11-05T02:30:00.000Z",
+      serverNow: expect.any(String),
     });
   });
 

@@ -204,6 +204,20 @@ export const latestAdminName = (messages: ThreadMessage[]) => {
   return newest?.senderAdminName ?? null;
 };
 
+// Id of the PT who wrote last (for their photo); null if none.
+export const latestAdminId = (
+  messages: Pick<ThreadMessage, "senderRole" | "senderAdminId">[],
+): number | null => {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+
+    if (message.senderRole === "admin" && message.senderAdminId !== null) {
+      return message.senderAdminId;
+    }
+  }
+  return null;
+};
+
 // The read cursor is sent only when it moves forward.
 export const shouldMarkRead = (newestPeerId: number, lastMarkedId: number) =>
   newestPeerId > lastMarkedId;
@@ -435,20 +449,7 @@ export const buildThreadItems = (
   return items;
 };
 
-// Up to two letters for the round PT avatar.
-export const initialsOf = (name: string | null) => {
-  const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
-
-  if (words.length === 0) {
-    return "PT";
-  }
-  const letters =
-    words.length === 1
-      ? Array.from(words[0]).slice(0, 2)
-      : [Array.from(words[0])[0], Array.from(words[words.length - 1])[0]];
-
-  return letters.join("").toUpperCase();
-};
+export { initialsOf } from "@/utils/name";
 
 export const isNearBottom = (
   scrollHeight: number,
