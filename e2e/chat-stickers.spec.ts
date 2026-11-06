@@ -1,3 +1,5 @@
+import { crc32, deflateSync } from "node:zlib";
+
 import { createClient } from "@libsql/client";
 import { type Browser, expect, type Page, test } from "@playwright/test";
 
@@ -68,6 +70,8 @@ const resetChat = async () => {
     ]) {
       await client.execute({ sql, args: [userId] });
     }
+    // Personal stickers (KAN-158) of the trainee and of the PT.
+    await client.execute("DELETE FROM chat_custom_stickers");
     await client.execute({
       sql: "UPDATE users SET chat_enabled = NULL, chat_enabled_changed_at = NULL, chat_enabled_by_admin_id = NULL WHERE id = ?",
       args: [userId],
@@ -206,6 +210,7 @@ test("the trainee sends a bundled sticker and the PT sees the image; GIPHY stays
   await withScene(browser, async ({ trainee, admin }) => {
     await stickerButton(trainee).click();
     await expect(sheet(trainee).getByRole("tab")).toHaveText([
+      "Của tôi",
       "Tập luyện",
       "Ăn uống",
       "Cảm xúc",
@@ -457,4 +462,261 @@ test("a locked chat has no sticker button, and a sticker offers no actions", asy
     },
     { isLocked: true },
   );
+});
+
+// KAN-158: personal stickers. A real PNG built in memory (no fixture file):
+// a gradient the browser can decode, resize and re-encode.
+const makePng = (width: number, height: number) => {
+  const chunk = (type: string, data: Buffer) => {
+    const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
+    const length = Buffer.alloc(4);
+    const checksum = Buffer.alloc(4);
+
+    length.writeUInt32BE(data.length);
+    checksum.writeUInt32BE(crc32(body));
+    return Buffer.concat([length, body, checksum]);
+  };
+  const header = Buffer.alloc(13);
+
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header.set([8, 2, 0, 0, 0], 8);
+  const rows = Buffer.alloc((width * 3 + 1) * height);
+
+  for (let y = 0; y < height; y += 1) {
+    const start = y * (width * 3 + 1);
+
+    for (let x = 0; x < width; x += 1) {
+      rows[start + 1 + x * 3] = (x * 255) / width;
+      rows[start + 2 + x * 3] = (y * 255) / height;
+      rows[start + 3 + x * 3] = 160;
+    }
+  }
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", header),
+    chunk("IDAT", deflateSync(rows)),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+};
+
+const MINE_ALT = "Sticker của tôi";
+const MAX_STICKER_BYTES = 150 * 1024;
+const ownTiles = (page: Page) => sheet(page).locator("[data-custom-sticker]");
+
+const openMine = async (page: Page) => {
+  await stickerButton(page).click();
+  await sheet(page).getByRole("tab", { name: "Của tôi" }).click();
+  await expect(
+    sheet(page).getByRole("tab", { name: "Của tôi" }),
+  ).toHaveAttribute("aria-selected", "true");
+};
+
+const addPhoto = async (page: Page, buffer: Buffer, name = "photo.png") => {
+  await sheet(page)
+    .locator('input[type="file"]')
+    .setInputFiles({ name, mimeType: "image/png", buffer });
+};
+
+test("a trainee turns a photo into a personal sticker, sends it and the PT sees it", async ({
+  browser,
+}) => {
+  await withScene(browser, async ({ trainee, admin }) => {
+    await openMine(trainee);
+    // After Gần đây (none yet) and before the bundled groups.
+    await expect(sheet(trainee).getByRole("tab")).toHaveText([
+      "Của tôi",
+      "Tập luyện",
+      "Ăn uống",
+      "Cảm xúc",
+    ]);
+    await expect(sheet(trainee).getByText("0/30 sticker")).toBeVisible();
+    await expect(sheet(trainee).locator('input[type="file"]')).toHaveAttribute(
+      "accept",
+      "image/*",
+    );
+
+    // A 1200x800 photo: far larger than the 512 px sticker box.
+    await addPhoto(trainee, makePng(1200, 800));
+    await expect(ownTiles(trainee)).toHaveCount(1);
+    await expect(sheet(trainee).getByText("1/30 sticker")).toBeVisible();
+
+    // The stored image is a small, re-encoded WebP/PNG, served from our route.
+    const src = await ownTiles(trainee).locator("img").getAttribute("src");
+
+    expect(src).toMatch(/^\/api\/chat\/stickers\/custom\/\d+$/);
+    const image = await trainee.request.get(src ?? "");
+    const bytes = await image.body();
+
+    expect(image.status()).toBe(200);
+    expect(image.headers()["content-type"]).toMatch(/^image\/(webp|png)$/);
+    expect(image.headers()["cache-control"]).toContain("private");
+    expect(bytes.length).toBeLessThanOrEqual(MAX_STICKER_BYTES);
+    expect(bytes.length).toBeGreaterThan(0);
+
+    await ownTiles(trainee).first().click();
+    await expect(sheet(trainee)).toHaveCount(0);
+    await expect(trainee.getByText("Đang gửi…")).toHaveCount(0, {
+      timeout: 60_000,
+    });
+
+    // Both sides show the picture; the bubble holds only the image.
+    for (const [page, options] of [
+      [trainee, undefined],
+      [admin, SYNC],
+    ] as const) {
+      const bubble = sticker(page, MINE_ALT);
+
+      await expect(bubble).toBeVisible(options);
+      const picture = bubble.getByRole("img", { name: MINE_ALT, exact: true });
+
+      await expect(picture).toHaveAttribute("src", src ?? "");
+      await expect
+        .poll(() =>
+          picture.evaluate((node) => (node as HTMLImageElement).naturalWidth),
+        )
+        .toBeGreaterThan(0);
+      await expect(bubble.locator("p")).toHaveCount(0);
+    }
+    // The stored message carries the route URL, never a data URL.
+    const { rows } = await withDb((client) =>
+      client.execute(
+        "SELECT sticker_ref, sticker_url FROM chat_messages WHERE sticker_ref LIKE 'custom:%'",
+      ),
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(String(rows[0].sticker_url)).toBe(src);
+    expect(String(rows[0].sticker_ref)).toBe(`custom:${src?.split("/").pop()}`);
+
+    // The PT can load it (other side of the conversation) ...
+    expect((await admin.request.get(src ?? "")).status()).toBe(200);
+    // ... a visitor without a session cannot.
+    const stranger = await browser.newContext({
+      baseURL: test.info().project.use.baseURL,
+    });
+
+    try {
+      expect((await stranger.request.get(src ?? "")).status()).toBe(401);
+    } finally {
+      await stranger.close();
+    }
+  });
+});
+
+test("the PT adds their own sticker and the trainee sees it; removing one keeps sent bubbles", async ({
+  browser,
+}) => {
+  await withScene(browser, async ({ trainee, admin }) => {
+    await openMine(admin);
+    await addPhoto(admin, makePng(300, 900));
+    await expect(ownTiles(admin)).toHaveCount(1);
+    // The trainee's set is separate from the PT's.
+    await openMine(trainee);
+    await expect(ownTiles(trainee)).toHaveCount(0);
+    await trainee.keyboard.press("Escape");
+
+    await ownTiles(admin).first().click();
+    await expect(sticker(trainee, MINE_ALT)).toBeVisible(SYNC);
+    await expect(sticker(trainee, MINE_ALT).getByRole("img")).toHaveJSProperty(
+      "complete",
+      true,
+    );
+
+    // Edit mode: delete badges; the sent bubble keeps its picture.
+    await openMine(admin);
+    await sheet(admin).getByRole("button", { name: "Sửa" }).click();
+    await sheet(admin).getByRole("button", { name: "Xoá sticker này" }).click();
+    await expect(ownTiles(admin)).toHaveCount(0);
+    await expect(sheet(admin).getByText("0/30 sticker")).toBeVisible();
+    await admin.keyboard.press("Escape");
+    await trainee.reload();
+    await expect(sticker(trainee, MINE_ALT).getByRole("img")).toHaveJSProperty(
+      "complete",
+      true,
+    );
+    await expect
+      .poll(() =>
+        sticker(trainee, MINE_ALT)
+          .getByRole("img")
+          .evaluate((node) => (node as HTMLImageElement).naturalWidth),
+      )
+      .toBeGreaterThan(0);
+  });
+});
+
+test("a long press shows the delete badge, and a file that is not an image is refused in Vietnamese", async ({
+  browser,
+}) => {
+  await withScene(browser, async ({ trainee }) => {
+    await openMine(trainee);
+    await addPhoto(trainee, Buffer.from("this is not an image"), "notes.png");
+    await expect(
+      sheet(trainee)
+        .getByRole("alert")
+        .filter({ hasText: "Không đọc được ảnh" }),
+    ).toBeVisible();
+    await expect(ownTiles(trainee)).toHaveCount(0);
+
+    await addPhoto(trainee, makePng(80, 80));
+    await expect(ownTiles(trainee)).toHaveCount(1);
+    await expect(sheet(trainee).getByRole("alert")).toHaveCount(0);
+
+    const box = await ownTiles(trainee).first().boundingBox();
+
+    if (!box) {
+      throw new Error("The sticker tile is not on screen");
+    }
+    await trainee.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await trainee.mouse.down();
+    await trainee.waitForTimeout(LONG_PRESS_MS);
+    await trainee.mouse.up();
+    // The long press only reveals the badge; it does not send.
+    await expect(
+      sheet(trainee).getByRole("button", { name: "Xoá sticker này" }),
+    ).toBeVisible();
+    await expect(sticker(trainee, MINE_ALT)).toHaveCount(0);
+    await sheet(trainee).getByRole("button", { name: "Xong" }).click();
+    await expect(
+      sheet(trainee).getByRole("button", { name: "Xoá sticker này" }),
+    ).toHaveCount(0);
+  });
+});
+
+test("the 31st personal sticker is refused with a Vietnamese message", async ({
+  browser,
+}) => {
+  await withScene(browser, async ({ trainee }) => {
+    const png = makePng(16, 16);
+    const post = () =>
+      trainee.request.post("/api/chat/stickers/custom", {
+        data: png,
+        headers: { "Content-Type": "image/png" },
+      });
+
+    for (let count = 0; count < 30; count += 1) {
+      expect((await post()).status()).toBe(201);
+    }
+    const refused = await post();
+
+    expect(refused.status()).toBe(409);
+    expect((await refused.json()).message).toContain("tối đa 30 sticker");
+
+    await openMine(trainee);
+    await expect(ownTiles(trainee)).toHaveCount(30);
+    await expect(sheet(trainee).getByText("30/30 sticker")).toBeVisible();
+    await expect(
+      sheet(trainee).getByRole("button", { name: "Thêm ảnh" }),
+    ).toBeDisabled();
+
+    // Bytes that are not WebP or PNG are refused before the limit applies.
+    expect(
+      (
+        await trainee.request.post("/api/chat/stickers/custom", {
+          data: Buffer.from("GIF89a....................."),
+          headers: { "Content-Type": "image/png" },
+        })
+      ).status(),
+    ).toBe(400);
+  });
 });

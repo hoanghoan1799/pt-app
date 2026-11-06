@@ -7,13 +7,19 @@ import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { INPUT } from "@/constants/styles";
+import { CustomStickerGrid } from "@/features/chat/components/CustomStickerGrid";
 import {
   bundledStickerUrl,
   STICKER_GROUPS,
   STICKER_PACK_ID,
 } from "@/features/chat/constants/stickers";
 import type { SendContent } from "@/features/chat/hooks/use-chat-messages";
+import { useCustomStickers } from "@/features/chat/hooks/use-custom-stickers";
 import { useGiphyStickers } from "@/features/chat/hooks/use-giphy-stickers";
+import {
+  customStickerUrl,
+  STICKER_ALT_CUSTOM,
+} from "@/features/chat/utils/custom-sticker-rules";
 import {
   addRecentSticker,
   loadRecentStickers,
@@ -30,9 +36,12 @@ interface StickerPanelProps {
   onOpenChange: (isOpen: boolean) => void;
   // Tapping a sticker sends it right away.
   onPick: (sticker: PickedSticker) => void;
+  // Whose personal stickers the "Của tôi" tab shows.
+  role: "user" | "admin";
 }
 
 const GIPHY_TAB = "giphy";
+const MINE_TAB = "mine";
 const RECENT_TAB = "recent";
 const TAB =
   "min-h-10 shrink-0 rounded-full border px-3.5 text-sm font-semibold transition active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100";
@@ -55,6 +64,7 @@ export const StickerPanel = ({
   isOpen,
   onOpenChange,
   onPick,
+  role,
 }: StickerPanelProps) => {
   // Read once when the panel mounts (it only mounts on the client, on demand).
   const [recent, setRecent] = useState<RecentSticker[]>(loadRecentStickers);
@@ -63,6 +73,7 @@ export const StickerPanel = ({
   );
   const [query, setQuery] = useState("");
   const giphy = useGiphyStickers(query);
+  const mine = useCustomStickers(role);
   const showGiphy = giphy.enabled === true;
   // The tab disappears if the key goes away; fall back to the first group.
   const activeTab =
@@ -73,21 +84,26 @@ export const StickerPanel = ({
   const showRecent = recent.length > 0;
 
   const pick = (sticker: PickedSticker) => {
-    const entry: RecentSticker =
-      "pack" in sticker.input
-        ? { kind: "pack", pack: sticker.input.pack, id: sticker.input.id }
-        : {
-            kind: "giphy",
-            giphyId: sticker.input.giphyId,
-            url: sticker.input.url,
-            alt: sticker.display.alt,
-          };
-    const next = addRecentSticker(recent, entry);
+    const { input } = sticker;
 
-    setRecent(next);
-    // The next opening starts on what was just sent.
-    setTab(RECENT_TAB);
-    saveRecentStickers(next);
+    // Personal stickers have their own tab, so they skip "Gần đây".
+    if (!("customId" in input)) {
+      const entry: RecentSticker =
+        "pack" in input
+          ? { kind: "pack", pack: input.pack, id: input.id }
+          : {
+              kind: "giphy",
+              giphyId: input.giphyId,
+              url: input.url,
+              alt: sticker.display.alt,
+            };
+      const next = addRecentSticker(recent, entry);
+
+      setRecent(next);
+      // The next opening starts on what was just sent.
+      setTab(RECENT_TAB);
+      saveRecentStickers(next);
+    }
     onOpenChange(false);
     onPick(sticker);
   };
@@ -122,6 +138,22 @@ export const StickerPanel = ({
             Gần đây
           </button>
         )}
+        <button
+          type="button"
+          role="tab"
+          id={`sticker-tab-${MINE_TAB}`}
+          aria-selected={activeTab === MINE_TAB}
+          aria-controls="sticker-grid"
+          onClick={() => setTab(MINE_TAB)}
+          className={clsx(
+            TAB,
+            activeTab === MINE_TAB
+              ? "border-accent bg-accent text-accent-fg"
+              : "border-line bg-surface text-fg",
+          )}
+        >
+          Của tôi
+        </button>
         {STICKER_GROUPS.map((item) => (
           <button
             key={item.key}
@@ -220,6 +252,26 @@ export const StickerPanel = ({
               </button>
             );
           })}
+        {activeTab === MINE_TAB && (
+          <CustomStickerGrid
+            stickers={mine.stickers}
+            status={mine.status}
+            isBusy={mine.isBusy}
+            error={mine.error}
+            onAdd={(file) => void mine.add(file)}
+            onRemove={(id) => void mine.remove(id)}
+            onPick={(sticker) =>
+              pick({
+                input: { customId: sticker.id },
+                display: {
+                  kind: "custom",
+                  url: customStickerUrl(sticker.id),
+                  alt: STICKER_ALT_CUSTOM,
+                },
+              })
+            }
+          />
+        )}
         {group?.stickers.map((sticker) => {
           const url = bundledStickerUrl(STICKER_PACK_ID, sticker.id);
 

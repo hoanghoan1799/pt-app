@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  blob,
   index,
   integer,
   primaryKey,
@@ -482,6 +483,28 @@ export const chatMessages = sqliteTable(
       table.clientId,
     ),
     index("chat_messages_conversation_id").on(table.conversationId, table.id),
+  ],
+);
+
+// Personal stickers (KAN-158): an image the owner picked and the browser
+// re-encoded (WebP or PNG, <= 150 KB). The owner is a trainee ("user") or a PT
+// ("admin"); no foreign key because the id lives in one of two tables. A
+// sticker already sent in a message is only hidden (deletedAt) when its owner
+// removes it, so the chat history keeps working.
+export const chatCustomStickers = sqliteTable(
+  "chat_custom_stickers",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    ownerKind: text("owner_kind", { enum: ["user", "admin"] }).notNull(),
+    ownerId: integer("owner_id").notNull(),
+    mime: text("mime", { enum: ["image/webp", "image/png"] }).notNull(),
+    data: blob("data", { mode: "buffer" }).notNull(),
+    size: integer("size").notNull(),
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("chat_custom_stickers_owner").on(table.ownerKind, table.ownerId),
   ],
 );
 

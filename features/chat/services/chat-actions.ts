@@ -25,6 +25,10 @@ import {
   publishRead,
 } from "@/features/chat/services/chat-realtime";
 import {
+  ownsSticker,
+  type StickerOwner,
+} from "@/features/chat/services/custom-stickers";
+import {
   adminReaderKey,
   hasBodyOrSticker,
   sendMessageSchema,
@@ -52,10 +56,21 @@ const fail = (message: string) => ({ status: "error" as const, message });
 // media URL, and what is stored comes from the validated value.
 interface SendInput {
   body?: string;
-  sticker?: { pack: string; id: string } | { giphyId: string; url: string };
+  sticker?:
+    | { pack: string; id: string }
+    | { giphyId: string; url: string }
+    | { customId: number };
   clientId: string;
   replyToMessageId?: number;
 }
+
+// A personal sticker (KAN-158) may only be sent by its owner; the other kinds
+// are fully checked by the schema.
+const ownsStickerInput = async (
+  owner: StickerOwner,
+  sticker: StickerInput | undefined,
+) =>
+  !sticker || !("customId" in sticker) || ownsSticker(owner, sticker.customId);
 
 const toNewContent = (parsed: { body?: string; sticker?: StickerInput }) =>
   parsed.sticker
@@ -79,6 +94,15 @@ export const sendMessageAction = withResultErrorHandling(
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
     const { clientId, replyToMessageId } = parsed.data;
+
+    if (
+      !(await ownsStickerInput(
+        { kind: "user", id: user.id },
+        parsed.data.sticker,
+      ))
+    ) {
+      return fail(CHAT_MESSAGES.INVALID_INPUT);
+    }
     const conversation = await getOrCreateConversation(user.id);
 
     if (!(await isReplyTargetValid(conversation, replyToMessageId))) {
@@ -131,6 +155,14 @@ export const adminSendMessageAction = withResultErrorHandling(
     }
     if (!isChatEnabled(trainee)) {
       return fail(CHAT_MESSAGES.CHAT_LOCKED);
+    }
+    if (
+      !(await ownsStickerInput(
+        { kind: "admin", id: admin.id },
+        parsed.data.sticker,
+      ))
+    ) {
+      return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
     const conversation = await getOrCreateConversation(trainee.id);
 
