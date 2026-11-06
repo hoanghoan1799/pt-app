@@ -55,7 +55,7 @@ export const ChatInboxList = ({
                 aria-hidden
                 className="flex size-11 items-center justify-center rounded-full bg-accent/15 text-sm font-bold text-accent"
               >
-                {initialsOf(item.userName)}
+                {initialsOf(item.displayName)}
               </span>
               {online && (
                 <span
@@ -73,7 +73,7 @@ export const ChatInboxList = ({
                     isUnread ? "font-bold" : "font-semibold",
                   )}
                 >
-                  <span className="truncate">{item.userName}</span>
+                  <span className="truncate">{item.displayName}</span>
                   {lastSeen && (
                     <span className="shrink-0 text-xs font-normal text-muted">
                       {lastSeen}

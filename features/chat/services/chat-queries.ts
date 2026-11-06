@@ -21,6 +21,7 @@ import {
   chatConversations,
   chatMessageEdits,
   chatMessages,
+  chatNicknames,
   chatReactions,
   chatReads,
   users,
@@ -34,6 +35,7 @@ import {
   toReplySnippet,
   USER_READER_KEY,
 } from "@/features/chat/utils/chat-rules";
+import { resolveDisplayName } from "@/features/chat/utils/display-name";
 import {
   type ChatSticker,
   STICKER_PREVIEW,
@@ -642,6 +644,8 @@ export interface InboxItem {
   conversationId: number;
   userId: number;
   userName: string;
+  // The nickname an admin set for the trainee, else the real name (KAN-154).
+  displayName: string;
   chatEnabled: boolean;
   preview: string;
   lastFromAdmin: boolean;
@@ -702,6 +706,27 @@ export const listAdminInbox = async (adminId: number) => {
       .where(and(eq(users.chatEnabled, true), isNull(chatConversations.id)))
       .orderBy(asc(users.name)),
   ]);
+  const nicknameRows =
+    rows.length === 0
+      ? []
+      : await db
+          .select({
+            conversationId: chatNicknames.conversationId,
+            nickname: chatNicknames.nickname,
+          })
+          .from(chatNicknames)
+          .where(
+            and(
+              eq(chatNicknames.targetKey, USER_READER_KEY),
+              inArray(
+                chatNicknames.conversationId,
+                rows.map((row) => row.conversationId),
+              ),
+            ),
+          );
+  const nicknameById = new Map(
+    nicknameRows.map((row) => [row.conversationId, row.nickname]),
+  );
   const unreadById = new Map(
     unreadRows.map((row) => [row.conversationId, row.unread]),
   );
@@ -709,6 +734,10 @@ export const listAdminInbox = async (adminId: number) => {
     conversationId: row.conversationId,
     userId: row.userId,
     userName: row.userName,
+    displayName: resolveDisplayName(
+      nicknameById.get(row.conversationId),
+      row.userName,
+    ),
     chatEnabled: row.chatEnabled === true,
     preview: row.lastDeletedAt
       ? ""

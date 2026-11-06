@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
-import { admins, users } from "@/db/schema";
+import { admins, chatNicknames, users } from "@/db/schema";
 
 const state = vi.hoisted(() => ({ db: null as unknown }));
 
@@ -259,6 +259,50 @@ describe("listAdminInbox", () => {
 
     expect(inbox.conversations[0].lastSeenAt).toEqual(seen);
     expect(inbox.withoutConversation[0].lastSeenAt).toEqual(seen);
+  });
+
+  it("shows the trainee nickname as displayName, real name as fallback", async () => {
+    const an = await q.getOrCreateConversation(await addUser("An"));
+    const binh = await q.getOrCreateConversation(await addUser("Binh"));
+    const updatedAt = new Date();
+
+    await send(an.id, "user", "hi");
+    await send(binh.id, "user", "hi");
+    await db.insert(chatNicknames).values([
+      {
+        conversationId: an.id,
+        targetKey: "user",
+        nickname: "Bé Na",
+        setByKey: "admin:1",
+        updatedAt,
+      },
+      // Other targets and blank nicknames never become the trainee's name.
+      {
+        conversationId: an.id,
+        targetKey: "pt",
+        nickname: "Thầy",
+        setByKey: "user",
+        updatedAt,
+      },
+      {
+        conversationId: binh.id,
+        targetKey: "user",
+        nickname: "   ",
+        setByKey: "user",
+        updatedAt,
+      },
+    ]);
+    const { conversations } = await q.listAdminInbox(1);
+    const byId = new Map(conversations.map((c) => [c.conversationId, c]));
+
+    expect(byId.get(an.id)).toMatchObject({
+      displayName: "Bé Na",
+      userName: "An",
+    });
+    expect(byId.get(binh.id)).toMatchObject({
+      displayName: "Binh",
+      userName: "Binh",
+    });
   });
 
   it("flags a last message sent by an admin", async () => {

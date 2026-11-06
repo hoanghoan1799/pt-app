@@ -260,3 +260,17 @@ export const setAdminConversationColor = async (
   }
   return done(conversationId);
 };
+
+// The admin's saved account colour (null when never picked or unknown), so
+// the settings sheet can preselect it.
+export const loadAdminAccountColor = async (
+  adminId: number,
+): Promise<ChatColorKey | null> => {
+  const [row] = await db
+    .select({ color: admins.chatColor })
+    .from(admins)
+    .where(eq(admins.id, adminId))
+    .limit(1);
+
+  return isChatColorKey(row?.color) ? row.color : null;
+};
