@@ -41,6 +41,7 @@ import {
   buildThreadItems,
   firstStoredId,
   isNearBottom,
+  latestAdminId,
   latestAdminName,
   markUnsentQuotes,
   myReactionOf,
@@ -69,6 +70,8 @@ export interface ChatThreadProps {
         settings: {
           profile: ChatProfileView;
           openSettings: () => void;
+          // The other side's photo for the header (versioned URL) or null.
+          peerAvatar: string | null;
         },
       ) => ReactNode);
   // The viewer's real name, for the settings sheet (the trainee's name; the
@@ -81,7 +84,14 @@ export interface ChatThreadProps {
   accountColor?: ChatColorKey | null;
   emptyText?: string;
   ariaLabel?: string;
+  // Photos of the people in this thread (versioned /api/avatar URLs), keyed
+  // like nicknames: "user" or "admin:<id>". Only people with a photo.
+  avatars?: Readonly<Record<string, string>>;
+  // The viewer's own saved photo, editable in the settings sheet.
+  selfAvatarUrl?: string | null;
 }
+
+const NO_AVATARS: Readonly<Record<string, string>> = {};
 
 const TRAINEE_EMPTY_TEXT = "Gửi tin nhắn đầu tiên cho PT của bạn";
 const TRAINEE_LOCKED_EMPTY_TEXT = "PT chưa mở nhắn tin cho bạn";
@@ -149,6 +159,8 @@ export const ChatThread = ({
   fallbackPeerName = "PT",
   emptyText,
   ariaLabel = TRAINEE_ARIA_LABEL,
+  avatars = NO_AVATARS,
+  selfAvatarUrl = null,
 }: ChatThreadProps) => {
   const isAdmin = viewer.role === "admin";
   const [isVisible, setIsVisible] = useState(true);
@@ -183,6 +195,10 @@ export const ChatThread = ({
   const [highlightId, setHighlightId] = useState<number | null>(null);
   const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  // Set once the viewer saves or removes their own photo in the sheet.
+  const [savedSelfAvatar, setSavedSelfAvatar] = useState<
+    string | null | undefined
+  >(undefined);
   // The panel mounts on the first tap and stays, so its sheet can animate out.
   const [isStickerOpen, setIsStickerOpen] = useState(false);
   const [hasStickerPanel, setHasStickerPanel] = useState(false);
@@ -477,9 +493,15 @@ export const ChatThread = ({
     emptyText ?? (chatEnabled ? TRAINEE_EMPTY_TEXT : TRAINEE_LOCKED_EMPTY_TEXT);
   const latestPeerName = latestAdminName(messages);
   const openSettings = () => setIsSettingsOpen(true);
+  // The other side's photo in the header: the trainee for an admin, the PT who
+  // wrote last for a trainee.
+  const peerAvatar =
+    viewer.role === "admin"
+      ? (avatars.user ?? null)
+      : (avatars[`admin:${latestAdminId(messages)}`] ?? null);
   const headerNode =
     typeof header === "function"
-      ? header(latestPeerName, presence, { profile, openSettings })
+      ? header(latestPeerName, presence, { profile, openSettings, peerAvatar })
       : header;
   const peerRealName =
     viewer.role === "admin"
@@ -549,6 +571,15 @@ export const ChatThread = ({
                       viewer={adapter.viewer}
                       onRetry={chat.retry}
                       nicknames={profile.nicknames}
+                      avatarSrc={
+                        item.mine
+                          ? null
+                          : (avatars[
+                              item.message.senderRole === "user"
+                                ? "user"
+                                : `admin:${item.message.senderAdminId}`
+                            ] ?? null)
+                      }
                       isHighlighted={
                         item.message.id !== null &&
                         item.message.id === highlightId
@@ -699,6 +730,10 @@ export const ChatThread = ({
         accountColor={accountColor}
         onSync={sync}
         chatEnabled={chatEnabled}
+        selfAvatarUrl={
+          savedSelfAvatar === undefined ? selfAvatarUrl : savedSelfAvatar
+        }
+        onAvatarChange={setSavedSelfAvatar}
       />
     </div>
   );

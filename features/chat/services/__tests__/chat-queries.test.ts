@@ -241,8 +241,8 @@ describe("listAdminInbox", () => {
     expect(inbox1.conversations[1].preview).toBe("x".repeat(80));
     expect(anLast).toBeGreaterThan(binhLast);
     expect(inbox1.withoutConversation).toEqual([
-      { userId: cuongId, userName: "Cuong", lastSeenAt: null },
-      { userId: lanId, userName: "Lan", lastSeenAt: null },
+      { userId: cuongId, userName: "Cuong", lastSeenAt: null, avatarUrl: null },
+      { userId: lanId, userName: "Lan", lastSeenAt: null, avatarUrl: null },
     ]);
     expect(inbox1.conversations.map((c) => c.lastSeenAt)).toEqual([null, null]);
   });

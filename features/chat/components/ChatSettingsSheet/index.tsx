@@ -12,6 +12,7 @@ import {
   INPUT,
   SECTION_TITLE,
 } from "@/constants/styles";
+import { AvatarField } from "@/features/avatar/components/AvatarField";
 import {
   adminSetChatColorAction,
   adminSetConversationColorAction,
@@ -64,6 +65,9 @@ export interface ChatSettingsSheetProps {
   // are only known to the server).
   onSync: () => void;
   chatEnabled: boolean;
+  // The viewer's own saved photo (versioned URL) and its change callback.
+  selfAvatarUrl?: string | null;
+  onAvatarChange?: (url: string | null) => void;
 }
 
 interface NicknameFieldProps {
@@ -225,6 +229,8 @@ export const ChatSettingsSheet = ({
   onProfileChange,
   onSync,
   chatEnabled,
+  selfAvatarUrl = null,
+  onAvatarChange,
 }: ChatSettingsSheetProps) => {
   const isAdmin = viewer.role === "admin";
   const { other, self } = settingsTargets(viewer, { peerName, selfName });
@@ -345,6 +351,19 @@ export const ChatSettingsSheet = ({
             {isAdmin ? ADMIN_LOCKED_NOTE : LOCKED_NOTE}
           </p>
         )}
+
+        <section className="space-y-3">
+          <h3 className={SECTION_TITLE}>Ảnh đại diện</h3>
+          <p className="text-sm text-muted">
+            Ảnh của bạn hiện ở đầu cuộc trò chuyện và cạnh tin nhắn của bạn.
+          </p>
+          <AvatarField
+            role={viewer.role}
+            name={selfName}
+            savedUrl={selfAvatarUrl}
+            onSaved={(url) => onAvatarChange?.(url)}
+          />
+        </section>
 
         <section className="space-y-4">
           <h3 className={SECTION_TITLE}>Biệt danh</h3>

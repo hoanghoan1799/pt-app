@@ -5,11 +5,11 @@ import { ChevronLeft, Settings } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { Avatar } from "@/components/common/Avatar";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON, PAGE_CONTAINER } from "@/constants/styles";
 import { PresenceStatus } from "@/features/chat/components/PresenceStatus";
 import { canGoBackInApp } from "@/features/chat/utils/chat-back";
-import { initialsOf } from "@/features/chat/utils/chat-thread-rules";
 import type { PresenceView } from "@/features/chat/utils/presence-status";
 
 interface ChatHeaderProps {
@@ -19,6 +19,8 @@ interface ChatHeaderProps {
   title?: string;
   // Admin side: a fixed route back instead of the browser history.
   backHref?: string;
+  // The other side's photo (versioned URL); initials when null.
+  avatarSrc?: string | null;
   // Accessible name of the gear; the button shows an icon only.
   settingsLabel?: string;
   presence: PresenceView | null;
@@ -32,6 +34,7 @@ export const ChatHeader = ({
   name,
   title = name,
   backHref,
+  avatarSrc = null,
   settingsLabel = "Cài đặt cuộc trò chuyện",
   presence,
   onOpenSettings,
@@ -75,12 +78,8 @@ export const ChatHeader = ({
         )}
         {/* Tapping the avatar or the name opens the settings too; the gear
             button is the keyboard and screen reader entry. */}
-        <span
-          aria-hidden
-          onClick={onOpenSettings}
-          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-fg"
-        >
-          {initialsOf(name)}
+        <span onClick={onOpenSettings} className="shrink-0">
+          <Avatar name={name} src={avatarSrc} className="size-9 text-sm" />
         </span>
         <div
           className="min-w-0 flex-1 py-2"

@@ -6,6 +6,10 @@ import { MemberSectionTabs } from "@/components/layout/MemberSectionTabs";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
+import {
+  getAvatarUrl,
+  listAdminAvatarUrls,
+} from "@/features/avatar/services/avatar";
 import { AdminChatThread } from "@/features/chat/components/AdminChatThread";
 import { ChatLockSwitch } from "@/features/chat/components/ChatLockSwitch";
 import { isChatEnabled } from "@/features/chat/services/chat-permission";
@@ -83,13 +87,28 @@ const AdminMessagesPage = async ({
       </>
     );
   }
-  const [{ messages, hasMore }, peerReadUpTo, profile, accountColor] =
-    await Promise.all([
-      listMessages(conversation.id),
-      getPeerReadCursor(conversation.id, "admin"),
-      loadChatProfile(conversation.id),
-      loadAdminAccountColor(admin.id),
-    ]);
+  const [
+    { messages, hasMore },
+    peerReadUpTo,
+    profile,
+    accountColor,
+    adminAvatars,
+    traineeAvatarUrl,
+  ] = await Promise.all([
+    listMessages(conversation.id),
+    getPeerReadCursor(conversation.id, "admin"),
+    loadChatProfile(conversation.id),
+    loadAdminAccountColor(admin.id),
+    listAdminAvatarUrls(),
+    getAvatarUrl("user", user.id),
+  ]);
+  const avatars: Record<string, string> = Object.fromEntries(
+    [...adminAvatars].map(([id, url]) => [`admin:${id}`, url]),
+  );
+
+  if (traineeAvatarUrl) {
+    avatars.user = traineeAvatarUrl;
+  }
 
   return (
     <AdminChatThread
@@ -107,6 +126,8 @@ const AdminMessagesPage = async ({
         peerName: user.name,
       }}
       accountColor={accountColor}
+      avatars={avatars}
+      selfAvatarUrl={adminAvatars.get(admin.id) ?? null}
       emptyText={EMPTY_TEXT}
       ariaLabel={`Cuộc trò chuyện với ${user.name}`}
       initial={{

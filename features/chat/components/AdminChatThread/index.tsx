@@ -19,6 +19,8 @@ interface AdminChatThreadProps extends Pick<
   | "accountColor"
   | "emptyText"
   | "ariaLabel"
+  | "avatars"
+  | "selfAvatarUrl"
 > {
   // The trainee's real name; the admin's nickname for them wins in the title.
   userName: string;
@@ -38,7 +40,11 @@ export const AdminChatThread = ({
 }: AdminChatThreadProps) => (
   <ChatThread
     {...thread}
-    header={(_latestPeerName, presence, { profile, openSettings }) => {
+    header={(
+      _latestPeerName,
+      presence,
+      { profile, openSettings, peerAvatar },
+    ) => {
       const name = displayNameFor(profile.nicknames, "user", userName);
 
       return (
@@ -49,6 +55,7 @@ export const AdminChatThread = ({
             backHref={ROUTES.ADMIN_MESSAGES}
             settingsLabel={SETTINGS_LABEL}
             presence={presence}
+            avatarSrc={peerAvatar}
             onOpenSettings={openSettings}
           />
           {below}
