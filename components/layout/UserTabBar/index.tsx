@@ -21,8 +21,6 @@ const TABS: {
   icon: LucideIcon;
   // Other pages that belong to the tab, e.g. the food library under nutrition.
   alsoActiveOn?: string;
-  // Only with the chat tab allowed for this trainee.
-  needsMessages?: boolean;
 }[] = [
   { href: ROUTES.WORKOUTS, label: "Lịch tập", icon: Dumbbell },
   {
@@ -31,12 +29,7 @@ const TABS: {
     icon: Utensils,
     alsoActiveOn: ROUTES.FOODS,
   },
-  {
-    href: ROUTES.MESSAGES,
-    label: "Nhắn tin",
-    icon: MessageCircle,
-    needsMessages: true,
-  },
+  { href: ROUTES.MESSAGES, label: "Nhắn tin", icon: MessageCircle },
   { href: ROUTES.SUMMARY, label: "Tổng kết", icon: ChartColumn },
 ];
 
@@ -44,19 +37,17 @@ const TABS: {
 const isUnder = (pathname: string, base: string) =>
   pathname === base || pathname.startsWith(`${base}/`);
 
-interface UserTabBarProps {
-  // Chat is on for this trainee or has history: adds the Nhắn tin tab.
-  showMessages: boolean;
-}
-
 // Floating tab bar above the home indicator; the active tab is a filled
 // pill so it reads at a glance, not just a tinted icon.
-export const UserTabBar = ({ showMessages }: UserTabBarProps) => {
+export const UserTabBar = () => {
   const pathname = usePathname();
-  const unread = useChatUnread(
-    !showMessages || isUnder(pathname, ROUTES.MESSAGES),
-  );
-  const tabs = TABS.filter((tab) => showMessages || !tab.needsMessages);
+  const inChat = isUnder(pathname, ROUTES.MESSAGES);
+  const unread = useChatUnread(inChat);
+
+  // The thread has its own header and composer; the bar would cover them.
+  if (inChat) {
+    return null;
+  }
 
   return (
     <nav
@@ -66,10 +57,10 @@ export const UserTabBar = ({ showMessages }: UserTabBarProps) => {
       <ul
         className={clsx(
           "pointer-events-auto mx-auto grid max-w-md gap-1 rounded-[1.75rem] border border-line bg-surface/90 p-1.5 shadow-[0_10px_30px_-8px_rgb(0_0_0/0.35)] backdrop-blur-xl",
-          tabs.length === 4 ? "grid-cols-4" : "grid-cols-3",
+          "grid-cols-4",
         )}
       >
-        {tabs.map(({ href, label, icon: Icon, alsoActiveOn }) => {
+        {TABS.map(({ href, label, icon: Icon, alsoActiveOn }) => {
           const isActive =
             isUnder(pathname, href) ||
             Boolean(alsoActiveOn && isUnder(pathname, alsoActiveOn));

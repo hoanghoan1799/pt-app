@@ -23,7 +23,9 @@ export interface ThreadMessage extends Omit<SerializedChatMessage, "id"> {
   delivery: DeliveryState;
 }
 
-export const GROUP_GAP_MS = 15 * 60 * 1000;
+// A time stamp appears after a pause longer than this (exactly 30:00 does not
+// break the run, 30:01 does).
+export const GROUP_GAP_MS = 30 * 60 * 1000;
 export const NEAR_BOTTOM_PX = 120;
 
 export const POLL_INTERVAL_MS = {

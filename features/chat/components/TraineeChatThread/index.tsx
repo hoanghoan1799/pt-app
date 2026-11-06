@@ -1,7 +1,6 @@
 "use client";
 
-import { AppHeader } from "@/components/layout/AppHeader";
-import { UserHeaderActions } from "@/features/auth/components/UserHeaderActions";
+import { ChatHeader } from "@/features/chat/components/ChatHeader";
 import {
   ChatThread,
   type ChatThreadProps,
@@ -19,19 +18,18 @@ interface TraineeChatThreadProps extends Pick<
 }
 
 // The trainee's thread. A client component because the header follows the
-// loaded messages (a function prop cannot cross from a server page). The
-// account actions match the other trainee tabs.
+// loaded messages and the live presence (a function prop cannot cross from a
+// server page).
 export const TraineeChatThread = ({
   initialPeerName,
   ...thread
 }: TraineeChatThreadProps) => (
   <ChatThread
     {...thread}
-    header={(latestPeerName) => (
-      <AppHeader
-        eyebrow="Nhắn tin với"
-        title={latestPeerName ?? initialPeerName ?? FALLBACK_PEER_TITLE}
-        actions={<UserHeaderActions />}
+    header={(latestPeerName, presence) => (
+      <ChatHeader
+        name={latestPeerName ?? initialPeerName ?? FALLBACK_PEER_TITLE}
+        presence={presence}
       />
     )}
   />

@@ -183,12 +183,12 @@ describe("buildThreadItems", () => {
     });
   });
 
-  it("inserts a time stamp after more than 15 minutes and restarts the run", () => {
+  it("inserts a time stamp after 30 minutes and 1 second and restarts the run", () => {
     const list = mergeMessages(
       [],
       [
         msg(1, { createdAt: "2026-11-04T03:00:00.000Z" }),
-        msg(2, { createdAt: "2026-11-04T03:16:00.000Z" }),
+        msg(2, { createdAt: "2026-11-04T03:30:01.000Z" }),
       ],
     );
     const items = buildThreadItems(list, 0, now);
@@ -199,17 +199,17 @@ describe("buildThreadItems", () => {
       "time",
       "message",
     ]);
-    expect(items[2]).toMatchObject({ kind: "time", label: "10:16" });
+    expect(items[2]).toMatchObject({ kind: "time", label: "10:30" });
     expect(items[3]).toMatchObject({ isFirstInRun: true, senderName: "Hoan" });
     expect(items[1]).toMatchObject({ isLastInRun: true, showAvatar: true });
   });
 
-  it("exactly 15 minutes does not break the run", () => {
+  it("exactly 30 minutes does not break the run", () => {
     const list = mergeMessages(
       [],
       [
         msg(1, { createdAt: "2026-11-04T03:00:00.000Z" }),
-        msg(2, { createdAt: "2026-11-04T03:15:00.000Z" }),
+        msg(2, { createdAt: "2026-11-04T03:30:00.000Z" }),
       ],
     );
 

@@ -32,6 +32,7 @@ import {
   type ThreadViewer,
   USER_VIEWER,
 } from "@/features/chat/utils/chat-thread-rules";
+import type { PresenceView } from "@/features/chat/utils/presence-status";
 
 export interface ChatThreadProps {
   initial: ThreadSnapshot;
@@ -39,14 +40,21 @@ export interface ChatThreadProps {
   conversationId: number | null;
   // The page header; rendered inside the shell so the keyboard resize keeps
   // it in place. A function receives the username of the newest PT who wrote
-  // in the loaded messages (null if none or deleted).
-  header: ReactNode | ((latestPeerName: string | null) => ReactNode);
+  // in the loaded messages (null if none or deleted) and the peer presence
+  // (the trainee header shows it; the admin view keeps a separate row).
+  header:
+    | ReactNode
+    | ((
+        latestPeerName: string | null,
+        presence: PresenceView | null,
+      ) => ReactNode);
   viewer?: ThreadViewer;
   emptyText?: string;
   ariaLabel?: string;
 }
 
 const TRAINEE_EMPTY_TEXT = "Gửi tin nhắn đầu tiên cho PT của bạn";
+const TRAINEE_LOCKED_EMPTY_TEXT = "PT chưa mở nhắn tin cho bạn";
 const TRAINEE_ARIA_LABEL = "Cuộc trò chuyện với PT";
 
 const KEYBOARD_MIN_PX = 120;
@@ -92,7 +100,7 @@ export const ChatThread = ({
   conversationId,
   header,
   viewer = USER_VIEWER,
-  emptyText = TRAINEE_EMPTY_TEXT,
+  emptyText,
   ariaLabel = TRAINEE_ARIA_LABEL,
 }: ChatThreadProps) => {
   const isAdmin = viewer.role === "admin";
@@ -243,9 +251,11 @@ export const ChatThread = ({
     void chat.loadOlder();
   };
 
+  const emptyMessage =
+    emptyText ?? (chatEnabled ? TRAINEE_EMPTY_TEXT : TRAINEE_LOCKED_EMPTY_TEXT);
   const latestPeerName = latestAdminName(messages);
   const headerNode =
-    typeof header === "function" ? header(latestPeerName) : header;
+    typeof header === "function" ? header(latestPeerName, presence) : header;
   const typingName =
     viewer.role === "admin"
       ? (viewer.peerName ?? "Học viên")
@@ -271,7 +281,7 @@ export const ChatThread = ({
       ) : (
         headerNode
       )}
-      {presence?.text && (
+      {isAdmin && presence?.text && (
         // Under the header so it stays visible when the admin header folds
         // away for the keyboard.
         <div className="shrink-0 border-b border-line bg-bg px-4 py-1.5">
@@ -307,7 +317,7 @@ export const ChatThread = ({
             )}
             {items.length === 0 && (
               <p className="px-6 py-16 text-center text-sm text-muted">
-                {emptyText}
+                {emptyMessage}
               </p>
             )}
             <div role="log" aria-live="polite" aria-label={ariaLabel}>
@@ -346,13 +356,10 @@ export const ChatThread = ({
       <div
         className={clsx(
           "mx-auto w-full max-w-lg shrink-0 pt-2",
-          // The trainee view clears the floating tab bar (unless the keyboard
-          // covers it); the admin view has none.
+          // Neither view has a tab bar under the thread.
           viewport?.keyboardOpen
             ? "pb-2"
-            : isAdmin
-              ? "pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
-              : "pb-[calc(env(safe-area-inset-bottom)+5.25rem)]",
+            : "pb-[calc(env(safe-area-inset-bottom)+0.5rem)]",
         )}
       >
         {chat.sendError && (
