@@ -20,6 +20,7 @@ export const parseHistoryQuery = (params: URLSearchParams) => {
 export const parseKnownState = (params: URLSearchParams) => {
   const readUpTo = params.get("readUpTo");
   const enabled = params.get("enabled");
+  const changedSince = params.get("changedSince");
 
   return {
     readUpTo:
@@ -27,5 +28,11 @@ export const parseKnownState = (params: URLSearchParams) => {
         ? Number(readUpTo)
         : undefined,
     enabled: enabled === "1" ? true : enabled === "0" ? false : undefined,
+    changedSince: parseChangedSince(changedSince),
   };
 };
+
+// Epoch ms of the last change the client has seen (KAN-138); malformed or
+// missing = undefined, so the client gets today's behaviour.
+export const parseChangedSince = (value: string | null) =>
+  value !== null && /^\d{1,15}$/.test(value) ? Number(value) : undefined;

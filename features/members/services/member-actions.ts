@@ -10,7 +10,9 @@ import { db } from "@/db";
 import {
   bodyProfiles,
   chatConversations,
+  chatMessageEdits,
   chatMessages,
+  chatReactions,
   chatReads,
   exerciseCompletions,
   exercises,
@@ -91,6 +93,17 @@ export const deleteMemberAction = withResultErrorHandling(
         await tx
           .delete(chatReads)
           .where(inArray(chatReads.conversationId, conversationIds));
+        const messageIds = tx
+          .select({ id: chatMessages.id })
+          .from(chatMessages)
+          .where(inArray(chatMessages.conversationId, conversationIds));
+
+        await tx
+          .delete(chatReactions)
+          .where(inArray(chatReactions.messageId, messageIds));
+        await tx
+          .delete(chatMessageEdits)
+          .where(inArray(chatMessageEdits.messageId, messageIds));
         await tx
           .delete(chatMessages)
           .where(inArray(chatMessages.conversationId, conversationIds));

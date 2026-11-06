@@ -75,4 +75,4 @@ KAN-144 / KAN-145: `db/schema.ts`; `features/chat/constants/stickers.ts` (new); 
 
 ## Deviations
 
-None yet.
+- KAN-138: the brief said the 204 fast path is only allowed when `changedSince` is also sent, and also that clients without it keep today's behaviour. Both cannot hold, so backward compatibility wins: without `changedSince` the old 204 rule stays; with it, 204 also needs `last_change_at <= changedSince`. Added beyond the file list: `chat-mutations.ts` (shared rules for both roles), two edit-history GET routes, member delete cleans the new tables, empty inbox preview for an unsent last message.

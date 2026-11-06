@@ -11,6 +11,7 @@ import {
   INBOX_CHANNEL,
   inboxEvent,
   messageEvent,
+  messageUpdateEvent,
   readEvent,
   typingEvent,
   userChannel,
@@ -88,6 +89,22 @@ export const publishNewMessage = async (
     ]);
   } catch (error) {
     logServerError("publishNewMessage", error, { conversationId });
+  }
+};
+
+// Edit, unsend or reaction. Ids only; never throws.
+export const publishMessageUpdate = async (
+  conversationId: number,
+  messageId: number,
+) => {
+  try {
+    await publishChatEvent(
+      conversationChannel(conversationId),
+      CHAT_EVENTS.MESSAGE_UPDATE,
+      messageUpdateEvent(conversationId, messageId),
+    );
+  } catch (error) {
+    logServerError("publishMessageUpdate", error, { conversationId });
   }
 };
 

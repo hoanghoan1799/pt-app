@@ -97,6 +97,31 @@ export const buildChatPushPayload = ({
   tag: `chat-${conversationId}`,
 });
 
+// Reaction push (KAN-138, C7): who reacted and with what, never the text of
+// the message that was reacted to. Its own tag, so it does not replace a
+// pending "new message" notification.
+export const buildReactionPushPayload = ({
+  recipientRole,
+  reactorName,
+  emoji,
+  traineeUserId,
+  conversationId,
+}: {
+  recipientRole: PushRecipientRole;
+  reactorName: string;
+  emoji: string;
+  traineeUserId: number;
+  conversationId: number;
+}): ChatPushPayload => ({
+  title: PUSH_TITLE,
+  body: `${reactorName} đã thả ${emoji} vào tin nhắn của bạn`,
+  url:
+    recipientRole === "user"
+      ? ROUTES.MESSAGES
+      : getAdminMessagesPath(traineeUserId),
+  tag: `chat-react-${conversationId}`,
+});
+
 // The push service says the subscription is dead for good.
 export const isGoneStatus = (statusCode: number | undefined) =>
   statusCode === 404 || statusCode === 410;

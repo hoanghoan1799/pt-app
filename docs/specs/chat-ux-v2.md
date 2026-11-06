@@ -106,3 +106,24 @@ Gaps: the status lives in its own row under the header, not under the name; the 
 | KAN-143 | nickname and colour seen on the other side; no control for the other person's colour                      | e2e            |
 | KAN-144 | unknown sticker id; sticker + body rejected; preview text                                                 | unit/route     |
 | KAN-146 | sticker renders on the other side; no Edit/Copy in its sheet                                              | e2e            |
+
+## Implementation notes (KAN-138)
+
+Backend only, no UI. Schema (additive): `chat_messages.reply_to_message_id`, `edited_at`, `updated_at`; `chat_conversations.last_change_at`; new `chat_reactions` (PK message_id + reactor_key) and `chat_message_edits`. Member delete also removes a trainee's reactions and edit rows.
+
+Server actions (all validate with Zod, return `{ status: "success", message: ChatMessage } | { status: "error", message }`; a locked chat makes them read-only like sending):
+
+- Trainee, `features/chat/services/chat-actions.ts`: `reactMessageAction({ messageId, emoji | null })`, `editMessageAction({ messageId, body })`, `unsendMessageAction({ messageId })`; `sendMessageAction` gains optional `replyToMessageId`.
+- Admin, `features/chat/services/chat-admin-actions.ts`: `adminReactMessageAction`, `adminEditMessageAction`, `adminUnsendMessageAction`, each with `{ conversationId, messageId, ... }`; `adminSendMessageAction` (in `chat-actions.ts`) gains `replyToMessageId`.
+- Shared rules live in `features/chat/services/chat-mutations.ts`. A message of another conversation answers "not found"; someone else's message on edit or unsend answers `NOT_YOUR_MESSAGE`; an unsent message cannot be reacted to or edited; unsend is idempotent; saving the same text is a no-op (no history row, no "edited" marker).
+- Emojis: `CHAT_REACTION_EMOJIS` in `features/chat/utils/chat-rules.ts`.
+
+Routes:
+
+- `GET /api/chat/messages` and `GET /api/admin/chat/[conversationId]/messages` accept `changedSince` (epoch ms) and add `changes: ChatMessage[]` (at most 200, oldest change first) and `lastChangeAt` (ms, 0 before the first change). Without `changedSince`, `changes` is `[]`. When more than 200 changed, `lastChangeAt` is the newest change returned, so the client keeps asking until `changes` is short.
+- 204 on the trainee route: today's rule (`after` current, `readUpTo`, `enabled` equal) plus, only when `changedSince` is sent, `last_change_at <= changedSince`. A client that does not send `changedSince` (an open tab from the previous deploy) behaves exactly as before.
+- Edit history, both sides: `GET /api/chat/messages/[messageId]/edits` (own conversation) and `GET /api/admin/chat/[conversationId]/messages/[messageId]/edits` answer `{ edits: [{ previousBody, editedAt }] }` oldest first; `[]` once the message is unsent; 404 for an unknown or foreign message.
+
+`ChatMessage` (thread payload, `changes`, action results) now has: `replyTo: { id, body (max 120 chars, "" when unsent), senderRole, deleted } | null`, `editedAt`, `deleted` (unsent messages return `body: ""`, `replyTo: null`, `reactions: []`), `updatedAt` (createdAt before any change), `reactions: { emoji, reactorKey, reactorName }[]`.
+
+Realtime and push: every mutation sets `chat_messages.updated_at` and `chat_conversations.last_change_at` (strictly increasing, even inside one millisecond), then publishes Ably `message-update` on the conversation channel with `{ conversationId, messageId }` only. Without Ably nothing changes (polling picks it up). Adding or replacing a reaction sends a Web Push to the message author (`scheduleReactionPush`, tag `chat-react-<conversationId>`, body "<name> đã thả <emoji> vào tin nhắn của bạn", no message text); removing, reacting to your own message, edits and unsends send none. The admin inbox preview is empty for an unsent last message (the UI picks the placeholder text).
