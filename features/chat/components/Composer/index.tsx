@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { ArrowUp } from "lucide-react";
-import { type KeyboardEvent, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 
 import { CHAT_BODY_MAX_LENGTH } from "@/features/chat/utils/chat-rules";
 
@@ -11,6 +11,12 @@ interface ComposerProps {
   // Called on every edit that leaves text in the box; the owner throttles.
   onTyping?: () => void;
   placeholder?: string;
+  // Edit mode: the box is prefilled with the message, sending saves it. The
+  // draft typed before is kept and comes back when edit mode ends.
+  editing?: { id: number; body: string } | null;
+  onSaveEdit?: (body: string) => void;
+  // Id of the message being replied to; picking one puts the cursor in the box.
+  replyId?: number | null;
 }
 
 const MAX_HEIGHT_PX = 120;
@@ -22,10 +28,29 @@ export const Composer = ({
   onSend,
   onTyping,
   placeholder = "Nhắn tin cho PT…",
+  editing = null,
+  onSaveEdit,
+  replyId = null,
 }: ComposerProps) => {
   const [value, setValue] = useState("");
+  const [draft, setDraft] = useState("");
+  const [seenEditId, setSeenEditId] = useState<number | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const canSend = value.trim().length > 0;
+  const editId = editing?.id ?? null;
+
+  // Entering or leaving edit mode swaps the box content (state adjusted while
+  // rendering, so there is no frame with the wrong text).
+  if (editId !== seenEditId) {
+    setSeenEditId(editId);
+    if (editing) {
+      setDraft(value);
+      setValue(editing.body);
+    } else {
+      setValue(draft);
+      setDraft("");
+    }
+  }
 
   const resize = () => {
     const input = inputRef.current;
@@ -36,8 +61,25 @@ export const Composer = ({
     }
   };
 
+  useEffect(() => {
+    // Wait for the sheet that started the edit or reply to hand focus back.
+    const frame = requestAnimationFrame(() => {
+      resize();
+      if (editId !== null || replyId !== null) {
+        inputRef.current?.focus();
+      }
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [editId, replyId]);
+
   const submit = () => {
     if (!canSend) {
+      return;
+    }
+    if (editing && onSaveEdit) {
+      // The parent ends edit mode; the draft comes back with it.
+      onSaveEdit(value);
       return;
     }
     onSend(value);
@@ -88,7 +130,7 @@ export const Composer = ({
       />
       <button
         type="submit"
-        aria-label="Gửi tin nhắn"
+        aria-label={editing ? "Lưu chỉnh sửa" : "Gửi tin nhắn"}
         tabIndex={canSend ? 0 : -1}
         aria-hidden={!canSend}
         className={clsx(

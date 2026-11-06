@@ -103,6 +103,9 @@ const AdminMessagesPage = async ({
       ariaLabel={`Cuộc trò chuyện với ${user.name}`}
       initial={{
         messages: messages.map(serializeMessage),
+        // Read before the messages: a change made in between is fetched again,
+        // never missed.
+        lastChangeAt: conversation.lastChangeAt?.getTime() ?? 0,
         hasMore,
         chatEnabled,
         peerReadUpTo,
