@@ -682,6 +682,7 @@ export const ChatThread = ({
           isOpen={isStickerOpen}
           onOpenChange={setIsStickerOpen}
           onPick={handleStickerPick}
+          role={viewer.role}
         />
       )}
       {sheet?.kind === "actions" && sheetMessage && (
