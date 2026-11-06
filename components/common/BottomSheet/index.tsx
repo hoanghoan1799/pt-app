@@ -27,7 +27,14 @@ export const BottomSheet = ({
   isFloating = false,
   onOpenAutoFocus,
 }: BottomSheetProps) => (
-  <Drawer.Root open={isOpen} onOpenChange={onOpenChange}>
+  <Drawer.Root
+    open={isOpen}
+    onOpenChange={onOpenChange}
+    // vaul's iOS keyboard handling resizes the sheet to the visual viewport
+    // and does not always restore it, leaving it cut off with a gap below.
+    // Sheets already scroll inside max-h-[94dvh], so the default is not needed.
+    repositionInputs={false}
+  >
     <Drawer.Portal>
       <Drawer.Overlay className="fixed inset-0 z-40 bg-black/50" />
       <Drawer.Content
@@ -52,8 +59,16 @@ export const BottomSheet = ({
             </Drawer.Description>
           )}
         </div>
-        <div className="overflow-y-auto overscroll-contain px-4 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
-          {children}
+        {/* min-h-0 lets this flex child shrink below its content and scroll
+            inside the sheet's max height. The bottom padding sits on an inner
+            wrapper, not the scroller: a sticky child pins to the scroller's
+            content box, so padding on the scroller itself pushed a pinned
+            submit button up over the last field (KAN-131). scroll-pb keeps a
+            focused field clear of such a pinned button. */}
+        <div className="min-h-0 scroll-pb-24 overflow-y-auto overscroll-contain px-4">
+          <div className="pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
+            {children}
+          </div>
         </div>
       </Drawer.Content>
     </Drawer.Portal>
