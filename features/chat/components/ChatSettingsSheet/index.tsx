@@ -56,6 +56,9 @@ export interface ChatSettingsSheetProps {
   peerName: string;
   selfName: string;
   profile: ChatProfileView;
+  // Admin only: the saved account colour from the server; null = never
+  // picked, which shows the default palette colour.
+  accountColor?: ChatColorKey | null;
   onProfileChange: (profile: ChatProfileView) => void;
   // Re-fetch the thread (after an account colour change the resolved colours
   // are only known to the server).
@@ -218,6 +221,7 @@ export const ChatSettingsSheet = ({
   peerName,
   selfName,
   profile,
+  accountColor: savedAccountColor = null,
   onProfileChange,
   onSync,
   chatEnabled,
@@ -226,10 +230,14 @@ export const ChatSettingsSheet = ({
   const { other, self } = settingsTargets(viewer, { peerName, selfName });
   const [colorError, setColorError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  // The account colour is not in the thread payload (the resolved colour may
-  // be a per-conversation override), so it is known only once picked or reset
-  // in this session.
-  const [accountColor, setAccountColor] = useState<ChatColorKey | null>(null);
+  // The thread payload only has the resolved colour (it may be a
+  // per-conversation override), so the saved account colour comes from the
+  // server as a prop and is overridden once picked or reset in this session.
+  const [pickedAccountColor, setAccountColor] = useState<ChatColorKey | null>(
+    null,
+  );
+  const accountColor =
+    pickedAccountColor ?? savedAccountColor ?? DEFAULT_CHAT_COLOR;
   const readOnly = !chatEnabled;
   const ownColorValue = profile.colors[self.key];
   const ownColor = isChatColorKey(ownColorValue)

@@ -351,6 +351,20 @@ describe("nicknames", () => {
   });
 });
 
+describe("loadAdminAccountColor", () => {
+  it("returns the saved account colour, null when unset or unknown", async () => {
+    const profile = await import("@/features/chat/services/chat-profile");
+
+    expect(await profile.loadAdminAccountColor(1)).toBeNull();
+    await db.update(admins).set({ chatColor: "teal" }).where(eq(admins.id, 1));
+    expect(await profile.loadAdminAccountColor(1)).toBe("teal");
+    expect(await profile.loadAdminAccountColor(2)).toBeNull();
+    await db.update(admins).set({ chatColor: "mauve" }).where(eq(admins.id, 1));
+    expect(await profile.loadAdminAccountColor(1)).toBeNull();
+    expect(await profile.loadAdminAccountColor(999)).toBeNull();
+  });
+});
+
 describe("colours", () => {
   it("saves the trainee's own colour and clears it with null", async () => {
     const set = await actions.setChatColorAction({ color: "teal" });

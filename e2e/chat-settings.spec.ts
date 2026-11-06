@@ -258,6 +258,17 @@ test.describe("chat settings", () => {
     await expect(
       a.getByRole("radiogroup", { name: "Màu tài khoản" }),
     ).toBeVisible();
+    // Nothing saved yet: the default palette colour is preselected.
+    await expect(
+      a
+        .getByRole("radiogroup", { name: "Màu tài khoản" })
+        .getByRole("radio", { name: "Cam" }),
+    ).toHaveAttribute("aria-checked", "true");
+    await expect(
+      a
+        .getByRole("radiogroup", { name: "Màu tài khoản" })
+        .locator('[aria-checked="true"]'),
+    ).toHaveCount(1);
     await shoot(a, "admin-settings-sheet");
     await a
       .getByRole("radiogroup", { name: "Màu tài khoản" })
@@ -314,6 +325,19 @@ test.describe("chat settings", () => {
     ).toHaveCount(2, { timeout: SYNC_TIMEOUT_MS });
     await shoot(t, "trainee-thread-custom");
     await shoot(a, "admin-thread-custom");
+
+    // The admin inbox lists the trainee under the admin's nickname.
+    await a.goto("/admin/messages");
+    const inboxRow = a
+      .getByRole("list")
+      .getByRole("link")
+      .filter({ hasText: "Na nhỏ" });
+
+    await expect(inboxRow).toHaveCount(1);
+    await expect(inboxRow).not.toContainText(E2E_CHAT_NAME);
+    await expect(
+      a.getByRole("link").filter({ hasText: E2E_CHAT_NAME }),
+    ).toHaveCount(0);
 
     // Clearing a nickname goes back to the real name.
     await openSheet(t, "Cài đặt cuộc trò chuyện");
@@ -375,6 +399,17 @@ test.describe("chat settings", () => {
       "aria-checked",
       "true",
     );
+
+    // The saved account colour is preselected after a reload.
+    await a.reload();
+    await openSheet(a, "Biệt danh và màu");
+    const reopened = a.getByRole("radiogroup", { name: "Màu tài khoản" });
+
+    await expect(reopened.getByRole("radio", { name: "Tím" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(reopened.locator('[aria-checked="true"]')).toHaveCount(1);
 
     await trainee.context.close();
     await admin.context.close();

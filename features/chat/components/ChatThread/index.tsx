@@ -33,6 +33,7 @@ import type { ThreadSnapshot } from "@/features/chat/hooks/use-chat-messages";
 import { useChatMessages } from "@/features/chat/hooks/use-chat-messages";
 import { useChatTransport } from "@/features/chat/hooks/use-chat-transport";
 import { usePeerPresence } from "@/features/chat/hooks/use-peer-presence";
+import type { ChatColorKey } from "@/features/chat/utils/chat-palette";
 import {
   adminLabel,
   bubbleColorFor,
@@ -78,6 +79,8 @@ export interface ChatThreadProps {
   // Real name of the other side before any PT message names them (trainee).
   fallbackPeerName?: string;
   viewer?: ThreadViewer;
+  // Admin only: the saved account colour, preselected in the settings sheet.
+  accountColor?: ChatColorKey | null;
   emptyText?: string;
   ariaLabel?: string;
 }
@@ -143,6 +146,7 @@ export const ChatThread = ({
   conversationId,
   header,
   viewer = USER_VIEWER,
+  accountColor = null,
   selfName = "Bạn",
   fallbackPeerName = "PT",
   emptyText,
@@ -720,6 +724,7 @@ export const ChatThread = ({
         selfName={viewer.role === "admin" ? viewer.adminName : selfName}
         profile={profile}
         onProfileChange={chat.setProfile}
+        accountColor={accountColor}
         onSync={sync}
         chatEnabled={chatEnabled}
       />
