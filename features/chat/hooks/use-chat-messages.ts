@@ -24,6 +24,10 @@ import {
   toReplyTo,
   withMyReaction,
 } from "@/features/chat/utils/chat-thread-rules";
+import type {
+  ChatSticker,
+  StickerInput,
+} from "@/features/chat/utils/sticker-rules";
 
 const MARK_READ_DEBOUNCE_MS = 600;
 const SEND_FAILED_TEXT = "Không gửi được tin nhắn. Thử lại nhé.";
@@ -57,6 +61,12 @@ export type MessageActionResult =
   | { status: "success"; message: ServerChatMessage }
   | { status: "error"; message: string };
 
+// What a send carries: text, or a sticker (KAN-145). `display` is what the
+// optimistic bubble shows until the server answers; the server re-derives the
+// stored sticker from `input` alone.
+export type SendContent =
+  { body: string } | { sticker: { input: StickerInput; display: ChatSticker } };
+
 // What differs between the trainee and the admin view of the same thread.
 export interface ChatAdapter {
   messagesUrl: string;
@@ -64,7 +74,7 @@ export interface ChatAdapter {
   editsUrl: (messageId: number) => string;
   viewer: ThreadViewer;
   sendMessage: (
-    body: string,
+    content: SendContent,
     clientId: string,
     replyToMessageId?: number,
   ) => Promise<Awaited<ReturnType<typeof sendMessageAction>>>;
@@ -112,6 +122,9 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
   const adapterRef = useRef(adapter);
   // Newest change cursor held; sent as `changedSince` on every fetch.
   const changeCursor = useRef(initial.lastChangeAt ?? 0);
+  // What each unconfirmed bubble sends, for "Gửi lại" (a sticker's input is
+  // not recoverable from the bubble).
+  const pendingContent = useRef(new Map<string, SendContent>());
 
   useEffect(() => {
     adapterRef.current = adapter;
@@ -233,10 +246,14 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
   }, [isLoadingOlder]);
 
   const deliver = useCallback(
-    async (body: string, clientId: string, replyToMessageId?: number) => {
+    async (
+      content: SendContent,
+      clientId: string,
+      replyToMessageId?: number,
+    ) => {
       try {
         const { viewer, sendMessage } = adapterRef.current;
-        const result = await sendMessage(body, clientId, replyToMessageId);
+        const result = await sendMessage(content, clientId, replyToMessageId);
 
         if (result.status === "success" && "message" in result) {
           const stored: SerializedChatMessage = {
@@ -247,6 +264,7 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
                 : null,
           };
 
+          pendingContent.current.delete(clientId);
           setMessages((current) => mergeMessages(current, [stored]));
           setSendError(null);
           return;
@@ -272,13 +290,13 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
     [sync],
   );
 
-  const send = useCallback(
-    (rawBody: string, replyTo?: ThreadMessage | null) => {
-      const body = rawBody.trim();
-
-      if (!body) {
-        return;
-      }
+  // Shows the bubble at once (no id yet), then delivers it.
+  const sendContent = useCallback(
+    (
+      content: SendContent,
+      replyTo: ThreadMessage | null | undefined,
+      fields: Pick<ThreadMessage, "body" | "sticker">,
+    ) => {
       const clientId = crypto.randomUUID();
       const { viewer } = adapterRef.current;
       const now = new Date().toISOString();
@@ -288,7 +306,7 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
         senderRole: viewer.role,
         senderAdminId: viewer.role === "admin" ? viewer.adminId : null,
         senderAdminName: viewer.role === "admin" ? viewer.adminName : null,
-        body,
+        ...fields,
         clientId,
         createdAt: now,
         replyTo: quote,
@@ -299,11 +317,36 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
         delivery: "sending",
       };
 
+      pendingContent.current.set(clientId, content);
       setSendError(null);
       setMessages((current) => [...current, optimistic]);
-      void deliver(body, clientId, quote?.id);
+      void deliver(content, clientId, quote?.id);
     },
     [deliver],
+  );
+
+  const send = useCallback(
+    (rawBody: string, replyTo?: ThreadMessage | null) => {
+      const body = rawBody.trim();
+
+      if (!body) {
+        return;
+      }
+      sendContent({ body }, replyTo, { body });
+    },
+    [sendContent],
+  );
+
+  const sendSticker = useCallback(
+    (
+      sticker: { input: StickerInput; display: ChatSticker },
+      replyTo?: ThreadMessage | null,
+    ) =>
+      sendContent({ sticker }, replyTo, {
+        body: "",
+        sticker: sticker.display,
+      }),
+    [sendContent],
   );
 
   const retry = useCallback(
@@ -323,7 +366,11 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
             : message,
         ),
       );
-      void deliver(target.body, clientId, target.replyTo?.id);
+      void deliver(
+        pendingContent.current.get(clientId) ?? { body: target.body },
+        clientId,
+        target.replyTo?.id,
+      );
     },
     [deliver],
   );
@@ -471,6 +518,7 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
     sync,
     loadOlder,
     send,
+    sendSticker,
     retry,
     react,
     edit,

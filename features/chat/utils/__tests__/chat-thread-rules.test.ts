@@ -18,6 +18,7 @@ import {
   newestPeerMessageId,
   pollIntervalFor,
   quoteLabel,
+  quoteText,
   realtimeStateFor,
   senderLabel,
   type SerializedChatMessage,
@@ -615,6 +616,33 @@ describe("reply and time helpers", () => {
       toReplyTo(toThreadMessage(msg(4, { deleted: true, body: "" }))),
     ).toEqual({ id: 4, body: "", senderRole: "admin", deleted: true });
     expect(toReplyTo(pendingMsg("p"))).toBeNull();
+  });
+
+  it('marks a quoted sticker and shows it as "Sticker"', () => {
+    const sticker = {
+      kind: "pack" as const,
+      url: "/stickers/fluent/fire.svg",
+      alt: "Lửa",
+    };
+    const quoted = toReplyTo(toThreadMessage(msg(5, { body: "", sticker })));
+
+    expect(quoted).toEqual({
+      id: 5,
+      body: "",
+      isSticker: true,
+      senderRole: "admin",
+      deleted: false,
+    });
+    expect(quoteText(quoted!)).toBe("Sticker");
+    // An unsent sticker is the tombstone, not "Sticker".
+    expect(
+      toReplyTo(toThreadMessage(msg(5, { body: "", sticker, deleted: true })))
+        ?.isSticker,
+    ).toBeUndefined();
+    expect(quoteText({ deleted: true, isSticker: true, body: "" })).toBe(
+      "Tin nhắn đã bị thu hồi",
+    );
+    expect(quoteText({ deleted: false, body: "xin chào" })).toBe("xin chào");
   });
 
   it("formats the exact send time as HH:mm, dd/MM in the app time zone", () => {

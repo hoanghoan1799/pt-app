@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Smile } from "lucide-react";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 
 import { CHAT_BODY_MAX_LENGTH } from "@/features/chat/utils/chat-rules";
@@ -17,6 +17,8 @@ interface ComposerProps {
   onSaveEdit?: (body: string) => void;
   // Id of the message being replied to; picking one puts the cursor in the box.
   replyId?: number | null;
+  // Shows the sticker button (hidden while editing); the owner opens the panel.
+  onOpenStickers?: () => void;
 }
 
 const MAX_HEIGHT_PX = 120;
@@ -31,6 +33,7 @@ export const Composer = ({
   editing = null,
   onSaveEdit,
   replyId = null,
+  onOpenStickers,
 }: ComposerProps) => {
   const [value, setValue] = useState("");
   const [draft, setDraft] = useState("");
@@ -108,7 +111,7 @@ export const Composer = ({
         event.preventDefault();
         submit();
       }}
-      className="mx-3 flex items-end gap-2 rounded-[1.5rem] border border-line bg-surface py-1.5 pr-1.5 pl-4 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30"
+      className="mx-3 flex items-end gap-1 rounded-[1.5rem] border border-line bg-surface py-1.5 pr-1.5 pl-4 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30"
     >
       <textarea
         ref={inputRef}
@@ -128,6 +131,20 @@ export const Composer = ({
         onKeyDown={handleKeyDown}
         className="min-h-8 max-h-[120px] min-w-0 flex-1 resize-none self-center bg-transparent py-1 text-base leading-6 text-fg placeholder:text-muted focus:outline-none"
       />
+      {onOpenStickers && !editing && (
+        <button
+          type="button"
+          aria-label="Mở sticker"
+          onClick={() => {
+            // Keep the keyboard from fighting the sheet.
+            inputRef.current?.blur();
+            onOpenStickers();
+          }}
+          className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted transition active:scale-90 active:bg-line"
+        >
+          <Smile className="size-6" aria-hidden />
+        </button>
+      )}
       <button
         type="submit"
         aria-label={editing ? "Lưu chỉnh sửa" : "Gửi tin nhắn"}

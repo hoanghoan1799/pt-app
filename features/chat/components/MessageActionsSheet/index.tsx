@@ -54,7 +54,7 @@ const ActionRow = ({
 
 // Long-press sheet: the six reactions (mine highlighted, tap again removes),
 // the exact send time, then Reply / Copy / Edit / Unsend. Edit and Unsend are
-// only offered on my own messages.
+// only offered on my own messages; a sticker offers neither Copy nor Edit.
 export const MessageActionsSheet = ({
   isOpen,
   onOpenChange,
@@ -68,6 +68,8 @@ export const MessageActionsSheet = ({
   onUnsend,
 }: MessageActionsSheetProps) => {
   const mine = myReactionOf(message, viewer);
+  // A sticker has no text: it can be reacted to, replied to and unsent only.
+  const isSticker = Boolean(message.sticker);
   const canModify = canWrite && canEditOrUnsend(message, viewer);
 
   return (
@@ -112,12 +114,14 @@ export const MessageActionsSheet = ({
             onClick={onReply}
           />
         )}
-        <ActionRow
-          icon={<Copy className="size-5" aria-hidden />}
-          label="Sao chép"
-          onClick={onCopy}
-        />
-        {canModify && (
+        {!isSticker && (
+          <ActionRow
+            icon={<Copy className="size-5" aria-hidden />}
+            label="Sao chép"
+            onClick={onCopy}
+          />
+        )}
+        {canModify && !isSticker && (
           <ActionRow
             icon={<Pencil className="size-5" aria-hidden />}
             label="Chỉnh sửa"

@@ -2,7 +2,10 @@
 
 import { useMemo } from "react";
 
-import type { ChatAdapter } from "@/features/chat/hooks/use-chat-messages";
+import type {
+  ChatAdapter,
+  SendContent,
+} from "@/features/chat/hooks/use-chat-messages";
 import {
   adminMarkReadAction,
   adminSendMessageAction,
@@ -20,6 +23,10 @@ import {
 import type { ThreadViewer } from "@/features/chat/utils/chat-thread-rules";
 
 const USER_MESSAGES_URL = "/api/chat/messages";
+
+// The action input for a text or a sticker send.
+const contentInput = (content: SendContent) =>
+  "sticker" in content ? { sticker: content.sticker.input } : content;
 
 // Wires the thread to the trainee or the admin endpoints and actions. Server
 // actions cannot be passed down from a server page as plain props with extra
@@ -43,8 +50,13 @@ export const useChatAdapter = (
         editsUrl: (messageId) =>
           `/api/admin/chat/${cid}/messages/${messageId}/edits`,
         viewer: { role, adminId, adminName, peerName },
-        sendMessage: (body, clientId, replyToMessageId) =>
-          adminSendMessageAction({ userId, body, clientId, replyToMessageId }),
+        sendMessage: (content, clientId, replyToMessageId) =>
+          adminSendMessageAction({
+            userId,
+            ...contentInput(content),
+            clientId,
+            replyToMessageId,
+          }),
         reactMessage: (messageId, emoji) =>
           adminReactMessageAction({ conversationId: cid, messageId, emoji }),
         editMessage: (messageId, body) =>
@@ -62,8 +74,12 @@ export const useChatAdapter = (
       messagesUrl: USER_MESSAGES_URL,
       editsUrl: (messageId) => `${USER_MESSAGES_URL}/${messageId}/edits`,
       viewer: { role: "user" },
-      sendMessage: (body, clientId, replyToMessageId) =>
-        sendMessageAction({ body, clientId, replyToMessageId }),
+      sendMessage: (content, clientId, replyToMessageId) =>
+        sendMessageAction({
+          ...contentInput(content),
+          clientId,
+          replyToMessageId,
+        }),
       reactMessage: (messageId, emoji) =>
         reactMessageAction({ messageId, emoji }),
       editMessage: (messageId, body) => editMessageAction({ messageId, body }),
