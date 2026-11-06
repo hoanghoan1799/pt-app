@@ -5,6 +5,7 @@ import {
   ChatThread,
   type ChatThreadProps,
 } from "@/features/chat/components/ChatThread";
+import { adminLabel } from "@/features/chat/utils/chat-settings";
 
 export const FALLBACK_PEER_TITLE = "PT của bạn";
 
@@ -15,6 +16,8 @@ interface TraineeChatThreadProps extends Pick<
   // Username of the PT who wrote last, from the server; the live thread
   // takes over once a newer PT message arrives.
   initialPeerName: string | null;
+  // The trainee's real name for the settings sheet.
+  userName: string;
 }
 
 // The trainee's thread. A client component because the header follows the
@@ -22,14 +25,23 @@ interface TraineeChatThreadProps extends Pick<
 // server page).
 export const TraineeChatThread = ({
   initialPeerName,
+  userName,
   ...thread
 }: TraineeChatThreadProps) => (
   <ChatThread
     {...thread}
-    header={(latestPeerName, presence) => (
+    selfName={userName}
+    fallbackPeerName={initialPeerName ?? FALLBACK_PEER_TITLE}
+    header={(latestPeerName, presence, { profile, openSettings }) => (
       <ChatHeader
-        name={latestPeerName ?? initialPeerName ?? FALLBACK_PEER_TITLE}
+        name={adminLabel(
+          profile.nicknames,
+          null,
+          latestPeerName ?? initialPeerName ?? FALLBACK_PEER_TITLE,
+          "pt",
+        )}
         presence={presence}
+        onOpenSettings={openSettings}
       />
     )}
   />

@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { ROUTES } from "@/constants/routes";
@@ -13,11 +13,17 @@ import type { PresenceView } from "@/features/chat/utils/presence-status";
 interface ChatHeaderProps {
   name: string;
   presence: PresenceView | null;
+  // Opens the conversation settings sheet (KAN-142).
+  onOpenSettings: () => void;
 }
 
 // The trainee thread header: Back, avatar, the PT's name with a green dot
 // when online, and the status text under it.
-export const ChatHeader = ({ name, presence }: ChatHeaderProps) => {
+export const ChatHeader = ({
+  name,
+  presence,
+  onOpenSettings,
+}: ChatHeaderProps) => {
   const router = useRouter();
 
   const handleBack = () => {
@@ -45,13 +51,20 @@ export const ChatHeader = ({ name, presence }: ChatHeaderProps) => {
         >
           <ChevronLeft className="size-6" aria-hidden />
         </button>
+        {/* Tapping the avatar or the name opens the settings too; the gear
+            button is the keyboard and screen reader entry. */}
         <span
           aria-hidden
+          onClick={onOpenSettings}
           className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-fg"
         >
           {initialsOf(name)}
         </span>
-        <div className="min-w-0 flex-1 py-2">
+        <div
+          className="min-w-0 flex-1 py-2"
+          data-chat-header-name
+          onClick={onOpenSettings}
+        >
           <div className="flex items-center gap-1.5">
             <h1 className="truncate text-base leading-tight font-bold text-fg">
               {name}
@@ -78,6 +91,14 @@ export const ChatHeader = ({ name, presence }: ChatHeaderProps) => {
             </p>
           )}
         </div>
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className={clsx(ICON_BUTTON, "-mr-3")}
+          aria-label="Cài đặt cuộc trò chuyện"
+        >
+          <Settings className="size-5" aria-hidden />
+        </button>
       </div>
     </header>
   );

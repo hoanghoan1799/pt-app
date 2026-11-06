@@ -5,6 +5,8 @@ import {
   toReplySnippet,
   USER_READER_KEY,
 } from "@/features/chat/utils/chat-rules";
+import { adminLabel } from "@/features/chat/utils/chat-settings";
+import { displayNameFor } from "@/features/chat/utils/display-name";
 
 // Pure helpers behind the trainee chat thread: merging, grouping, separators
 // and the polling schedule. No React, no network, so every rule is testable.
@@ -299,20 +301,30 @@ const senderNameFor = (
   message: ThreadMessage,
   viewer: ThreadViewer,
   continuesRun: boolean,
+  nicknames: Readonly<Record<string, string>>,
 ) => {
   if (continuesRun) {
     return null;
   }
   if (viewer.role === "user") {
     return message.senderRole === "admin"
-      ? (message.senderAdminName ?? PEER_DELETED_NAME)
+      ? message.senderAdminName === null
+        ? PEER_DELETED_NAME
+        : adminLabel(
+            nicknames,
+            message.senderAdminId,
+            message.senderAdminName,
+            "pt",
+          )
       : null;
   }
   // Admin viewer: the trainee needs no label, my own runs neither; a
   // colleague's run is named (a deleted account has no id or name left).
   return message.senderRole === "admin" &&
     message.senderAdminId !== viewer.adminId
-    ? (message.senderAdminName ?? PEER_DELETED_NAME)
+    ? message.senderAdminName === null
+      ? PEER_DELETED_NAME
+      : adminLabel(nicknames, message.senderAdminId, message.senderAdminName)
     : null;
 };
 
@@ -323,6 +335,7 @@ export const buildThreadItems = (
   peerReadUpTo: number,
   nowMs: number,
   viewer: ThreadViewer = USER_VIEWER,
+  nicknames: Readonly<Record<string, string>> = {},
 ): ThreadItem[] => {
   // "Mine" is the right-hand side: the trainee's own messages, or for an
   // admin every admin message (the PT inbox is shared, D4).
@@ -385,10 +398,26 @@ export const buildThreadItems = (
       mine,
       isFirstInRun: !continuesRun,
       isLastInRun,
-      senderName: senderNameFor(message, viewer, Boolean(continuesRun)),
+      senderName: senderNameFor(
+        message,
+        viewer,
+        Boolean(continuesRun),
+        nicknames,
+      ),
       showAvatar: !mine && isLastInRun,
       avatarName:
-        viewer.role === "admin" ? viewer.peerName : message.senderAdminName,
+        viewer.role === "admin"
+          ? viewer.peerName === null
+            ? null
+            : displayNameFor(nicknames, "user", viewer.peerName)
+          : message.senderAdminName === null
+            ? null
+            : adminLabel(
+                nicknames,
+                message.senderAdminId,
+                message.senderAdminName,
+                "pt",
+              ),
       statusLine:
         mine && message.id !== null && message.id === lastMineStoredId
           ? message.id <= peerReadUpTo
@@ -570,24 +599,41 @@ export const formatSentAt = (iso: string) => {
   return `${formatTime(iso)}, ${day}/${month}`;
 };
 
-// Who wrote a message, for "Đang trả lời <name>".
-export const senderLabel = (message: ThreadMessage, viewer: ThreadViewer) => {
+// Who wrote a message, for "Đang trả lời <name>"; nicknames apply (D2).
+export const senderLabel = (
+  message: ThreadMessage,
+  viewer: ThreadViewer,
+  nicknames: Readonly<Record<string, string>> = {},
+) => {
   if (isOwnMessage(message, viewer)) {
     return "chính mình";
   }
   if (message.senderRole === "admin") {
-    return message.senderAdminName ?? PEER_DELETED_NAME;
+    return message.senderAdminName === null
+      ? PEER_DELETED_NAME
+      : adminLabel(
+          nicknames,
+          message.senderAdminId,
+          message.senderAdminName,
+          viewer.role === "user" ? "pt" : undefined,
+        );
   }
-  return viewer.role === "admin" ? (viewer.peerName ?? "Học viên") : "bạn";
+  return viewer.role === "admin"
+    ? displayNameFor(nicknames, "user", viewer.peerName ?? "Học viên")
+    : "bạn";
 };
 
-// Name above a quoted snippet inside a bubble (only the role is known).
+// Name above a quoted snippet inside a bubble (only the role is known, so the
+// PT side uses the shared "pt" nickname).
 export const quoteLabel = (
   replyTo: SerializedReplyTo,
   viewer: ThreadViewer,
+  nicknames: Readonly<Record<string, string>> = {},
 ) => {
   if (replyTo.senderRole === viewer.role) {
     return viewer.role === "admin" ? "PT" : "Bạn";
   }
-  return viewer.role === "admin" ? (viewer.peerName ?? "Học viên") : "PT";
+  return viewer.role === "admin"
+    ? displayNameFor(nicknames, "user", viewer.peerName ?? "Học viên")
+    : displayNameFor(nicknames, "pt", "PT");
 };

@@ -1,6 +1,7 @@
 "use client";
 
 import clsx from "clsx";
+import { Settings } from "lucide-react";
 import {
   type ReactNode,
   useCallback,
@@ -13,6 +14,7 @@ import {
 import { toast } from "sonner";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
+import { ChatSettingsSheet } from "@/features/chat/components/ChatSettingsSheet";
 import { Composer } from "@/features/chat/components/Composer";
 import { EditHistorySheet } from "@/features/chat/components/EditHistorySheet";
 import { LockedBanner } from "@/features/chat/components/LockedBanner";
@@ -31,6 +33,11 @@ import { useChatMessages } from "@/features/chat/hooks/use-chat-messages";
 import { useChatTransport } from "@/features/chat/hooks/use-chat-transport";
 import { usePeerPresence } from "@/features/chat/hooks/use-peer-presence";
 import {
+  adminLabel,
+  bubbleColorFor,
+  type ChatProfileView,
+} from "@/features/chat/utils/chat-settings";
+import {
   buildThreadItems,
   firstStoredId,
   isNearBottom,
@@ -43,6 +50,7 @@ import {
   UNSENT_TEXT,
   USER_VIEWER,
 } from "@/features/chat/utils/chat-thread-rules";
+import { displayNameFor } from "@/features/chat/utils/display-name";
 import type { PresenceView } from "@/features/chat/utils/presence-status";
 
 export interface ChatThreadProps {
@@ -58,7 +66,16 @@ export interface ChatThreadProps {
     | ((
         latestPeerName: string | null,
         presence: PresenceView | null,
+        settings: {
+          profile: ChatProfileView;
+          openSettings: () => void;
+        },
       ) => ReactNode);
+  // The viewer's real name, for the settings sheet (the trainee's name; the
+  // admin view uses `viewer.adminName`).
+  selfName?: string;
+  // Real name of the other side before any PT message names them (trainee).
+  fallbackPeerName?: string;
   viewer?: ThreadViewer;
   emptyText?: string;
   ariaLabel?: string;
@@ -115,6 +132,8 @@ export const ChatThread = ({
   conversationId,
   header,
   viewer = USER_VIEWER,
+  selfName = "Bạn",
+  fallbackPeerName = "PT",
   emptyText,
   ariaLabel = TRAINEE_ARIA_LABEL,
 }: ChatThreadProps) => {
@@ -150,6 +169,8 @@ export const ChatThread = ({
   );
   const [highlightId, setHighlightId] = useState<number | null>(null);
   const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const { profile } = chat;
 
   const { isPeerTyping, clearPeerTyping, sendTyping } = useChatTransport({
     role: viewer.role,
@@ -175,8 +196,9 @@ export const ChatThread = ({
         // eslint-disable-next-line react-hooks/purity
         Date.now(),
         adapter.viewer,
+        profile.nicknames,
       ),
-    [messages, peerReadUpTo, adapter.viewer],
+    [messages, peerReadUpTo, adapter.viewer, profile.nicknames],
   );
 
   const scrollToBottom = useCallback((smooth: boolean) => {
@@ -425,12 +447,19 @@ export const ChatThread = ({
   const emptyMessage =
     emptyText ?? (chatEnabled ? TRAINEE_EMPTY_TEXT : TRAINEE_LOCKED_EMPTY_TEXT);
   const latestPeerName = latestAdminName(messages);
+  const openSettings = () => setIsSettingsOpen(true);
   const headerNode =
-    typeof header === "function" ? header(latestPeerName, presence) : header;
-  const typingName =
+    typeof header === "function"
+      ? header(latestPeerName, presence, { profile, openSettings })
+      : header;
+  const peerRealName =
     viewer.role === "admin"
       ? (viewer.peerName ?? "Học viên")
-      : (latestPeerName ?? "PT");
+      : (latestPeerName ?? fallbackPeerName);
+  const typingName =
+    viewer.role === "admin"
+      ? displayNameFor(profile.nicknames, "user", peerRealName)
+      : adminLabel(profile.nicknames, null, peerRealName, "pt");
 
   return (
     <div
@@ -452,14 +481,31 @@ export const ChatThread = ({
       ) : (
         headerNode
       )}
-      {isAdmin && presence?.text && (
+      {isAdmin && (
         // Under the header so it stays visible when the admin header folds
         // away for the keyboard.
         <div className="shrink-0 border-b border-line bg-bg px-4 py-1.5">
-          <PresenceStatus
-            presence={presence}
-            className="mx-auto w-full max-w-lg"
-          />
+          <div className="mx-auto flex w-full max-w-lg items-center gap-3">
+            <div className="min-w-0 flex-1">
+              {presence?.text && <PresenceStatus presence={presence} />}
+              {profile.nicknames.user && (
+                <p
+                  data-shown-name
+                  className="truncate text-xs font-medium text-fg"
+                >
+                  Hiển thị: {profile.nicknames.user}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={openSettings}
+              className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-xs font-semibold text-fg transition active:bg-line"
+            >
+              <Settings className="size-4" aria-hidden />
+              Biệt danh và màu
+            </button>
+          </div>
         </div>
       )}
       <div className="relative min-h-0 flex-1">
@@ -500,6 +546,7 @@ export const ChatThread = ({
                       item={item}
                       viewer={adapter.viewer}
                       onRetry={chat.retry}
+                      nicknames={profile.nicknames}
                       isHighlighted={
                         item.message.id !== null &&
                         item.message.id === highlightId
@@ -511,6 +558,11 @@ export const ChatThread = ({
                       }
                       onOpenHistory={(message) => openSheet("history", message)}
                       onJumpToReply={jumpToMessage}
+                      color={bubbleColorFor(
+                        item.message,
+                        item.mine,
+                        profile.colors,
+                      )}
                     />
                   );
                 }
@@ -560,7 +612,7 @@ export const ChatThread = ({
         )}
         {chatEnabled && !activeEditing && replyMessage && (
           <ReplyBar
-            title={`Đang trả lời ${senderLabel(replyMessage, adapter.viewer)}`}
+            title={`Đang trả lời ${senderLabel(replyMessage, adapter.viewer, profile.nicknames)}`}
             snippet={replyMessage.deleted ? UNSENT_TEXT : replyMessage.body}
             closeLabel="Huỷ trả lời"
             onClose={() => setReplyId(null)}
@@ -609,6 +661,7 @@ export const ChatThread = ({
           onOpenChange={setIsSheetOpen}
           reactions={sheetMessage.reactions}
           viewer={adapter.viewer}
+          nicknames={profile.nicknames}
         />
       )}
       {sheet?.kind === "history" && sheetMessage && (
@@ -619,6 +672,18 @@ export const ChatThread = ({
           currentBody={sheetMessage.body}
         />
       )}
+      <ChatSettingsSheet
+        isOpen={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+        viewer={adapter.viewer}
+        conversationId={conversationId}
+        peerName={peerRealName}
+        selfName={viewer.role === "admin" ? viewer.adminName : selfName}
+        profile={profile}
+        onProfileChange={chat.setProfile}
+        onSync={sync}
+        chatEnabled={chatEnabled}
+      />
     </div>
   );
 };
