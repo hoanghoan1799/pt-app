@@ -1,4 +1,10 @@
 import { TIME_ZONE } from "@/constants/time";
+import {
+  adminReaderKey,
+  CHAT_REACTION_EMOJIS,
+  toReplySnippet,
+  USER_READER_KEY,
+} from "@/features/chat/utils/chat-rules";
 
 // Pure helpers behind the trainee chat thread: merging, grouping, separators
 // and the polling schedule. No React, no network, so every rule is testable.
@@ -12,6 +18,28 @@ export interface SerializedChatMessage {
   body: string;
   clientId: string;
   createdAt: string;
+  replyTo: SerializedReplyTo | null;
+  // ISO string of the last edit, null if never edited.
+  editedAt: string | null;
+  // Unsent for everyone: body is empty, no reactions, no quote.
+  deleted: boolean;
+  updatedAt: string;
+  reactions: SerializedReaction[];
+}
+
+export interface SerializedReaction {
+  emoji: string;
+  // "user" or "admin:<id>".
+  reactorKey: string;
+  reactorName: string;
+}
+
+export interface SerializedReplyTo {
+  id: number;
+  // Truncated snippet; empty when the original was unsent.
+  body: string;
+  senderRole: "user" | "admin";
+  deleted: boolean;
 }
 
 // `sent` = stored on the server; `sending` / `failed` = optimistic own bubble
@@ -72,6 +100,29 @@ export const mergeMessages = (
     pending.delete(message.clientId);
   }
   return [...byId.values(), ...pending.values()].sort(compareThread);
+};
+
+// Folds changed messages (edit, unsend, reaction) into the list: a stored
+// message with the same id is replaced in place. An id that is not loaded
+// (older than the page, or not fetched yet) is skipped: adding it would leave a
+// gap, and newer ones arrive through the `after` fetch.
+export const mergeChanges = (
+  current: ThreadMessage[],
+  changes: SerializedChatMessage[],
+): ThreadMessage[] => {
+  if (changes.length === 0) {
+    return current;
+  }
+  const byId = new Map<number, SerializedChatMessage>();
+
+  for (const change of changes) {
+    byId.set(change.id, change);
+  }
+  return current.map((message) => {
+    const change = message.id === null ? undefined : byId.get(message.id);
+
+    return change ? toThreadMessage(change) : message;
+  });
 };
 
 export const lastStoredId = (messages: ThreadMessage[]) => {
@@ -372,9 +423,171 @@ export const isNearBottom = (
 ) => scrollHeight - scrollTop - clientHeight <= NEAR_BOTTOM_PX;
 
 // Server → client: Dates cannot be assumed to survive as-is, ISO strings do.
+// Accepts the Date or ISO form so action results and page props share it.
+type DateLike = Date | string;
+
+export type ServerChatMessage = Omit<
+  SerializedChatMessage,
+  "createdAt" | "editedAt" | "updatedAt"
+> & {
+  createdAt: DateLike;
+  editedAt: DateLike | null;
+  updatedAt: DateLike;
+};
+
+const toIso = (value: DateLike) => new Date(value).toISOString();
+
 export const serializeMessage = (
-  message: Omit<SerializedChatMessage, "createdAt"> & { createdAt: Date },
+  message: ServerChatMessage,
 ): SerializedChatMessage => ({
   ...message,
-  createdAt: message.createdAt.toISOString(),
+  createdAt: toIso(message.createdAt),
+  editedAt: message.editedAt === null ? null : toIso(message.editedAt),
+  updatedAt: toIso(message.updatedAt),
 });
+
+// "user" or "admin:<id>": how reactions identify me.
+export const viewerReactorKey = (viewer: ThreadViewer) =>
+  viewer.role === "admin" ? adminReaderKey(viewer.adminId) : USER_READER_KEY;
+
+// Edit and unsend: only my own messages. For an admin "mine" is narrower than
+// the right-hand side: only what this admin wrote.
+export const isOwnMessage = (message: ThreadMessage, viewer: ThreadViewer) =>
+  viewer.role === "admin"
+    ? message.senderRole === "admin" && message.senderAdminId === viewer.adminId
+    : message.senderRole === "user";
+
+export const canEditOrUnsend = (message: ThreadMessage, viewer: ThreadViewer) =>
+  message.id !== null && !message.deleted && isOwnMessage(message, viewer);
+
+// The emoji I reacted with, if any.
+export const myReactionOf = (
+  message: Pick<ThreadMessage, "reactions">,
+  viewer: ThreadViewer,
+) => {
+  const key = viewerReactorKey(viewer);
+
+  return (
+    message.reactions.find((reaction) => reaction.reactorKey === key)?.emoji ??
+    null
+  );
+};
+
+// One reaction per person: replaces mine, or removes it with null.
+export const withMyReaction = (
+  reactions: SerializedReaction[],
+  viewer: ThreadViewer,
+  emoji: string | null,
+): SerializedReaction[] => {
+  const key = viewerReactorKey(viewer);
+  const others = reactions.filter((reaction) => reaction.reactorKey !== key);
+
+  if (emoji === null) {
+    return others;
+  }
+  return [
+    ...others,
+    {
+      emoji,
+      reactorKey: key,
+      reactorName: viewer.role === "admin" ? viewer.adminName : "Bạn",
+    },
+  ];
+};
+
+export interface ReactionGroup {
+  emoji: string;
+  count: number;
+  mine: boolean;
+  names: string[];
+}
+
+// Chips under a bubble: one per emoji, in the picker's order.
+export const groupReactions = (
+  reactions: SerializedReaction[],
+  viewer: ThreadViewer,
+): ReactionGroup[] => {
+  const key = viewerReactorKey(viewer);
+  const groups: ReactionGroup[] = [];
+
+  for (const emoji of CHAT_REACTION_EMOJIS) {
+    const matching = reactions.filter((reaction) => reaction.emoji === emoji);
+
+    if (matching.length > 0) {
+      groups.push({
+        emoji,
+        count: matching.length,
+        mine: matching.some((reaction) => reaction.reactorKey === key),
+        names: matching.map((reaction) => reaction.reactorName),
+      });
+    }
+  }
+  return groups;
+};
+
+// What a reply carries about its original (null while it is not stored yet).
+export const toReplyTo = (message: ThreadMessage): SerializedReplyTo | null =>
+  message.id === null
+    ? null
+    : {
+        id: message.id,
+        body: message.deleted ? "" : toReplySnippet(message.body),
+        senderRole: message.senderRole,
+        deleted: message.deleted,
+      };
+
+// A reply keeps the snippet it was stored with, and an unsent original does
+// not touch the reply row (so no change event reaches it). When the original is
+// in the list and unsent, the quote shows the tombstone too.
+export const markUnsentQuotes = (
+  messages: ThreadMessage[],
+): ThreadMessage[] => {
+  const unsent = new Set<number>();
+
+  for (const message of messages) {
+    if (message.id !== null && message.deleted) {
+      unsent.add(message.id);
+    }
+  }
+  if (unsent.size === 0) {
+    return messages;
+  }
+  return messages.map((message) =>
+    message.replyTo &&
+    !message.replyTo.deleted &&
+    unsent.has(message.replyTo.id)
+      ? { ...message, replyTo: { ...message.replyTo, body: "", deleted: true } }
+      : message,
+  );
+};
+
+export const UNSENT_TEXT = "Tin nhắn đã bị thu hồi";
+
+// "10:42, 06/11" for the actions sheet.
+export const formatSentAt = (iso: string) => {
+  const [, month, day] = dayKey(iso).split("-");
+
+  return `${formatTime(iso)}, ${day}/${month}`;
+};
+
+// Who wrote a message, for "Đang trả lời <name>".
+export const senderLabel = (message: ThreadMessage, viewer: ThreadViewer) => {
+  if (isOwnMessage(message, viewer)) {
+    return "chính mình";
+  }
+  if (message.senderRole === "admin") {
+    return message.senderAdminName ?? PEER_DELETED_NAME;
+  }
+  return viewer.role === "admin" ? (viewer.peerName ?? "Học viên") : "bạn";
+};
+
+// Name above a quoted snippet inside a bubble (only the role is known).
+export const quoteLabel = (
+  replyTo: SerializedReplyTo,
+  viewer: ThreadViewer,
+) => {
+  if (replyTo.senderRole === viewer.role) {
+    return viewer.role === "admin" ? "PT" : "Bạn";
+  }
+  return viewer.role === "admin" ? (viewer.peerName ?? "Học viên") : "PT";
+};

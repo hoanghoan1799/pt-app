@@ -10,13 +10,19 @@ import {
   useRef,
   useState,
 } from "react";
+import { toast } from "sonner";
 
+import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { Composer } from "@/features/chat/components/Composer";
+import { EditHistorySheet } from "@/features/chat/components/EditHistorySheet";
 import { LockedBanner } from "@/features/chat/components/LockedBanner";
+import { MessageActionsSheet } from "@/features/chat/components/MessageActionsSheet";
 import { MessageBubble } from "@/features/chat/components/MessageBubble";
 import { NewMessagesChip } from "@/features/chat/components/NewMessagesChip";
 import { PresenceStatus } from "@/features/chat/components/PresenceStatus";
 import { PushOptInCard } from "@/features/chat/components/PushOptInCard";
+import { ReactorsSheet } from "@/features/chat/components/ReactorsSheet";
+import { ReplyBar } from "@/features/chat/components/ReplyBar";
 import { TypingIndicator } from "@/features/chat/components/TypingIndicator";
 import { CHAT_MESSAGES } from "@/features/chat/constants/messages";
 import { useChatAdapter } from "@/features/chat/hooks/use-chat-adapter";
@@ -29,7 +35,12 @@ import {
   firstStoredId,
   isNearBottom,
   latestAdminName,
+  markUnsentQuotes,
+  myReactionOf,
+  senderLabel,
+  type ThreadMessage,
   type ThreadViewer,
+  UNSENT_TEXT,
   USER_VIEWER,
 } from "@/features/chat/utils/chat-thread-rules";
 import type { PresenceView } from "@/features/chat/utils/presence-status";
@@ -58,6 +69,10 @@ const TRAINEE_LOCKED_EMPTY_TEXT = "PT chưa mở nhắn tin cho bạn";
 const TRAINEE_ARIA_LABEL = "Cuộc trò chuyện với PT";
 
 const KEYBOARD_MIN_PX = 120;
+const HEART = "❤️";
+const HIGHLIGHT_MS = 1500;
+
+type SheetKind = "actions" | "reactors" | "history";
 
 // Follows the visual viewport so the composer stays above the on-screen
 // keyboard (iOS does not resize the layout viewport).
@@ -122,6 +137,19 @@ export const ChatThread = ({
     null,
   );
   const [showNewChip, setShowNewChip] = useState(false);
+  const confirm = useConfirm();
+  // The open sheet and the message it is about; kept after closing so the
+  // content does not vanish during the exit animation.
+  const [sheet, setSheet] = useState<{ kind: SheetKind; id: number } | null>(
+    null,
+  );
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [replyId, setReplyId] = useState<number | null>(null);
+  const [editing, setEditing] = useState<{ id: number; body: string } | null>(
+    null,
+  );
+  const [highlightId, setHighlightId] = useState<number | null>(null);
+  const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { isPeerTyping, clearPeerTyping, sendTyping } = useChatTransport({
     role: viewer.role,
@@ -140,8 +168,14 @@ export const ChatThread = ({
 
   // `Date.now()` only matters for "Hôm nay"/"Hôm qua"; refreshed per render.
   const items = useMemo(
-    // eslint-disable-next-line react-hooks/purity
-    () => buildThreadItems(messages, peerReadUpTo, Date.now(), adapter.viewer),
+    () =>
+      buildThreadItems(
+        markUnsentQuotes(messages),
+        peerReadUpTo,
+        // eslint-disable-next-line react-hooks/purity
+        Date.now(),
+        adapter.viewer,
+      ),
     [messages, peerReadUpTo, adapter.viewer],
   );
 
@@ -225,6 +259,143 @@ export const ChatThread = ({
       scrollToBottom(false);
     }
   }, [viewportHeight, scrollToBottom]);
+
+  const findMessage = useCallback(
+    (id: number | null) =>
+      id === null ? undefined : messages.find((message) => message.id === id),
+    [messages],
+  );
+  const sheetMessage = findMessage(sheet?.id ?? null);
+  const replyMessage = findMessage(replyId);
+  // An edit whose message was unsent meanwhile ends by itself.
+  const activeEditing =
+    editing && findMessage(editing.id)?.deleted === false ? editing : null;
+  const hasComposerBar =
+    chatEnabled && (replyMessage !== undefined || activeEditing !== null);
+
+  // The bar changes the composer height; stay on the latest message.
+  useLayoutEffect(() => {
+    if (wasNearBottom.current) {
+      scrollToBottom(false);
+    }
+  }, [hasComposerBar, scrollToBottom]);
+
+  useEffect(
+    () => () => {
+      if (highlightTimer.current !== null) {
+        clearTimeout(highlightTimer.current);
+      }
+    },
+    [],
+  );
+
+  const openSheet = (kind: SheetKind, message: ThreadMessage) => {
+    if (message.id === null) {
+      return;
+    }
+    setSheet({ kind, id: message.id });
+    setIsSheetOpen(true);
+  };
+
+  const openActions = (message: ThreadMessage) => {
+    if (!message.deleted) {
+      openSheet("actions", message);
+    }
+  };
+
+  // Double-tap: my heart on or off.
+  const toggleHeart = (message: ThreadMessage) => {
+    if (!chatEnabled || message.id === null || message.deleted) {
+      return;
+    }
+    void chat.react(
+      message.id,
+      myReactionOf(message, adapter.viewer) === HEART ? null : HEART,
+    );
+  };
+
+  const handleReact = (message: ThreadMessage, emoji: string | null) => {
+    setIsSheetOpen(false);
+    if (message.id !== null) {
+      void chat.react(message.id, emoji);
+    }
+  };
+
+  const handleCopy = async (message: ThreadMessage) => {
+    setIsSheetOpen(false);
+    try {
+      await navigator.clipboard.writeText(message.body);
+      toast.success("Đã sao chép");
+    } catch {
+      toast.error("Không sao chép được");
+    }
+  };
+
+  const handleReply = (message: ThreadMessage) => {
+    setIsSheetOpen(false);
+    setEditing(null);
+    setReplyId(message.id);
+  };
+
+  const handleEdit = (message: ThreadMessage) => {
+    setIsSheetOpen(false);
+    setReplyId(null);
+    setEditing(
+      message.id === null ? null : { id: message.id, body: message.body },
+    );
+  };
+
+  const handleUnsend = async (message: ThreadMessage) => {
+    const id = message.id;
+
+    // Close ours first: only one sheet is on screen at a time.
+    setIsSheetOpen(false);
+    if (id === null) {
+      return;
+    }
+    const isConfirmed = await confirm({
+      title: "Thu hồi tin nhắn này với mọi người?",
+      description: "Cả hai bên sẽ chỉ thấy “Tin nhắn đã bị thu hồi”.",
+      confirmLabel: "Thu hồi",
+      isDanger: true,
+    });
+
+    if (!isConfirmed) {
+      return;
+    }
+    setEditing((current) => (current?.id === id ? null : current));
+    setReplyId((current) => (current === id ? null : current));
+    void chat.unsend(id);
+  };
+
+  const jumpToMessage = (id: number) => {
+    const node = scroller.current?.querySelector(`[data-message-id="${id}"]`);
+
+    if (!node) {
+      return;
+    }
+    node.scrollIntoView({ block: "center", behavior: "smooth" });
+    setHighlightId(id);
+    if (highlightTimer.current !== null) {
+      clearTimeout(highlightTimer.current);
+    }
+    highlightTimer.current = setTimeout(() => {
+      highlightTimer.current = null;
+      setHighlightId(null);
+    }, HIGHLIGHT_MS);
+  };
+
+  const handleSend = (body: string) => {
+    chat.send(body, replyMessage);
+    setReplyId(null);
+  };
+
+  const handleSaveEdit = (body: string) => {
+    if (activeEditing) {
+      void chat.edit(activeEditing.id, body);
+    }
+    setEditing(null);
+  };
 
   const handleScroll = () => {
     const node = scroller.current;
@@ -327,7 +498,19 @@ export const ChatThread = ({
                     <MessageBubble
                       key={item.key}
                       item={item}
+                      viewer={adapter.viewer}
                       onRetry={chat.retry}
+                      isHighlighted={
+                        item.message.id !== null &&
+                        item.message.id === highlightId
+                      }
+                      onOpenActions={openActions}
+                      onToggleHeart={toggleHeart}
+                      onOpenReactors={(message) =>
+                        openSheet("reactors", message)
+                      }
+                      onOpenHistory={(message) => openSheet("history", message)}
+                      onJumpToReply={jumpToMessage}
                     />
                   );
                 }
@@ -367,9 +550,28 @@ export const ChatThread = ({
             {chat.sendError}
           </p>
         )}
+        {chatEnabled && activeEditing && (
+          <ReplyBar
+            title="Đang chỉnh sửa"
+            snippet={activeEditing.body}
+            closeLabel="Huỷ chỉnh sửa"
+            onClose={() => setEditing(null)}
+          />
+        )}
+        {chatEnabled && !activeEditing && replyMessage && (
+          <ReplyBar
+            title={`Đang trả lời ${senderLabel(replyMessage, adapter.viewer)}`}
+            snippet={replyMessage.deleted ? UNSENT_TEXT : replyMessage.body}
+            closeLabel="Huỷ trả lời"
+            onClose={() => setReplyId(null)}
+          />
+        )}
         {chatEnabled ? (
           <Composer
-            onSend={chat.send}
+            onSend={handleSend}
+            editing={activeEditing}
+            onSaveEdit={handleSaveEdit}
+            replyId={replyMessage?.id ?? null}
             onTyping={sendTyping}
             placeholder={
               viewer.role === "admin" && viewer.peerName
@@ -387,6 +589,36 @@ export const ChatThread = ({
           />
         )}
       </div>
+      {sheet?.kind === "actions" && sheetMessage && (
+        <MessageActionsSheet
+          isOpen={isSheetOpen}
+          onOpenChange={setIsSheetOpen}
+          message={sheetMessage}
+          viewer={adapter.viewer}
+          canWrite={chatEnabled}
+          onReact={(emoji) => handleReact(sheetMessage, emoji)}
+          onReply={() => handleReply(sheetMessage)}
+          onCopy={() => void handleCopy(sheetMessage)}
+          onEdit={() => handleEdit(sheetMessage)}
+          onUnsend={() => void handleUnsend(sheetMessage)}
+        />
+      )}
+      {sheet?.kind === "reactors" && sheetMessage && (
+        <ReactorsSheet
+          isOpen={isSheetOpen}
+          onOpenChange={setIsSheetOpen}
+          reactions={sheetMessage.reactions}
+          viewer={adapter.viewer}
+        />
+      )}
+      {sheet?.kind === "history" && sheetMessage && (
+        <EditHistorySheet
+          isOpen={isSheetOpen}
+          onOpenChange={setIsSheetOpen}
+          editsUrl={adapter.editsUrl(sheetMessage.id ?? 0)}
+          currentBody={sheetMessage.body}
+        />
+      )}
     </div>
   );
 };

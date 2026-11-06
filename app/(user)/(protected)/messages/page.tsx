@@ -44,6 +44,8 @@ const MessagesPage = async () => {
       initial={{
         ...payload,
         messages: payload.messages.map(serializeMessage),
+        // Without `changedSince` the payload has no changes to carry.
+        changes: [],
       }}
     />
   );
