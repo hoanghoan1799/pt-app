@@ -39,6 +39,7 @@ const MessagesPage = async () => {
   return (
     <TraineeChatThread
       initialPeerName={peerName}
+      userName={user.name}
       userId={user.id}
       conversationId={conversation?.id ?? null}
       initial={{

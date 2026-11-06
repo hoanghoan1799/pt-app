@@ -6,6 +6,10 @@ import { toast } from "sonner";
 import type { sendMessageAction } from "@/features/chat/services/chat-actions";
 import { CHANGES_PAGE_SIZE } from "@/features/chat/utils/chat-rules";
 import {
+  type ChatProfileView,
+  EMPTY_PROFILE_VIEW,
+} from "@/features/chat/utils/chat-settings";
+import {
   firstStoredId,
   lastStoredId,
   mergeChanges,
@@ -35,6 +39,8 @@ export interface ThreadSnapshot {
   // Messages changed since the last `changedSince` (edit, unsend, reaction)
   // and the cursor to send next. The first page load has no changes.
   changes?: SerializedChatMessage[];
+  // Nicknames and bubble colours (KAN-141); sent on every full payload.
+  profile?: ChatProfileView;
   lastChangeAt?: number;
 }
 
@@ -90,6 +96,9 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
   const [chatEnabled, setChatEnabled] = useState(initial.chatEnabled);
   const [peerReadUpTo, setPeerReadUpTo] = useState(initial.peerReadUpTo);
   const [peerLastSeenAt, setPeerLastSeenAt] = useState(initial.peerLastSeenAt);
+  const [profile, setProfile] = useState<ChatProfileView>(
+    initial.profile ?? EMPTY_PROFILE_VIEW,
+  );
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
@@ -122,6 +131,9 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
       changeCursor.current = Math.max(changeCursor.current, data.lastChangeAt);
     }
     setChatEnabled(data.chatEnabled);
+    if (data.profile) {
+      setProfile(data.profile);
+    }
     setPeerReadUpTo((current) => Math.max(current, data.peerReadUpTo));
     if (!isForward) {
       setHasMore(data.hasMore);
@@ -452,6 +464,8 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
     chatEnabled,
     peerReadUpTo,
     peerLastSeenAt,
+    profile,
+    setProfile,
     isLoadingOlder,
     sendError,
     sync,

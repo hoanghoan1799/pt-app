@@ -4,6 +4,11 @@ import clsx from "clsx";
 
 import { useBubbleGesture } from "@/features/chat/hooks/use-bubble-gesture";
 import {
+  CHAT_TEXT_ON_COLOR,
+  chatColorHex,
+  type ChatColorKey,
+} from "@/features/chat/utils/chat-palette";
+import {
   groupReactions,
   initialsOf,
   quoteLabel,
@@ -26,6 +31,10 @@ interface MessageBubbleProps {
   onOpenReactors: (message: ThreadMessage, emoji: string) => void;
   onOpenHistory: (message: ThreadMessage) => void;
   onJumpToReply: (messageId: number) => void;
+  nicknames?: Readonly<Record<string, string>>;
+  // The sender's palette colour (white text, AA on every entry); null keeps
+  // the neutral surface style (KAN-142).
+  color?: ChatColorKey | null;
 }
 
 // One chat bubble: mine right in the accent colour, the other side left. Spacing is
@@ -42,6 +51,8 @@ export const MessageBubble = ({
   onOpenReactors,
   onOpenHistory,
   onJumpToReply,
+  color = null,
+  nicknames,
 }: MessageBubbleProps) => {
   const {
     message,
@@ -65,6 +76,7 @@ export const MessageBubble = ({
   const groups = isUnsent ? [] : groupReactions(message.reactions, viewer);
   const { replyTo } = message;
   const sideMargin = mine ? "mr-1" : "ml-9";
+  const isColored = color !== null && !isUnsent && !(mine && isFailed);
 
   return (
     <div
@@ -107,13 +119,24 @@ export const MessageBubble = ({
           {...gesture}
           tabIndex={isInteractive ? 0 : undefined}
           data-bubble
+          data-bubble-color={isColored ? color : undefined}
+          style={
+            isColored
+              ? {
+                  backgroundColor: chatColorHex(color),
+                  color: CHAT_TEXT_ON_COLOR,
+                }
+              : undefined
+          }
           className={clsx(
             "flex max-w-[75%] touch-manipulation flex-col rounded-[1.25rem] text-[15px] leading-snug select-none [-webkit-touch-callout:none] focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:outline-none",
             isUnsent
               ? "border border-line px-3.5 py-2 text-muted italic"
-              : mine
-                ? "bg-accent px-3.5 py-2 text-accent-fg"
-                : "border border-line bg-surface px-3.5 py-2 text-fg",
+              : isColored
+                ? "px-3.5 py-2"
+                : mine
+                  ? "bg-accent px-3.5 py-2 text-accent-fg"
+                  : "border border-line bg-surface px-3.5 py-2 text-fg",
             mine && !isUnsent && isSending && "opacity-70",
             mine && !isUnsent && isFailed && "bg-danger text-white",
             isHighlighted && "ring-2 ring-accent",
@@ -126,13 +149,15 @@ export const MessageBubble = ({
               aria-label="Xem tin nhắn được trả lời"
               className={clsx(
                 "mb-1.5 block max-w-full border-l-2 py-0.5 pl-2 text-left text-xs",
-                mine
-                  ? "border-accent-fg/60 text-accent-fg/80"
-                  : "border-accent text-muted",
+                isColored
+                  ? "border-white/60 text-white/85"
+                  : mine
+                    ? "border-accent-fg/60 text-accent-fg/80"
+                    : "border-accent text-muted",
               )}
             >
               <span className="block truncate font-semibold">
-                {quoteLabel(replyTo, viewer)}
+                {quoteLabel(replyTo, viewer, nicknames)}
               </span>
               <span
                 className={clsx(

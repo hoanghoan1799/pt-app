@@ -9,6 +9,7 @@ import { TIME_ZONE } from "@/constants/time";
 import { ChatLockSwitch } from "@/features/chat/components/ChatLockSwitch";
 import { ChatThread } from "@/features/chat/components/ChatThread";
 import { isChatEnabled } from "@/features/chat/services/chat-permission";
+import { loadChatProfile } from "@/features/chat/services/chat-profile";
 import {
   findConversationByUserId,
   getOrCreateConversation,
@@ -80,9 +81,10 @@ const AdminMessagesPage = async ({
       </>
     );
   }
-  const [{ messages, hasMore }, peerReadUpTo] = await Promise.all([
+  const [{ messages, hasMore }, peerReadUpTo, profile] = await Promise.all([
     listMessages(conversation.id),
     getPeerReadCursor(conversation.id, "admin"),
+    loadChatProfile(conversation.id),
   ]);
 
   return (
@@ -110,6 +112,7 @@ const AdminMessagesPage = async ({
         chatEnabled,
         peerReadUpTo,
         peerLastSeenAt: serializeLastSeen(user.lastSeenAt),
+        profile,
       }}
     />
   );
