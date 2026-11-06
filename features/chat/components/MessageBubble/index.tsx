@@ -195,6 +195,7 @@ export const MessageBubble = ({
               draggable={false}
               className={clsx(
                 "pointer-events-none size-[120px] object-contain",
+                sticker.kind === "pack" && "sticker-pop",
                 mine && isSending && "opacity-70",
               )}
             />
