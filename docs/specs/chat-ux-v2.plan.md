@@ -6,7 +6,7 @@ Status: **draft, waiting for Hoan's approval** (no code before approval).
 
 - Intent: `intent/2026-11-06-chat-ux-v2.md`
 - Spec: `docs/specs/chat-ux-v2.md`
-- KAN keys: KAN-131 (bug); KAN-132 -> KAN-136, KAN-137; KAN-133 -> KAN-138, KAN-139, KAN-140; KAN-134 -> KAN-141, KAN-142, KAN-143; KAN-135 -> KAN-144, KAN-145, KAN-146
+- KAN keys: KAN-147 notifications (KAN-148, KAN-149, KAN-150, spec `docs/specs/notifications.md`); KAN-131 (bug); KAN-132 -> KAN-136, KAN-137; KAN-133 -> KAN-138, KAN-139, KAN-140; KAN-134 -> KAN-141, KAN-142, KAN-143; KAN-135 -> KAN-144, KAN-145, KAN-146
 
 ## Order of work (one PR per ticket, base `stag`)
 
@@ -21,7 +21,9 @@ Status: **draft, waiting for Hoan's approval** (no code before approval).
 9. **KAN-143** [QA] e2e.
 10. **KAN-144** [BE] Sticker kind. 11. **KAN-145** [FE] Sticker panel. 12. **KAN-146** [QA] e2e.
 
-Steps 1-3 need no schema change and can ship (and be released) on their own. Stickers wait for Q4.
+13. **KAN-148** [BE], **KAN-149** [FE], **KAN-150** [QA] notification centre (after grill-me round 3).
+
+Steps 1-3 need no schema change. KAN-131 starts first but ships in the same release as the new features (Hoan, Q13). Stickers: bundled pack first, GIPHY tab behind `GIPHY_API_KEY` (Q8).
 
 ## Files that change
 

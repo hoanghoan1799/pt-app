@@ -36,33 +36,34 @@ Gaps: the status lives in its own row under the header, not under the name; the 
 - C4. Edit: own messages, no time limit (decision deferred from KAN-114). The bubble shows "Đã chỉnh sửa". Every previous body is kept in `chat_message_edits`; both people in the conversation (the trainee and every admin) can open the history from the "Đã chỉnh sửa" label (Hoan, Q2).
 - C5. Delete = unsend for everyone, no time limit: soft delete (`deleted_at`), the API returns an empty body, both sides see "Tin nhắn đã bị thu hồi". Reactions on it are hidden. The row stays for history (D8 keep history).
 - C6. Sync: polling today asks only for ids after the newest one, so changes to older messages would be missed. Every message mutation (edit, unsend, reaction) sets `chat_messages.updated_at` and bumps `chat_conversations.last_change_at`; the client sends `changedSince`, the server returns changed messages in `changes`, and the 204 fast path also requires `changedSince` to be current. Ably publishes `message-update` with ids only, which triggers the same fetch (no body over Ably, as today).
-- C7. No push notification for reactions, edits or unsends.
+- C7. A reaction sends a push to the message author (Hoan Q10), e.g. "Hoan đã thả ❤️ vào tin nhắn của bạn"; edits and unsends send none. Reactions also land in the notification centre (`docs/specs/notifications.md`).
 
 ### D. Names, nicknames, colour (KAN-134)
 
 - D1. Nicknames are per conversation and visible to both sides (Messenger style). Targets: the trainee, the PT side as a whole (`pt`, shared inbox), and each admin (`admin:<id>`) for sender labels. Anyone in the conversation can set or clear any of its nicknames, including their own. Max 30 characters.
 - D2. Shown name everywhere in chat (header, sender labels, inbox, typing indicator): nickname, else display name, else real name. Outside chat (workouts, admin member pages) the real name stays.
-- D3. Own name: the trainee can rename `users.name` from the account menu (same uniqueness rule as when an admin creates them; email login is unaffected). Admins get a nullable `display_name`; their login `username` never changes.
+- D3. Own name: the trainee sets a display name from the account menu. Stored in a new nullable `users.display_name` with no uniqueness (Hoan Q11: only the email must be unique, names may repeat); `users.name` stays as the admin-given name. Shown name outside chat = display name ?? name. Admins get a nullable `display_name`; their login `username` never changes.
 - D4. Bubble colour: each account picks one of 8 palette colours (stored as a key, not a hex, on `users.chat_color` / `admins.chat_color`). An admin can also override it for one conversation (`chat_color_overrides`, Hoan Q7); the override wins in that conversation only. My bubbles use my colour on both screens; the other side's bubbles keep the neutral surface style on my screen unless they picked a colour, in which case they show in their colour. Nobody can set another person's colour. Default = the current accent orange.
 - D5. Palette colours are checked for WCAG AA text contrast in light and dark themes (white or dark text chosen per colour).
 
 ### E. Stickers (KAN-135)
 
+- E0. Decision (Hoan Q8 = C): bundled pack first, then a GIPHY search tab (trending, search, favourites) behind `GIPHY_API_KEY`; hidden while the key is unset. Searches go through our server route (key never reaches the client), `rating=g`, "Powered by GIPHY" shown. A GIPHY sticker message stores the GIPHY id and its CDN URL.
 - E1. No TikTok assets (their stickers are copyrighted). Default: bundle a free pack from an open-licence animated emoji set (Microsoft Fluent Emoji, MIT) in `public/stickers/` with its licence file, 24+ stickers in 3 groups (Tập luyện, Ăn uống, Cảm xúc), plus "Gần đây" (localStorage). Alternative (Q4): GIPHY sticker search, needs an API key and sends search terms to a third party.
-- E2. A sticker is a message with `sticker_id` and an empty body, rendered at 120 px without a bubble; reactions, reply and unsend work, edit and copy do not.
+- E2. A sticker is a message with `sticker_ref` (`pack:<id>` or `giphy:<id>`), `sticker_url` and an empty body, rendered at 120 px without a bubble; reactions, reply and unsend work, edit and copy do not.
 - E3. Inbox preview and push text: "đã gửi một sticker".
 
 ## Data model (all additive)
 
-| Change                                                                                                                                                      | Story   |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `chat_messages`: nullable `reply_to_message_id`, `edited_at`, `updated_at` (ms)                                                                             | KAN-133 |
-| `chat_conversations`: nullable `last_change_at` (ms)                                                                                                        | KAN-133 |
-| new `chat_reactions` (message_id, reactor_key, emoji, created_at; PK message_id + reactor_key)                                                              | KAN-133 |
-| new `chat_message_edits` (id, message_id, previous_body, edited_at)                                                                                         | KAN-133 |
-| new `chat_nicknames` (conversation_id, target_key, nickname, set_by_key, updated_at; PK conversation_id + target)                                           | KAN-134 |
-| `users`: nullable `chat_color`; `admins`: nullable `display_name`, `chat_color`; new `chat_color_overrides` (conversation_id, admin_id, color; PK both ids) | KAN-134 |
-| `chat_messages`: nullable `sticker_id`                                                                                                                      | KAN-135 |
+| Change                                                                                                                                                                      | Story   |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `chat_messages`: nullable `reply_to_message_id`, `edited_at`, `updated_at` (ms)                                                                                             | KAN-133 |
+| `chat_conversations`: nullable `last_change_at` (ms)                                                                                                                        | KAN-133 |
+| new `chat_reactions` (message_id, reactor_key, emoji, created_at; PK message_id + reactor_key)                                                                              | KAN-133 |
+| new `chat_message_edits` (id, message_id, previous_body, edited_at)                                                                                                         | KAN-133 |
+| new `chat_nicknames` (conversation_id, target_key, nickname, set_by_key, updated_at; PK conversation_id + target)                                                           | KAN-134 |
+| `users`: nullable `chat_color`, `display_name`; `admins`: nullable `display_name`, `chat_color`; new `chat_color_overrides` (conversation_id, admin_id, color; PK both ids) | KAN-134 |
+| `chat_messages`: nullable `sticker_ref`, `sticker_url`                                                                                                                      | KAN-135 |
 
 `reactor_key` / `set_by_key` use the existing reader key format: `user` or `admin:<id>`.
 
@@ -78,10 +79,15 @@ Gaps: the status lives in its own row under the header, not under the name; the 
 - Q1: no. The admin thread keeps its current header (B2, B3).
 - Q2: both people in the conversation see the edit history (C4).
 - Q3: ok, ❤️ 😂 😮 😢 💪 👍 (C1).
-- Q4: Hoan asked "what about doing it like TikTok": under discussion, see E.
+- Q4: Hoan asked "what about doing it like TikTok": answered by Q8.
 - Q5: agreed, one nickname for "PT" plus per-admin nicknames (D1).
 - Q6: agreed, nobody deletes the other side's messages in this work.
 - Q7: agreed, colour per account, and an admin can override it per conversation (D4).
+- Q8: C, bundled pack plus GIPHY search (E0). Q9: no "delete for me".
+- Q10: reactions DO send a push (C7).
+- Q11: names may repeat, only the email is unique (D3).
+- Q12: agreed, the admin display name replaces the username for trainees.
+- Q13: start KAN-131 now, but it ships in the same release as the new features (no separate release).
 
 ## Test matrix
 
