@@ -51,10 +51,32 @@ export const formatDayMonth = (date: string) => {
   return `${day}/${month}`;
 };
 
-export const formatDayNumber = (date: string) => date.slice(8, 10);
+export const formatDayNumber = (date: string) =>
+  String(Number(date.slice(8, 10)));
 
 export const formatWeekRange = (weekStart: string) =>
   `${formatDayMonth(weekStart)} – ${formatDayMonth(addDays(weekStart, DAYS_PER_WEEK - 1))}`;
+
+const formatDayMonthShort = (date: string) => {
+  const [, month, day] = date.split("-");
+
+  return `${Number(day)}/${Number(month)}`;
+};
+
+// "Tuần 2–8/11, 2026"; a week spanning two months or years names both.
+export const formatWeekTitle = (weekStart: string) => {
+  const weekEnd = addDays(weekStart, DAYS_PER_WEEK - 1);
+  const startYear = weekStart.slice(0, 4);
+  const endYear = weekEnd.slice(0, 4);
+
+  if (startYear !== endYear) {
+    return `Tuần ${formatDayMonthShort(weekStart)}/${startYear}–${formatDayMonthShort(weekEnd)}/${endYear}`;
+  }
+  if (weekStart.slice(5, 7) !== weekEnd.slice(5, 7)) {
+    return `Tuần ${formatDayMonthShort(weekStart)}–${formatDayMonthShort(weekEnd)}, ${endYear}`;
+  }
+  return `Tuần ${Number(weekStart.slice(8, 10))}–${formatDayMonthShort(weekEnd)}, ${endYear}`;
+};
 
 export const getWeekdayLabel = (date: string) =>
   WEEKDAY_LABELS[getWeekdayIndex(date)];
@@ -96,25 +118,6 @@ export const shiftSchedule = (selectedDate: string, weeks: number) => {
   const date = addDays(selectedDate, weeks * DAYS_PER_WEEK);
 
   return { weekStart: getWeekStart(date), selectedDate: date };
-};
-
-export const getRelativeWeekLabel = (weekStart: string, today: string) => {
-  const diffWeeks = Math.round(
-    (toUtcDate(weekStart).getTime() -
-      toUtcDate(getWeekStart(today)).getTime()) /
-      (DAYS_PER_WEEK * 24 * 60 * 60 * 1000),
-  );
-
-  if (diffWeeks === 0) {
-    return "Tuần này";
-  }
-  if (diffWeeks === 1) {
-    return "Tuần sau";
-  }
-  if (diffWeeks === -1) {
-    return "Tuần trước";
-  }
-  return diffWeeks > 0 ? `${diffWeeks} tuần nữa` : `${-diffWeeks} tuần trước`;
 };
 
 interface ScheduleLocation {

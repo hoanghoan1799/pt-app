@@ -1,6 +1,10 @@
-import { WeekDayTabs } from "@/components/common/WeekDayTabs";
+import { WeekCalendarCard } from "@/components/common/WeekCalendarCard";
+import type { WeekDayStatus } from "@/components/common/WeekDayTabs";
 import type { ScheduleDay } from "@/features/workouts/types/workout";
-import { isDayComplete } from "@/features/workouts/utils/progress";
+import {
+  getDayProgress,
+  isDayComplete,
+} from "@/features/workouts/utils/progress";
 
 interface DayTabsProps {
   basePath: string;
@@ -10,19 +14,21 @@ interface DayTabsProps {
   today: string;
 }
 
-const getMarker = (day: ScheduleDay) => {
+// Green: every exercise done; orange: some done; none otherwise.
+const getStatus = (day: ScheduleDay): WeekDayStatus => {
   if (isDayComplete(day)) {
-    return "check";
+    return "complete";
   }
-  return day.exercises.length > 0 ? "dot" : "none";
+  return getDayProgress(day).completed > 0 ? "partial" : "none";
 };
 
+// The workout week calendar (header, days, legend).
 export const DayTabs = ({ days, ...props }: DayTabsProps) => (
-  <WeekDayTabs
+  <WeekCalendarCard
     {...props}
     items={days.map((day) => ({
       date: day.date,
-      marker: getMarker(day),
+      status: getStatus(day),
       description: `${day.exercises.length ? `, ${day.exercises.length} bài` : ""}${isDayComplete(day) ? ", đã tập xong" : ""}`,
     }))}
   />

@@ -135,14 +135,20 @@ test("calendar colours follow the marked meals: green, yellow, grey", async ({
     "data-status",
     "none",
   );
+  // Only days after today are flagged as future cells.
+  const dayCell = (date: string) =>
+    page.getByRole("link", { name: new RegExp(`^${formatFullDay(date)}`) });
 
-  // The legend names all three colours.
+  await expect(dayCell(TOMORROW)).toHaveAttribute("data-future", "true");
+  await expect(dayCell(TODAY)).not.toHaveAttribute("data-future", "true");
+  await expect(dayCell(YESTERDAY)).not.toHaveAttribute("data-future", "true");
+
+  // The legend names the two dot colours; "none" shows no dot.
   const legend = page.getByRole("list", { name: "Chú thích màu ngày" });
 
   await expect(legend.getByRole("listitem")).toHaveText([
-    "Đủ bữa",
-    "Một số bữa",
-    "Chưa có",
+    "Đã hoàn thành",
+    "Đang thực hiện",
   ]);
 });
 

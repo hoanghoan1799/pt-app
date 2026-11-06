@@ -4,16 +4,15 @@ import {
 } from "@/components/common/WeekDayTabs";
 
 const LEGEND: { status: WeekDayStatus; label: string }[] = [
-  { status: "complete", label: "Đủ bữa" },
-  { status: "partial", label: "Một số bữa" },
-  { status: "none", label: "Chưa có" },
+  { status: "complete", label: "Đã hoàn thành" },
+  { status: "partial", label: "Đang thực hiện" },
 ];
 
-// Key for the green, yellow and grey day markers under the week strip.
+// Key for the green and orange day markers in the week calendar.
 export const DayStatusLegend = () => (
   <ul
     aria-label="Chú thích màu ngày"
-    className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted"
+    className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted"
   >
     {LEGEND.map(({ status, label }) => (
       <li key={status} className="flex items-center gap-1.5">

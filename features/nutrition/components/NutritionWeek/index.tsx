@@ -1,8 +1,6 @@
 import type { ReactNode } from "react";
 
-import { DayStatusLegend } from "@/components/common/DayStatusLegend";
-import { WeekDayTabs } from "@/components/common/WeekDayTabs";
-import { WeekNavigator } from "@/components/common/WeekNavigator";
+import { WeekCalendarCard } from "@/components/common/WeekCalendarCard";
 import type { DayCompletion } from "@/features/meal-plans/utils/day-completion";
 import { NutritionDayView } from "@/features/nutrition/components/NutritionDayView";
 import type { NutritionDay } from "@/features/nutrition/types/nutrition";
@@ -44,25 +42,17 @@ export const NutritionWeek = ({
   return (
     <div className="space-y-6">
       <div className="space-y-3">
-        <WeekNavigator
-          basePath={basePath}
-          weekStart={weekStart}
-          selectedDate={selectedDate}
-          today={today}
-        />
-        <WeekDayTabs
+        <WeekCalendarCard
           basePath={basePath}
           weekStart={weekStart}
           selectedDate={selectedDate}
           today={today}
           items={days.map((day) => ({
             date: day.date,
-            marker: "none",
             status: completion[day.date] ?? "none",
             description: STATUS_DESCRIPTIONS[completion[day.date] ?? "none"],
           }))}
         />
-        <DayStatusLegend />
       </div>
       <NutritionDayView
         day={selectedDay}

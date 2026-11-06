@@ -6,7 +6,12 @@ import { WeekNavigator } from "@/components/common/WeekNavigator";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { HeaderMenus } from "@/components/layout/HeaderMenus";
 import { ROUTES } from "@/constants/routes";
-import { ICON_BUTTON, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
+import {
+  CARD,
+  ICON_BUTTON,
+  PAGE_CONTAINER,
+  SECTION_TITLE,
+} from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
 import { AdminUnreadBadge } from "@/features/chat/components/UnreadBadge";
 import {
@@ -112,12 +117,14 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
           </div>
         </section>
         <div className="space-y-3">
-          <WeekNavigator
-            basePath={ROUTES.ADMIN}
-            weekStart={schedule.weekStart}
-            selectedDate={schedule.selectedDate}
-            today={today}
-          />
+          <div className={`${CARD} p-4`}>
+            <WeekNavigator
+              basePath={ROUTES.ADMIN}
+              weekStart={schedule.weekStart}
+              selectedDate={schedule.selectedDate}
+              today={today}
+            />
+          </div>
           <WeekSummaryTiles summary={summarizeWeek(members)} />
         </div>
         <section className="space-y-2">
