@@ -2,9 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   adminReaderKey,
+  CHAT_NICKNAME_MAX_LENGTH,
   CHAT_PAGE_SIZE,
+  colorSchema,
   historyCursorSchema,
   nextReadCursor,
+  nicknameTargetSchema,
+  nicknameValueSchema,
+  parseAdminTarget,
   sendMessageSchema,
   toPreview,
   USER_READER_KEY,
@@ -107,6 +112,49 @@ describe("nextReadCursor", () => {
 
   it("stays at 0 for an empty conversation", () => {
     expect(nextReadCursor(0, 5, 0)).toBe(0);
+  });
+});
+
+describe("nickname and colour schemas", () => {
+  it("accepts the three target kinds only", () => {
+    for (const target of ["user", "pt", "admin:7"]) {
+      expect(nicknameTargetSchema.safeParse(target).success).toBe(true);
+    }
+    for (const target of ["", "admin", "admin:0", "admin:-1", "Admin:1", "x"]) {
+      expect(nicknameTargetSchema.safeParse(target).success).toBe(false);
+    }
+  });
+
+  it("parses admin targets", () => {
+    expect(parseAdminTarget("admin:12")).toBe(12);
+    expect(parseAdminTarget("user")).toBeNull();
+  });
+
+  it("trims and collapses nicknames, empty clears, 30 characters max", () => {
+    expect(nicknameValueSchema.parse("  a   b ")).toBe("a b");
+    expect(nicknameValueSchema.parse("   ")).toBe("");
+    expect(
+      nicknameValueSchema.safeParse("x".repeat(CHAT_NICKNAME_MAX_LENGTH))
+        .success,
+    ).toBe(true);
+    expect(
+      nicknameValueSchema.safeParse("x".repeat(CHAT_NICKNAME_MAX_LENGTH + 1))
+        .success,
+    ).toBe(false);
+    // Emoji are one character each, not two UTF-16 units.
+    expect(
+      nicknameValueSchema.safeParse("💪".repeat(CHAT_NICKNAME_MAX_LENGTH))
+        .success,
+    ).toBe(true);
+    expect(nicknameValueSchema.safeParse("a\nb").success).toBe(true);
+    expect(nicknameValueSchema.safeParse("a\u0007b").success).toBe(false);
+  });
+
+  it("accepts palette keys and null, nothing else", () => {
+    expect(colorSchema.safeParse({ color: "blue" }).success).toBe(true);
+    expect(colorSchema.safeParse({ color: null }).success).toBe(true);
+    expect(colorSchema.safeParse({ color: "#fff" }).success).toBe(false);
+    expect(colorSchema.safeParse({}).success).toBe(false);
   });
 });
 

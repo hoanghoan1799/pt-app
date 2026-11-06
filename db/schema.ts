@@ -26,6 +26,8 @@ export const admins = sqliteTable("admins", {
   // Presence heartbeat (KAN-128): last time the PT had the app open and
   // visible. Throttled to one write a minute; null = never seen.
   lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
+  // Chat bubble colour (KAN-141): a key of chat-palette.ts; null = default.
+  chatColor: text("chat_color"),
   createdAt: createdAt(),
 });
 
@@ -57,6 +59,8 @@ export const users = sqliteTable("users", {
   chatEnabledByAdminId: integer("chat_enabled_by_admin_id"),
   // Presence heartbeat (KAN-128), see admins.lastSeenAt.
   lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
+  // Chat bubble colour (KAN-141), see admins.chatColor.
+  chatColor: text("chat_color"),
   createdAt: createdAt(),
 });
 
@@ -500,6 +504,33 @@ export const chatMessageEdits = sqliteTable(
     editedAt: integer("edited_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [index("chat_message_edits_message_id").on(table.messageId)],
+);
+
+// Nicknames per conversation (KAN-141). targetKey is "user", "pt" (the PT side
+// as a whole) or "admin:<id>"; setByKey is the reader key of who set it. A
+// cleared nickname deletes the row.
+export const chatNicknames = sqliteTable(
+  "chat_nicknames",
+  {
+    conversationId: integer("conversation_id").notNull(),
+    targetKey: text("target_key").notNull(),
+    nickname: text("nickname").notNull(),
+    setByKey: text("set_by_key").notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.conversationId, table.targetKey] })],
+);
+
+// An admin's bubble colour for one conversation only (KAN-141, Q7); it wins
+// over admins.chat_color there.
+export const chatColorOverrides = sqliteTable(
+  "chat_color_overrides",
+  {
+    conversationId: integer("conversation_id").notNull(),
+    adminId: integer("admin_id").notNull(),
+    color: text("color").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.conversationId, table.adminId] })],
 );
 
 // Read cursor per reader. readerKey is "user" or "admin:<id>".
