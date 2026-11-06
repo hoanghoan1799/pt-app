@@ -119,10 +119,15 @@ describe("listMessages", () => {
       "body",
       "clientId",
       "createdAt",
+      "deleted",
+      "editedAt",
       "id",
+      "reactions",
+      "replyTo",
       "senderAdminId",
       "senderAdminName",
       "senderRole",
+      "updatedAt",
     ]);
     expect(messages.map((m) => m.senderAdminName)).toEqual(["pt-one", null]);
   });

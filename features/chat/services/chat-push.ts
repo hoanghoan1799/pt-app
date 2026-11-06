@@ -8,7 +8,9 @@ import { db } from "@/db";
 import { pushSubscriptions, users } from "@/db/schema";
 import {
   ADMIN_OWNER_PREFIX,
+  adminOwnerKey,
   buildChatPushPayload,
+  buildReactionPushPayload,
   type ChatPushPayload,
   isGoneStatus,
   type PushSubscriptionInput,
@@ -128,6 +130,38 @@ const loadTargets = (senderRole: "user" | "admin", traineeUserId: number) =>
         : eq(pushSubscriptions.ownerKey, userOwnerKey(traineeUserId)),
     );
 
+const deliver = async (
+  targets: StoredSubscription[],
+  payload: ChatPushPayload,
+  vapid: VapidConfig,
+  sender: PushSender,
+) => {
+  await Promise.all(
+    targets.map(async (target) => {
+      try {
+        await sender(target, payload, vapid);
+        await db
+          .update(pushSubscriptions)
+          .set({ lastSuccessAt: new Date() })
+          .where(eq(pushSubscriptions.id, target.id));
+      } catch (error) {
+        const statusCode = (error as { statusCode?: number })?.statusCode;
+
+        if (isGoneStatus(statusCode)) {
+          await db
+            .delete(pushSubscriptions)
+            .where(eq(pushSubscriptions.id, target.id));
+          return;
+        }
+        logServerError("sendChatPush", error, {
+          subscriptionId: target.id,
+          statusCode,
+        });
+      }
+    }),
+  );
+};
+
 // Never throws and never logs the payload or any message body: only ids and
 // counts. Trainee message -> every admin's devices; admin message -> the
 // trainee's devices. 404/410 means the subscription is dead and is dropped.
@@ -164,32 +198,66 @@ export const sendChatPush = async (
       conversationId,
     });
 
-    await Promise.all(
-      targets.map(async (target) => {
-        try {
-          await sender(target, payload, vapid);
-          await db
-            .update(pushSubscriptions)
-            .set({ lastSuccessAt: new Date() })
-            .where(eq(pushSubscriptions.id, target.id));
-        } catch (error) {
-          const statusCode = (error as { statusCode?: number })?.statusCode;
-
-          if (isGoneStatus(statusCode)) {
-            await db
-              .delete(pushSubscriptions)
-              .where(eq(pushSubscriptions.id, target.id));
-            return;
-          }
-          logServerError("sendChatPush", error, {
-            subscriptionId: target.id,
-            statusCode,
-          });
-        }
-      }),
-    );
+    await deliver(targets, payload, vapid, sender);
   } catch (error) {
     logServerError("sendChatPush", error, { conversationId });
+  }
+};
+
+export interface SendReactionPushInput {
+  // The author of the reacted message, the only person who is notified.
+  recipient:
+    { role: "user"; userId: number } | { role: "admin"; adminId: number };
+  reactorName: string;
+  emoji: string;
+  traineeUserId: number;
+  conversationId: number;
+}
+
+// Never throws; the payload carries the reactor, the emoji and a link, never
+// the message text. The caller has already ruled out self-reactions.
+export const sendReactionPush = async (
+  {
+    recipient,
+    reactorName,
+    emoji,
+    traineeUserId,
+    conversationId,
+  }: SendReactionPushInput,
+  sender: PushSender = sendWithWebPush,
+) => {
+  try {
+    const vapid = getVapid();
+
+    if (!vapid) {
+      return;
+    }
+    const targets = await db
+      .select()
+      .from(pushSubscriptions)
+      .where(
+        eq(
+          pushSubscriptions.ownerKey,
+          recipient.role === "user"
+            ? userOwnerKey(recipient.userId)
+            : adminOwnerKey(recipient.adminId),
+        ),
+      );
+
+    if (targets.length === 0) {
+      return;
+    }
+    const payload = buildReactionPushPayload({
+      recipientRole: recipient.role,
+      reactorName,
+      emoji,
+      traineeUserId,
+      conversationId,
+    });
+
+    await deliver(targets, payload, vapid, sender);
+  } catch (error) {
+    logServerError("sendReactionPush", error, { conversationId });
   }
 };
 
@@ -201,5 +269,13 @@ export const schedulePush = (input: SendChatPushInput) => {
     after(() => sendChatPush(input));
   } catch {
     void sendChatPush(input);
+  }
+};
+
+export const scheduleReactionPush = (input: SendReactionPushInput) => {
+  try {
+    after(() => sendReactionPush(input));
+  } catch {
+    void sendReactionPush(input);
   }
 };

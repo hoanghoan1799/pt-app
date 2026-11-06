@@ -3,6 +3,13 @@
 import { z } from "zod";
 
 import { CHAT_MESSAGES } from "@/features/chat/constants/messages";
+import {
+  type ChatActor,
+  editChatMessage,
+  isReplyTargetValid,
+  reactToMessage,
+  unsendChatMessage,
+} from "@/features/chat/services/chat-mutations";
 import { isChatEnabled } from "@/features/chat/services/chat-permission";
 import { schedulePush } from "@/features/chat/services/chat-push";
 import {
@@ -39,7 +46,11 @@ const fail = (message: string) => ({ status: "error" as const, message });
 // the stored message. No send limit (D13, Hoan 2026-11-04).
 export const sendMessageAction = withResultErrorHandling(
   "sendChatMessage",
-  async (input: { body: string; clientId: string }): Promise<SendResult> => {
+  async (input: {
+    body: string;
+    clientId: string;
+    replyToMessageId?: number;
+  }): Promise<SendResult> => {
     const user = await requireUser();
 
     if (!isChatEnabled(user)) {
@@ -50,14 +61,19 @@ export const sendMessageAction = withResultErrorHandling(
     if (!parsed.success) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
-    const { body, clientId } = parsed.data;
+    const { body, clientId, replyToMessageId } = parsed.data;
     const conversation = await getOrCreateConversation(user.id);
+
+    if (!(await isReplyTargetValid(conversation, replyToMessageId))) {
+      return fail(CHAT_MESSAGES.INVALID_INPUT);
+    }
     const { message, created } = await insertMessageOnce({
       conversationId: conversation.id,
       senderRole: "user",
       senderAdminId: null,
       body,
       clientId,
+      replyToMessageId,
     });
 
     // After the DB write; publishChatEvent never throws. A retried send
@@ -86,6 +102,7 @@ export const adminSendMessageAction = withResultErrorHandling(
     userId: number;
     body: string;
     clientId: string;
+    replyToMessageId?: number;
   }): Promise<SendResult> => {
     const admin = await requireAdmin();
     const parsed = adminSendSchema.safeParse(input);
@@ -93,7 +110,7 @@ export const adminSendMessageAction = withResultErrorHandling(
     if (!parsed.success) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
-    const { userId, body, clientId } = parsed.data;
+    const { userId, body, clientId, replyToMessageId } = parsed.data;
     const trainee = await findUserById(userId);
 
     if (!trainee) {
@@ -103,12 +120,17 @@ export const adminSendMessageAction = withResultErrorHandling(
       return fail(CHAT_MESSAGES.CHAT_LOCKED);
     }
     const conversation = await getOrCreateConversation(trainee.id);
+
+    if (!(await isReplyTargetValid(conversation, replyToMessageId))) {
+      return fail(CHAT_MESSAGES.INVALID_INPUT);
+    }
     const { message, created } = await insertMessageOnce({
       conversationId: conversation.id,
       senderRole: "admin",
       senderAdminId: admin.id,
       body,
       clientId,
+      replyToMessageId,
     });
 
     // After the DB write; publishChatEvent never throws. A retried send
@@ -123,6 +145,51 @@ export const adminSendMessageAction = withResultErrorHandling(
     }
     return { status: "success", message };
   },
+);
+
+// Trainee reaction, edit and unsend (KAN-138). Same rules as sending: the
+// conversation comes from the session and a locked chat is read-only.
+const withTraineeConversation = async <T>(
+  run: (
+    actor: ChatActor,
+    conversation: { id: number; userId: number },
+  ) => Promise<T>,
+) => {
+  const user = await requireUser();
+
+  if (!isChatEnabled(user)) {
+    return fail(CHAT_MESSAGES.CHAT_LOCKED);
+  }
+  const conversation = await findConversationByUserId(user.id);
+
+  if (!conversation) {
+    return fail(CHAT_MESSAGES.CONVERSATION_NOT_FOUND);
+  }
+  return run({ role: "user", userId: user.id, name: user.name }, conversation);
+};
+
+export const reactMessageAction = withResultErrorHandling(
+  "reactChatMessage",
+  async (input: { messageId: number; emoji: string | null }) =>
+    withTraineeConversation((actor, conversation) =>
+      reactToMessage(actor, conversation, input),
+    ),
+);
+
+export const editMessageAction = withResultErrorHandling(
+  "editChatMessage",
+  async (input: { messageId: number; body: string }) =>
+    withTraineeConversation((actor, conversation) =>
+      editChatMessage(actor, conversation, input),
+    ),
+);
+
+export const unsendMessageAction = withResultErrorHandling(
+  "unsendChatMessage",
+  async (input: { messageId: number }) =>
+    withTraineeConversation((actor, conversation) =>
+      unsendChatMessage(actor, conversation, input),
+    ),
 );
 
 const readCursorSchema = z.number().int().nonnegative();

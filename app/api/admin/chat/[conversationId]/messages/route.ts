@@ -6,7 +6,11 @@ import {
   getPeerReadCursor,
   listMessages,
 } from "@/features/chat/services/chat-queries";
-import { parseHistoryQuery } from "@/features/chat/utils/chat-query";
+import { loadChanges } from "@/features/chat/services/chat-thread";
+import {
+  parseChangedSince,
+  parseHistoryQuery,
+} from "@/features/chat/utils/chat-query";
 import { serializeLastSeen } from "@/features/chat/utils/presence";
 import { getApiAdmin } from "@/services/auth-guard";
 import { findUserById } from "@/services/users";
@@ -41,14 +45,20 @@ export const GET = async (
   if (!conversation || !trainee) {
     return json({ error: "not_found" }, 404);
   }
-  const [{ messages, hasMore }, peerReadUpTo] = await Promise.all([
+  const [{ messages, hasMore }, changed, peerReadUpTo] = await Promise.all([
     listMessages(conversation.id, query.data),
+    loadChanges(
+      conversation.id,
+      parseChangedSince(request.nextUrl.searchParams.get("changedSince")),
+      conversation.lastChangeAt?.getTime() ?? 0,
+    ),
     getPeerReadCursor(conversation.id, "admin"),
   ]);
 
   return json({
     messages,
     hasMore,
+    ...changed,
     peerReadUpTo,
     chatEnabled: trainee.chatEnabled === true,
     userId: trainee.id,

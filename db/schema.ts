@@ -431,6 +431,9 @@ export const chatConversations = sqliteTable(
     // Denormalised for the inbox sort and preview.
     lastMessageId: integer("last_message_id"),
     lastMessageAt: integer("last_message_at", { mode: "timestamp_ms" }),
+    // KAN-138: bumped (strictly increasing) by every edit, unsend and
+    // reaction; the change cursor of the polling client.
+    lastChangeAt: integer("last_change_at", { mode: "timestamp_ms" }),
     createdAt: createdAt(),
   },
   (table) => [
@@ -458,6 +461,11 @@ export const chatMessages = sqliteTable(
     clientId: text("client_id").notNull(),
     deletedAt: integer("deleted_at", { mode: "timestamp" }),
     hiddenByAdminId: integer("hidden_by_admin_id"),
+    // KAN-138: quoted message (same conversation, checked in the action).
+    replyToMessageId: integer("reply_to_message_id"),
+    editedAt: integer("edited_at", { mode: "timestamp_ms" }),
+    // Null until the first edit, unsend or reaction.
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [
@@ -467,6 +475,31 @@ export const chatMessages = sqliteTable(
     ),
     index("chat_messages_conversation_id").on(table.conversationId, table.id),
   ],
+);
+
+// One reaction per reactor per message (KAN-138). reactorKey is "user" or
+// "admin:<id>", the same format as chat_reads.reader_key.
+export const chatReactions = sqliteTable(
+  "chat_reactions",
+  {
+    messageId: integer("message_id").notNull(),
+    reactorKey: text("reactor_key").notNull(),
+    emoji: text("emoji").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.messageId, table.reactorKey] })],
+);
+
+// Every previous body of an edited message (KAN-138, spec C4).
+export const chatMessageEdits = sqliteTable(
+  "chat_message_edits",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    messageId: integer("message_id").notNull(),
+    previousBody: text("previous_body").notNull(),
+    editedAt: integer("edited_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("chat_message_edits_message_id").on(table.messageId)],
 );
 
 // Read cursor per reader. readerKey is "user" or "admin:<id>".
