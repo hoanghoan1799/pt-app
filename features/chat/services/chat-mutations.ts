@@ -205,6 +205,10 @@ export const editChatMessage = async (
   if (stored.deletedAt !== null) {
     return fail(CHAT_MESSAGES.MESSAGE_UNSENT);
   }
+  // A sticker has no text to edit.
+  if (stored.stickerRef !== null) {
+    return fail(CHAT_MESSAGES.STICKER_NOT_EDITABLE);
+  }
   // Saving the same text again is not an edit: no history row, no marker.
   if (stored.body === body) {
     return current(messageId);

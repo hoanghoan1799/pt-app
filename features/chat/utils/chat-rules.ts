@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { CHAT_COLOR_KEYS } from "@/features/chat/utils/chat-palette";
+import { stickerInputSchema } from "@/features/chat/utils/sticker-rules";
 
 export const CHAT_PAGE_SIZE = 30;
 export const CHAT_BODY_MAX_LENGTH = 2000;
@@ -25,11 +26,19 @@ export const CHANGES_PAGE_SIZE = 200;
 const bodySchema = z.string().trim().min(1).max(CHAT_BODY_MAX_LENGTH);
 const messageIdSchema = z.number().int().positive();
 
-export const sendMessageSchema = z.object({
-  body: bodySchema,
+// Text or a sticker (KAN-144), never both and never neither. Exported as a
+// plain object too, because Zod cannot extend a refined schema.
+export const sendMessageShape = z.object({
+  body: bodySchema.optional(),
+  sticker: stickerInputSchema.optional(),
   clientId: z.uuid(),
   replyToMessageId: messageIdSchema.optional(),
 });
+
+export const hasBodyOrSticker = (value: { body?: string; sticker?: unknown }) =>
+  (value.body === undefined) !== (value.sticker === undefined);
+
+export const sendMessageSchema = sendMessageShape.refine(hasBodyOrSticker);
 
 // emoji null = remove my reaction.
 export const reactSchema = z.object({

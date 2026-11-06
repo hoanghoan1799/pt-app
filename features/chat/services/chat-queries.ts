@@ -34,6 +34,11 @@ import {
   toReplySnippet,
   USER_READER_KEY,
 } from "@/features/chat/utils/chat-rules";
+import {
+  type ChatSticker,
+  STICKER_PREVIEW,
+  toChatSticker,
+} from "@/features/chat/utils/sticker-rules";
 
 export interface ChatReaction {
   emoji: string;
@@ -46,6 +51,8 @@ export interface ChatReplyTo {
   id: number;
   // Truncated snippet; empty when the original was unsent.
   body: string;
+  // The quoted message is a sticker: the UI shows "Sticker".
+  isSticker: boolean;
   senderRole: "user" | "admin";
   deleted: boolean;
 }
@@ -58,6 +65,8 @@ export interface ChatMessage {
   senderAdminName: string | null;
   // Empty once the message was unsent (`deleted`).
   body: string;
+  // KAN-144: set for a sticker message (body is empty); null once unsent.
+  sticker: ChatSticker | null;
   clientId: string;
   createdAt: Date;
   replyTo: ChatReplyTo | null;
@@ -76,6 +85,8 @@ const messageColumns = {
   senderAdminId: chatMessages.senderAdminId,
   senderAdminName: admins.username,
   body: chatMessages.body,
+  stickerRef: chatMessages.stickerRef,
+  stickerUrl: chatMessages.stickerUrl,
   clientId: chatMessages.clientId,
   createdAt: chatMessages.createdAt,
   replyToMessageId: chatMessages.replyToMessageId,
@@ -91,6 +102,8 @@ interface MessageRow {
   senderAdminId: number | null;
   senderAdminName: string | null;
   body: string;
+  stickerRef: string | null;
+  stickerUrl: string | null;
   clientId: string;
   createdAt: Date;
   replyToMessageId: number | null;
@@ -125,6 +138,7 @@ const hydrateMessages = async (rows: MessageRow[]): Promise<ChatMessage[]> => {
             id: chatMessages.id,
             conversationId: chatMessages.conversationId,
             body: chatMessages.body,
+            stickerRef: chatMessages.stickerRef,
             senderRole: chatMessages.senderRole,
             deletedAt: chatMessages.deletedAt,
           })
@@ -189,6 +203,7 @@ const hydrateMessages = async (rows: MessageRow[]): Promise<ChatMessage[]> => {
         ? {
             id: target.id,
             body: target.deletedAt ? "" : toReplySnippet(target.body),
+            isSticker: target.deletedAt === null && target.stickerRef !== null,
             senderRole: target.senderRole,
             deleted: target.deletedAt !== null,
           }
@@ -200,6 +215,7 @@ const hydrateMessages = async (rows: MessageRow[]): Promise<ChatMessage[]> => {
       senderAdminId: row.senderAdminId,
       senderAdminName: row.senderAdminName,
       body: deleted ? "" : row.body,
+      sticker: deleted ? null : toChatSticker(row.stickerRef, row.stickerUrl),
       clientId: row.clientId,
       createdAt: row.createdAt,
       replyTo,
@@ -270,6 +286,8 @@ interface NewMessage {
   senderRole: "user" | "admin";
   senderAdminId: number | null;
   body: string;
+  stickerRef?: string | null;
+  stickerUrl?: string | null;
   clientId: string;
   replyToMessageId?: number | null;
 }
@@ -653,6 +671,7 @@ export const listAdminInbox = async (adminId: number) => {
         chatEnabled: users.chatEnabled,
         lastSeenAt: users.lastSeenAt,
         lastBody: chatMessages.body,
+        lastStickerRef: chatMessages.stickerRef,
         lastDeletedAt: chatMessages.deletedAt,
         lastSenderRole: chatMessages.senderRole,
         lastSenderAdminId: chatMessages.senderAdminId,
@@ -691,7 +710,11 @@ export const listAdminInbox = async (adminId: number) => {
     userId: row.userId,
     userName: row.userName,
     chatEnabled: row.chatEnabled === true,
-    preview: row.lastDeletedAt ? "" : toPreview(row.lastBody ?? ""),
+    preview: row.lastDeletedAt
+      ? ""
+      : row.lastStickerRef
+        ? STICKER_PREVIEW
+        : toPreview(row.lastBody ?? ""),
     lastFromAdmin: row.lastSenderRole === "admin",
     lastSenderAdminId: row.lastSenderAdminId,
     lastSenderAdminName: row.lastSenderAdminName,

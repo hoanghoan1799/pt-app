@@ -9,5 +9,6 @@ export const CHAT_MESSAGES = {
   NICKNAME_INVALID: "Biệt danh không hợp lệ (tối đa 30 ký tự)",
   COLOR_INVALID: "Màu không hợp lệ",
   ADMIN_NOT_FOUND: "Không tìm thấy PT này",
+  STICKER_NOT_EDITABLE: "Không sửa được sticker",
   MESSAGE_UNSENT: "Tin nhắn đã bị thu hồi",
 } as const;
