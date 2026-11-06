@@ -1,5 +1,7 @@
 # Notification centre and activity push
 
+**Status: Pending.** Hoan (2026-11-06): skip notifications for everything except chat for now. Do not build until Hoan revives it.
+
 KAN: story KAN-147; sub-tasks KAN-148 [BE], KAN-149 [FE], KAN-150 [QA]. Related: `docs/specs/chat-ux-v2.md` (reaction push, C7).
 
 Source: Hoan, 2026-11-06: push notifications for the activity users need to know about (meal plan, new workouts, ...); a bell with the unread count; tapping it shows the 5-10 newest, each can be read on tap, "read all", and "view all" opens the full list.

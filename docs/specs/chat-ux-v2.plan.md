@@ -17,11 +17,11 @@ Status: **draft, waiting for Hoan's approval** (no code before approval).
 5. **KAN-139** [FE] Gestures, action sheet, reply quote, edit mode.
 6. **KAN-140** [QA] e2e for actions.
 7. **KAN-141** [BE] Nicknames, names, colour.
-8. **KAN-142** [FE] Conversation settings sheet and rename.
+8. **KAN-142** [FE] Conversation settings sheet (nicknames, colour).
 9. **KAN-143** [QA] e2e.
 10. **KAN-144** [BE] Sticker kind. 11. **KAN-145** [FE] Sticker panel. 12. **KAN-146** [QA] e2e.
 
-13. **KAN-148** [BE], **KAN-149** [FE], **KAN-150** [QA] notification centre (after grill-me round 3).
+Notification centre KAN-147..150: Pending, not in this plan.
 
 Steps 1-3 need no schema change. KAN-131 starts first but ships in the same release as the new features (Hoan, Q13). Stickers: bundled pack first, GIPHY tab behind `GIPHY_API_KEY` (Q8).
 
@@ -59,7 +59,7 @@ KAN-139:
 - `features/chat/hooks/use-chat-messages.ts`: merge `changes`; optimistic react/edit/unsend.
 - `features/chat/utils/gesture.ts` (new, + test).
 
-KAN-141 / KAN-142: `db/schema.ts`; `features/chat/services/chat-profile-actions.ts` (new); `features/chat/utils/chat-palette.ts` (new, + contrast test); `features/chat/utils/display-name.ts` (new, + test); `ChatSettingsSheet` (new); trainee account menu in `features/auth/components/UserHeaderActions`; admin menu.
+KAN-141 / KAN-142: `db/schema.ts`; `features/chat/services/chat-profile-actions.ts` (new); `features/chat/utils/chat-palette.ts` (new, + contrast test); `features/chat/utils/display-name.ts` (new, + test); `ChatSettingsSheet` (new).
 
 KAN-144 / KAN-145: `db/schema.ts`; `features/chat/constants/stickers.ts` (new); `features/chat/components/StickerPanel` (new); `public/stickers/` (new, with LICENSE).
 
@@ -67,7 +67,6 @@ KAN-144 / KAN-145: `db/schema.ts`; `features/chat/constants/stickers.ts` (new); 
 
 - Polling cursor change (C6) touches the hot path: keep the old `after` behaviour for clients that do not send `changedSince` so an open tab from the previous deploy keeps working.
 - Long-press vs scroll on iOS: cancel the press when the finger moves more than 10 px.
-- Renaming trainees: `name_key` uniqueness; admin search uses the new name immediately.
 - Sticker bundle size: lazy-load the panel, cap at 1.5 MB.
 
 ## Proof

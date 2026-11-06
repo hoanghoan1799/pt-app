@@ -36,13 +36,13 @@ Gaps: the status lives in its own row under the header, not under the name; the 
 - C4. Edit: own messages, no time limit (decision deferred from KAN-114). The bubble shows "Đã chỉnh sửa". Every previous body is kept in `chat_message_edits`; both people in the conversation (the trainee and every admin) can open the history from the "Đã chỉnh sửa" label (Hoan, Q2).
 - C5. Delete = unsend for everyone, no time limit: soft delete (`deleted_at`), the API returns an empty body, both sides see "Tin nhắn đã bị thu hồi". Reactions on it are hidden. The row stays for history (D8 keep history).
 - C6. Sync: polling today asks only for ids after the newest one, so changes to older messages would be missed. Every message mutation (edit, unsend, reaction) sets `chat_messages.updated_at` and bumps `chat_conversations.last_change_at`; the client sends `changedSince`, the server returns changed messages in `changes`, and the 204 fast path also requires `changedSince` to be current. Ably publishes `message-update` with ids only, which triggers the same fetch (no body over Ably, as today).
-- C7. A reaction sends a push to the message author (Hoan Q10), e.g. "Hoan đã thả ❤️ vào tin nhắn của bạn"; edits and unsends send none. Reactions also land in the notification centre (`docs/specs/notifications.md`).
+- C7. A reaction sends a push to the message author (Hoan Q10), e.g. "Hoan đã thả ❤️ vào tin nhắn của bạn"; edits and unsends send none. The in-app notification centre (KAN-147) is parked in Pending.
 
 ### D. Names, nicknames, colour (KAN-134)
 
 - D1. Nicknames are per conversation and visible to both sides (Messenger style). Targets: the trainee, the PT side as a whole (`pt`, shared inbox), and each admin (`admin:<id>`) for sender labels. Anyone in the conversation can set or clear any of its nicknames, including their own. Max 30 characters.
-- D2. Shown name everywhere in chat (header, sender labels, inbox, typing indicator): nickname, else display name, else real name. Outside chat (workouts, admin member pages) the real name stays.
-- D3. Own name: the trainee sets a display name from the account menu. Stored in a new nullable `users.display_name` with no uniqueness (Hoan Q11: only the email must be unique, names may repeat); `users.name` stays as the admin-given name. Shown name outside chat = display name ?? name. Admins get a nullable `display_name`; their login `username` never changes.
+- D2. Shown name everywhere in chat (header, sender labels, inbox, typing indicator): nickname, else the real name (trainee `name`, admin `username`). Outside chat the real name stays.
+- D3. No renaming (Hoan, 2026-11-06: "keep it simple"). Real names and admin usernames stay as they are; nicknames (D1) are the only way to change how someone is shown in chat.
 - D4. Bubble colour: each account picks one of 8 palette colours (stored as a key, not a hex, on `users.chat_color` / `admins.chat_color`). An admin can also override it for one conversation (`chat_color_overrides`, Hoan Q7); the override wins in that conversation only. My bubbles use my colour on both screens; the other side's bubbles keep the neutral surface style on my screen unless they picked a colour, in which case they show in their colour. Nobody can set another person's colour. Default = the current accent orange.
 - D5. Palette colours are checked for WCAG AA text contrast in light and dark themes (white or dark text chosen per colour).
 
@@ -55,15 +55,15 @@ Gaps: the status lives in its own row under the header, not under the name; the 
 
 ## Data model (all additive)
 
-| Change                                                                                                                                                                      | Story   |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `chat_messages`: nullable `reply_to_message_id`, `edited_at`, `updated_at` (ms)                                                                                             | KAN-133 |
-| `chat_conversations`: nullable `last_change_at` (ms)                                                                                                                        | KAN-133 |
-| new `chat_reactions` (message_id, reactor_key, emoji, created_at; PK message_id + reactor_key)                                                                              | KAN-133 |
-| new `chat_message_edits` (id, message_id, previous_body, edited_at)                                                                                                         | KAN-133 |
-| new `chat_nicknames` (conversation_id, target_key, nickname, set_by_key, updated_at; PK conversation_id + target)                                                           | KAN-134 |
-| `users`: nullable `chat_color`, `display_name`; `admins`: nullable `display_name`, `chat_color`; new `chat_color_overrides` (conversation_id, admin_id, color; PK both ids) | KAN-134 |
-| `chat_messages`: nullable `sticker_ref`, `sticker_url`                                                                                                                      | KAN-135 |
+| Change                                                                                                                                      | Story   |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `chat_messages`: nullable `reply_to_message_id`, `edited_at`, `updated_at` (ms)                                                             | KAN-133 |
+| `chat_conversations`: nullable `last_change_at` (ms)                                                                                        | KAN-133 |
+| new `chat_reactions` (message_id, reactor_key, emoji, created_at; PK message_id + reactor_key)                                              | KAN-133 |
+| new `chat_message_edits` (id, message_id, previous_body, edited_at)                                                                         | KAN-133 |
+| new `chat_nicknames` (conversation_id, target_key, nickname, set_by_key, updated_at; PK conversation_id + target)                           | KAN-134 |
+| `users`: nullable `chat_color`; `admins`: nullable `chat_color`; new `chat_color_overrides` (conversation_id, admin_id, color; PK both ids) | KAN-134 |
+| `chat_messages`: nullable `sticker_ref`, `sticker_url`                                                                                      | KAN-135 |
 
 `reactor_key` / `set_by_key` use the existing reader key format: `user` or `admin:<id>`.
 
@@ -85,8 +85,8 @@ Gaps: the status lives in its own row under the header, not under the name; the 
 - Q7: agreed, colour per account, and an admin can override it per conversation (D4).
 - Q8: C, bundled pack plus GIPHY search (E0). Q9: no "delete for me".
 - Q10: reactions DO send a push (C7).
-- Q11: names may repeat, only the email is unique (D3).
-- Q12: agreed, the admin display name replaces the username for trainees.
+- Q11, Q12: superseded. Hoan later dropped renaming entirely; nicknames only (D3).
+- Notifications for workouts and meal plans (KAN-147, round 3 Q14-Q20): parked in Pending by Hoan; only chat sends push.
 - Q13: start KAN-131 now, but it ships in the same release as the new features (no separate release).
 
 ## Test matrix
