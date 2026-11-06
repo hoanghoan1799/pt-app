@@ -220,10 +220,10 @@ export const MessageBubble = ({
               onClick={() => onOpenReactors(message, group.emoji)}
               aria-label={`${group.emoji} ${group.count}`}
               className={clsx(
-                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
                 group.mine
-                  ? "border-accent bg-accent/15 text-fg"
-                  : "border-line bg-surface text-muted",
+                  ? "bg-accent/15 text-fg"
+                  : "bg-fg/5 text-muted",
               )}
             >
               <span aria-hidden>{group.emoji}</span>
