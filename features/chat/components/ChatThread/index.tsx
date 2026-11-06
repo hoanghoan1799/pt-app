@@ -1,7 +1,6 @@
 "use client";
 
 import clsx from "clsx";
-import { Settings } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
   type ReactNode,
@@ -22,7 +21,6 @@ import { LockedBanner } from "@/features/chat/components/LockedBanner";
 import { MessageActionsSheet } from "@/features/chat/components/MessageActionsSheet";
 import { MessageBubble } from "@/features/chat/components/MessageBubble";
 import { NewMessagesChip } from "@/features/chat/components/NewMessagesChip";
-import { PresenceStatus } from "@/features/chat/components/PresenceStatus";
 import { PushOptInCard } from "@/features/chat/components/PushOptInCard";
 import { ReactorsSheet } from "@/features/chat/components/ReactorsSheet";
 import { ReplyBar } from "@/features/chat/components/ReplyBar";
@@ -511,33 +509,6 @@ export const ChatThread = ({
         </div>
       ) : (
         headerNode
-      )}
-      {isAdmin && (
-        // Under the header so it stays visible when the admin header folds
-        // away for the keyboard.
-        <div className="shrink-0 border-b border-line bg-bg px-4 py-1.5">
-          <div className="mx-auto flex w-full max-w-lg items-center gap-3">
-            <div className="min-w-0 flex-1">
-              {presence?.text && <PresenceStatus presence={presence} />}
-              {profile.nicknames.user && (
-                <p
-                  data-shown-name
-                  className="truncate text-xs font-medium text-fg"
-                >
-                  Hiển thị: {profile.nicknames.user}
-                </p>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={openSettings}
-              className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-xs font-semibold text-fg transition active:bg-line"
-            >
-              <Settings className="size-4" aria-hidden />
-              Biệt danh và màu
-            </button>
-          </div>
-        </div>
       )}
       <div className="relative min-h-0 flex-1">
         <div

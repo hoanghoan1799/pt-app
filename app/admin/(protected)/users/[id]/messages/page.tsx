@@ -6,8 +6,8 @@ import { MemberSectionTabs } from "@/components/layout/MemberSectionTabs";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
+import { AdminChatThread } from "@/features/chat/components/AdminChatThread";
 import { ChatLockSwitch } from "@/features/chat/components/ChatLockSwitch";
-import { ChatThread } from "@/features/chat/components/ChatThread";
 import { isChatEnabled } from "@/features/chat/services/chat-permission";
 import {
   loadAdminAccountColor,
@@ -54,13 +54,8 @@ const AdminMessagesPage = async ({
   const conversation = chatEnabled
     ? await getOrCreateConversation(user.id)
     : await findConversationByUserId(user.id);
-  const header = (
+  const below = (
     <>
-      <AppHeader
-        eyebrow="Nhắn tin với"
-        title={user.name}
-        backHref={ROUTES.ADMIN_MESSAGES}
-      />
       <MemberSectionTabs
         userId={user.id}
         active="messages"
@@ -75,7 +70,11 @@ const AdminMessagesPage = async ({
   if (!conversation) {
     return (
       <>
-        {header}
+        <AppHeader
+          title={`Nhắn tin với ${user.name}`}
+          backHref={ROUTES.ADMIN_MESSAGES}
+        />
+        {below}
         <main className={`${PAGE_CONTAINER} pt-10`}>
           <p className="px-6 text-center text-sm text-muted">
             {LOCKED_EMPTY_TEXT}
@@ -93,11 +92,12 @@ const AdminMessagesPage = async ({
     ]);
 
   return (
-    <ChatThread
+    <AdminChatThread
       // The switch refreshes the page; remount so the thread picks up the new
       // lock state at once instead of on the next poll.
       key={chatEnabled ? "enabled" : "locked"}
-      header={header}
+      below={below}
+      userName={user.name}
       userId={user.id}
       conversationId={conversation.id}
       viewer={{

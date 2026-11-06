@@ -284,7 +284,7 @@ test.describe("trainee conversation screen", () => {
     }
   });
 
-  test("an online PT shows a green dot next to the name and the status line 'Đang hoạt động'", async ({
+  test("an online PT shows the green dot and 'Đang hoạt động' directly under the name", async ({
     browser,
   }) => {
     await prepareThread(E2E_CHAT_NAME, { enabled: true, messages: [] });
@@ -299,14 +299,14 @@ test.describe("trainee conversation screen", () => {
       const status = header.getByRole("status", {
         name: /^Trạng thái hoạt động/,
       });
-      const dot = name.locator("xpath=following-sibling::span[1]");
+      const dot = status.locator("span[aria-hidden]");
 
       await expect(status).toHaveAttribute("data-online", "true");
       await expect(status).toHaveText("Đang hoạt động");
       await expect(dot).toHaveCount(1);
       await expect(dot).toHaveClass(/bg-success/);
 
-      // The dot sits right after the name on its row, the status line under it.
+      // The dot and the status text share one row directly under the name.
       const nameBox = await name.boundingBox();
       const dotBox = await dot.boundingBox();
       const statusBox = await status.boundingBox();
@@ -314,10 +314,12 @@ test.describe("trainee conversation screen", () => {
       expect(nameBox).not.toBeNull();
       expect(dotBox).not.toBeNull();
       expect(statusBox).not.toBeNull();
-      expect(dotBox!.x).toBeGreaterThanOrEqual(nameBox!.x + nameBox!.width - 1);
-      expect(dotBox!.y).toBeLessThan(nameBox!.y + nameBox!.height);
       expect(statusBox!.y).toBeGreaterThanOrEqual(
         nameBox!.y + nameBox!.height - 1,
+      );
+      expect(dotBox!.y).toBeGreaterThanOrEqual(statusBox!.y - 1);
+      expect(dotBox!.y + dotBox!.height).toBeLessThanOrEqual(
+        statusBox!.y + statusBox!.height + 1,
       );
     } finally {
       await trainee.context.close();
@@ -341,11 +343,7 @@ test.describe("trainee conversation screen", () => {
 
       await expect(status).toHaveAttribute("data-online", "false");
       await expect(status).toHaveText("Hoạt động 5 phút trước");
-      await expect(
-        header
-          .getByRole("heading", { level: 1 })
-          .locator("xpath=following-sibling::span"),
-      ).toHaveCount(0);
+      await expect(status.locator("span[aria-hidden]")).toHaveCount(0);
     } finally {
       await trainee.context.close();
     }
