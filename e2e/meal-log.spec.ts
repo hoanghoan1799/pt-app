@@ -130,17 +130,14 @@ test("R6: the trainee sees today's plan read-only and the old log as history", a
   );
   await expect(page.getByText("Đã ăn cả ngày")).toHaveCount(0);
   await expect(page.getByText(/Đạt macro không có nghĩa/)).toHaveCount(0);
-  // Nothing is marked yet: today's marker is grey, and the legend is shown.
+  // Nothing is marked yet: today's marker has no colour, and the legend is shown.
   await expect(todayMarker(page)).toHaveAttribute("data-status", "none");
   await expect(
     page.getByRole("list", { name: "Chú thích màu ngày" }),
-  ).toContainText("Đủ bữa");
+  ).toContainText("Đã hoàn thành");
   await expect(
     page.getByRole("list", { name: "Chú thích màu ngày" }),
-  ).toContainText("Một số bữa");
-  await expect(
-    page.getByRole("list", { name: "Chú thích màu ngày" }),
-  ).toContainText("Chưa có");
+  ).toContainText("Đang thực hiện");
   // Order: calendar, daily goals, meal plan.
   const calendarY = (await page
     .getByRole("list", { name: "Chú thích màu ngày" })

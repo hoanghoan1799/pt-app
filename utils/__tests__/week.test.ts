@@ -3,9 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   addDays,
   buildScheduleHref,
+  formatDayNumber,
   formatFullDay,
   formatWeekRange,
-  getRelativeWeekLabel,
+  formatWeekTitle,
   getTodayDate,
   getWeekDates,
   getWeekStart,
@@ -62,12 +63,23 @@ describe("formatting", () => {
     expect(formatFullDay("2026-10-11")).toBe("Chủ Nhật, 11/10");
   });
 
-  it("labels weeks relative to today", () => {
-    expect(getRelativeWeekLabel("2026-10-05", "2026-10-07")).toBe("Tuần này");
-    expect(getRelativeWeekLabel("2026-10-12", "2026-10-07")).toBe("Tuần sau");
-    expect(getRelativeWeekLabel("2026-09-21", "2026-10-07")).toBe(
-      "2 tuần trước",
-    );
+  it("shows the day number without a leading zero", () => {
+    expect(formatDayNumber("2026-11-02")).toBe("2");
+    expect(formatDayNumber("2026-11-17")).toBe("17");
+  });
+
+  it("titles a week inside one month", () => {
+    expect(formatWeekTitle("2026-11-02")).toBe("Tuần 2–8/11, 2026");
+    expect(formatWeekTitle("2026-10-12")).toBe("Tuần 12–18/10, 2026");
+  });
+
+  it("titles a week spanning two months", () => {
+    expect(formatWeekTitle("2026-10-26")).toBe("Tuần 26/10–1/11, 2026");
+    expect(formatWeekTitle("2026-10-28")).toBe("Tuần 28/10–3/11, 2026");
+  });
+
+  it("titles a week spanning two years", () => {
+    expect(formatWeekTitle("2025-12-29")).toBe("Tuần 29/12/2025–4/1/2026");
   });
 });
 

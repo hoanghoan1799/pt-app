@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { WeekNavigator } from "@/components/common/WeekNavigator";
-import { SECTION_TITLE } from "@/constants/styles";
+import { CARD, SECTION_TITLE } from "@/constants/styles";
 import { NutritionWeekSummary } from "@/features/nutrition/components/NutritionWeekSummary";
 import { WeightTrendCard } from "@/features/nutrition/components/WeightTrendCard";
 import type {
@@ -46,12 +46,14 @@ export const WeekSummary = ({
   progress,
 }: WeekSummaryProps) => (
   <div className="space-y-6">
-    <WeekNavigator
-      basePath={basePath}
-      weekStart={weekStart}
-      selectedDate={selectedDate}
-      today={today}
-    />
+    <div className={`${CARD} p-4`}>
+      <WeekNavigator
+        basePath={basePath}
+        weekStart={weekStart}
+        selectedDate={selectedDate}
+        today={today}
+      />
+    </div>
     <section className="space-y-2">
       <h2 className={SECTION_TITLE}>Cân nặng theo tuần</h2>
       <WeightTrendCard
