@@ -12,6 +12,7 @@ import {
   inboxEvent,
   messageEvent,
   messageUpdateEvent,
+  profileUpdateEvent,
   readEvent,
   typingEvent,
   userChannel,
@@ -105,6 +106,19 @@ export const publishMessageUpdate = async (
     );
   } catch (error) {
     logServerError("publishMessageUpdate", error, { conversationId });
+  }
+};
+
+// Nickname or colour change. Ids only; never throws.
+export const publishProfileUpdate = async (conversationId: number) => {
+  try {
+    await publishChatEvent(
+      conversationChannel(conversationId),
+      CHAT_EVENTS.PROFILE_UPDATE,
+      profileUpdateEvent(conversationId),
+    );
+  } catch (error) {
+    logServerError("publishProfileUpdate", error, { conversationId });
   }
 };
 

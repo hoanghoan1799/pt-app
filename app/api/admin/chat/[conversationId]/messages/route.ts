@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { loadChatProfile } from "@/features/chat/services/chat-profile";
 import {
   findConversationById,
   getPeerReadCursor,
@@ -45,20 +46,23 @@ export const GET = async (
   if (!conversation || !trainee) {
     return json({ error: "not_found" }, 404);
   }
-  const [{ messages, hasMore }, changed, peerReadUpTo] = await Promise.all([
-    listMessages(conversation.id, query.data),
-    loadChanges(
-      conversation.id,
-      parseChangedSince(request.nextUrl.searchParams.get("changedSince")),
-      conversation.lastChangeAt?.getTime() ?? 0,
-    ),
-    getPeerReadCursor(conversation.id, "admin"),
-  ]);
+  const [{ messages, hasMore }, changed, peerReadUpTo, profile] =
+    await Promise.all([
+      listMessages(conversation.id, query.data),
+      loadChanges(
+        conversation.id,
+        parseChangedSince(request.nextUrl.searchParams.get("changedSince")),
+        conversation.lastChangeAt?.getTime() ?? 0,
+      ),
+      getPeerReadCursor(conversation.id, "admin"),
+      loadChatProfile(conversation.id),
+    ]);
 
   return json({
     messages,
     hasMore,
     ...changed,
+    profile,
     peerReadUpTo,
     chatEnabled: trainee.chatEnabled === true,
     userId: trainee.id,

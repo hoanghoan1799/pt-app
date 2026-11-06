@@ -407,13 +407,10 @@ export const findMessageById = async (
   return (await hydrateMessages(rows))[0] ?? null;
 };
 
-// Bumps the conversation's change cursor and stamps the message with it. The
-// cursor is strictly increasing, so a change in the same millisecond as a poll
-// is never lost to `updated_at > changedSince`.
-export const touchMessage = async (
-  conversationId: number,
-  messageId: number,
-) => {
+// Moves the change cursor of one conversation (strictly increasing) without
+// touching a message; used by nickname and colour changes (KAN-141), which
+// are not tied to a message but must still defeat the 204 fast path.
+export const bumpConversationChange = async (conversationId: number) => {
   const [conversation] = await db
     .update(chatConversations)
     .set({
@@ -421,7 +418,31 @@ export const touchMessage = async (
     })
     .where(eq(chatConversations.id, conversationId))
     .returning({ lastChangeAt: chatConversations.lastChangeAt });
-  const changedAt = conversation?.lastChangeAt ?? new Date();
+
+  return conversation?.lastChangeAt ?? new Date();
+};
+
+// Same for every conversation (an admin changed their account colour).
+// Returns the conversation ids so the caller can publish to each.
+export const bumpAllConversationChanges = async () => {
+  const rows = await db
+    .update(chatConversations)
+    .set({
+      lastChangeAt: sql`max(coalesce(${chatConversations.lastChangeAt}, 0) + 1, ${Date.now()})`,
+    })
+    .returning({ id: chatConversations.id });
+
+  return rows.map((row) => row.id);
+};
+
+// Bumps the conversation's change cursor and stamps the message with it. The
+// cursor is strictly increasing, so a change in the same millisecond as a poll
+// is never lost to `updated_at > changedSince`.
+export const touchMessage = async (
+  conversationId: number,
+  messageId: number,
+) => {
+  const changedAt = await bumpConversationChange(conversationId);
 
   await db
     .update(chatMessages)

@@ -73,6 +73,7 @@ describe("event payloads", () => {
     expect(CHAT_EVENTS).toEqual({
       MESSAGE: "message",
       MESSAGE_UPDATE: "message-update",
+      PROFILE_UPDATE: "profile-update",
       READ: "read",
       CHAT_STATUS: "chat-status",
       INBOX: "inbox",

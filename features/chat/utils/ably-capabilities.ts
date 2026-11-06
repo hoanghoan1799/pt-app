@@ -8,6 +8,7 @@ export const ABLY_TOKEN_TTL_MS = 15 * 60 * 1000;
 export const CHAT_EVENTS = {
   MESSAGE: "message",
   MESSAGE_UPDATE: "message-update",
+  PROFILE_UPDATE: "profile-update",
   READ: "read",
   CHAT_STATUS: "chat-status",
   INBOX: "inbox",
@@ -81,6 +82,11 @@ export const messageUpdateEvent = (
 ) => ({
   conversationId: assertId(conversationId, "conversationId"),
   messageId: assertId(messageId, "messageId"),
+});
+
+// A nickname or colour changed: ids only, clients refetch the thread.
+export const profileUpdateEvent = (conversationId: number) => ({
+  conversationId: assertId(conversationId, "conversationId"),
 });
 
 export const readEvent = (readerKey: string, lastReadMessageId: number) => ({

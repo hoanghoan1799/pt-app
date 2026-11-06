@@ -2,6 +2,11 @@ import "server-only";
 
 import { isChatEnabled } from "@/features/chat/services/chat-permission";
 import {
+  type ChatProfile,
+  EMPTY_CHAT_PROFILE,
+  loadChatProfile,
+} from "@/features/chat/services/chat-profile";
+import {
   type ChatMessage,
   findConversationByUserId,
   findStoredMessage,
@@ -21,6 +26,9 @@ export interface ThreadPayload {
   // the client did not send it) and the cursor to send next time.
   changes: ChatMessage[];
   lastChangeAt: number;
+  // Nicknames and bubble colours (KAN-141). Always on a full payload; any
+  // change bumps the change cursor, so the 204 fast path never hides it.
+  profile: ChatProfile;
   chatEnabled: boolean;
   // Highest message id the other side has read ("Đã xem").
   peerReadUpTo: number;
@@ -85,6 +93,7 @@ export const loadTraineeThread = async (
         hasMore: false,
         changes: [],
         lastChangeAt: 0,
+        profile: EMPTY_CHAT_PROFILE,
         chatEnabled,
         peerReadUpTo: 0,
         peerLastSeenAt: serializeLastSeen(await getAdminTeamLastSeen()),
@@ -103,11 +112,13 @@ export const loadTraineeThread = async (
   ) {
     return { notModified: true };
   }
-  const [{ messages, hasMore }, changed, teamLastSeen] = await Promise.all([
-    listMessages(conversation.id, query),
-    loadChanges(conversation.id, known.changedSince, lastChangeAt),
-    getAdminTeamLastSeen(),
-  ]);
+  const [{ messages, hasMore }, changed, teamLastSeen, profile] =
+    await Promise.all([
+      listMessages(conversation.id, query),
+      loadChanges(conversation.id, known.changedSince, lastChangeAt),
+      getAdminTeamLastSeen(),
+      loadChatProfile(conversation.id),
+    ]);
 
   return {
     notModified: false,
@@ -115,6 +126,7 @@ export const loadTraineeThread = async (
       messages,
       hasMore,
       ...changed,
+      profile,
       chatEnabled,
       peerReadUpTo,
       peerLastSeenAt: serializeLastSeen(teamLastSeen),

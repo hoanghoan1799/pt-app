@@ -6,5 +6,8 @@ export const CHAT_MESSAGES = {
   INVALID_INPUT: "Tin nhắn không hợp lệ",
   MESSAGE_NOT_FOUND: "Không tìm thấy tin nhắn",
   NOT_YOUR_MESSAGE: "Bạn chỉ thao tác được trên tin nhắn của mình",
+  NICKNAME_INVALID: "Biệt danh không hợp lệ (tối đa 30 ký tự)",
+  COLOR_INVALID: "Màu không hợp lệ",
+  ADMIN_NOT_FOUND: "Không tìm thấy PT này",
   MESSAGE_UNSENT: "Tin nhắn đã bị thu hồi",
 } as const;
