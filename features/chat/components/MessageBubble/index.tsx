@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
 import { AvatarLightbox } from "@/components/common/AvatarLightbox";
+import { ChatPhotoImage } from "@/features/chat/components/ChatPhotoImage";
 import { useBubbleGesture } from "@/features/chat/hooks/use-bubble-gesture";
 import {
   CHAT_TEXT_ON_COLOR,
@@ -77,16 +78,21 @@ export const MessageBubble = ({
   const isFailed = message.delivery === "failed";
   const isSending = message.delivery === "sending";
   const isUnsent = message.deleted;
-  const { sticker } = message;
+  const { sticker, photo } = message;
   // A sticker is just the picture: no bubble, no background (KAN-145).
   const isSticker = Boolean(sticker) && !isUnsent;
+  // A photo (KAN-160) keeps the bubble, so its caption sits under the picture.
+  const hasPhoto = Boolean(photo) && !isUnsent && !isSticker;
   // Only stored, not unsent messages have actions.
   const isInteractive = message.id !== null && !isUnsent;
   const [isViewerOpen, setViewerOpen] = useState(false);
   const gesture = useBubbleGesture(isInteractive, {
     onDoubleTap: () => onToggleHeart(message),
     onLongPress: () => onOpenActions(message),
-    onSingleTap: sticker && isSticker ? () => setViewerOpen(true) : undefined,
+    onSingleTap:
+      (sticker && isSticker) || hasPhoto
+        ? () => setViewerOpen(true)
+        : undefined,
   });
   const groups = isUnsent ? [] : groupReactions(message.reactions, viewer);
   const { replyTo } = message;
@@ -152,11 +158,20 @@ export const MessageBubble = ({
                 ? mine
                   ? "items-end"
                   : "items-start"
-                : isColored
-                  ? "px-3.5 py-2"
-                  : mine
-                    ? "bg-accent px-3.5 py-2 text-accent-fg"
-                    : "border border-line bg-surface px-3.5 py-2 text-fg",
+                : hasPhoto
+                  ? clsx(
+                      "p-1",
+                      isColored
+                        ? ""
+                        : mine
+                          ? "bg-accent text-accent-fg"
+                          : "border border-line bg-surface text-fg",
+                    )
+                  : isColored
+                    ? "px-3.5 py-2"
+                    : mine
+                      ? "bg-accent px-3.5 py-2 text-accent-fg"
+                      : "border border-line bg-surface px-3.5 py-2 text-fg",
             mine && !isUnsent && isSending && "opacity-70",
             mine && !isUnsent && isFailed && "bg-danger text-white",
             isHighlighted && "ring-2 ring-accent",
@@ -207,12 +222,32 @@ export const MessageBubble = ({
               )}
             />
           ) : (
-            <p className="break-words whitespace-pre-wrap">
-              {isUnsent ? UNSENT_TEXT : message.body}
-            </p>
+            <>
+              {photo && hasPhoto && (
+                <ChatPhotoImage photo={photo} isDimmed={mine && isSending} />
+              )}
+              {(isUnsent || message.body !== "" || !hasPhoto) && (
+                <p
+                  className={clsx(
+                    "break-words whitespace-pre-wrap",
+                    hasPhoto && "px-2.5 pt-1.5 pb-1",
+                  )}
+                >
+                  {isUnsent ? UNSENT_TEXT : message.body}
+                </p>
+              )}
+            </>
           )}
         </div>
       </div>
+      {photo && hasPhoto && (
+        <AvatarLightbox
+          isOpen={isViewerOpen}
+          onClose={() => setViewerOpen(false)}
+          src={photo.url}
+          name="tin nhắn"
+        />
+      )}
       {sticker && isSticker && (
         // Outside the gesture element: the portal's events bubble through
         // React, and a tap in the viewer must not start a bubble gesture.

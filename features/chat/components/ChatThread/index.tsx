@@ -51,6 +51,7 @@ import {
   USER_VIEWER,
 } from "@/features/chat/utils/chat-thread-rules";
 import { displayNameFor } from "@/features/chat/utils/display-name";
+import type { PreparedPhoto } from "@/features/chat/utils/encode-photo";
 import type { PresenceView } from "@/features/chat/utils/presence-status";
 
 export interface ChatThreadProps {
@@ -473,8 +474,12 @@ export const ChatThread = ({
     }, HIGHLIGHT_MS);
   };
 
-  const handleSend = (body: string) => {
-    chat.send(body, replyMessage);
+  const handleSend = (body: string, photo?: PreparedPhoto) => {
+    if (photo) {
+      chat.sendPhoto(photo, body, replyMessage);
+    } else {
+      chat.send(body, replyMessage);
+    }
     setReplyId(null);
   };
 
@@ -682,6 +687,7 @@ export const ChatThread = ({
             snippet={quoteText({
               deleted: replyMessage.deleted,
               isSticker: Boolean(replyMessage.sticker),
+              isPhoto: Boolean(replyMessage.photo),
               body: replyMessage.body,
             })}
             closeLabel="Huỷ trả lời"
@@ -691,6 +697,7 @@ export const ChatThread = ({
         {chatEnabled ? (
           <Composer
             onSend={handleSend}
+            canAttachPhoto
             editing={activeEditing}
             onSaveEdit={handleSaveEdit}
             replyId={replyMessage?.id ?? null}

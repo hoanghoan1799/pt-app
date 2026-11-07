@@ -236,3 +236,37 @@ export const bubbleBox = (
 // Inbox line: "📷 Ảnh", or "📷 " + the caption when the photo has text.
 export const photoPreview = (caption: string) =>
   caption.trim() === "" ? PHOTO_PREVIEW : `📷 ${caption}`;
+
+// Browser-side encoding plan. The photo is fitted into 1600 px and encoded
+// at the first quality; while it is bigger than the target the quality drops
+// one step. When even the lowest quality leaves it above the target it is
+// kept if it is under the hard limit, else the picture shrinks and the
+// qualities run again.
+export const PHOTO_QUALITIES = [0.82, 0.72, 0.62, 0.52, 0.42] as const;
+export const PHOTO_SHRINK_STEP = 0.8;
+export const PHOTO_MAX_ROUNDS = 4;
+
+// Which encoded size to keep out of the sizes the qualities produced, in
+// order: the first one within the target, else the smallest within the hard
+// limit. Null when all are over the limit and the picture has to shrink.
+export const pickEncodedIndex = (sizes: number[]): number | null => {
+  const withinTarget = sizes.findIndex((size) => size <= PHOTO_TARGET_BYTES);
+
+  if (withinTarget !== -1) {
+    return withinTarget;
+  }
+  let best: number | null = null;
+
+  sizes.forEach((size, index) => {
+    if (size <= PHOTO_MAX_BYTES && (best === null || size < sizes[best])) {
+      best = index;
+    }
+  });
+  return best;
+};
+
+// One more shrink step for the pixel size, aspect ratio kept.
+export const shrinkPhotoSize = (width: number, height: number) => ({
+  width: Math.max(1, Math.round(width * PHOTO_SHRINK_STEP)),
+  height: Math.max(1, Math.round(height * PHOTO_SHRINK_STEP)),
+});
