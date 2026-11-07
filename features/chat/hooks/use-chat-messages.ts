@@ -24,6 +24,8 @@ import {
   toReplyTo,
   withMyReaction,
 } from "@/features/chat/utils/chat-thread-rules";
+import type { PreparedPhoto } from "@/features/chat/utils/encode-photo";
+import { PHOTO_ALT } from "@/features/chat/utils/photo-rules";
 import type {
   ChatSticker,
   StickerInput,
@@ -65,7 +67,11 @@ export type MessageActionResult =
 // optimistic bubble shows until the server answers; the server re-derives the
 // stored sticker from `input` alone.
 export type SendContent =
-  { body: string } | { sticker: { input: StickerInput; display: ChatSticker } };
+  | { body: string }
+  | { sticker: { input: StickerInput; display: ChatSticker } }
+  // KAN-160: the resized image is uploaded first; `photoId` is kept once it
+  // is, so "Gửi lại" never uploads it twice. `body` is the optional caption.
+  | { photo: PreparedPhoto & { photoId?: number }; body?: string };
 
 // What differs between the trainee and the admin view of the same thread.
 export interface ChatAdapter {
@@ -73,6 +79,8 @@ export interface ChatAdapter {
   // Previous bodies of an edited message.
   editsUrl: (messageId: number) => string;
   viewer: ThreadViewer;
+  // Uploads a resized photo and returns its id (throws with a message).
+  uploadPhoto: (blob: Blob) => Promise<number>;
   sendMessage: (
     content: SendContent,
     clientId: string,
@@ -252,8 +260,16 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
       replyToMessageId?: number,
     ) => {
       try {
-        const { viewer, sendMessage } = adapterRef.current;
-        const result = await sendMessage(content, clientId, replyToMessageId);
+        const { viewer, sendMessage, uploadPhoto } = adapterRef.current;
+        let toSend = content;
+
+        if ("photo" in content && content.photo.photoId === undefined) {
+          const photoId = await uploadPhoto(content.photo.blob);
+
+          toSend = { ...content, photo: { ...content.photo, photoId } };
+          pendingContent.current.set(clientId, toSend);
+        }
+        const result = await sendMessage(toSend, clientId, replyToMessageId);
 
         if (result.status === "success" && "message" in result) {
           const stored: SerializedChatMessage = {
@@ -295,7 +311,7 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
     (
       content: SendContent,
       replyTo: ThreadMessage | null | undefined,
-      fields: Pick<ThreadMessage, "body" | "sticker">,
+      fields: Pick<ThreadMessage, "body" | "sticker" | "photo">,
     ) => {
       const clientId = crypto.randomUUID();
       const { viewer } = adapterRef.current;
@@ -346,6 +362,25 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
         body: "",
         sticker: sticker.display,
       }),
+    [sendContent],
+  );
+
+  // The bubble shows the local image at once; the stored message (same
+  // clientId) replaces it with the served one.
+  const sendPhoto = useCallback(
+    (photo: PreparedPhoto, rawBody: string, replyTo?: ThreadMessage | null) => {
+      const body = rawBody.trim();
+
+      sendContent({ photo, ...(body ? { body } : {}) }, replyTo, {
+        body,
+        photo: {
+          url: URL.createObjectURL(photo.blob),
+          width: photo.width,
+          height: photo.height,
+          alt: PHOTO_ALT,
+        },
+      });
+    },
     [sendContent],
   );
 
@@ -519,6 +554,7 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
     loadOlder,
     send,
     sendSticker,
+    sendPhoto,
     retry,
     react,
     edit,

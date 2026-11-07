@@ -6,10 +6,15 @@ import {
   checkPhoto,
   parsePhotoId,
   PHOTO_MAX_BYTES,
+  PHOTO_MAX_ROUNDS,
   PHOTO_MAX_SIDE,
   PHOTO_PREVIEW,
+  PHOTO_QUALITIES,
+  PHOTO_TARGET_BYTES,
   photoPreview,
+  pickEncodedIndex,
   readImageSize,
+  shrinkPhotoSize,
   sniffPhotoMime,
   toChatPhoto,
 } from "@/features/chat/utils/photo-rules";
@@ -259,5 +264,41 @@ describe("photoPreview", () => {
     expect(photoPreview("")).toBe(PHOTO_PREVIEW);
     expect(photoPreview("  ")).toBe("📷 Ảnh");
     expect(photoPreview("bữa trưa")).toBe("📷 bữa trưa");
+  });
+});
+
+describe("pickEncodedIndex", () => {
+  const KB = 1024;
+
+  it("keeps the first quality that reaches the 400 KB target", () => {
+    expect(pickEncodedIndex([900 * KB, 380 * KB, 200 * KB])).toBe(1);
+    expect(pickEncodedIndex([PHOTO_TARGET_BYTES])).toBe(0);
+  });
+
+  it("falls back to the smallest one under the hard limit", () => {
+    expect(pickEncodedIndex([1400 * KB, 900 * KB, 700 * KB, 800 * KB])).toBe(2);
+  });
+
+  it("asks for a smaller picture when everything is over the hard limit", () => {
+    expect(pickEncodedIndex([2000 * KB, 1800 * KB])).toBeNull();
+    expect(pickEncodedIndex([])).toBeNull();
+  });
+});
+
+describe("encoding plan", () => {
+  it("lowers the quality step by step and shrinks by a fifth", () => {
+    expect([...PHOTO_QUALITIES]).toEqual([...PHOTO_QUALITIES].sort().reverse());
+    expect(PHOTO_QUALITIES).toHaveLength(5);
+    expect(shrinkPhotoSize(1600, 1000)).toEqual({ width: 1280, height: 800 });
+    expect(shrinkPhotoSize(1, 1)).toEqual({ width: 1, height: 1 });
+  });
+
+  it("shrinks enough rounds to bring a 1600 px photo well under the limit", () => {
+    let size = { width: 1600, height: 1600 };
+
+    for (let round = 1; round < PHOTO_MAX_ROUNDS; round += 1) {
+      size = shrinkPhotoSize(size.width, size.height);
+    }
+    expect(size.width).toBeLessThan(900);
   });
 });
