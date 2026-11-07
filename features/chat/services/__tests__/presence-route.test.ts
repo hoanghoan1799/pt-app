@@ -12,6 +12,9 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("server-only", () => ({}));
+vi.mock("@/services/admin-lock", () => ({
+  issueUnlock: vi.fn(async () => undefined),
+}));
 vi.mock("@/services/auth-guard", () => ({
   getApiUser: vi.fn(async () => state.user),
   getApiAdmin: vi.fn(async () => state.admin),
@@ -37,6 +40,7 @@ vi.mock("@/db", () => ({
   ),
 }));
 
+const { issueUnlock } = await import("@/services/admin-lock");
 const route = await import("@/app/api/presence/route");
 const peerRoute = await import("@/app/api/presence/peer/route");
 const service = await import("@/features/chat/services/presence");
@@ -89,6 +93,24 @@ describe("POST /api/presence", () => {
 
     expect((await post("?as=admin")).status).toBe(401);
     expect(await adminSeen()).toBeNull();
+  });
+
+  it("slides the unlock window for an admin with a passcode only", async () => {
+    vi.mocked(issueUnlock).mockClear();
+    await post("?as=admin");
+    expect(issueUnlock).not.toHaveBeenCalled();
+
+    state.admin = { id: adminId, hasPasscode: true } as never;
+    await post("?as=admin");
+    expect(issueUnlock).toHaveBeenCalledWith(adminId);
+  });
+
+  it("does not refresh the unlock for a locked admin or a trainee", async () => {
+    vi.mocked(issueUnlock).mockClear();
+    state.admin = null; // getApiAdmin answers null while locked
+    await post("?as=admin");
+    await post();
+    expect(issueUnlock).not.toHaveBeenCalled();
   });
 
   it("stamps the trainee with a 204 and no-store", async () => {

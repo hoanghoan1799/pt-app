@@ -10,6 +10,8 @@ export const ROUTES = {
   OFFLINE: "/offline",
   ADMIN: "/admin",
   ADMIN_LOGIN: "/admin/login",
+  // Passcode screen shown while an admin with a passcode is locked (KAN-160).
+  ADMIN_LOCK: "/admin/lock",
   ADMIN_MANIFEST: "/admin-manifest.webmanifest",
   ADMIN_USERS: "/admin/users",
   ADMIN_MESSAGES: "/admin/messages",
