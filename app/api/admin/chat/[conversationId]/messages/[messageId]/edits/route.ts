@@ -4,6 +4,7 @@ import { z } from "zod";
 import { findConversationById } from "@/features/chat/services/chat-queries";
 import { loadEditHistory } from "@/features/chat/services/chat-thread";
 import { getApiAdmin } from "@/services/auth-guard";
+import { canAdminAccessUser } from "@/services/hidden-users";
 
 const NO_STORE = { "Cache-Control": "no-store" };
 
@@ -32,9 +33,10 @@ export const GET = async (
     return json({ error: "invalid_query" }, 400);
   }
   const conversation = await findConversationById(conversationId.data);
-  const edits = conversation
-    ? await loadEditHistory(conversation.id, messageId.data)
-    : null;
+  const edits =
+    conversation && (await canAdminAccessUser(admin.id, conversation.userId))
+      ? await loadEditHistory(conversation.id, messageId.data)
+      : null;
 
   if (!edits) {
     return json({ error: "not_found" }, 404);

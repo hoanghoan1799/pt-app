@@ -9,6 +9,7 @@ import {
   LOGIN_FAILURE_DELAY_MS,
 } from "@/features/auth/constants/messages";
 import { withFormErrorHandling } from "@/services/action-errors";
+import { clearUnlock } from "@/services/admin-lock";
 import { findAdminByUsername } from "@/services/admins";
 import {
   adminLimiterKey,
@@ -116,5 +117,6 @@ export const logoutUserAction = async () => {
 
 export const logoutAdminAction = async () => {
   await endSession(ADMIN_COOKIE);
+  await clearUnlock();
   redirect(ROUTES.ADMIN_LOGIN);
 };

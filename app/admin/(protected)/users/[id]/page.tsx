@@ -18,6 +18,7 @@ import { CopyWeekButton } from "@/features/workouts/components/CopyWeekButton";
 import { WorkoutWeekEditor } from "@/features/workouts/components/WorkoutWeekEditor";
 import { getWeekScheduleWithSets } from "@/features/workouts/services/workout-queries";
 import { requireAdmin } from "@/services/auth-guard";
+import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
 import { getAdminPreviewPath, getAdminUserPath } from "@/utils/routes";
 import { readSearchParam } from "@/utils/search-params";
@@ -35,12 +36,12 @@ const AdminUserPage = async ({
   params,
   searchParams,
 }: PageProps<"/admin/users/[id]">) => {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const { id } = await params;
   const user = await findUserById(Number(id));
 
-  if (!user) {
+  if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
     notFound();
   }
 
@@ -52,7 +53,7 @@ const AdminUserPage = async ({
   );
   const [days, members, activity] = await Promise.all([
     getWeekScheduleWithSets(user.id, schedule.weekStart),
-    listMembers(),
+    listMembers(admin.id, user.id),
     getRecentActivity({ userId: user.id, limit: MEMBER_ACTIVITY_LIMIT }),
   ]);
 

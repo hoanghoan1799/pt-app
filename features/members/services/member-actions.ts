@@ -8,11 +8,11 @@ import { z } from "zod";
 import { ROUTES } from "@/constants/routes";
 import { db } from "@/db";
 import {
+  adminHiddenUsers,
   bodyProfiles,
   chatColorOverrides,
   chatConversations,
   chatCustomStickers,
-  chatHiddenConversations,
   chatMessageEdits,
   chatMessages,
   chatNicknames,
@@ -92,6 +92,7 @@ export const deleteMemberAction = withResultErrorHandling(
     const conversationIds = conversations.map((row) => row.id);
 
     await db.transaction(async (tx) => {
+      await tx.delete(adminHiddenUsers).where(eq(adminHiddenUsers.userId, id));
       // Children first: foreign keys are not enforced (D10).
       if (conversationIds.length) {
         await tx
@@ -103,11 +104,6 @@ export const deleteMemberAction = withResultErrorHandling(
         await tx
           .delete(chatColorOverrides)
           .where(inArray(chatColorOverrides.conversationId, conversationIds));
-        await tx
-          .delete(chatHiddenConversations)
-          .where(
-            inArray(chatHiddenConversations.conversationId, conversationIds),
-          );
         const messageIds = tx
           .select({ id: chatMessages.id })
           .from(chatMessages)

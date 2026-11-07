@@ -14,6 +14,7 @@ import {
 } from "@/features/chat/utils/chat-query";
 import { serializeLastSeen } from "@/features/chat/utils/presence";
 import { getApiAdmin } from "@/services/auth-guard";
+import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
 
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -43,7 +44,12 @@ export const GET = async (
   const conversation = await findConversationById(id.data);
   const trainee = conversation ? await findUserById(conversation.userId) : null;
 
-  if (!conversation || !trainee) {
+  // A trainee this admin hid is "not found" unless revealed (KAN-163, R2).
+  if (
+    !conversation ||
+    !trainee ||
+    !(await canAdminAccessUser(admin.id, trainee.id))
+  ) {
     return json({ error: "not_found" }, 404);
   }
   const [{ messages, hasMore }, changed, peerReadUpTo, profile] =

@@ -5,6 +5,8 @@ export type SessionPayload =
   | { role: "admin"; adminId: number }
   // Admin unlock cookie (KAN-160); never accepted as a session.
   | { role: "unlock"; adminId: number }
+  // Admin reveal-hidden-trainees cookie (KAN-163); never accepted as a session.
+  | { role: "reveal"; adminId: number }
   | { role: "user"; userId: number; authAt?: number };
 
 // `issuedAt` / `expiresAt` are the JWT `iat` / `exp`, in seconds since the epoch.

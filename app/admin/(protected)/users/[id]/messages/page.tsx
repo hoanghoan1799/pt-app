@@ -23,6 +23,7 @@ import {
 import { serializeMessage } from "@/features/chat/utils/chat-thread-rules";
 import { serializeLastSeen } from "@/features/chat/utils/presence";
 import { requireAdmin } from "@/services/auth-guard";
+import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
 import { readSearchParam } from "@/utils/search-params";
 import { getTodayDate, resolveSchedule } from "@/utils/week";
@@ -42,7 +43,7 @@ const AdminMessagesPage = async ({
   const { id } = await params;
   const user = await findUserById(Number(id));
 
-  if (!user) {
+  if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
     notFound();
   }
   const query = await searchParams;

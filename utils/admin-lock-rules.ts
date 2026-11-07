@@ -19,3 +19,12 @@ export const isLockedFor = (
   }
   return proof.adminId !== admin.id || proof.expiresAt <= nowSeconds;
 };
+
+// Hidden trainees (KAN-163) are visible only with a reveal proof the admin
+// earned themselves that has not expired yet.
+export const isRevealValidFor = (
+  adminId: number,
+  proof: UnlockProof | null,
+  nowSeconds: number,
+) =>
+  Boolean(proof) && proof?.adminId === adminId && proof.expiresAt > nowSeconds;

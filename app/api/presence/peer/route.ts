@@ -7,6 +7,7 @@ import {
 } from "@/features/chat/services/presence";
 import { serializeLastSeen } from "@/features/chat/utils/presence";
 import { getApiAdmin, getApiUser } from "@/services/auth-guard";
+import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
 
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -38,7 +39,7 @@ export const GET = async (request: NextRequest) => {
     }
     const trainee = await findUserById(userId.data);
 
-    if (!trainee) {
+    if (!trainee || !(await canAdminAccessUser(admin.id, trainee.id))) {
       return reply({ error: "not_found" }, 404);
     }
     return reply({

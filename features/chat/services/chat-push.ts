@@ -5,7 +5,7 @@ import { after } from "next/server";
 import webpush from "web-push";
 
 import { db } from "@/db";
-import { chatHiddenConversations, pushSubscriptions, users } from "@/db/schema";
+import { adminHiddenUsers, pushSubscriptions, users } from "@/db/schema";
 import {
   ADMIN_OWNER_PREFIX,
   adminOwnerKey,
@@ -17,6 +17,7 @@ import {
   userOwnerKey,
 } from "@/features/chat/utils/push-rules";
 import { getVapidConfig } from "@/services/env";
+import { isUserHidden } from "@/services/hidden-users";
 import { logServerError } from "@/services/logger";
 
 const PUSH_TTL_SECONDS = 3600;
@@ -122,25 +123,9 @@ export interface SendChatPushInput {
   sticker?: boolean;
 }
 
-const isHiddenFor = async (adminId: number, conversationId: number) => {
-  const [row] = await db
-    .select({ adminId: chatHiddenConversations.adminId })
-    .from(chatHiddenConversations)
-    .where(
-      and(
-        eq(chatHiddenConversations.adminId, adminId),
-        eq(chatHiddenConversations.conversationId, conversationId),
-      ),
-    )
-    .limit(1);
-
-  return Boolean(row);
-};
-
 const loadTargets = async (
   senderRole: "user" | "admin",
   traineeUserId: number,
-  conversationId: number,
 ) => {
   if (senderRole === "admin") {
     return db
@@ -154,13 +139,13 @@ const loadTargets = async (
       .from(pushSubscriptions)
       .where(like(pushSubscriptions.ownerKey, `${ADMIN_OWNER_PREFIX}%`)),
     db
-      .select({ adminId: chatHiddenConversations.adminId })
-      .from(chatHiddenConversations)
-      .where(eq(chatHiddenConversations.conversationId, conversationId)),
+      .select({ adminId: adminHiddenUsers.adminId })
+      .from(adminHiddenUsers)
+      .where(eq(adminHiddenUsers.userId, traineeUserId)),
   ]);
   const hiddenKeys = new Set(hidden.map((row) => adminOwnerKey(row.adminId)));
 
-  // KAN-163: an admin who hid this chat gets no push for it.
+  // KAN-163: an admin who hid this trainee gets no push for them.
   return targets.filter((target) => !hiddenKeys.has(target.ownerKey));
 };
 
@@ -209,11 +194,7 @@ export const sendChatPush = async (
     if (!vapid) {
       return;
     }
-    const targets = await loadTargets(
-      senderRole,
-      traineeUserId,
-      conversationId,
-    );
+    const targets = await loadTargets(senderRole, traineeUserId);
 
     if (targets.length === 0) {
       return;
@@ -273,7 +254,7 @@ export const sendReactionPush = async (
     }
     if (
       recipient.role === "admin" &&
-      (await isHiddenFor(recipient.adminId, conversationId))
+      (await isUserHidden(recipient.adminId, traineeUserId))
     ) {
       return;
     }

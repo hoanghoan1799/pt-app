@@ -17,6 +17,7 @@ import {
 import { getNutritionWeek } from "@/features/nutrition/services/nutrition-queries";
 import { getWeekSchedule } from "@/features/workouts/services/workout-queries";
 import { requireAdmin } from "@/services/auth-guard";
+import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
 import {
   getAdminNutritionPath,
@@ -32,12 +33,12 @@ const AdminSummaryPage = async ({
   params,
   searchParams,
 }: PageProps<"/admin/users/[id]/summary">) => {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const { id } = await params;
   const user = await findUserById(Number(id));
 
-  if (!user) {
+  if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
     notFound();
   }
 

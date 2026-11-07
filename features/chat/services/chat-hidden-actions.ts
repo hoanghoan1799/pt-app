@@ -5,12 +5,15 @@ import { z } from "zod";
 import { HIDDEN_CHAT_MESSAGES } from "@/features/chat/constants/messages";
 import {
   hideConversations,
+  hideUsers,
   isConversationHidden,
   noMatch,
-  revealHiddenConversations,
+  revealHiddenUsers,
   unhideConversation,
+  unhideUser,
 } from "@/features/chat/services/chat-hidden";
 import { withResultErrorHandling } from "@/services/action-errors";
+import { issueReveal } from "@/services/admin-lock";
 import { requireAdmin } from "@/services/auth-guard";
 
 const idSchema = z.number().int().positive();
@@ -22,6 +25,8 @@ const invalid = () => ({
   message: HIDDEN_CHAT_MESSAGES.INVALID_INPUT,
 });
 
+// Conversation-based entry points (inbox "Chọn" mode, chat settings sheet):
+// the conversation maps to its trainee.
 export const hideConversationsAction = withResultErrorHandling(
   "hideConversations",
   async (conversationIds: number[]) => {
@@ -49,10 +54,39 @@ export const unhideConversationAction = withResultErrorHandling(
   },
 );
 
+export const hideUsersAction = withResultErrorHandling(
+  "hideUsers",
+  async (userIds: number[]) => {
+    const admin = await requireAdmin();
+    const parsed = idsSchema.safeParse(userIds);
+
+    if (!parsed.success) {
+      return invalid();
+    }
+    return hideUsers(admin.id, parsed.data);
+  },
+);
+
+export const unhideUserAction = withResultErrorHandling(
+  "unhideUser",
+  async (userId: number) => {
+    const admin = await requireAdmin();
+    const parsed = idSchema.safeParse(userId);
+
+    if (!parsed.success) {
+      return invalid();
+    }
+    await unhideUser(admin.id, parsed.data);
+    return { status: "success" as const };
+  },
+);
+
 // Anything but a well-formed 4-digit code is a quiet generic failure without
-// touching the limiter, so ordinary name searches never burn attempts.
-export const revealHiddenConversationsAction = withResultErrorHandling(
-  "revealHiddenConversations",
+// touching the limiter, so ordinary name searches never burn attempts. A right
+// code also starts the 10-minute reveal session (R2): the hidden trainees'
+// pages open until it ends.
+export const revealHiddenUsersAction = withResultErrorHandling(
+  "revealHiddenUsers",
   async (passcode: string) => {
     const admin = await requireAdmin();
     const parsed = passcodeSchema.safeParse(passcode);
@@ -60,9 +94,17 @@ export const revealHiddenConversationsAction = withResultErrorHandling(
     if (!parsed.success) {
       return noMatch();
     }
-    return revealHiddenConversations(admin.id, parsed.data);
+    const result = await revealHiddenUsers(admin.id, parsed.data);
+
+    if (result.status === "success") {
+      await issueReveal(admin.id);
+    }
+    return result;
   },
 );
+
+// The inbox search box keeps its original name.
+export const revealHiddenConversationsAction = revealHiddenUsersAction;
 
 export const isConversationHiddenAction = withResultErrorHandling(
   "isConversationHidden",

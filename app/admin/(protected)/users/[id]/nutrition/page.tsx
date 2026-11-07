@@ -29,6 +29,7 @@ import {
   getNutritionWeek,
 } from "@/features/nutrition/services/nutrition-queries";
 import { requireAdmin } from "@/services/auth-guard";
+import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
 import { getAdminNutritionPath } from "@/utils/routes";
 import { readSearchParam } from "@/utils/search-params";
@@ -40,12 +41,12 @@ const AdminNutritionPage = async ({
   params,
   searchParams,
 }: PageProps<"/admin/users/[id]/nutrition">) => {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const { id } = await params;
   const user = await findUserById(Number(id));
 
-  if (!user) {
+  if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
     notFound();
   }
 
