@@ -71,3 +71,18 @@ Admin change-password page, trainee passcode, hiding single messages, e2e.
 | Push           | no push to an admin who hid the chat                                       | unit          |
 | Presence       | hidden admin excluded from trainee aggregate; null when all hidden         | unit          |
 | UI             | lock screen, gear/avatar menus, select-to-hide, reveal, peer avatar viewer | browser check |
+
+## Round 2: hide the trainee everywhere (Hoan, 2026-11-07)
+
+Hiding a chat left the trainee visible elsewhere (dashboard list, the user's Messages tab). Decisions:
+
+- R1 Hiding hides the trainee for that admin everywhere: dashboard user list and "Hoạt động gần đây", inbox, unread counts, push.
+- R2 A hidden trainee's pages (`/admin/users/[id]/...`) answer "not found" unless the admin revealed hidden trainees with the passcode in this session (reveal lasts until the app locks or signs out, at most 10 min).
+- R3 A "Tìm học viên" box on the admin dashboard above the user list: name filter for visible trainees; the exact passcode lists hidden trainees with "Bỏ ẩn". The inbox search keeps working the same way.
+- R4 Copy says "Ẩn học viên" / "Bỏ ẩn học viên". Hide from inbox "Chọn" mode, the chat settings sheet, and the user detail page.
+- R5 Still per admin; other admins and the trainee see nothing.
+- R6 Any trainee can be hidden, with or without a conversation: new table `admin_hidden_users` (admin_id, user_id, hidden_at). Rows of `chat_hidden_conversations` are moved into it by `scripts/setup-database.ts` on the next build.
+- R7 Dashboard totals (user count, completion %) leave hidden trainees out.
+- R8 Tapping a sticker or photo sticker in a chat bubble opens it in the full-screen viewer (`AvatarLightbox`).
+- Delivery: PRs into `main`, e2e skipped, self-merge on green CI, no Jira.
+- Schema lesson: new columns on existing tables must be nullable (see #121).
