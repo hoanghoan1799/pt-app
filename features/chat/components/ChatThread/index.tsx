@@ -326,6 +326,27 @@ export const ChatThread = ({
     }
   }, [viewportHeight, scrollToBottom]);
 
+  // When the keyboard closes the list grows back, but iOS keeps the old
+  // scrollTop (past the new end) and paints an empty gap under the last
+  // message until the user scrolls. Re-anchor on every size change of the list.
+  useEffect(() => {
+    const node = scroller.current;
+
+    if (!node || typeof ResizeObserver === "undefined") {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      const maxTop = Math.max(0, node.scrollHeight - node.clientHeight);
+
+      if (wasNearBottom.current || node.scrollTop > maxTop) {
+        node.scrollTop = maxTop;
+      }
+    });
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   const findMessage = useCallback(
     (id: number | null) =>
       id === null ? undefined : messages.find((message) => message.id === id),
