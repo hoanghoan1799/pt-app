@@ -2,9 +2,12 @@
 
 import clsx from "clsx";
 import { Check } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { ROUTES } from "@/constants/routes";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
@@ -13,6 +16,11 @@ import {
   SECTION_TITLE,
 } from "@/constants/styles";
 import { AvatarField } from "@/features/avatar/components/AvatarField";
+import {
+  hideConversationsAction,
+  isConversationHiddenAction,
+  unhideConversationAction,
+} from "@/features/chat/services/chat-hidden-actions";
 import {
   adminSetChatColorAction,
   adminSetConversationColorAction,
@@ -47,6 +55,82 @@ interface ActionResult {
   message?: string;
   profile?: ChatProfileView;
 }
+
+// Admin only: hide this chat from the inbox or bring it back (KAN-164).
+const HideConversationSection = ({
+  isOpen,
+  conversationId,
+  onClose,
+}: {
+  isOpen: boolean;
+  conversationId: number | null;
+  onClose: () => void;
+}) => {
+  const router = useRouter();
+  const [isHidden, setIsHidden] = useState<boolean | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!isOpen || conversationId === null) {
+      return;
+    }
+    let cancelled = false;
+
+    isConversationHiddenAction(conversationId)
+      .then((result) => {
+        if (!cancelled && result.status === "success" && "hidden" in result) {
+          setIsHidden(result.hidden);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, conversationId]);
+
+  if (conversationId === null || isHidden === null) {
+    return null;
+  }
+
+  const toggle = () => {
+    startTransition(async () => {
+      try {
+        const result = isHidden
+          ? await unhideConversationAction(conversationId)
+          : await hideConversationsAction([conversationId]);
+
+        if (result.status !== "success") {
+          toast.error(result.message ?? FAILED_TEXT);
+          return;
+        }
+        if (isHidden) {
+          setIsHidden(false);
+          toast.success("Đã bỏ ẩn cuộc trò chuyện");
+          router.refresh();
+          return;
+        }
+        toast.success("Đã ẩn 1 cuộc trò chuyện");
+        onClose();
+        router.push(ROUTES.ADMIN_MESSAGES);
+      } catch {
+        toast.error(FAILED_TEXT);
+      }
+    });
+  };
+
+  return (
+    <section className="space-y-3">
+      <button
+        type="button"
+        disabled={isPending}
+        onClick={toggle}
+        className={clsx(BUTTON_SECONDARY, "w-full")}
+      >
+        {isHidden ? "Bỏ ẩn cuộc trò chuyện" : "Ẩn cuộc trò chuyện"}
+      </button>
+    </section>
+  );
+};
 
 export interface ChatSettingsSheetProps {
   isOpen: boolean;
@@ -435,6 +519,14 @@ export const ChatSettingsSheet = ({
           <p role="alert" className={FIELD_ERROR}>
             {colorError}
           </p>
+        )}
+
+        {isAdmin && (
+          <HideConversationSection
+            isOpen={isOpen}
+            conversationId={conversationId}
+            onClose={() => onOpenChange(false)}
+          />
         )}
       </div>
     </BottomSheet>
