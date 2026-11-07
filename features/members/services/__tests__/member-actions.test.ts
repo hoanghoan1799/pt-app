@@ -5,6 +5,7 @@ import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
 import {
   chatColorOverrides,
   chatConversations,
+  chatHiddenConversations,
   chatMessages,
   chatNicknames,
   chatReads,
@@ -142,6 +143,26 @@ describe("deleteMemberAction chat cleanup", () => {
     expect(
       (await db.select().from(chatColorOverrides)).map((r) => r.conversationId),
     ).toEqual([kept.conversationId]);
+  });
+
+  it("removes the trainee's hidden-chat rows for every admin, only theirs", async () => {
+    const gone = await seedTrainee("An");
+    const kept = await seedTrainee("Binh");
+
+    await db.insert(chatHiddenConversations).values([
+      { adminId: 1, conversationId: gone.conversationId },
+      { adminId: 2, conversationId: gone.conversationId },
+      { adminId: 1, conversationId: kept.conversationId },
+    ]);
+
+    await deleteMemberAction(gone.userId);
+
+    expect(
+      (await db.select().from(chatHiddenConversations)).map((r) => [
+        r.adminId,
+        r.conversationId,
+      ]),
+    ).toEqual([[1, kept.conversationId]]);
   });
 
   it("removes the trainee's push subscriptions only", async () => {

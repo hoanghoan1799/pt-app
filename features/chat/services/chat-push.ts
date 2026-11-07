@@ -5,7 +5,7 @@ import { after } from "next/server";
 import webpush from "web-push";
 
 import { db } from "@/db";
-import { pushSubscriptions, users } from "@/db/schema";
+import { chatHiddenConversations, pushSubscriptions, users } from "@/db/schema";
 import {
   ADMIN_OWNER_PREFIX,
   adminOwnerKey,
@@ -122,15 +122,47 @@ export interface SendChatPushInput {
   sticker?: boolean;
 }
 
-const loadTargets = (senderRole: "user" | "admin", traineeUserId: number) =>
-  db
-    .select()
-    .from(pushSubscriptions)
+const isHiddenFor = async (adminId: number, conversationId: number) => {
+  const [row] = await db
+    .select({ adminId: chatHiddenConversations.adminId })
+    .from(chatHiddenConversations)
     .where(
-      senderRole === "user"
-        ? like(pushSubscriptions.ownerKey, `${ADMIN_OWNER_PREFIX}%`)
-        : eq(pushSubscriptions.ownerKey, userOwnerKey(traineeUserId)),
-    );
+      and(
+        eq(chatHiddenConversations.adminId, adminId),
+        eq(chatHiddenConversations.conversationId, conversationId),
+      ),
+    )
+    .limit(1);
+
+  return Boolean(row);
+};
+
+const loadTargets = async (
+  senderRole: "user" | "admin",
+  traineeUserId: number,
+  conversationId: number,
+) => {
+  if (senderRole === "admin") {
+    return db
+      .select()
+      .from(pushSubscriptions)
+      .where(eq(pushSubscriptions.ownerKey, userOwnerKey(traineeUserId)));
+  }
+  const [targets, hidden] = await Promise.all([
+    db
+      .select()
+      .from(pushSubscriptions)
+      .where(like(pushSubscriptions.ownerKey, `${ADMIN_OWNER_PREFIX}%`)),
+    db
+      .select({ adminId: chatHiddenConversations.adminId })
+      .from(chatHiddenConversations)
+      .where(eq(chatHiddenConversations.conversationId, conversationId)),
+  ]);
+  const hiddenKeys = new Set(hidden.map((row) => adminOwnerKey(row.adminId)));
+
+  // KAN-163: an admin who hid this chat gets no push for it.
+  return targets.filter((target) => !hiddenKeys.has(target.ownerKey));
+};
 
 const deliver = async (
   targets: StoredSubscription[],
@@ -177,7 +209,11 @@ export const sendChatPush = async (
     if (!vapid) {
       return;
     }
-    const targets = await loadTargets(senderRole, traineeUserId);
+    const targets = await loadTargets(
+      senderRole,
+      traineeUserId,
+      conversationId,
+    );
 
     if (targets.length === 0) {
       return;
@@ -233,6 +269,12 @@ export const sendReactionPush = async (
     const vapid = getVapid();
 
     if (!vapid) {
+      return;
+    }
+    if (
+      recipient.role === "admin" &&
+      (await isHiddenFor(recipient.adminId, conversationId))
+    ) {
       return;
     }
     const targets = await db

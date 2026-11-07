@@ -12,6 +12,7 @@ import {
   chatColorOverrides,
   chatConversations,
   chatCustomStickers,
+  chatHiddenConversations,
   chatMessageEdits,
   chatMessages,
   chatNicknames,
@@ -102,6 +103,11 @@ export const deleteMemberAction = withResultErrorHandling(
         await tx
           .delete(chatColorOverrides)
           .where(inArray(chatColorOverrides.conversationId, conversationIds));
+        await tx
+          .delete(chatHiddenConversations)
+          .where(
+            inArray(chatHiddenConversations.conversationId, conversationIds),
+          );
         const messageIds = tx
           .select({ id: chatMessages.id })
           .from(chatMessages)
