@@ -131,12 +131,35 @@ const useVisualViewport = () => {
       });
     };
 
+    // iOS can skip the last visualViewport event when the keyboard closes and
+    // leaves the page scrolled up, so the thread stayed lifted. Re-read the
+    // viewport a few times after the composer loses focus and scroll the page
+    // back to the top.
+    const timers: number[] = [];
+    const settleAfterKeyboard = () => {
+      for (const delay of [0, 120, 300, 600]) {
+        timers.push(
+          window.setTimeout(() => {
+            if (window.scrollY !== 0) {
+              window.scrollTo(0, 0);
+            }
+            update();
+          }, delay),
+        );
+      }
+    };
+
     update();
     vv.addEventListener("resize", update);
     vv.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    document.addEventListener("focusout", settleAfterKeyboard);
     return () => {
       vv.removeEventListener("resize", update);
       vv.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      document.removeEventListener("focusout", settleAfterKeyboard);
+      timers.forEach((timer) => window.clearTimeout(timer));
     };
   }, []);
 
