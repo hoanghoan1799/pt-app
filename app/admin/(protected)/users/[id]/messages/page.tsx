@@ -19,7 +19,9 @@ import {
   getOrCreateConversation,
   getPeerReadCursor,
   listMessages,
+  listMessagesAround,
 } from "@/features/chat/services/chat-queries";
+import { parseJumpId } from "@/features/chat/utils/chat-links";
 import { serializeMessage } from "@/features/chat/utils/chat-thread-rules";
 import { serializeLastSeen } from "@/features/chat/utils/presence";
 import { requireAdmin } from "@/services/auth-guard";
@@ -85,6 +87,9 @@ const AdminMessagesPage = async ({
       </>
     );
   }
+  const jumpId = parseJumpId(query.m);
+  const around =
+    jumpId === null ? null : await listMessagesAround(conversation.id, jumpId);
   const [
     { messages, hasMore },
     peerReadUpTo,
@@ -92,7 +97,7 @@ const AdminMessagesPage = async ({
     adminAvatars,
     traineeAvatarUrl,
   ] = await Promise.all([
-    listMessages(conversation.id),
+    around ?? listMessages(conversation.id),
     getPeerReadCursor(conversation.id, "admin"),
     loadChatProfile(conversation.id),
     listAdminAvatarUrls(),
@@ -115,6 +120,7 @@ const AdminMessagesPage = async ({
       userName={user.name}
       userId={user.id}
       conversationId={conversation.id}
+      jumpToId={around ? jumpId : null}
       viewer={{
         role: "admin",
         adminId: admin.id,

@@ -8,6 +8,7 @@ import {
   ChatThread,
   type ChatThreadProps,
 } from "@/features/chat/components/ChatThread";
+import { chatPaths } from "@/features/chat/utils/chat-links";
 import { displayNameFor } from "@/features/chat/utils/display-name";
 
 interface AdminChatThreadProps extends Pick<
@@ -15,6 +16,7 @@ interface AdminChatThreadProps extends Pick<
   | "initial"
   | "userId"
   | "conversationId"
+  | "jumpToId"
   | "viewer"
   | "emptyText"
   | "ariaLabel"
@@ -26,7 +28,7 @@ interface AdminChatThreadProps extends Pick<
   below: ReactNode;
 }
 
-export const SETTINGS_LABEL = "Biệt danh và màu";
+export const SETTINGS_LABEL = "Thông tin cuộc trò chuyện";
 
 // The admin conversation screen. A client component because the title follows
 // the nickname and the status follows the live presence (a function prop
@@ -38,11 +40,8 @@ export const AdminChatThread = ({
 }: AdminChatThreadProps) => (
   <ChatThread
     {...thread}
-    header={(
-      _latestPeerName,
-      presence,
-      { profile, openSettings, peerAvatar },
-    ) => {
+    infoHref={chatPaths("admin", thread.userId).info}
+    header={(_latestPeerName, presence, { profile, infoHref, peerAvatar }) => {
       const name = displayNameFor(profile.nicknames, "user", userName);
 
       return (
@@ -54,7 +53,7 @@ export const AdminChatThread = ({
             settingsLabel={SETTINGS_LABEL}
             presence={presence}
             avatarSrc={peerAvatar}
-            onOpenSettings={openSettings}
+            infoHref={infoHref}
           />
           {below}
         </>

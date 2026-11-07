@@ -14,7 +14,6 @@ import {
 import { toast } from "sonner";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
-import { ChatSettingsSheet } from "@/features/chat/components/ChatSettingsSheet";
 import { Composer } from "@/features/chat/components/Composer";
 import { EditHistorySheet } from "@/features/chat/components/EditHistorySheet";
 import { LockedBanner } from "@/features/chat/components/LockedBanner";
@@ -58,6 +57,10 @@ export interface ChatThreadProps {
   initial: ThreadSnapshot;
   userId: number;
   conversationId: number | null;
+  // The chat info page the header opens.
+  infoHref: string;
+  // Open scrolled to this message and highlight it (gallery, search).
+  jumpToId?: number | null;
   // The page header; rendered inside the shell so the keyboard resize keeps
   // it in place. A function receives the username of the newest PT who wrote
   // in the loaded messages (null if none or deleted) and the peer presence
@@ -69,14 +72,12 @@ export interface ChatThreadProps {
         presence: PresenceView | null,
         settings: {
           profile: ChatProfileView;
-          openSettings: () => void;
+          // The chat info page (KAN-160).
+          infoHref: string;
           // The other side's photo for the header (versioned URL) or null.
           peerAvatar: string | null;
         },
       ) => ReactNode);
-  // The viewer's real name, for the settings sheet (the trainee's name; the
-  // admin view uses `viewer.adminName`).
-  selfName?: string;
   // Real name of the other side before any PT message names them (trainee).
   fallbackPeerName?: string;
   viewer?: ThreadViewer;
@@ -106,6 +107,8 @@ const StickerPanel = dynamic(
 );
 
 const HIGHLIGHT_MS = 1500;
+// A jumped-to message stays marked a little longer.
+const JUMP_HIGHLIGHT_MS = 2000;
 
 type SheetKind = "actions" | "reactors" | "history";
 
@@ -172,8 +175,9 @@ export const ChatThread = ({
   userId,
   conversationId,
   header,
+  infoHref,
+  jumpToId = null,
   viewer = USER_VIEWER,
-  selfName = "Bạn",
   fallbackPeerName = "PT",
   emptyText,
   ariaLabel = TRAINEE_ARIA_LABEL,
@@ -211,7 +215,6 @@ export const ChatThread = ({
   );
   const [highlightId, setHighlightId] = useState<number | null>(null);
   const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   // The panel mounts on the first tap and stays, so its sheet can animate out.
   const [isStickerOpen, setIsStickerOpen] = useState(false);
   const [hasStickerPanel, setHasStickerPanel] = useState(false);
@@ -457,13 +460,21 @@ export const ChatThread = ({
     void chat.unsend(id);
   };
 
-  const jumpToMessage = (id: number) => {
+  const jumpToMessage = (
+    id: number,
+    { smooth = true, durationMs = HIGHLIGHT_MS } = {},
+  ) => {
     const node = scroller.current?.querySelector(`[data-message-id="${id}"]`);
 
     if (!node) {
       return;
     }
-    node.scrollIntoView({ block: "center", behavior: "smooth" });
+    // Leave "stay at the bottom" mode, or a later resize snaps back down.
+    wasNearBottom.current = false;
+    node.scrollIntoView({
+      block: "center",
+      behavior: smooth ? "smooth" : "auto",
+    });
     setHighlightId(id);
     if (highlightTimer.current !== null) {
       clearTimeout(highlightTimer.current);
@@ -471,8 +482,22 @@ export const ChatThread = ({
     highlightTimer.current = setTimeout(() => {
       highlightTimer.current = null;
       setHighlightId(null);
-    }, HIGHLIGHT_MS);
+    }, durationMs);
   };
+
+  // Opened from the gallery or a search result: the page loaded the thread
+  // around the message, so it is in the DOM after the first paint. It may run
+  // twice (strict mode remounts effects); jumping again is harmless and, as
+  // it runs after the first-paint scroll, it also wins over it.
+  useEffect(() => {
+    if (jumpToId !== null) {
+      jumpToMessage(jumpToId, {
+        smooth: false,
+        durationMs: JUMP_HIGHLIGHT_MS,
+      });
+    }
+    // Only the target matters; jumpToMessage reads refs and state setters.
+  }, [jumpToId]);
 
   const handleSend = (body: string, photo?: PreparedPhoto) => {
     if (photo) {
@@ -530,7 +555,6 @@ export const ChatThread = ({
   const emptyMessage =
     emptyText ?? (chatEnabled ? TRAINEE_EMPTY_TEXT : TRAINEE_LOCKED_EMPTY_TEXT);
   const latestPeerName = latestAdminName(messages);
-  const openSettings = () => setIsSettingsOpen(true);
   // The other side's photo in the header: the trainee for an admin, the PT who
   // wrote last for a trainee.
   const peerAvatar =
@@ -539,7 +563,7 @@ export const ChatThread = ({
       : (avatars[`admin:${latestAdminId(messages)}`] ?? null);
   const headerNode =
     typeof header === "function"
-      ? header(latestPeerName, presence, { profile, openSettings, peerAvatar })
+      ? header(latestPeerName, presence, { profile, infoHref, peerAvatar })
       : header;
   const peerRealName =
     viewer.role === "admin"
@@ -758,18 +782,6 @@ export const ChatThread = ({
           currentBody={sheetMessage.body}
         />
       )}
-      <ChatSettingsSheet
-        isOpen={isSettingsOpen}
-        onOpenChange={setIsSettingsOpen}
-        viewer={adapter.viewer}
-        conversationId={conversationId}
-        peerName={peerRealName}
-        selfName={viewer.role === "admin" ? viewer.adminName : selfName}
-        profile={profile}
-        onProfileChange={chat.setProfile}
-        chatEnabled={chatEnabled}
-        peerAvatarUrl={peerAvatar}
-      />
     </div>
   );
 };

@@ -21,11 +21,11 @@ interface ChatHeaderProps {
   backHref?: string;
   // The other side's photo (versioned URL); initials when null.
   avatarSrc?: string | null;
-  // Accessible name of the gear; the button shows an icon only.
+  // Accessible name of the gear; the link shows an icon only.
   settingsLabel?: string;
   presence: PresenceView | null;
-  // Opens the conversation settings sheet (KAN-142).
-  onOpenSettings: () => void;
+  // The chat info page (KAN-160): the avatar, the name and the gear go there.
+  infoHref: string;
 }
 
 // The thread header (both sides): Back, avatar, the name with the settings
@@ -35,9 +35,9 @@ export const ChatHeader = ({
   title = name,
   backHref,
   avatarSrc = null,
-  settingsLabel = "Cài đặt cuộc trò chuyện",
+  settingsLabel = "Thông tin cuộc trò chuyện",
   presence,
-  onOpenSettings,
+  infoHref,
 }: ChatHeaderProps) => {
   const router = useRouter();
 
@@ -76,29 +76,29 @@ export const ChatHeader = ({
             <ChevronLeft className="size-6" aria-hidden />
           </button>
         )}
-        {/* Tapping the avatar or the name opens the settings too; the gear
-            button is the keyboard and screen reader entry. */}
-        <span onClick={onOpenSettings} className="shrink-0">
+        {/* The avatar and the name open the info page too; the gear link is
+            the keyboard and screen reader entry. */}
+        <Link href={infoHref} tabIndex={-1} aria-hidden className="shrink-0">
           <Avatar name={name} src={avatarSrc} className="size-9 text-sm" />
-        </span>
-        <div
-          className="min-w-0 flex-1 py-2"
+        </Link>
+        <Link
+          href={infoHref}
+          tabIndex={-1}
           data-chat-header-name
-          onClick={onOpenSettings}
+          className="min-w-0 flex-1 py-2"
         >
           <h1 className="truncate text-base leading-tight font-bold text-fg">
             {title}
           </h1>
           <PresenceStatus presence={presence} />
-        </div>
-        <button
-          type="button"
-          onClick={onOpenSettings}
+        </Link>
+        <Link
+          href={infoHref}
           className={clsx(ICON_BUTTON, "-mr-3")}
           aria-label={settingsLabel}
         >
           <Settings className="size-5" aria-hidden />
-        </button>
+        </Link>
       </div>
     </header>
   );
