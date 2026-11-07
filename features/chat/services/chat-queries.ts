@@ -12,6 +12,7 @@ import {
   like,
   lt,
   max,
+  notInArray,
   sql,
 } from "drizzle-orm";
 
@@ -19,6 +20,7 @@ import { db } from "@/db";
 import {
   admins,
   chatConversations,
+  chatHiddenConversations,
   chatMessageEdits,
   chatMessages,
   chatNicknames,
@@ -545,10 +547,19 @@ export const saveReadCursor = async (
 
 // Messages from the other side that this reader has not read yet, per
 // conversation. One grouped query; the reader's cursor is joined in.
+// Conversations this admin hid (KAN-163): left out of every admin-side list,
+// count and push, per admin.
+const hiddenIdsOf = (adminId: number) =>
+  db
+    .select({ id: chatHiddenConversations.conversationId })
+    .from(chatHiddenConversations)
+    .where(eq(chatHiddenConversations.adminId, adminId));
+
 const unreadByConversation = (
   senderRole: "user" | "admin",
   readerKey: string,
   conversationId?: number,
+  hiddenForAdminId?: number,
 ) =>
   db
     .select({ conversationId: chatMessages.conversationId, unread: count() })
@@ -566,6 +577,12 @@ const unreadByConversation = (
         conversationId === undefined
           ? undefined
           : eq(chatMessages.conversationId, conversationId),
+        hiddenForAdminId === undefined
+          ? undefined
+          : notInArray(
+              chatMessages.conversationId,
+              hiddenIdsOf(hiddenForAdminId),
+            ),
         gt(chatMessages.id, sql`coalesce(${chatReads.lastReadMessageId}, 0)`),
       ),
     )
@@ -587,7 +604,12 @@ export const countUnreadForUser = async (userId: number) => {
 };
 
 export const countUnreadForAdmin = async (adminId: number) => {
-  const rows = await unreadByConversation("user", adminReaderKey(adminId));
+  const rows = await unreadByConversation(
+    "user",
+    adminReaderKey(adminId),
+    undefined,
+    adminId,
+  );
 
   return rows.reduce((total, row) => total + row.unread, 0);
 };
@@ -597,6 +619,8 @@ export const listUnreadByTraineeForAdmin = async (adminId: number) => {
   const unreadRows = await unreadByConversation(
     "user",
     adminReaderKey(adminId),
+    undefined,
+    adminId,
   );
 
   if (unreadRows.length === 0) {
@@ -669,7 +693,9 @@ export interface InboxWithoutConversation {
   avatarUrl: string | null;
 }
 
-export const listAdminInbox = async (adminId: number) => {
+// `hidden: false` is the normal inbox (this admin's hidden chats left out);
+// `hidden: true` is only those, for the passcode reveal (KAN-163).
+const loadInbox = async (adminId: number, hidden: boolean) => {
   const [rows, unreadRows, fresh] = await Promise.all([
     db
       .select({
@@ -694,23 +720,30 @@ export const listAdminInbox = async (adminId: number) => {
         eq(chatMessages.id, chatConversations.lastMessageId),
       )
       .leftJoin(admins, eq(admins.id, chatMessages.senderAdminId))
+      .where(
+        hidden
+          ? inArray(chatConversations.id, hiddenIdsOf(adminId))
+          : notInArray(chatConversations.id, hiddenIdsOf(adminId)),
+      )
       .orderBy(
         sql`${chatConversations.lastMessageAt} is null`,
         desc(chatConversations.lastMessageAt),
         desc(chatConversations.id),
       ),
     unreadByConversation("user", adminReaderKey(adminId)),
-    db
-      .select({
-        userId: users.id,
-        userName: users.name,
-        lastSeenAt: users.lastSeenAt,
-        avatarUpdatedAt: users.avatarUpdatedAt,
-      })
-      .from(users)
-      .leftJoin(chatConversations, eq(chatConversations.userId, users.id))
-      .where(and(eq(users.chatEnabled, true), isNull(chatConversations.id)))
-      .orderBy(asc(users.name)),
+    hidden
+      ? []
+      : db
+          .select({
+            userId: users.id,
+            userName: users.name,
+            lastSeenAt: users.lastSeenAt,
+            avatarUpdatedAt: users.avatarUpdatedAt,
+          })
+          .from(users)
+          .leftJoin(chatConversations, eq(chatConversations.userId, users.id))
+          .where(and(eq(users.chatEnabled, true), isNull(chatConversations.id)))
+          .orderBy(asc(users.name)),
   ]);
   const nicknameRows =
     rows.length === 0
@@ -767,3 +800,9 @@ export const listAdminInbox = async (adminId: number) => {
 
   return { conversations, withoutConversation };
 };
+
+export const listAdminInbox = (adminId: number) => loadInbox(adminId, false);
+
+// This admin's hidden conversations, newest first, in the inbox item shape.
+export const listHiddenInboxForAdmin = async (adminId: number) =>
+  (await loadInbox(adminId, true)).conversations;
