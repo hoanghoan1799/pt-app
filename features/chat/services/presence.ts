@@ -54,7 +54,7 @@ export const getAdminTeamLastSeen = async (): Promise<Date | null> => {
   const [row] = await db
     .select({ lastSeenAt: max(admins.lastSeenAt) })
     .from(admins)
-    .where(eq(admins.presenceHidden, false));
+    .where(or(isNull(admins.presenceHidden), eq(admins.presenceHidden, false)));
 
   // max() over a timestamp column comes back as raw seconds.
   const value = row?.lastSeenAt as unknown;

@@ -11,7 +11,8 @@ export const findAdminById = async (id: number) => {
     .select({
       id: admins.id,
       username: admins.username,
-      presenceHidden: admins.presenceHidden,
+      presenceHidden:
+        sql<boolean>`coalesce(${admins.presenceHidden}, 0)`.mapWith(Boolean),
       // Never expose the hash itself, only whether a passcode exists.
       hasPasscode: sql<boolean>`${admins.passcodeHash} is not null`.mapWith(
         Boolean,
@@ -63,11 +64,13 @@ export const setAdminPasscodeHash = async (
 export const recordPasscodeFailure = async (id: number) => {
   const [row] = await db
     .update(admins)
-    .set({ passcodeFailedCount: sql`${admins.passcodeFailedCount} + 1` })
+    .set({
+      passcodeFailedCount: sql`coalesce(${admins.passcodeFailedCount}, 0) + 1`,
+    })
     .where(eq(admins.id, id))
     .returning({ count: admins.passcodeFailedCount });
 
-  return row?.count ?? 0;
+  return Number(row?.count ?? 0);
 };
 
 export const resetPasscodeFailures = async (id: number) => {

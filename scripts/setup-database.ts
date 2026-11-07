@@ -26,7 +26,17 @@ const IS_PREBUILD = process.argv.includes("--prebuild");
 const pushSchema = () => {
   console.log(`▸ Đồng bộ bảng vào ${describeDatabaseConfig()}`);
   // Without --force: a change that would drop data stops the build instead.
-  execSync("pnpm exec drizzle-kit push", { stdio: "inherit" });
+  // drizzle-kit exits 0 even when it refuses a change (its data-loss prompt
+  // needs a TTY), so read its output and fail the build ourselves.
+  const output = execSync("pnpm exec drizzle-kit push 2>&1", {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  console.log(output);
+  if (/data-loss|Error:/i.test(output)) {
+    throw new Error("drizzle-kit push did not apply the schema, see above");
+  }
 };
 
 const createFirstAdmin = async () => {
