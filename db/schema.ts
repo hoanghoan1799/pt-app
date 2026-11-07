@@ -38,12 +38,14 @@ export const admins = sqliteTable("admins", {
   // services/password.ts. Null = no passcode, no lock.
   passcodeHash: text("passcode_hash"),
   // Wrong passcodes in a row; the 5th signs the admin out and resets it.
-  passcodeFailedCount: integer("passcode_failed_count").notNull().default(0),
+  // Nullable on purpose (null = 0): drizzle-kit push treats a NOT NULL column
+  // added to a non-empty table as data loss and the Vercel build skipped it.
+  passcodeFailedCount: integer("passcode_failed_count").default(0),
   // "Trạng thái hoạt động" switch: true hides this admin's online status
-  // from trainees.
-  presenceHidden: integer("presence_hidden", { mode: "boolean" })
-    .notNull()
-    .default(false),
+  // from trainees. Nullable for the same reason (null = shown).
+  presenceHidden: integer("presence_hidden", { mode: "boolean" }).default(
+    false,
+  ),
   createdAt: createdAt(),
 });
 
