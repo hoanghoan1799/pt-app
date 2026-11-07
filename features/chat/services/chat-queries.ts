@@ -415,6 +415,57 @@ export const listMessages = async (
   };
 };
 
+// The most messages after the target a jump loads in one go; a longer tail
+// means the target is far back and the jump is skipped (the chat opens at the
+// newest as usual). Conversations are small, so this is rare.
+export const JUMP_MAX_NEWER = 500;
+
+// The thread as the chat opens it for a jump to `messageId` (KAN-160): the
+// page that ends at the target plus every newer message, so it still joins up
+// with the newest and the poll cursor stays valid. Null when the message is
+// not in this conversation or too far back.
+export const listMessagesAround = async (
+  conversationId: number,
+  messageId: number,
+) => {
+  const [target] = await db
+    .select({ id: chatMessages.id })
+    .from(chatMessages)
+    .where(
+      and(
+        eq(chatMessages.id, messageId),
+        eq(chatMessages.conversationId, conversationId),
+      ),
+    );
+
+  if (!target) {
+    return null;
+  }
+  const [older, newerRows] = await Promise.all([
+    listMessages(conversationId, { before: messageId + 1 }),
+    db
+      .select(messageColumns)
+      .from(chatMessages)
+      .leftJoin(admins, eq(admins.id, chatMessages.senderAdminId))
+      .where(
+        and(
+          eq(chatMessages.conversationId, conversationId),
+          gt(chatMessages.id, messageId),
+        ),
+      )
+      .orderBy(asc(chatMessages.id))
+      .limit(JUMP_MAX_NEWER + 1),
+  ]);
+
+  if (newerRows.length > JUMP_MAX_NEWER) {
+    return null;
+  }
+  return {
+    messages: [...older.messages, ...(await hydrateMessages(newerRows))],
+    hasMore: older.hasMore,
+  };
+};
+
 // Messages edited, unsent or reacted to after `changedSince` (epoch ms),
 // oldest change first. When more than one page changed, lastChangeAt is the
 // newest change actually returned so the next request continues from there.
@@ -679,11 +730,12 @@ export const listUnreadByTraineeForAdmin = async (adminId: number) => {
   });
 };
 
-// Username of the PT who wrote the newest admin message, for the trainee's
-// header. Null when no admin has written yet or that admin was deleted.
-export const findLatestAdminSenderName = async (conversationId: number) => {
+// The PT who wrote the newest admin message, for the trainee's header and chat
+// info page. Null when no admin has written yet; `name` is null when that
+// admin was deleted.
+export const findLatestAdminSender = async (conversationId: number) => {
   const [row] = await db
-    .select({ name: admins.username })
+    .select({ id: chatMessages.senderAdminId, name: admins.username })
     .from(chatMessages)
     .leftJoin(admins, eq(admins.id, chatMessages.senderAdminId))
     .where(
@@ -695,8 +747,12 @@ export const findLatestAdminSenderName = async (conversationId: number) => {
     .orderBy(desc(chatMessages.id))
     .limit(1);
 
-  return row?.name ?? null;
+  return row ?? null;
 };
+
+// Username of that PT; null when none or deleted.
+export const findLatestAdminSenderName = async (conversationId: number) =>
+  (await findLatestAdminSender(conversationId))?.name ?? null;
 
 export interface InboxItem {
   conversationId: number;

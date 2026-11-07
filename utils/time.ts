@@ -25,6 +25,10 @@ export const formatShortDate = (timestamp: number, timeZone: string) => {
   return `${getPart("day")}/${getPart("month")}`;
 };
 
+// "05/10 18:30" in the given time zone.
+export const formatShortDateTime = (timestamp: number, timeZone: string) =>
+  `${formatShortDate(timestamp, timeZone)} ${formatClockTime(timestamp, timeZone)}`;
+
 // "vừa xong", "5 phút trước", "3 giờ trước", "2 ngày trước", then "05/10".
 export const formatRelativeTime = (
   timestamp: number,

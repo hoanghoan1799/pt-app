@@ -86,3 +86,15 @@ Hiding a chat left the trainee visible elsewhere (dashboard list, the user's Mes
 - R8 Tapping a sticker or photo sticker in a chat bubble opens it in the full-screen viewer (`AvatarLightbox`).
 - Delivery: PRs into `main`, e2e skipped, self-merge on green CI, no Jira.
 - Schema lesson: new columns on existing tables must be nullable (see #121).
+
+## Round 3: chat info page, photo gallery, message search (Hoan, 2026-11-07)
+
+Builds after photo sending. Decisions:
+
+- G1 Gallery lists photos sent with the photo feature (not stickers), 3-column grid, newest first, both roles.
+- G2 Each tile shows the sender's small avatar (initials when none) in the bottom-right corner.
+- G3 Tap opens the full-screen viewer with previous/next (swipe or arrows), "Tải xuống" (download the photo) and "Xem trong tin nhắn": opens the chat scrolled to that message, highlighted ~2 s, loading older pages until it is found.
+- S1 Message search runs inside the open conversation only, 2+ characters, accent-insensitive.
+- S2 Results show the matching snippet in bold and the date; tap jumps to the message as in G3.
+- T1 Tapping the peer avatar/name or the gear opens a chat info page (replaces the settings sheet), laid out like Messenger's chat info: large peer photo (tap to enlarge), name, presence; a row of round buttons ("Tìm kiếm", "Tuỳ chỉnh"); a photo preview block with a "Ảnh đã gửi" row opening the full gallery page; an actions list (current sheet settings, "Ẩn học viên" for admins). Search and gallery are their own sub-pages; Back returns to the chat.
+- Delivery: PRs into `main`, e2e skipped, self-merge on green CI, no Jira.
