@@ -31,7 +31,6 @@ import type { ThreadSnapshot } from "@/features/chat/hooks/use-chat-messages";
 import { useChatMessages } from "@/features/chat/hooks/use-chat-messages";
 import { useChatTransport } from "@/features/chat/hooks/use-chat-transport";
 import { usePeerPresence } from "@/features/chat/hooks/use-peer-presence";
-import type { ChatColorKey } from "@/features/chat/utils/chat-palette";
 import {
   adminLabel,
   bubbleColorFor,
@@ -80,15 +79,11 @@ export interface ChatThreadProps {
   // Real name of the other side before any PT message names them (trainee).
   fallbackPeerName?: string;
   viewer?: ThreadViewer;
-  // Admin only: the saved account colour, preselected in the settings sheet.
-  accountColor?: ChatColorKey | null;
   emptyText?: string;
   ariaLabel?: string;
   // Photos of the people in this thread (versioned /api/avatar URLs), keyed
   // like nicknames: "user" or "admin:<id>". Only people with a photo.
   avatars?: Readonly<Record<string, string>>;
-  // The viewer's own saved photo, editable in the settings sheet.
-  selfAvatarUrl?: string | null;
 }
 
 const NO_AVATARS: Readonly<Record<string, string>> = {};
@@ -154,13 +149,11 @@ export const ChatThread = ({
   conversationId,
   header,
   viewer = USER_VIEWER,
-  accountColor = null,
   selfName = "Bạn",
   fallbackPeerName = "PT",
   emptyText,
   ariaLabel = TRAINEE_ARIA_LABEL,
   avatars = NO_AVATARS,
-  selfAvatarUrl = null,
 }: ChatThreadProps) => {
   const isAdmin = viewer.role === "admin";
   const [isVisible, setIsVisible] = useState(true);
@@ -195,10 +188,6 @@ export const ChatThread = ({
   const [highlightId, setHighlightId] = useState<number | null>(null);
   const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  // Set once the viewer saves or removes their own photo in the sheet.
-  const [savedSelfAvatar, setSavedSelfAvatar] = useState<
-    string | null | undefined
-  >(undefined);
   // The panel mounts on the first tap and stays, so its sheet can animate out.
   const [isStickerOpen, setIsStickerOpen] = useState(false);
   const [hasStickerPanel, setHasStickerPanel] = useState(false);
@@ -727,13 +716,8 @@ export const ChatThread = ({
         selfName={viewer.role === "admin" ? viewer.adminName : selfName}
         profile={profile}
         onProfileChange={chat.setProfile}
-        accountColor={accountColor}
-        onSync={sync}
         chatEnabled={chatEnabled}
-        selfAvatarUrl={
-          savedSelfAvatar === undefined ? selfAvatarUrl : savedSelfAvatar
-        }
-        onAvatarChange={setSavedSelfAvatar}
+        peerAvatarUrl={peerAvatar}
       />
     </div>
   );
