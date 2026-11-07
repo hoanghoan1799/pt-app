@@ -19,7 +19,7 @@ export const AUTH_MESSAGES = {
   PASSCODE_SIGNED_OUT: "Nhập sai mã khoá quá nhiều lần. Bạn đã bị đăng xuất.",
   PASSCODE_SAME: "Mã khoá mới phải khác mã khoá hiện tại",
   PASSCODE_HAS_HIDDEN_CHATS:
-    "Hãy bỏ ẩn các cuộc trò chuyện đã ẩn trước khi tắt mã khoá",
+    "Hãy bỏ ẩn các học viên đã ẩn trước khi tắt mã khoá",
   PASSCODE_RESET_PASSWORD_WRONG: "Mật khẩu không đúng",
 } as const;
 

@@ -2,8 +2,10 @@
 
 import clsx from "clsx";
 import Image from "next/image";
+import { useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
+import { AvatarLightbox } from "@/components/common/AvatarLightbox";
 import { useBubbleGesture } from "@/features/chat/hooks/use-bubble-gesture";
 import {
   CHAT_TEXT_ON_COLOR,
@@ -45,7 +47,8 @@ interface MessageBubbleProps {
 
 // One chat bubble: mine right in the accent colour, the other side left. Spacing is
 // tighter inside a run; the other side's avatar sits on the last bubble of a run.
-// Double-tap hearts it, long-press (or Enter / the context-menu key) opens the
+// Double-tap hearts it, a single tap on a sticker opens it full screen (after
+// the double-tap window, so a heart never opens the viewer), long-press (or Enter / the context-menu key) opens the
 // actions sheet; text selection is off so the long press is ours.
 export const MessageBubble = ({
   item,
@@ -79,9 +82,11 @@ export const MessageBubble = ({
   const isSticker = Boolean(sticker) && !isUnsent;
   // Only stored, not unsent messages have actions.
   const isInteractive = message.id !== null && !isUnsent;
+  const [isViewerOpen, setViewerOpen] = useState(false);
   const gesture = useBubbleGesture(isInteractive, {
     onDoubleTap: () => onToggleHeart(message),
     onLongPress: () => onOpenActions(message),
+    onSingleTap: sticker && isSticker ? () => setViewerOpen(true) : undefined,
   });
   const groups = isUnsent ? [] : groupReactions(message.reactions, viewer);
   const { replyTo } = message;
@@ -208,6 +213,16 @@ export const MessageBubble = ({
           )}
         </div>
       </div>
+      {sticker && isSticker && (
+        // Outside the gesture element: the portal's events bubble through
+        // React, and a tap in the viewer must not start a bubble gesture.
+        <AvatarLightbox
+          isOpen={isViewerOpen}
+          onClose={() => setViewerOpen(false)}
+          src={sticker.url}
+          name={sticker.alt}
+        />
+      )}
       {groups.length > 0 && (
         <div
           className={clsx(

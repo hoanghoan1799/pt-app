@@ -1,6 +1,7 @@
 // Touch gestures on a chat bubble, as pure timing rules (no React, no DOM):
-// double-tap toggles my heart, a long press opens the actions sheet, and a
-// finger that moves is a scroll, never a tap.
+// double-tap toggles my heart, a long press opens the actions sheet, a single
+// tap (optional) fires once the double-tap window has passed without a second
+// tap, and a finger that moves is a scroll, never a tap.
 
 export const DOUBLE_TAP_MS = 300;
 export const LONG_PRESS_MS = 450;
@@ -29,6 +30,9 @@ export const isDoubleTap = (previous: TimedPoint | null, next: TimedPoint) =>
 export interface GestureHandlers {
   onDoubleTap: () => void;
   onLongPress: () => void;
+  // Only after DOUBLE_TAP_MS with no second tap, so it never fires on the
+  // first tap of a double-tap.
+  onSingleTap?: () => void;
 }
 
 export interface GestureClock {
@@ -53,6 +57,14 @@ export const createGestureTracker = (
   let timer: unknown = null;
   let didLongPress = false;
   let lastTap: TimedPoint | null = null;
+  let singleTapTimer: unknown = null;
+
+  const clearSingleTap = () => {
+    if (singleTapTimer !== null) {
+      clock.clearTimer(singleTapTimer);
+      singleTapTimer = null;
+    }
+  };
 
   const clearPress = () => {
     if (timer !== null) {
@@ -74,6 +86,7 @@ export const createGestureTracker = (
         timer = null;
         didLongPress = true;
         lastTap = null;
+        clearSingleTap();
         handlers.onLongPress();
       }, LONG_PRESS_MS);
     },
@@ -95,15 +108,29 @@ export const createGestureTracker = (
       }
       const tap: TimedPoint = { ...point, time: clock.now() };
 
+      clearSingleTap();
       if (isDoubleTap(lastTap, tap)) {
         lastTap = null;
         handlers.onDoubleTap();
       } else {
         lastTap = tap;
+        singleTapTimer = clock.setTimer(() => {
+          singleTapTimer = null;
+          handlers.onSingleTap?.();
+        }, DOUBLE_TAP_MS);
       }
     },
+    // The browser took the touch over: the press and tap in progress are
+    // dropped. A finished tap still waiting for its double-tap window stays
+    // (pointerleave follows every touch release).
     cancel() {
       clearPress();
+      start = null;
+    },
+    // Unmount: nothing may fire any more.
+    dispose() {
+      clearPress();
+      clearSingleTap();
       start = null;
     },
   };

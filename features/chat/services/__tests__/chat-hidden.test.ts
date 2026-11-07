@@ -81,7 +81,7 @@ describe("hideConversations", () => {
 
     expect(result).toEqual({
       status: "error",
-      message: "Hãy đặt mã khoá trước khi ẩn cuộc trò chuyện.",
+      message: "Hãy đặt mã khoá trước khi ẩn học viên.",
     });
     expect(await db.select().from(adminHiddenUsers)).toHaveLength(0);
   });

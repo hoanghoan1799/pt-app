@@ -2,15 +2,15 @@
 
 import { useState } from "react";
 
+import { matchesInboxSearch } from "@/features/chat/utils/inbox-search";
 import type { MemberRow } from "@/features/dashboard/types/dashboard";
-import { toNameKey } from "@/utils/name";
 
+// Case- and diacritics-insensitive name filter ("Tìm học viên").
 export const useMemberSearch = (members: MemberRow[]) => {
   const [query, setQuery] = useState("");
-  const queryKey = toNameKey(query);
-  const filteredMembers = queryKey
-    ? members.filter((member) => toNameKey(member.name).includes(queryKey))
-    : members;
+  const filteredMembers = members.filter((member) =>
+    matchesInboxSearch(query, member.name),
+  );
 
   return { query, setQuery, filteredMembers };
 };

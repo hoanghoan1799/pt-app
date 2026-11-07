@@ -146,7 +146,7 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
         </div>
         <section className="space-y-2">
           <h2 className={SECTION_TITLE}>User · {members.length}</h2>
-          <MemberProgressList members={rows} />
+          <MemberProgressList members={rows} hasPasscode={admin.hasPasscode} />
         </section>
         <section className="space-y-2">
           <h2 className={SECTION_TITLE}>Hoạt động gần đây</h2>

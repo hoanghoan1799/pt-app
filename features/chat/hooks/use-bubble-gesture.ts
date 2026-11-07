@@ -24,16 +24,17 @@ const isInteractiveTarget = (target: EventTarget) =>
 // context-menu route to the same actions sheet. `isEnabled` false = inert.
 export const useBubbleGesture = (
   isEnabled: boolean,
-  { onDoubleTap, onLongPress }: GestureHandlers,
+  { onDoubleTap, onLongPress, onSingleTap }: GestureHandlers,
 ) => {
   const [tracker] = useState(() =>
-    createGestureTracker({ onDoubleTap, onLongPress }),
+    createGestureTracker({ onDoubleTap, onLongPress, onSingleTap }),
   );
 
   // Latest callbacks, without rebuilding the tracker (and losing a pending tap).
   useEffect(() => {
     tracker.setHandlers({
       onDoubleTap,
+      onSingleTap,
       onLongPress: () => {
         navigator.vibrate?.(HAPTIC_MS);
         onLongPress();
@@ -41,7 +42,7 @@ export const useBubbleGesture = (
     });
   });
 
-  useEffect(() => () => tracker.cancel(), [tracker]);
+  useEffect(() => () => tracker.dispose(), [tracker]);
 
   if (!isEnabled) {
     return {};
