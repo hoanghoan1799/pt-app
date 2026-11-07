@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
-import { pushSubscriptions, users } from "@/db/schema";
+import { adminHiddenUsers, pushSubscriptions, users } from "@/db/schema";
 
 const state = vi.hoisted(() => ({ db: null as unknown }));
 
@@ -121,6 +121,30 @@ describe("sendChatPush", () => {
       url: `/admin/users/${traineeId}/messages`,
       tag: "chat-3",
     });
+  });
+
+  it("announces a photo as '📷 Ảnh' and skips the admin who hid the trainee", async () => {
+    await addSub("admin:1", "a1");
+    await addSub("admin:2", "a2");
+    await db.insert(adminHiddenUsers).values({ adminId: 1, userId: traineeId });
+    const sender = vi.fn<
+      import("@/features/chat/services/chat-push").PushSender
+    >(async () => undefined);
+
+    await push.sendChatPush(
+      {
+        senderRole: "user",
+        traineeUserId: traineeId,
+        conversationId: 3,
+        photo: true,
+      },
+      sender,
+    );
+
+    expect(sender.mock.calls.map(([sub]) => sub.endpoint)).toEqual([
+      "https://push.example/a2",
+    ]);
+    expect(sender.mock.calls[0][1].body).toBe("Lan: 📷 Ảnh");
   });
 
   it("sends nothing and warns once when VAPID is missing", async () => {

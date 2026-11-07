@@ -23,6 +23,7 @@ import {
   chatMessageEdits,
   chatMessages,
   chatNicknames,
+  chatPhotos,
   chatReactions,
   chatReads,
   users,
@@ -38,6 +39,11 @@ import {
   USER_READER_KEY,
 } from "@/features/chat/utils/chat-rules";
 import { resolveDisplayName } from "@/features/chat/utils/display-name";
+import {
+  type ChatPhoto,
+  photoPreview,
+  toChatPhoto,
+} from "@/features/chat/utils/photo-rules";
 import {
   type ChatSticker,
   STICKER_PREVIEW,
@@ -61,6 +67,8 @@ export interface ChatReplyTo {
   body: string;
   // The quoted message is a sticker: the UI shows "Sticker".
   isSticker: boolean;
+  // The quoted message is a photo: the UI shows "Ảnh" when there is no text.
+  isPhoto: boolean;
   senderRole: "user" | "admin";
   deleted: boolean;
 }
@@ -75,6 +83,9 @@ export interface ChatMessage {
   body: string;
   // KAN-144: set for a sticker message (body is empty); null once unsent.
   sticker: ChatSticker | null;
+  // KAN-160: set for a photo message (body is the optional caption); null
+  // once unsent.
+  photo: ChatPhoto | null;
   clientId: string;
   createdAt: Date;
   replyTo: ChatReplyTo | null;
@@ -95,6 +106,7 @@ const messageColumns = {
   body: chatMessages.body,
   stickerRef: chatMessages.stickerRef,
   stickerUrl: chatMessages.stickerUrl,
+  photoId: chatMessages.photoId,
   clientId: chatMessages.clientId,
   createdAt: chatMessages.createdAt,
   replyToMessageId: chatMessages.replyToMessageId,
@@ -112,6 +124,7 @@ interface MessageRow {
   body: string;
   stickerRef: string | null;
   stickerUrl: string | null;
+  photoId: number | null;
   clientId: string;
   createdAt: Date;
   replyToMessageId: number | null;
@@ -138,7 +151,14 @@ const hydrateMessages = async (rows: MessageRow[]): Promise<ChatMessage[]> => {
   ];
   const liveIds = rows.filter((row) => !row.deletedAt).map((row) => row.id);
   const conversationIds = [...new Set(rows.map((row) => row.conversationId))];
-  const [targets, reactionRows, traineeRows] = await Promise.all([
+  const photoIds = [
+    ...new Set(
+      rows.flatMap((row) =>
+        row.photoId !== null && row.deletedAt === null ? [row.photoId] : [],
+      ),
+    ),
+  ];
+  const [targets, reactionRows, traineeRows, photoRows] = await Promise.all([
     replyIds.length === 0
       ? []
       : db
@@ -147,6 +167,7 @@ const hydrateMessages = async (rows: MessageRow[]): Promise<ChatMessage[]> => {
             conversationId: chatMessages.conversationId,
             body: chatMessages.body,
             stickerRef: chatMessages.stickerRef,
+            photoId: chatMessages.photoId,
             senderRole: chatMessages.senderRole,
             deletedAt: chatMessages.deletedAt,
           })
@@ -173,7 +194,19 @@ const hydrateMessages = async (rows: MessageRow[]): Promise<ChatMessage[]> => {
       .from(chatConversations)
       .innerJoin(users, eq(users.id, chatConversations.userId))
       .where(inArray(chatConversations.id, conversationIds)),
+    // Size only: the bytes are served by /api/chat/photos/<id>.
+    photoIds.length === 0
+      ? []
+      : db
+          .select({
+            id: chatPhotos.id,
+            width: chatPhotos.width,
+            height: chatPhotos.height,
+          })
+          .from(chatPhotos)
+          .where(inArray(chatPhotos.id, photoIds)),
   ]);
+  const photoSizeById = new Map(photoRows.map((row) => [row.id, row]));
   const targetById = new Map(targets.map((row) => [row.id, row]));
   const traineeName = new Map(
     traineeRows.map((row) => [row.conversationId, row.name]),
@@ -212,6 +245,7 @@ const hydrateMessages = async (rows: MessageRow[]): Promise<ChatMessage[]> => {
             id: target.id,
             body: target.deletedAt ? "" : toReplySnippet(target.body),
             isSticker: target.deletedAt === null && target.stickerRef !== null,
+            isPhoto: target.deletedAt === null && target.photoId !== null,
             senderRole: target.senderRole,
             deleted: target.deletedAt !== null,
           }
@@ -224,6 +258,9 @@ const hydrateMessages = async (rows: MessageRow[]): Promise<ChatMessage[]> => {
       senderAdminName: row.senderAdminName,
       body: deleted ? "" : row.body,
       sticker: deleted ? null : toChatSticker(row.stickerRef, row.stickerUrl),
+      photo: deleted
+        ? null
+        : toChatPhoto(row.photoId, photoSizeById.get(row.photoId ?? 0)),
       clientId: row.clientId,
       createdAt: row.createdAt,
       replyTo,
@@ -296,6 +333,7 @@ interface NewMessage {
   body: string;
   stickerRef?: string | null;
   stickerUrl?: string | null;
+  photoId?: number | null;
   clientId: string;
   replyToMessageId?: number | null;
 }
@@ -702,6 +740,7 @@ const loadInbox = async (adminId: number, hidden: boolean) => {
         avatarUpdatedAt: users.avatarUpdatedAt,
         lastBody: chatMessages.body,
         lastStickerRef: chatMessages.stickerRef,
+        lastPhotoId: chatMessages.photoId,
         lastDeletedAt: chatMessages.deletedAt,
         lastSenderRole: chatMessages.senderRole,
         lastSenderAdminId: chatMessages.senderAdminId,
@@ -783,7 +822,9 @@ const loadInbox = async (adminId: number, hidden: boolean) => {
       ? ""
       : row.lastStickerRef
         ? STICKER_PREVIEW
-        : toPreview(row.lastBody ?? ""),
+        : row.lastPhotoId
+          ? photoPreview(toPreview(row.lastBody ?? ""))
+          : toPreview(row.lastBody ?? ""),
     lastFromAdmin: row.lastSenderRole === "admin",
     lastSenderAdminId: row.lastSenderAdminId,
     lastSenderAdminName: row.lastSenderAdminName,
