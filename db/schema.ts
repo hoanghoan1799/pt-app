@@ -580,8 +580,8 @@ export const chatColorOverrides = sqliteTable(
   (table) => [primaryKey({ columns: [table.conversationId, table.adminId] })],
 );
 
-// Conversations an admin hid behind their passcode (KAN-160). Per admin: other
-// admins and the trainee see no change. No foreign keys, like the tables above.
+// Legacy (KAN-160 round 1): per-conversation hiding. App code no longer reads or
+// writes it; scripts/setup-database.ts moves its rows into adminHiddenUsers.
 export const chatHiddenConversations = sqliteTable(
   "chat_hidden_conversations",
   {
@@ -592,6 +592,20 @@ export const chatHiddenConversations = sqliteTable(
       .default(sql`(unixepoch())`),
   },
   (table) => [primaryKey({ columns: [table.adminId, table.conversationId] })],
+);
+
+// Trainees an admin hid behind their passcode (KAN-163). Per admin: other
+// admins and the trainee see no change. No foreign keys, like the tables above.
+export const adminHiddenUsers = sqliteTable(
+  "admin_hidden_users",
+  {
+    adminId: integer("admin_id").notNull(),
+    userId: integer("user_id").notNull(),
+    hiddenAt: integer("hidden_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [primaryKey({ columns: [table.adminId, table.userId] })],
 );
 
 // Read cursor per reader. readerKey is "user" or "admin:<id>".

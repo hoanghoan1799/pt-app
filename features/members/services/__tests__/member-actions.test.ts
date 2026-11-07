@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
 import {
+  adminHiddenUsers,
   chatColorOverrides,
   chatConversations,
-  chatHiddenConversations,
   chatMessages,
   chatNicknames,
   chatReads,
@@ -149,20 +149,20 @@ describe("deleteMemberAction chat cleanup", () => {
     const gone = await seedTrainee("An");
     const kept = await seedTrainee("Binh");
 
-    await db.insert(chatHiddenConversations).values([
-      { adminId: 1, conversationId: gone.conversationId },
-      { adminId: 2, conversationId: gone.conversationId },
-      { adminId: 1, conversationId: kept.conversationId },
+    await db.insert(adminHiddenUsers).values([
+      { adminId: 1, userId: gone.userId },
+      { adminId: 2, userId: gone.userId },
+      { adminId: 1, userId: kept.userId },
     ]);
 
     await deleteMemberAction(gone.userId);
 
     expect(
-      (await db.select().from(chatHiddenConversations)).map((r) => [
+      (await db.select().from(adminHiddenUsers)).map((r) => [
         r.adminId,
-        r.conversationId,
+        r.userId,
       ]),
-    ).toEqual([[1, kept.conversationId]]);
+    ).toEqual([[1, kept.userId]]);
   });
 
   it("removes the trainee's push subscriptions only", async () => {

@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
 import {
+  adminHiddenUsers,
   admins,
-  chatHiddenConversations,
   loginAttempts,
   pushSubscriptions,
   users,
@@ -83,7 +83,7 @@ describe("hideConversations", () => {
       status: "error",
       message: "Hãy đặt mã khoá trước khi ẩn cuộc trò chuyện.",
     });
-    expect(await db.select().from(chatHiddenConversations)).toHaveLength(0);
+    expect(await db.select().from(adminHiddenUsers)).toHaveLength(0);
   });
 
   it("hides many at once, ignores unknown ids and repeats", async () => {
@@ -100,12 +100,38 @@ describe("hideConversations", () => {
 
     expect(first).toEqual({ status: "success", hidden: 2 });
     expect(again).toEqual({ status: "success", hidden: 1 });
-    const rows = await db.select().from(chatHiddenConversations);
+    const rows = await db.select().from(adminHiddenUsers);
 
-    expect(rows.map((r) => [r.adminId, r.conversationId]).sort()).toEqual([
-      [A, t1.conversationId],
-      [A, t2.conversationId],
+    expect(rows.map((r) => [r.adminId, r.userId]).sort()).toEqual([
+      [A, t1.userId],
+      [A, t2.userId],
     ]);
+  });
+
+  it("hides trainees by id, with or without a conversation, ignoring unknown ids", async () => {
+    const t = await addTrainee("An");
+    const [fresh] = await db
+      .insert(users)
+      .values({ name: "Cuc", nameKey: "cuc", chatEnabled: true })
+      .returning({ id: users.id });
+
+    expect(await hidden.hideUsers(B, [t.userId])).toMatchObject({
+      status: "error",
+    });
+    expect(await hidden.hideUsers(A, [t.userId, fresh.id, 9999])).toEqual({
+      status: "success",
+      hidden: 2,
+    });
+    expect(await hidden.hideUsers(A, [t.userId])).toEqual({
+      status: "success",
+      hidden: 1,
+    });
+    expect(await db.select().from(adminHiddenUsers)).toHaveLength(2);
+
+    await hidden.unhideUser(A, fresh.id);
+    expect(
+      (await db.select().from(adminHiddenUsers)).map((r) => r.userId),
+    ).toEqual([t.userId]);
   });
 
   it("reports whether the current conversation is hidden, per admin", async () => {
@@ -157,6 +183,20 @@ describe("hidden conversations in the admin inbox and unread", () => {
     expect(inbox.withoutConversation.map((r) => r.userId)).toEqual([fresh.id]);
   });
 
+  it("leaves a hidden trainee without a conversation out of the inbox for that admin only", async () => {
+    const [fresh] = await db
+      .insert(users)
+      .values({ name: "Cuc", nameKey: "cuc", chatEnabled: true })
+      .returning({ id: users.id });
+
+    await hidden.hideUsers(A, [fresh.id]);
+
+    expect((await q.listAdminInbox(A)).withoutConversation).toEqual([]);
+    expect(
+      (await q.listAdminInbox(B)).withoutConversation.map((r) => r.userId),
+    ).toEqual([fresh.id]);
+  });
+
   it("restores the chat after unhide", async () => {
     const t = await addTrainee("An");
 
@@ -171,7 +211,7 @@ describe("hidden conversations in the admin inbox and unread", () => {
   });
 });
 
-describe("revealHiddenConversations", () => {
+describe("revealHiddenUsers", () => {
   it("returns only this admin's hidden chats, newest first, on the right code", async () => {
     const old = await addTrainee("An");
     const recent = await addTrainee("Binh");
@@ -186,7 +226,7 @@ describe("revealHiddenConversations", () => {
     ]);
     await hidden.hideConversations(B, [others.conversationId]);
 
-    const result = await hidden.revealHiddenConversations(A, "1234");
+    const result = await hidden.revealHiddenUsers(A, "1234");
 
     expect(result.status).toBe("success");
     if (result.status !== "success") {
@@ -201,6 +241,25 @@ describe("revealHiddenConversations", () => {
       preview: "new",
       unread: 1,
     });
+    expect(result.users.map((u) => u.userName)).toEqual(["An", "Binh"]);
+  });
+
+  it("also lists a hidden trainee without a conversation", async () => {
+    const [fresh] = await db
+      .insert(users)
+      .values({ name: "Cuc", nameKey: "cuc", chatEnabled: true })
+      .returning({ id: users.id });
+
+    await hidden.hideUsers(A, [fresh.id]);
+
+    const result = await hidden.revealHiddenUsers(A, "1234");
+
+    expect(result).toMatchObject({
+      status: "success",
+      conversations: [],
+      users: [{ userId: fresh.id, userName: "Cuc" }],
+      withoutConversation: [{ userId: fresh.id }],
+    });
   });
 
   it("answers a generic no-match to a wrong code, never the chats", async () => {
@@ -208,11 +267,11 @@ describe("revealHiddenConversations", () => {
 
     await hidden.hideConversations(A, [t.conversationId]);
 
-    expect(await hidden.revealHiddenConversations(A, "0000")).toEqual({
+    expect(await hidden.revealHiddenUsers(A, "0000")).toEqual({
       status: "error",
       message: "Không khớp",
     });
-    expect(await hidden.revealHiddenConversations(B, "1234")).toEqual({
+    expect(await hidden.revealHiddenUsers(B, "1234")).toEqual({
       status: "error",
       message: "Không khớp",
     });
@@ -223,10 +282,10 @@ describe("revealHiddenConversations", () => {
 
     await hidden.hideConversations(A, [t.conversationId]);
     for (let i = 0; i < 5; i += 1) {
-      await hidden.revealHiddenConversations(A, "0000");
+      await hidden.revealHiddenUsers(A, "0000");
     }
 
-    expect(await hidden.revealHiddenConversations(A, "1234")).toEqual({
+    expect(await hidden.revealHiddenUsers(A, "1234")).toEqual({
       status: "error",
       message: "Không khớp",
     });
@@ -244,14 +303,14 @@ describe("revealHiddenConversations", () => {
   });
 
   it("clears the failures after a right code", async () => {
-    await hidden.revealHiddenConversations(A, "0000");
-    await hidden.revealHiddenConversations(A, "1234");
+    await hidden.revealHiddenUsers(A, "0000");
+    await hidden.revealHiddenUsers(A, "1234");
 
     expect(await db.select().from(loginAttempts)).toHaveLength(0);
   });
 });
 
-describe("push to an admin who hid the chat", () => {
+describe("push to an admin who hid the trainee", () => {
   const addSub = (ownerKey: string, name: string) =>
     db.insert(pushSubscriptions).values({
       ownerKey,
@@ -301,6 +360,25 @@ describe("push to an admin who hid the chat", () => {
       sender,
     );
     expect(sender).toHaveBeenCalledTimes(2);
+  });
+
+  it("skips the push for a trainee hidden by id", async () => {
+    const t = await addTrainee("An");
+    const sender = vi.fn<
+      import("@/features/chat/services/chat-push").PushSender
+    >(async () => undefined);
+
+    await addSub(`admin:${A}`, "a");
+    await hidden.hideUsers(A, [t.userId]);
+    await push.sendChatPush(
+      {
+        senderRole: "user",
+        traineeUserId: t.userId,
+        conversationId: t.conversationId,
+      },
+      sender,
+    );
+    expect(sender).not.toHaveBeenCalled();
   });
 
   it("skips the reaction push to an admin who hid the chat", async () => {

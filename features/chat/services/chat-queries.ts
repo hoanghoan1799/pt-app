@@ -20,7 +20,6 @@ import { db } from "@/db";
 import {
   admins,
   chatConversations,
-  chatHiddenConversations,
   chatMessageEdits,
   chatMessages,
   chatNicknames,
@@ -44,6 +43,10 @@ import {
   STICKER_PREVIEW,
   toChatSticker,
 } from "@/features/chat/utils/sticker-rules";
+import {
+  hiddenConversationIdsOf,
+  hiddenUserIdsOf,
+} from "@/services/hidden-users";
 
 export interface ChatReaction {
   emoji: string;
@@ -547,14 +550,6 @@ export const saveReadCursor = async (
 
 // Messages from the other side that this reader has not read yet, per
 // conversation. One grouped query; the reader's cursor is joined in.
-// Conversations this admin hid (KAN-163): left out of every admin-side list,
-// count and push, per admin.
-const hiddenIdsOf = (adminId: number) =>
-  db
-    .select({ id: chatHiddenConversations.conversationId })
-    .from(chatHiddenConversations)
-    .where(eq(chatHiddenConversations.adminId, adminId));
-
 const unreadByConversation = (
   senderRole: "user" | "admin",
   readerKey: string,
@@ -581,7 +576,7 @@ const unreadByConversation = (
           ? undefined
           : notInArray(
               chatMessages.conversationId,
-              hiddenIdsOf(hiddenForAdminId),
+              hiddenConversationIdsOf(hiddenForAdminId),
             ),
         gt(chatMessages.id, sql`coalesce(${chatReads.lastReadMessageId}, 0)`),
       ),
@@ -693,7 +688,7 @@ export interface InboxWithoutConversation {
   avatarUrl: string | null;
 }
 
-// `hidden: false` is the normal inbox (this admin's hidden chats left out);
+// `hidden: false` is the normal inbox (this admin's hidden trainees left out);
 // `hidden: true` is only those, for the passcode reveal (KAN-163).
 const loadInbox = async (adminId: number, hidden: boolean) => {
   const [rows, unreadRows, fresh] = await Promise.all([
@@ -722,8 +717,8 @@ const loadInbox = async (adminId: number, hidden: boolean) => {
       .leftJoin(admins, eq(admins.id, chatMessages.senderAdminId))
       .where(
         hidden
-          ? inArray(chatConversations.id, hiddenIdsOf(adminId))
-          : notInArray(chatConversations.id, hiddenIdsOf(adminId)),
+          ? inArray(chatConversations.userId, hiddenUserIdsOf(adminId))
+          : notInArray(chatConversations.userId, hiddenUserIdsOf(adminId)),
       )
       .orderBy(
         sql`${chatConversations.lastMessageAt} is null`,
@@ -731,19 +726,25 @@ const loadInbox = async (adminId: number, hidden: boolean) => {
         desc(chatConversations.id),
       ),
     unreadByConversation("user", adminReaderKey(adminId)),
-    hidden
-      ? []
-      : db
-          .select({
-            userId: users.id,
-            userName: users.name,
-            lastSeenAt: users.lastSeenAt,
-            avatarUpdatedAt: users.avatarUpdatedAt,
-          })
-          .from(users)
-          .leftJoin(chatConversations, eq(chatConversations.userId, users.id))
-          .where(and(eq(users.chatEnabled, true), isNull(chatConversations.id)))
-          .orderBy(asc(users.name)),
+    db
+      .select({
+        userId: users.id,
+        userName: users.name,
+        lastSeenAt: users.lastSeenAt,
+        avatarUpdatedAt: users.avatarUpdatedAt,
+      })
+      .from(users)
+      .leftJoin(chatConversations, eq(chatConversations.userId, users.id))
+      .where(
+        and(
+          eq(users.chatEnabled, true),
+          isNull(chatConversations.id),
+          hidden
+            ? inArray(users.id, hiddenUserIdsOf(adminId))
+            : notInArray(users.id, hiddenUserIdsOf(adminId)),
+        ),
+      )
+      .orderBy(asc(users.name)),
   ]);
   const nicknameRows =
     rows.length === 0
@@ -803,6 +804,7 @@ const loadInbox = async (adminId: number, hidden: boolean) => {
 
 export const listAdminInbox = (adminId: number) => loadInbox(adminId, false);
 
-// This admin's hidden conversations, newest first, in the inbox item shape.
-export const listHiddenInboxForAdmin = async (adminId: number) =>
-  (await loadInbox(adminId, true)).conversations;
+// This admin's hidden trainees in the inbox shapes: conversations newest
+// first, then the ones nobody has written to yet.
+export const listHiddenInboxForAdmin = (adminId: number) =>
+  loadInbox(adminId, true);

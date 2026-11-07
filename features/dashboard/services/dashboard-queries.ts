@@ -12,6 +12,7 @@ import {
   isNotNull,
   lte,
   max,
+  notInArray,
 } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -33,13 +34,17 @@ import {
   mergeActivity,
 } from "@/features/dashboard/utils/activity";
 import { groupSetRows } from "@/features/workouts/utils/set-rows";
+import { hiddenUserIdsOf } from "@/services/hidden-users";
 import { getWeekDates } from "@/utils/week";
 
 const toEpochMs = (value: Date | number | null | undefined) =>
   value instanceof Date ? value.getTime() : (value ?? null);
 
+// Trainees `adminId` hid are left out (KAN-163), so the list and the totals
+// built from it never count them.
 export const getMemberProgress = async (
   weekStart: string,
+  adminId: number,
 ): Promise<MemberProgress[]> => {
   const dates = getWeekDates(weekStart);
   const inWeek = between(workoutDays.date, dates[0], dates[dates.length - 1]);
@@ -49,6 +54,7 @@ export const getMemberProgress = async (
       db
         .select({ id: users.id, name: users.name })
         .from(users)
+        .where(notInArray(users.id, hiddenUserIdsOf(adminId)))
         .orderBy(asc(users.nameKey)),
       db
         .select({
@@ -109,11 +115,15 @@ export const getMemberProgress = async (
 interface RecentActivityOptions {
   limit: number;
   userId?: number;
+  // Leave out the trainees this admin hid (KAN-163). The per-trainee page
+  // passes `userId` and is guarded separately.
+  adminId?: number;
 }
 
 const getRecentCompletions = async ({
   limit,
   userId,
+  adminId,
 }: RecentActivityOptions): Promise<ActivityItem[]> => {
   const rows = await db
     .select({
@@ -128,7 +138,14 @@ const getRecentCompletions = async ({
     .innerJoin(exercises, eq(exercises.id, exerciseCompletions.exerciseId))
     .innerJoin(workoutDays, eq(workoutDays.id, exercises.dayId))
     .innerJoin(users, eq(users.id, exerciseCompletions.userId))
-    .where(userId ? eq(exerciseCompletions.userId, userId) : undefined)
+    .where(
+      and(
+        userId ? eq(exerciseCompletions.userId, userId) : undefined,
+        adminId === undefined
+          ? undefined
+          : notInArray(exerciseCompletions.userId, hiddenUserIdsOf(adminId)),
+      ),
+    )
     .orderBy(desc(exerciseCompletions.completedAt))
     .limit(limit);
 
@@ -146,6 +163,7 @@ const getRecentCompletions = async ({
 const getRecentPersonalBests = async ({
   limit,
   userId,
+  adminId,
 }: RecentActivityOptions): Promise<ActivityItem[]> => {
   const lastSavedAt = max(exerciseSets.createdAt);
   const window = await db
@@ -165,6 +183,9 @@ const getRecentPersonalBests = async ({
       and(
         isNotNull(exerciseSets.weightKg),
         userId ? eq(exerciseSets.userId, userId) : undefined,
+        adminId === undefined
+          ? undefined
+          : notInArray(exerciseSets.userId, hiddenUserIdsOf(adminId)),
       ),
     )
     .groupBy(exerciseSets.exerciseId)

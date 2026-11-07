@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isLockedFor } from "@/utils/admin-lock-rules";
+import { isLockedFor, isRevealValidFor } from "@/utils/admin-lock-rules";
 
 const NOW = 1_000;
 const admin = { id: 7, hasPasscode: true };
@@ -30,6 +30,21 @@ describe("isLockedFor", () => {
   it("locks when the proof belongs to another admin", () => {
     expect(isLockedFor(admin, { adminId: 8, expiresAt: NOW + 300 }, NOW)).toBe(
       true,
+    );
+  });
+});
+
+describe("isRevealValidFor", () => {
+  it("needs an unexpired proof of the same admin", () => {
+    expect(isRevealValidFor(7, null, NOW)).toBe(false);
+    expect(isRevealValidFor(7, { adminId: 7, expiresAt: NOW + 1 }, NOW)).toBe(
+      true,
+    );
+    expect(isRevealValidFor(7, { adminId: 8, expiresAt: NOW + 1 }, NOW)).toBe(
+      false,
+    );
+    expect(isRevealValidFor(7, { adminId: 7, expiresAt: NOW }, NOW)).toBe(
+      false,
     );
   });
 });

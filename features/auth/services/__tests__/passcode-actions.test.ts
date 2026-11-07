@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
-import { admins, chatHiddenConversations, loginAttempts } from "@/db/schema";
+import { adminHiddenUsers, admins, loginAttempts } from "@/db/schema";
 
 const state = vi.hoisted(() => ({
   db: null as unknown,
@@ -20,6 +20,7 @@ vi.mock("@/db", () => ({
 vi.mock("@/services/admin-lock", () => ({
   issueUnlock: vi.fn(async () => undefined),
   clearUnlock: vi.fn(async () => undefined),
+  clearReveal: vi.fn(async () => undefined),
 }));
 vi.mock("@/services/session", () => ({
   endSession: vi.fn(async () => undefined),
@@ -226,17 +227,15 @@ describe("turnOffPasscode", () => {
       .values({ username: "b", usernameKey: "b", passwordHash: "x" })
       .returning({ id: admins.id });
 
-    await db
-      .insert(chatHiddenConversations)
-      .values({ adminId: other.id, conversationId: 1 });
+    await db.insert(adminHiddenUsers).values({ adminId: other.id, userId: 1 });
     expect(await actions.turnOffPasscode("1234")).toEqual({
       status: "success",
     });
 
     await withPasscode("1234");
     await db
-      .insert(chatHiddenConversations)
-      .values({ adminId: state.adminId, conversationId: 2 });
+      .insert(adminHiddenUsers)
+      .values({ adminId: state.adminId, userId: 2 });
 
     expect(await actions.turnOffPasscode("1234")).toEqual({
       status: "error",

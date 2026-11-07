@@ -64,8 +64,8 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     avatarUrl,
     accountColor,
   ] = await Promise.all([
-    getMemberProgress(schedule.weekStart),
-    getRecentActivity({ limit: RECENT_ACTIVITY_LIMIT }),
+    getMemberProgress(schedule.weekStart, admin.id),
+    getRecentActivity({ limit: RECENT_ACTIVITY_LIMIT, adminId: admin.id }),
     countUnreadForAdmin(admin.id),
     listUnreadByTraineeForAdmin(admin.id),
     getAvatarUrl("admin", admin.id),

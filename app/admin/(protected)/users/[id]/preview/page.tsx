@@ -8,6 +8,7 @@ import { TIME_ZONE } from "@/constants/time";
 import { WorkoutWeek } from "@/features/workouts/components/WorkoutWeek";
 import { getWeekScheduleWithSets } from "@/features/workouts/services/workout-queries";
 import { requireAdmin } from "@/services/auth-guard";
+import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
 import { getAdminPreviewPath, getAdminUserPath } from "@/utils/routes";
 import { readSearchParam } from "@/utils/search-params";
@@ -19,12 +20,12 @@ const AdminPreviewPage = async ({
   params,
   searchParams,
 }: PageProps<"/admin/users/[id]/preview">) => {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const { id } = await params;
   const user = await findUserById(Number(id));
 
-  if (!user) {
+  if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
     notFound();
   }
 

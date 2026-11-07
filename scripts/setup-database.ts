@@ -3,6 +3,7 @@
 //   2. creates the first admin from ADMIN_USERNAME / ADMIN_PASSWORD when the
 //      database has no admin yet (an existing admin is never overwritten)
 //   3. adds the starter food library when the foods table is empty
+//   4. moves legacy hidden conversations to hidden trainees (KAN-163)
 //
 // Runs automatically before `next build` on Vercel (see "build" in
 // package.json); run `pnpm db:setup` to do the same by hand.
@@ -16,6 +17,7 @@ import {
 } from "@/constants/password";
 import { db } from "@/db";
 import { admins, foods } from "@/db/schema";
+import { moveHiddenConversationsToUsers } from "@/features/chat/services/hidden-users-migration";
 import { insertMissingSeedFoods } from "@/features/foods/services/seed-foods-service";
 import { describeDatabaseConfig } from "@/services/env";
 import { hashPassword } from "@/services/password";
@@ -85,6 +87,14 @@ const seedFoodLibrary = async () => {
   console.log(`✔ Đã thêm ${added} món mẫu vào thư viện thực phẩm`);
 };
 
+const migrateHiddenConversations = async () => {
+  const moved = await moveHiddenConversationsToUsers(db);
+
+  if (moved > 0) {
+    console.log(`✔ Đã chuyển ${moved} cuộc trò chuyện ẩn sang học viên ẩn`);
+  }
+};
+
 const setupDatabase = async () => {
   if (IS_PREBUILD && !process.env.VERCEL) {
     // Local `pnpm build` must not touch the database.
@@ -94,6 +104,7 @@ const setupDatabase = async () => {
   pushSchema();
   await createFirstAdmin();
   await seedFoodLibrary();
+  await migrateHiddenConversations();
 };
 
 setupDatabase().catch((error) => {

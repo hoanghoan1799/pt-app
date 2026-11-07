@@ -14,9 +14,9 @@ import {
   shouldSignOut,
 } from "@/features/auth/utils/passcode-rules";
 import { withResultErrorHandling } from "@/services/action-errors";
-import { clearUnlock, issueUnlock } from "@/services/admin-lock";
+import { clearReveal, clearUnlock, issueUnlock } from "@/services/admin-lock";
 import {
-  countHiddenConversations,
+  countHiddenUsers,
   findAdminSecrets,
   recordPasscodeFailure,
   resetPasscodeFailures,
@@ -172,7 +172,7 @@ export const turnOffPasscode = withResultErrorHandling(
     if (rejection) {
       return rejection;
     }
-    if ((await countHiddenConversations(admin.id)) > 0) {
+    if ((await countHiddenUsers(admin.id)) > 0) {
       return fail(AUTH_MESSAGES.PASSCODE_HAS_HIDDEN_CHATS);
     }
     await setAdminPasscodeHash(admin.id, null);
@@ -200,6 +200,8 @@ export const verifyPasscode = withResultErrorHandling(
     if (rejection) {
       return rejection;
     }
+    // Coming back from a lock starts without revealed trainees (KAN-163).
+    await clearReveal();
     await issueUnlock(admin.id);
     return SUCCESS;
   },

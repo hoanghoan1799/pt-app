@@ -3,7 +3,7 @@ import "server-only";
 import { eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { admins, chatHiddenConversations } from "@/db/schema";
+import { adminHiddenUsers,admins } from "@/db/schema";
 import { toUsernameKey } from "@/utils/username";
 
 export const findAdminById = async (id: number) => {
@@ -80,11 +80,11 @@ export const resetPasscodeFailures = async (id: number) => {
     .where(eq(admins.id, id));
 };
 
-export const countHiddenConversations = async (adminId: number) => {
+export const countHiddenUsers = async (adminId: number) => {
   const [row] = await db
     .select({ total: sql<number>`count(*)`.mapWith(Number) })
-    .from(chatHiddenConversations)
-    .where(eq(chatHiddenConversations.adminId, adminId));
+    .from(adminHiddenUsers)
+    .where(eq(adminHiddenUsers.adminId, adminId));
 
   return row?.total ?? 0;
 };
