@@ -34,6 +34,16 @@ export const admins = sqliteTable("admins", {
   // whenever `avatar` is, and versions the /api/avatar URL.
   avatar: text("avatar"),
   avatarUpdatedAt: integer("avatar_updated_at", { mode: "timestamp" }),
+  // Admin passcode (KAN-160): scrypt hash of a 4-digit code, see
+  // services/password.ts. Null = no passcode, no lock.
+  passcodeHash: text("passcode_hash"),
+  // Wrong passcodes in a row; the 5th signs the admin out and resets it.
+  passcodeFailedCount: integer("passcode_failed_count").notNull().default(0),
+  // "Trạng thái hoạt động" switch: true hides this admin's online status
+  // from trainees.
+  presenceHidden: integer("presence_hidden", { mode: "boolean" })
+    .notNull()
+    .default(false),
   createdAt: createdAt(),
 });
 
@@ -566,6 +576,20 @@ export const chatColorOverrides = sqliteTable(
     color: text("color").notNull(),
   },
   (table) => [primaryKey({ columns: [table.conversationId, table.adminId] })],
+);
+
+// Conversations an admin hid behind their passcode (KAN-160). Per admin: other
+// admins and the trainee see no change. No foreign keys, like the tables above.
+export const chatHiddenConversations = sqliteTable(
+  "chat_hidden_conversations",
+  {
+    adminId: integer("admin_id").notNull(),
+    conversationId: integer("conversation_id").notNull(),
+    hiddenAt: integer("hidden_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [primaryKey({ columns: [table.adminId, table.conversationId] })],
 );
 
 // Read cursor per reader. readerKey is "user" or "admin:<id>".

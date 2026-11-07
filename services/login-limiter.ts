@@ -9,6 +9,10 @@ import { isRecordLocked, nextFailureState } from "@/utils/login-limiter-rules";
 export const userLimiterKey = (emailKey: string) => `user:${emailKey}`;
 export const adminLimiterKey = (usernameKey: string) => `admin:${usernameKey}`;
 
+// Wrong account password in "Quên mã khoá" (KAN-160).
+export const passcodeResetLimiterKey = (adminId: number) =>
+  `passcode-reset:${adminId}`;
+
 const findRecord = async (key: string) => {
   const [record] = await db
     .select()
