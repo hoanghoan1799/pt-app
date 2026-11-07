@@ -1,9 +1,9 @@
 "use client";
 
 import clsx from "clsx";
-import { ChevronRight, SlidersHorizontal } from "lucide-react";
+import { ChevronRight, Search, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
 import { AvatarLightbox } from "@/components/common/AvatarLightbox";
@@ -40,8 +40,6 @@ export interface ChatInfoProps {
   paths: ChatPaths;
   // The newest photos, for the preview; empty when there are none.
   preview: GalleryPhoto[];
-  // Extra round buttons after "Tuỳ chỉnh" (search).
-  actions?: ReactNode;
 }
 
 const ROUND_BUTTON =
@@ -62,7 +60,6 @@ export const ChatInfo = ({
   peerAvatarUrl,
   paths,
   preview,
-  actions,
 }: ChatInfoProps) => {
   const isAdmin = viewer.role === "admin";
   const [profile, setProfile] = useState(initialProfile);
@@ -112,7 +109,15 @@ export const ChatInfo = ({
 
         <section aria-label="Công cụ">
           <ul className="flex items-start justify-center gap-8">
-            {actions}
+            <li className="flex w-20 flex-col items-center gap-1.5">
+              <Link href={paths.search} className={ROUND_BUTTON}>
+                <Search className="size-5" aria-hidden />
+                <span className="sr-only">Tìm kiếm</span>
+              </Link>
+              <span aria-hidden className="text-xs font-medium text-fg">
+                Tìm kiếm
+              </span>
+            </li>
             <li className="flex w-20 flex-col items-center gap-1.5">
               <button
                 type="button"
