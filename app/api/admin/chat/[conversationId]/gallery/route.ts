@@ -2,7 +2,10 @@ import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { loadGalleryForAdmin } from "@/features/chat/services/chat-gallery";
-import { parseGalleryCursor } from "@/features/chat/utils/gallery-rules";
+import {
+  parseGalleryCursor,
+  parseGalleryTab,
+} from "@/features/chat/utils/gallery-rules";
 import { getApiAdmin } from "@/services/auth-guard";
 
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -29,7 +32,12 @@ export const GET = async (
   if (!id.success || !cursor.ok) {
     return json({ error: "invalid_query" }, 400);
   }
-  const result = await loadGalleryForAdmin(admin.id, id.data, cursor.before);
+  const result = await loadGalleryForAdmin(
+    admin.id,
+    id.data,
+    cursor.before,
+    parseGalleryTab(request.nextUrl.searchParams.get("tab")),
+  );
 
   return result.status === "ok"
     ? json(result.page)

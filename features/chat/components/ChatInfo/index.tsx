@@ -195,7 +195,7 @@ export const ChatInfo = ({
             href={paths.photos}
             className="flex min-h-12 items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 text-base font-medium text-fg transition active:bg-line"
           >
-            <span>Ảnh đã gửi</span>
+            <span>Ảnh, sticker và link</span>
             <span className="flex items-center gap-1 text-sm text-muted">
               {preview.length === 0 && "Chưa có ảnh"}
               <ChevronRight className="size-5" aria-hidden />

@@ -64,8 +64,8 @@ const addMessage = async (
       senderAdminId: from === "admin" ? 1 : null,
       body: "",
       clientId: uuid(),
-      stickerRef: options.sticker ? "pack:wave" : null,
-      stickerUrl: options.sticker ? "/stickers/wave.webp" : null,
+      stickerRef: options.sticker ? "pack:trophy" : null,
+      stickerUrl: options.sticker ? "/stickers/fluent/trophy.svg" : null,
       deletedAt: options.deleted ? new Date() : null,
       createdAt: new Date(),
     })
@@ -369,5 +369,210 @@ describe("listMessagesAround", () => {
     expect(
       await queries.listMessagesAround(aliceConversation, 99999),
     ).toBeNull();
+  });
+});
+
+// Plain rows for the sticker and link tabs.
+const addText = async (
+  conversationId: number,
+  from: "user" | "admin",
+  fields: {
+    body?: string;
+    stickerRef?: string;
+    stickerUrl?: string;
+    deleted?: boolean;
+  },
+) => {
+  const [message] = await db
+    .insert(chatMessages)
+    .values({
+      conversationId,
+      senderRole: from,
+      senderAdminId: from === "admin" ? 1 : null,
+      body: fields.body ?? "",
+      clientId: uuid(),
+      stickerRef: fields.stickerRef ?? null,
+      stickerUrl: fields.stickerUrl ?? null,
+      deletedAt: fields.deleted ? new Date() : null,
+      createdAt: new Date(),
+    })
+    .returning({ id: chatMessages.id });
+
+  return message.id;
+};
+
+const GIPHY_URL = "https://media.giphy.com/media/abc123/giphy.gif";
+
+describe("listGalleryStickers", () => {
+  it("lists custom, pack and GIPHY stickers newest first, not photos or unsent", async () => {
+    const pack = await addText(aliceConversation, "user", {
+      stickerRef: "pack:trophy",
+      stickerUrl: "/stickers/fluent/trophy.svg",
+    });
+
+    await addMessage(aliceConversation, "user", { photo: true });
+    const custom = await addText(aliceConversation, "admin", {
+      stickerRef: "custom:7",
+      stickerUrl: "/api/chat/stickers/custom/7",
+    });
+    const giphy = await addText(aliceConversation, "user", {
+      stickerRef: "giphy:abc123",
+      stickerUrl: GIPHY_URL,
+    });
+
+    await addText(aliceConversation, "user", {
+      stickerRef: "custom:8",
+      stickerUrl: "/api/chat/stickers/custom/8",
+      deleted: true,
+    });
+    await addText(bobConversation, "user", {
+      stickerRef: "pack:trophy",
+      stickerUrl: "/stickers/fluent/trophy.svg",
+    });
+    await addText(aliceConversation, "user", { body: "just text" });
+
+    const page = await gallery.listGalleryStickers(aliceConversation);
+
+    expect(page.items.map((item) => [item.messageId, item.kind])).toEqual([
+      [giphy, "giphy"],
+      [custom, "custom"],
+      [pack, "pack"],
+    ]);
+    expect(page.items[1]).toMatchObject({
+      senderKey: "admin:1",
+      senderName: "pt1",
+      url: "/api/chat/stickers/custom/7",
+    });
+    expect(page.nextCursor).toBeNull();
+  });
+
+  it("skips a row whose ref and URL disagree and pages by cursor", async () => {
+    const first = await addText(aliceConversation, "user", {
+      stickerRef: "pack:trophy",
+      stickerUrl: "/stickers/fluent/trophy.svg",
+    });
+
+    await addText(aliceConversation, "user", {
+      stickerRef: "custom:3",
+      stickerUrl: "https://evil.example/x.png",
+    });
+    const third = await addText(aliceConversation, "user", {
+      stickerRef: "pack:trophy",
+      stickerUrl: "/stickers/fluent/trophy.svg",
+    });
+    const one = await gallery.listGalleryStickers(aliceConversation, {
+      limit: 1,
+    });
+
+    expect(one.items.map((item) => item.messageId)).toEqual([third]);
+    expect(one.nextCursor).toBe(third);
+    const two = await gallery.listGalleryStickers(aliceConversation, {
+      limit: 2,
+      before: one.nextCursor ?? undefined,
+    });
+
+    expect(two.items.map((item) => item.messageId)).toEqual([first]);
+    expect(two.nextCursor).toBeNull();
+  });
+});
+
+describe("listGalleryLinks", () => {
+  it("gives one row per URL of live text messages, newest first", async () => {
+    const older = await addText(aliceConversation, "user", {
+      body: "xem www.example.com/a, rồi https://b.org/x.",
+    });
+
+    await addText(aliceConversation, "user", { body: "không có link" });
+    await addText(aliceConversation, "user", {
+      body: "https://unsent.example/z",
+      deleted: true,
+    });
+    await addText(bobConversation, "user", { body: "https://bob.example/" });
+    const newer = await addText(aliceConversation, "admin", {
+      body: "javascript:alert(1) và https://c.vn/y",
+    });
+
+    const page = await gallery.listGalleryLinks(aliceConversation);
+
+    expect(page.items.map((item) => [item.messageId, item.href])).toEqual([
+      [newer, "https://c.vn/y"],
+      [older, "https://www.example.com/a"],
+      [older, "https://b.org/x"],
+    ]);
+    expect(page.items[0]).toMatchObject({
+      domain: "c.vn",
+      senderKey: "admin:1",
+      senderName: "pt1",
+    });
+    expect(page.items[1]).toMatchObject({
+      text: "www.example.com/a",
+      senderKey: "user",
+      senderName: "An",
+    });
+    expect(page.nextCursor).toBeNull();
+  });
+
+  it("pages by message, skipping messages that only look like links", async () => {
+    const ids: number[] = [];
+
+    for (let index = 0; index < 3; index += 1) {
+      ids.push(
+        await addText(aliceConversation, "user", {
+          body: `link https://site${index}.com/`,
+        }),
+      );
+      await addText(aliceConversation, "user", { body: "http:// nothing" });
+    }
+    const one = await gallery.listGalleryLinks(aliceConversation, {
+      limit: 2,
+    });
+
+    expect(one.items.map((item) => item.messageId)).toEqual([ids[2], ids[1]]);
+    expect(one.nextCursor).toBe(ids[1]);
+    const two = await gallery.listGalleryLinks(aliceConversation, {
+      limit: 2,
+      before: one.nextCursor ?? undefined,
+    });
+
+    expect(two.items.map((item) => item.messageId)).toEqual([ids[0]]);
+    expect(two.nextCursor).toBeNull();
+  });
+});
+
+describe("gallery routes by tab", () => {
+  it("serves the stickers and links tabs to the trainee, photos by default", async () => {
+    const photo = await addMessage(aliceConversation, "user", { photo: true });
+    const sticker = await addText(aliceConversation, "user", {
+      stickerRef: "pack:trophy",
+      stickerUrl: "/stickers/fluent/trophy.svg",
+    });
+    const link = await addText(aliceConversation, "user", {
+      body: "https://a.com/",
+    });
+    const ids = async (query: string) =>
+      (await (await getTrainee(query)).json()).items.map(
+        (item: { messageId: number }) => item.messageId,
+      );
+
+    expect(await ids("")).toEqual([photo.messageId]);
+    expect(await ids("?tab=bogus")).toEqual([photo.messageId]);
+    expect(await ids("?tab=stickers")).toEqual([sticker]);
+    expect(await ids("?tab=links")).toEqual([link]);
+  });
+
+  it("keeps the admin access rules for every tab", async () => {
+    await addText(aliceConversation, "user", { body: "https://a.com/" });
+    await db.insert(adminHiddenUsers).values({ adminId: 1, userId: alice });
+
+    asAdmin(1);
+    expect((await getAdmin(aliceConversation, "?tab=links")).status).toBe(404);
+    expect((await getAdmin(aliceConversation, "?tab=stickers")).status).toBe(
+      404,
+    );
+    asAdmin(2);
+    const response = await getAdmin(aliceConversation, "?tab=links");
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).items).toHaveLength(1);
   });
 });
