@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { KeyRound, LogOut, Settings, User } from "lucide-react";
+import { KeyRound, LockKeyhole, LogOut, Settings, User } from "lucide-react";
 import Link from "next/link";
 import {
   type KeyboardEvent,
@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON } from "@/constants/styles";
+import { PasscodeSettingsSheet } from "@/features/auth/components/PasscodeSettingsSheet";
 import {
   logoutAdminAction,
   logoutUserAction,
@@ -29,6 +30,8 @@ type MenuId = "gear" | "avatar";
 
 interface HeaderMenusProps {
   role: Role;
+  // Admins only: whether a lock passcode is set (decides set vs change/off).
+  hasPasscode?: boolean;
 }
 
 const ITEM =
@@ -52,8 +55,12 @@ const paintTheme = (theme: Theme) => {
 // The gear (Giao diện, Thông báo đẩy) and avatar (Đổi mật khẩu, Đăng xuất)
 // menus of the app header, shared by the trainee and admin sites. One menu is
 // open at a time; a tap outside or Esc closes it.
-export const HeaderMenus = ({ role }: HeaderMenusProps) => {
+export const HeaderMenus = ({
+  role,
+  hasPasscode = false,
+}: HeaderMenusProps) => {
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
+  const [isPasscodeOpen, setIsPasscodeOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>("system");
   const [, startTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -210,6 +217,20 @@ export const HeaderMenus = ({ role }: HeaderMenusProps) => {
               </div>
               <hr className="my-1 border-line" />
               <PushToggle role={role} itemClassName={ITEM} />
+              {role === "admin" && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={ITEM}
+                  onClick={() => {
+                    setOpenMenu(null);
+                    setIsPasscodeOpen(true);
+                  }}
+                >
+                  <LockKeyhole className="size-5 text-muted" aria-hidden />
+                  Mã khoá
+                </button>
+              )}
             </>
           ) : (
             <>
@@ -252,6 +273,13 @@ export const HeaderMenus = ({ role }: HeaderMenusProps) => {
             </>
           )}
         </div>
+      )}
+      {role === "admin" && (
+        <PasscodeSettingsSheet
+          isOpen={isPasscodeOpen}
+          onOpenChange={setIsPasscodeOpen}
+          hasPasscode={hasPasscode}
+        />
       )}
     </div>
   );

@@ -89,7 +89,7 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
                 className="absolute top-1 right-1"
               />
             </Link>
-            <HeaderMenus role="admin" />
+            <HeaderMenus role="admin" hasPasscode={admin.hasPasscode} />
           </>
         }
       />
