@@ -121,6 +121,8 @@ export interface SendChatPushInput {
   conversationId: number;
   // The message is a sticker (changes the push text, never carries content).
   sticker?: boolean;
+  // The message carries a photo (KAN-160): the text becomes "📷 Ảnh".
+  photo?: boolean;
 }
 
 const loadTargets = async (
@@ -185,7 +187,13 @@ const deliver = async (
 // counts. Trainee message -> every admin's devices; admin message -> the
 // trainee's devices. 404/410 means the subscription is dead and is dropped.
 export const sendChatPush = async (
-  { senderRole, traineeUserId, conversationId, sticker }: SendChatPushInput,
+  {
+    senderRole,
+    traineeUserId,
+    conversationId,
+    sticker,
+    photo,
+  }: SendChatPushInput,
   sender: PushSender = sendWithWebPush,
 ) => {
   try {
@@ -216,6 +224,7 @@ export const sendChatPush = async (
       traineeUserId,
       conversationId,
       sticker,
+      photo,
     });
 
     await deliver(targets, payload, vapid, sender);

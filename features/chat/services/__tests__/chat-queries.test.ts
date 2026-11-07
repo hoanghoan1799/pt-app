@@ -122,6 +122,7 @@ describe("listMessages", () => {
       "deleted",
       "editedAt",
       "id",
+      "photo",
       "reactions",
       "replyTo",
       "senderAdminId",

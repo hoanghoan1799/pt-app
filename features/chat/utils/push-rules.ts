@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { ROUTES } from "@/constants/routes";
+import { PHOTO_PREVIEW } from "@/features/chat/utils/photo-rules";
 import { STICKER_PREVIEW } from "@/features/chat/utils/sticker-rules";
 import { getAdminMessagesPath } from "@/utils/routes";
 
@@ -81,6 +82,7 @@ export const buildChatPushPayload = ({
   traineeUserId,
   conversationId,
   sticker = false,
+  photo = false,
 }: {
   recipientRole: PushRecipientRole;
   traineeName: string;
@@ -88,16 +90,22 @@ export const buildChatPushPayload = ({
   conversationId: number;
   // A sticker is a kind, not text: the payload still carries no body.
   sticker?: boolean;
+  // A photo (KAN-160) is a kind too: "📷 Ảnh", never the caption.
+  photo?: boolean;
 }): ChatPushPayload => ({
   title: PUSH_TITLE,
   body:
     recipientRole === "user"
-      ? sticker
-        ? PUSH_BODY_STICKER_TO_TRAINEE
-        : PUSH_BODY_TO_TRAINEE
-      : sticker
-        ? `${traineeName} ${STICKER_PREVIEW}`
-        : `${traineeName} vừa nhắn tin`,
+      ? photo
+        ? PHOTO_PREVIEW
+        : sticker
+          ? PUSH_BODY_STICKER_TO_TRAINEE
+          : PUSH_BODY_TO_TRAINEE
+      : photo
+        ? `${traineeName}: ${PHOTO_PREVIEW}`
+        : sticker
+          ? `${traineeName} ${STICKER_PREVIEW}`
+          : `${traineeName} vừa nhắn tin`,
   url:
     recipientRole === "user"
       ? ROUTES.MESSAGES

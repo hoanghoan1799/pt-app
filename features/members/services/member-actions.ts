@@ -16,6 +16,7 @@ import {
   chatMessageEdits,
   chatMessages,
   chatNicknames,
+  chatPhotos,
   chatReactions,
   chatReads,
   exerciseCompletions,
@@ -115,6 +116,9 @@ export const deleteMemberAction = withResultErrorHandling(
         await tx
           .delete(chatMessageEdits)
           .where(inArray(chatMessageEdits.messageId, messageIds));
+        await tx
+          .delete(chatPhotos)
+          .where(inArray(chatPhotos.conversationId, conversationIds));
         await tx
           .delete(chatMessages)
           .where(inArray(chatMessages.conversationId, conversationIds));

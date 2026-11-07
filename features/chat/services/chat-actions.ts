@@ -11,11 +11,17 @@ import {
   unsendChatMessage,
 } from "@/features/chat/services/chat-mutations";
 import { isChatEnabled } from "@/features/chat/services/chat-permission";
+import {
+  attachPhotoToMessage,
+  isPhotoAttachable,
+  photoUploaderKey,
+} from "@/features/chat/services/chat-photos";
 import { schedulePush } from "@/features/chat/services/chat-push";
 import {
   type ChatMessage,
   findConversationById,
   findConversationByUserId,
+  findMessageByClientId,
   getOrCreateConversation,
   insertMessageOnce,
   saveReadCursor,
@@ -60,6 +66,8 @@ interface SendInput {
     | { pack: string; id: string }
     | { giphyId: string; url: string }
     | { customId: number };
+  // KAN-160: a photo uploaded to /api/chat/photos, plus optional text.
+  photoId?: number;
   clientId: string;
   replyToMessageId?: number;
 }
@@ -72,10 +80,26 @@ const ownsStickerInput = async (
 ) =>
   !sticker || !("customId" in sticker) || ownsSticker(owner, sticker.customId);
 
-const toNewContent = (parsed: { body?: string; sticker?: StickerInput }) =>
+const toNewContent = (parsed: {
+  body?: string;
+  sticker?: StickerInput;
+  photoId?: number;
+}) =>
   parsed.sticker
     ? { body: "", ...toStoredSticker(parsed.sticker) }
-    : { body: parsed.body ?? "" };
+    : { body: parsed.body ?? "", photoId: parsed.photoId ?? null };
+
+type Conversation = Awaited<ReturnType<typeof getOrCreateConversation>>;
+
+// A retried send of a photo message (same clientId) finds its photo already
+// attached, so it is answered with the stored message before any check.
+const findPhotoRetry = (
+  conversation: Conversation,
+  parsed: { photoId?: number; clientId: string },
+) =>
+  parsed.photoId === undefined
+    ? null
+    : findMessageByClientId(conversation.id, parsed.clientId);
 
 // Trainee send. The conversation always comes from the session user, never
 // from the client. insertMessage is idempotent: a retried clientId returns
@@ -105,6 +129,21 @@ export const sendMessageAction = withResultErrorHandling(
     }
     const conversation = await getOrCreateConversation(user.id);
 
+    const retried = await findPhotoRetry(conversation, parsed.data);
+
+    if (retried) {
+      return { status: "success", message: retried };
+    }
+    if (
+      parsed.data.photoId !== undefined &&
+      !(await isPhotoAttachable(
+        parsed.data.photoId,
+        conversation.id,
+        photoUploaderKey({ kind: "user" }),
+      ))
+    ) {
+      return fail(CHAT_MESSAGES.INVALID_INPUT);
+    }
     if (!(await isReplyTargetValid(conversation, replyToMessageId))) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
@@ -117,6 +156,9 @@ export const sendMessageAction = withResultErrorHandling(
       replyToMessageId,
     });
 
+    if (created && parsed.data.photoId !== undefined) {
+      await attachPhotoToMessage(parsed.data.photoId, message.id);
+    }
     // After the DB write; publishChatEvent never throws. A retried send
     // republishes the stored message, clients dedupe by id.
     await publishNewMessage(conversation.id, message);
@@ -127,6 +169,7 @@ export const sendMessageAction = withResultErrorHandling(
         traineeUserId: user.id,
         conversationId: conversation.id,
         ...(parsed.data.sticker ? { sticker: true } : {}),
+        ...(parsed.data.photoId === undefined ? {} : { photo: true }),
       });
     }
     return { status: "success", message };
@@ -166,6 +209,21 @@ export const adminSendMessageAction = withResultErrorHandling(
     }
     const conversation = await getOrCreateConversation(trainee.id);
 
+    const retried = await findPhotoRetry(conversation, parsed.data);
+
+    if (retried) {
+      return { status: "success", message: retried };
+    }
+    if (
+      parsed.data.photoId !== undefined &&
+      !(await isPhotoAttachable(
+        parsed.data.photoId,
+        conversation.id,
+        photoUploaderKey({ kind: "admin", id: admin.id }),
+      ))
+    ) {
+      return fail(CHAT_MESSAGES.INVALID_INPUT);
+    }
     if (!(await isReplyTargetValid(conversation, replyToMessageId))) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
@@ -180,6 +238,9 @@ export const adminSendMessageAction = withResultErrorHandling(
 
     // After the DB write; publishChatEvent never throws. A retried send
     // republishes the stored message, clients dedupe by id.
+    if (created && parsed.data.photoId !== undefined) {
+      await attachPhotoToMessage(parsed.data.photoId, message.id);
+    }
     await publishNewMessage(conversation.id, message);
     if (created) {
       schedulePush({
@@ -187,6 +248,7 @@ export const adminSendMessageAction = withResultErrorHandling(
         traineeUserId: trainee.id,
         conversationId: conversation.id,
         ...(parsed.data.sticker ? { sticker: true } : {}),
+        ...(parsed.data.photoId === undefined ? {} : { photo: true }),
       });
     }
     return { status: "success", message };

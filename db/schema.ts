@@ -492,6 +492,10 @@ export const chatMessages = sqliteTable(
     // "giphy:<id>"; the URL is a bundled path or a GIPHY media URL.
     stickerRef: text("sticker_ref"),
     stickerUrl: text("sticker_url"),
+    // KAN-160: a photo message points at its chat_photos row. Nullable on
+    // purpose (production incident #121: new columns on existing tables must
+    // not be notNull).
+    photoId: integer("photo_id"),
     editedAt: integer("edited_at", { mode: "timestamp_ms" }),
     // Null until the first edit, unsend or reaction.
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
@@ -525,6 +529,33 @@ export const chatCustomStickers = sqliteTable(
   },
   (table) => [
     index("chat_custom_stickers_owner").on(table.ownerKind, table.ownerId),
+  ],
+);
+
+// Photos sent in chat (KAN-160): the browser resized and re-encoded the image
+// (WebP, long side <= 1600 px); the bytes live here like avatars. A row is
+// pending (messageId null) from the upload until the message that carries it
+// is stored. Unsending the message deletes the row, bytes included.
+export const chatPhotos = sqliteTable(
+  "chat_photos",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    conversationId: integer("conversation_id").notNull(),
+    messageId: integer("message_id"),
+    // Who uploaded it: "user" or "admin:<id>" (same format as reader keys).
+    uploaderKey: text("uploader_key").notNull(),
+    mime: text("mime", {
+      enum: ["image/webp", "image/jpeg", "image/png"],
+    }).notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    data: blob("data", { mode: "buffer" }).notNull(),
+    size: integer("size").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("chat_photos_message").on(table.messageId),
+    index("chat_photos_conversation").on(table.conversationId),
   ],
 );
 

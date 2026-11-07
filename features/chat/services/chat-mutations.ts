@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { chatMessageEdits, chatMessages, chatReactions } from "@/db/schema";
 import { CHAT_MESSAGES } from "@/features/chat/constants/messages";
+import { deletePhotoOfMessage } from "@/features/chat/services/chat-photos";
 import { scheduleReactionPush } from "@/features/chat/services/chat-push";
 import {
   type ChatMessage,
@@ -254,6 +255,8 @@ export const unsendChatMessage = async (
     .update(chatMessages)
     .set({ deletedAt: new Date() })
     .where(eq(chatMessages.id, messageId));
+  // KAN-160: an unsent photo is gone for good, bytes included.
+  await deletePhotoOfMessage(messageId);
   return finish(conversation, messageId);
 };
 

@@ -690,6 +690,7 @@ describe("reply", () => {
       id: admin1Msg,
       body: "chào An",
       isSticker: false,
+      isPhoto: false,
       senderRole: "admin",
       deleted: false,
     });
@@ -798,6 +799,7 @@ describe("payload shape", () => {
       id: admin1Msg,
       body: "",
       isSticker: false,
+      isPhoto: false,
       senderRole: "admin",
       deleted: true,
     });
