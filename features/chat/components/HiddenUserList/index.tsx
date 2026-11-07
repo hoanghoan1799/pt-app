@@ -5,7 +5,13 @@ import { CARD } from "@/constants/styles";
 import { getAdminUserPath } from "@/utils/routes";
 
 interface HiddenUserListProps {
-  users: { userId: number; userName: string; avatarUrl: string | null }[];
+  users: {
+    userId: number;
+    userName: string;
+    // Nickname if an admin set one; falls back to userName.
+    displayName?: string;
+    avatarUrl: string | null;
+  }[];
   onUnhide: (userId: number) => void;
   isBusy?: boolean;
 }
@@ -25,12 +31,12 @@ export const HiddenUserList = ({
           className="flex min-h-14 min-w-0 flex-1 items-center gap-3 px-4 py-3 font-semibold text-fg transition active:bg-line"
         >
           <Avatar
-            name={user.userName}
+            name={user.displayName ?? user.userName}
             src={user.avatarUrl}
             tone="soft"
             className="size-10 text-sm"
           />
-          <span className="truncate">{user.userName}</span>
+          <span className="truncate">{user.displayName ?? user.userName}</span>
         </Link>
         <button
           type="button"

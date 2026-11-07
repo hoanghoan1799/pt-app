@@ -16,6 +16,8 @@ const createMember = (
 ): MemberProgress => ({
   id,
   name: `User ${id}`,
+  displayName: `User ${id}`,
+  avatarUrl: null,
   assigned,
   completed,
   plannedDays: assigned ? 1 : 0,

@@ -9,7 +9,7 @@ import type { MemberRow } from "@/features/dashboard/types/dashboard";
 export const useMemberSearch = (members: MemberRow[]) => {
   const [query, setQuery] = useState("");
   const filteredMembers = members.filter((member) =>
-    matchesInboxSearch(query, member.name),
+    matchesInboxSearch(query, member.displayName, member.name),
   );
 
   return { query, setQuery, filteredMembers };

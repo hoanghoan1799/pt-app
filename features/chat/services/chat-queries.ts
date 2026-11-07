@@ -754,6 +754,35 @@ export const findLatestAdminSender = async (conversationId: number) => {
 export const findLatestAdminSenderName = async (conversationId: number) =>
   (await findLatestAdminSender(conversationId))?.name ?? null;
 
+// The nickname an admin set for each trainee (the same row the inbox reads:
+// target "user" of the trainee's conversation), by user id. Trainees without
+// one are absent.
+export const listTraineeNicknames = async (
+  userIds: readonly number[],
+): Promise<Map<number, string>> => {
+  if (userIds.length === 0) {
+    return new Map();
+  }
+  const rows = await db
+    .select({
+      userId: chatConversations.userId,
+      nickname: chatNicknames.nickname,
+    })
+    .from(chatNicknames)
+    .innerJoin(
+      chatConversations,
+      eq(chatConversations.id, chatNicknames.conversationId),
+    )
+    .where(
+      and(
+        eq(chatNicknames.targetKey, USER_READER_KEY),
+        inArray(chatConversations.userId, [...userIds]),
+      ),
+    );
+
+  return new Map(rows.map((row) => [row.userId, row.nickname]));
+};
+
 export interface InboxItem {
   conversationId: number;
   userId: number;

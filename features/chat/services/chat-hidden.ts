@@ -10,7 +10,9 @@ import {
   type InboxItem,
   type InboxWithoutConversation,
   listHiddenInboxForAdmin,
+  listTraineeNicknames,
 } from "@/features/chat/services/chat-queries";
+import { resolveDisplayName } from "@/features/chat/utils/display-name";
 import { findAdminSecrets } from "@/services/admins";
 import { isUserHidden } from "@/services/hidden-users";
 import {
@@ -24,6 +26,8 @@ import { verifyPassword } from "@/services/password";
 export interface HiddenUser {
   userId: number;
   userName: string;
+  // The nickname an admin set, else the real name (same as the inbox).
+  displayName: string;
   avatarUrl: string | null;
 }
 
@@ -148,8 +152,11 @@ const listHiddenUsers = async (adminId: number): Promise<HiddenUser[]> => {
     .where(eq(adminHiddenUsers.adminId, adminId))
     .orderBy(asc(users.nameKey));
 
+  const nicknames = await listTraineeNicknames(rows.map((row) => row.userId));
+
   return rows.map(({ avatarUpdatedAt, ...row }) => ({
     ...row,
+    displayName: resolveDisplayName(nicknames.get(row.userId), row.userName),
     avatarUrl: avatarUrl("user", row.userId, avatarUpdatedAt),
   }));
 };
