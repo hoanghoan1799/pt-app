@@ -1,20 +1,14 @@
 import clsx from "clsx";
-import { MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { Avatar } from "@/components/common/Avatar";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
-import { CARD, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
-import { ChatInboxList } from "@/features/chat/components/ChatInboxList";
+import { AdminInbox } from "@/features/chat/components/AdminInbox";
 import { InboxLiveRefresh } from "@/features/chat/components/InboxLiveRefresh";
 import { PushOptInCard } from "@/features/chat/components/PushOptInCard";
 import { listAdminInbox } from "@/features/chat/services/chat-queries";
-import { isOnline, ONLINE_LABEL } from "@/features/chat/utils/presence";
-import { shortLastSeen } from "@/features/chat/utils/presence-status";
 import { requireAdmin } from "@/services/auth-guard";
-import { getAdminMessagesPath } from "@/utils/routes";
 import { readSearchParam } from "@/utils/search-params";
 import { getRequestTime } from "@/utils/time";
 
@@ -43,96 +37,46 @@ const AdminMessagesInboxPage = async ({
     : conversations;
   // Trainees nobody has written to yet only belong to the full list.
   const fresh = isUnreadOnly ? [] : withoutConversation;
-  const now = new Date(getRequestTime());
-  const isEmpty = items.length === 0 && fresh.length === 0;
 
   return (
     <>
       <AppHeader title="Tin nhắn" backHref={ROUTES.ADMIN} />
       <InboxLiveRefresh />
-      <main
-        className={`${PAGE_CONTAINER} space-y-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]`}
-      >
-        <PushOptInCard role="admin" />
-        <nav aria-label="Lọc tin nhắn" className="flex gap-2">
-          {FILTERS.map((filter) => {
-            const isActive = (filter.key === UNREAD_FILTER) === isUnreadOnly;
-
-            return (
-              <Link
-                key={filter.key}
-                href={filter.href}
-                aria-current={isActive ? "page" : undefined}
-                className={clsx(
-                  "inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-semibold transition",
-                  isActive
-                    ? "border-accent bg-accent text-accent-fg"
-                    : "border-line bg-surface text-muted active:bg-line",
-                )}
-              >
-                {filter.label}
-              </Link>
-            );
-          })}
-        </nav>
-        {isEmpty && (
-          <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-            <MessageCircle className="size-10 text-muted" aria-hidden />
-            <p className="text-sm text-muted">
-              {isUnreadOnly
-                ? "Không có tin nhắn chưa đọc"
-                : "Chưa có cuộc trò chuyện nào"}
-            </p>
-          </div>
-        )}
-        {items.length > 0 && (
-          <ChatInboxList
-            items={items}
-            adminId={admin.id}
-            nowMs={getRequestTime()}
-          />
-        )}
-        {fresh.length > 0 && (
-          <section className="space-y-2">
-            <h2 className={SECTION_TITLE}>Chưa có tin nhắn</h2>
-            <ul className={`${CARD} divide-y divide-line overflow-hidden`}>
-              {fresh.map((member) => {
-                const online = isOnline(member.lastSeenAt, now);
-                const lastSeen = shortLastSeen(member.lastSeenAt, now);
+      <AdminInbox
+        items={items}
+        fresh={fresh}
+        adminId={admin.id}
+        nowMs={getRequestTime()}
+        hasPasscode={admin.hasPasscode}
+        isUnreadOnly={isUnreadOnly}
+        filters={
+          <>
+            <PushOptInCard role="admin" />
+            <nav aria-label="Lọc tin nhắn" className="flex gap-2">
+              {FILTERS.map((filter) => {
+                const isActive =
+                  (filter.key === UNREAD_FILTER) === isUnreadOnly;
 
                 return (
-                  <li key={member.userId}>
-                    <Link
-                      href={getAdminMessagesPath(member.userId)}
-                      className="flex min-h-12 items-center gap-2 px-4 py-3 font-medium transition active:bg-line"
-                    >
-                      {online && (
-                        <span
-                          role="img"
-                          aria-label={ONLINE_LABEL}
-                          className="size-2.5 shrink-0 rounded-full bg-success"
-                        />
-                      )}
-                      <Avatar
-                        name={member.userName}
-                        src={member.avatarUrl}
-                        tone="soft"
-                        className="size-8 text-xs"
-                      />
-                      <span className="truncate">{member.userName}</span>
-                      {lastSeen && (
-                        <span className="shrink-0 text-xs font-normal text-muted">
-                          {lastSeen}
-                        </span>
-                      )}
-                    </Link>
-                  </li>
+                  <Link
+                    key={filter.key}
+                    href={filter.href}
+                    aria-current={isActive ? "page" : undefined}
+                    className={clsx(
+                      "inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-semibold transition",
+                      isActive
+                        ? "border-accent bg-accent text-accent-fg"
+                        : "border-line bg-surface text-muted active:bg-line",
+                    )}
+                  >
+                    {filter.label}
+                  </Link>
                 );
               })}
-            </ul>
-          </section>
-        )}
-      </main>
+            </nav>
+          </>
+        }
+      />
     </>
   );
 };
