@@ -14,7 +14,7 @@ export const CHAT_MESSAGES = {
 } as const;
 
 export const HIDDEN_CHAT_MESSAGES = {
-  PASSCODE_REQUIRED: "Hãy đặt mã khoá trước khi ẩn cuộc trò chuyện.",
-  INVALID_INPUT: "Cuộc trò chuyện không hợp lệ",
+  PASSCODE_REQUIRED: "Hãy đặt mã khoá trước khi ẩn học viên.",
+  INVALID_INPUT: "Học viên không hợp lệ",
   NO_MATCH: "Không khớp",
 } as const;

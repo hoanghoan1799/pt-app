@@ -239,7 +239,7 @@ describe("turnOffPasscode", () => {
 
     expect(await actions.turnOffPasscode("1234")).toEqual({
       status: "error",
-      message: "Hãy bỏ ẩn các cuộc trò chuyện đã ẩn trước khi tắt mã khoá",
+      message: "Hãy bỏ ẩn các học viên đã ẩn trước khi tắt mã khoá",
     });
     expect((await load()).passcodeHash).not.toBeNull();
   });

@@ -17,11 +17,12 @@ import {
   SECTION_TITLE,
 } from "@/constants/styles";
 import { ChatInboxList } from "@/features/chat/components/ChatInboxList";
+import { HiddenUserList } from "@/features/chat/components/HiddenUserList";
 import { HIDDEN_CHAT_MESSAGES } from "@/features/chat/constants/messages";
 import { useHiddenReveal } from "@/features/chat/hooks/use-hidden-reveal";
 import {
-  hideConversationsAction,
-  unhideConversationAction,
+  hideUsersAction,
+  unhideUserAction,
 } from "@/features/chat/services/chat-hidden-actions";
 import type {
   InboxItem,
@@ -54,8 +55,8 @@ const EmptyState = ({ text }: { text: string }) => (
   </div>
 );
 
-// The admin inbox body (KAN-164): name search, "Chọn" mode to hide chats, and
-// the temporary list of hidden chats revealed by typing the passcode.
+// The admin inbox body (KAN-164): name search, "Chọn" mode to hide trainees, and
+// the temporary list of hidden trainees revealed by typing the passcode.
 export const AdminInbox = ({
   items,
   fresh,
@@ -84,8 +85,12 @@ export const AdminInbox = ({
     () => fresh.filter((member) => matchesInboxSearch(query, member.userName)),
     [fresh, query],
   );
-  const hiddenItems = revealed ?? [];
-  const isRevealing = hiddenItems.length > 0;
+  const hiddenItems = revealed?.conversations ?? [];
+  // Hidden trainees nobody has written to yet have no inbox row.
+  const hiddenWithoutChat = (revealed?.users ?? []).filter(
+    (user) => !hiddenItems.some((item) => item.userId === user.userId),
+  );
+  const isRevealing = hiddenItems.length + hiddenWithoutChat.length > 0;
   const isEmpty = shownItems.length === 0 && shownFresh.length === 0;
   const isSearching = query.trim() !== "";
 
@@ -102,14 +107,14 @@ export const AdminInbox = ({
     setIsSelecting(true);
   };
 
-  const toggle = (conversationId: number) =>
+  const toggle = (userId: number) =>
     setSelected((current) => {
       const next = new Set(current);
 
-      if (next.has(conversationId)) {
-        next.delete(conversationId);
+      if (next.has(userId)) {
+        next.delete(userId);
       } else {
-        next.add(conversationId);
+        next.add(userId);
       }
       return next;
     });
@@ -126,10 +131,10 @@ export const AdminInbox = ({
     }
     startTransition(async () => {
       try {
-        const result = await hideConversationsAction(ids);
+        const result = await hideUsersAction(ids);
 
         if (result.status === "success") {
-          toast.success(`Đã ẩn ${ids.length} cuộc trò chuyện`);
+          toast.success(`Đã ẩn ${ids.length} học viên`);
           exitSelect();
           router.refresh();
           return;
@@ -141,13 +146,13 @@ export const AdminInbox = ({
     });
   };
 
-  const unhide = (conversationId: number) => {
+  const unhide = (userId: number) => {
     startTransition(async () => {
       try {
-        const result = await unhideConversationAction(conversationId);
+        const result = await unhideUserAction(userId);
 
         if (result.status === "success") {
-          remove(conversationId);
+          remove(userId);
           router.refresh();
           return;
         }
@@ -197,15 +202,24 @@ export const AdminInbox = ({
       </div>
       {filters}
       {isRevealing ? (
-        <section className="space-y-2" aria-label="Cuộc trò chuyện đã ẩn">
-          <h2 className={SECTION_TITLE}>Cuộc trò chuyện đã ẩn</h2>
-          <ChatInboxList
-            items={hiddenItems}
-            adminId={adminId}
-            nowMs={nowMs}
-            onUnhide={unhide}
-            isBusy={isPending}
-          />
+        <section className="space-y-2" aria-label="Học viên đã ẩn">
+          <h2 className={SECTION_TITLE}>Học viên đã ẩn</h2>
+          {hiddenItems.length > 0 && (
+            <ChatInboxList
+              items={hiddenItems}
+              adminId={adminId}
+              nowMs={nowMs}
+              onUnhide={unhide}
+              isBusy={isPending}
+            />
+          )}
+          {hiddenWithoutChat.length > 0 && (
+            <HiddenUserList
+              users={hiddenWithoutChat}
+              onUnhide={unhide}
+              isBusy={isPending}
+            />
+          )}
         </section>
       ) : (
         <>
@@ -213,7 +227,7 @@ export const AdminInbox = ({
             <EmptyState
               text={
                 isSearching
-                  ? "Không tìm thấy cuộc trò chuyện nào"
+                  ? "Không tìm thấy học viên nào"
                   : isUnreadOnly
                     ? "Không có tin nhắn chưa đọc"
                     : "Chưa có cuộc trò chuyện nào"
@@ -230,13 +244,10 @@ export const AdminInbox = ({
               onToggle={toggle}
             />
           )}
-          {/* Nobody has chatted yet: nothing to hide, so not selectable. */}
           {!isUnreadOnly && shownFresh.length > 0 && (
             <section className="space-y-2">
               <h2 className={SECTION_TITLE}>Chưa có tin nhắn</h2>
-              <ul
-                className={`${CARD} divide-y divide-line overflow-hidden ${isSelecting ? "opacity-50" : ""}`}
-              >
+              <ul className={`${CARD} divide-y divide-line overflow-hidden`}>
                 {shownFresh.map((member) => {
                   const online = isOnline(member.lastSeenAt, now);
                   const lastSeen = shortLastSeen(member.lastSeenAt, now);
@@ -269,9 +280,16 @@ export const AdminInbox = ({
                   return (
                     <li key={member.userId}>
                       {isSelecting ? (
-                        <div className={rowClass} aria-disabled="true">
+                        <label className={clsx(rowClass, "cursor-pointer")}>
+                          <input
+                            type="checkbox"
+                            checked={selected.has(member.userId)}
+                            onChange={() => toggle(member.userId)}
+                            aria-label={`Chọn ${member.userName}`}
+                            className="size-5 shrink-0 accent-accent"
+                          />
                           {content}
-                        </div>
+                        </label>
                       ) : (
                         <Link
                           href={getAdminMessagesPath(member.userId)}
@@ -293,7 +311,7 @@ export const AdminInbox = ({
           <div
             className={`${PAGE_CONTAINER} flex items-center gap-3 py-3`}
             role="toolbar"
-            aria-label="Ẩn cuộc trò chuyện"
+            aria-label="Ẩn học viên"
           >
             <button
               type="button"

@@ -17,12 +17,12 @@ interface ChatInboxListProps {
   items: InboxItem[];
   adminId: number;
   nowMs: number;
-  // "Chọn" mode: rows become checkboxes (KAN-164).
+  // "Chọn" mode: rows become checkboxes, selected by trainee id (KAN-164).
   isSelecting?: boolean;
   selectedIds?: ReadonlySet<number>;
-  onToggle?: (conversationId: number) => void;
-  // Revealed hidden chats: a "Bỏ ẩn" button on each row.
-  onUnhide?: (conversationId: number) => void;
+  onToggle?: (userId: number) => void;
+  // Revealed hidden trainees: a "Bỏ ẩn" button on each row.
+  onUnhide?: (userId: number) => void;
   isBusy?: boolean;
 }
 
@@ -61,8 +61,8 @@ export const ChatInboxList = ({
           {isSelecting && (
             <input
               type="checkbox"
-              checked={selectedIds?.has(item.conversationId) ?? false}
-              onChange={() => onToggle?.(item.conversationId)}
+              checked={selectedIds?.has(item.userId) ?? false}
+              onChange={() => onToggle?.(item.userId)}
               aria-label={`Chọn ${item.displayName}`}
               className="size-5 shrink-0 accent-accent"
             />
@@ -150,7 +150,7 @@ export const ChatInboxList = ({
             <button
               type="button"
               disabled={isBusy}
-              onClick={() => onUnhide(item.conversationId)}
+              onClick={() => onUnhide(item.userId)}
               className="mr-3 inline-flex min-h-11 shrink-0 items-center rounded-lg border border-line px-3 text-sm font-semibold text-fg transition active:bg-line disabled:opacity-50"
             >
               Bỏ ẩn

@@ -104,11 +104,11 @@ const HideConversationSection = ({
         }
         if (isHidden) {
           setIsHidden(false);
-          toast.success("Đã bỏ ẩn cuộc trò chuyện");
+          toast.success("Đã bỏ ẩn học viên");
           router.refresh();
           return;
         }
-        toast.success("Đã ẩn 1 cuộc trò chuyện");
+        toast.success("Đã ẩn 1 học viên");
         onClose();
         router.push(ROUTES.ADMIN_MESSAGES);
       } catch {
@@ -125,7 +125,7 @@ const HideConversationSection = ({
         onClick={toggle}
         className={clsx(BUTTON_SECONDARY, "w-full")}
       >
-        {isHidden ? "Bỏ ẩn cuộc trò chuyện" : "Ẩn cuộc trò chuyện"}
+        {isHidden ? "Bỏ ẩn học viên" : "Ẩn học viên"}
       </button>
     </section>
   );

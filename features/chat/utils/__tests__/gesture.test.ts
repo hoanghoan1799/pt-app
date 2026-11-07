@@ -153,4 +153,78 @@ describe("createGestureTracker", () => {
     expect(onLongPress).not.toHaveBeenCalled();
     expect(onDoubleTap).not.toHaveBeenCalled();
   });
+
+  describe("single tap", () => {
+    const onSingleTap = vi.fn();
+    const withSingle = () =>
+      createGestureTracker({ onDoubleTap, onLongPress, onSingleTap });
+    const tap = (gesture: ReturnType<typeof withSingle>, x = 40) => {
+      gesture.down(at(x));
+      vi.advanceTimersByTime(60);
+      gesture.up(at(x));
+    };
+
+    beforeEach(() => onSingleTap.mockReset());
+
+    it("fires once, only after the double-tap window", () => {
+      const gesture = withSingle();
+
+      tap(gesture);
+      vi.advanceTimersByTime(DOUBLE_TAP_MS - 1);
+      expect(onSingleTap).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(1);
+      expect(onSingleTap).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(1000);
+      expect(onSingleTap).toHaveBeenCalledTimes(1);
+    });
+
+    it("never fires for a double tap", () => {
+      const gesture = withSingle();
+
+      tap(gesture);
+      vi.advanceTimersByTime(100);
+      tap(gesture);
+      vi.advanceTimersByTime(1000);
+
+      expect(onDoubleTap).toHaveBeenCalledTimes(1);
+      expect(onSingleTap).not.toHaveBeenCalled();
+    });
+
+    it("never fires for a long press or a scroll", () => {
+      const gesture = withSingle();
+
+      gesture.down(at());
+      vi.advanceTimersByTime(LONG_PRESS_MS + 10);
+      gesture.up(at());
+      gesture.down(at());
+      gesture.move(at(40, 80));
+      gesture.up(at(40, 80));
+      vi.advanceTimersByTime(1000);
+
+      expect(onLongPress).toHaveBeenCalledTimes(1);
+      expect(onSingleTap).not.toHaveBeenCalled();
+    });
+
+    it("survives the pointerleave cancel that follows a touch release, but not dispose", () => {
+      const gesture = withSingle();
+
+      tap(gesture);
+      gesture.cancel();
+      vi.advanceTimersByTime(DOUBLE_TAP_MS);
+      expect(onSingleTap).toHaveBeenCalledTimes(1);
+
+      tap(gesture);
+      gesture.dispose();
+      vi.advanceTimersByTime(DOUBLE_TAP_MS * 2);
+      expect(onSingleTap).toHaveBeenCalledTimes(1);
+    });
+
+    it("is optional", () => {
+      const gesture = tracker();
+
+      tap(gesture);
+      expect(() => vi.advanceTimersByTime(DOUBLE_TAP_MS)).not.toThrow();
+    });
+  });
 });
