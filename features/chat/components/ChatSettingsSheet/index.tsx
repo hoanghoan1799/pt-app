@@ -1,11 +1,12 @@
 "use client";
 
 import clsx from "clsx";
-import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { Avatar } from "@/components/common/Avatar";
+import { AvatarLightbox } from "@/components/common/AvatarLightbox";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { ROUTES } from "@/constants/routes";
 import {
@@ -15,21 +16,19 @@ import {
   INPUT,
   SECTION_TITLE,
 } from "@/constants/styles";
-import { AvatarField } from "@/features/avatar/components/AvatarField";
+import { ColorSwatches } from "@/features/chat/components/ColorSwatches";
 import {
   hideConversationsAction,
   isConversationHiddenAction,
   unhideConversationAction,
 } from "@/features/chat/services/chat-hidden-actions";
 import {
-  adminSetChatColorAction,
   adminSetConversationColorAction,
   adminSetNicknameAction,
   setChatColorAction,
   setNicknameAction,
 } from "@/features/chat/services/chat-profile-actions";
 import {
-  CHAT_PALETTE,
   type ChatColorKey,
   DEFAULT_CHAT_COLOR,
   isChatColorKey,
@@ -48,7 +47,7 @@ import type { ThreadViewer } from "@/features/chat/utils/chat-thread-rules";
 const FAILED_TEXT = "Không lưu được. Thử lại nhé.";
 const LOCKED_NOTE = "Chat đang khoá nên chưa đổi được biệt danh và màu.";
 const ADMIN_LOCKED_NOTE =
-  "Chat đang khoá. Biệt danh và màu của cuộc trò chuyện chưa đổi được, màu tài khoản thì vẫn đổi được.";
+  "Chat đang khoá. Biệt danh và màu của cuộc trò chuyện chưa đổi được.";
 
 interface ActionResult {
   status: string;
@@ -141,17 +140,10 @@ export interface ChatSettingsSheetProps {
   peerName: string;
   selfName: string;
   profile: ChatProfileView;
-  // Admin only: the saved account colour from the server; null = never
-  // picked, which shows the default palette colour.
-  accountColor?: ChatColorKey | null;
   onProfileChange: (profile: ChatProfileView) => void;
-  // Re-fetch the thread (after an account colour change the resolved colours
-  // are only known to the server).
-  onSync: () => void;
   chatEnabled: boolean;
-  // The viewer's own saved photo (versioned URL) and its change callback.
-  selfAvatarUrl?: string | null;
-  onAvatarChange?: (url: string | null) => void;
+  // The other person's photo (versioned URL) or null for initials.
+  peerAvatarUrl?: string | null;
 }
 
 interface NicknameFieldProps {
@@ -252,55 +244,10 @@ const NicknameField = ({
   );
 };
 
-interface SwatchesProps {
-  name: string;
-  label: string;
-  selected: ChatColorKey | null;
-  disabled: boolean;
-  onPick: (color: ChatColorKey) => void;
-}
-
-// The 8 palette colours as a radio group; white text on each is AA (D5).
-const Swatches = ({
-  name,
-  label,
-  selected,
-  disabled,
-  onPick,
-}: SwatchesProps) => (
-  <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-2.5">
-    {CHAT_PALETTE.map((entry) => {
-      const isSelected = entry.key === selected;
-
-      return (
-        <button
-          key={entry.key}
-          type="button"
-          role="radio"
-          aria-checked={isSelected}
-          aria-label={entry.label}
-          title={entry.label}
-          data-color-option={entry.key}
-          data-color-group={name}
-          disabled={disabled}
-          onClick={() => onPick(entry.key)}
-          style={{ backgroundColor: entry.bg }}
-          className={clsx(
-            "flex size-11 items-center justify-center rounded-full text-white transition active:scale-95 disabled:opacity-40",
-            isSelected && "ring-2 ring-fg ring-offset-2 ring-offset-bg",
-          )}
-        >
-          {isSelected && <Check className="size-5" aria-hidden />}
-        </button>
-      );
-    })}
-  </div>
-);
-
 // Conversation settings (KAN-142, spec D1, D4): nicknames for the other
 // person and for yourself, and the bubble colour. An admin can also give
 // this conversation its own colour. While the chat is locked everything is
-// read-only except the admin's account colour.
+// read-only. The top shows the other person's photo, enlargeable.
 export const ChatSettingsSheet = ({
   isOpen,
   onOpenChange,
@@ -309,25 +256,15 @@ export const ChatSettingsSheet = ({
   peerName,
   selfName,
   profile,
-  accountColor: savedAccountColor = null,
   onProfileChange,
-  onSync,
   chatEnabled,
-  selfAvatarUrl = null,
-  onAvatarChange,
+  peerAvatarUrl = null,
 }: ChatSettingsSheetProps) => {
   const isAdmin = viewer.role === "admin";
   const { other, self } = settingsTargets(viewer, { peerName, selfName });
   const [colorError, setColorError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  // The thread payload only has the resolved colour (it may be a
-  // per-conversation override), so the saved account colour comes from the
-  // server as a prop and is overridden once picked or reset in this session.
-  const [pickedAccountColor, setAccountColor] = useState<ChatColorKey | null>(
-    null,
-  );
-  const accountColor =
-    pickedAccountColor ?? savedAccountColor ?? DEFAULT_CHAT_COLOR;
+  const [isPhotoOpen, setIsPhotoOpen] = useState(false);
   const readOnly = !chatEnabled;
   const ownColorValue = profile.colors[self.key];
   const ownColor = isChatColorKey(ownColorValue)
@@ -385,44 +322,27 @@ export const ChatSettingsSheet = ({
   const resetConversationColor = () => {
     setColorError(null);
     startTransition(async () => {
-      let resolved: string | undefined;
-      const error = await run(async () => {
-        const result = await adminSetConversationColorAction({
-          conversationId: conversationId ?? 0,
-          color: null,
-        });
-
-        resolved =
-          result.status === "success"
-            ? result.profile?.colors[self.key]
-            : undefined;
-        return result;
-      });
-
-      setColorError(error);
-      if (!error && isChatColorKey(resolved)) {
-        setAccountColor(resolved);
-      }
-    });
-  };
-
-  const pickAccountColor = (color: ChatColorKey) => {
-    setColorError(null);
-    startTransition(async () => {
-      const error = await run(() => adminSetChatColorAction({ color }));
-
-      setColorError(error);
-      if (!error) {
-        setAccountColor(color);
-        onSync();
-      }
+      setColorError(
+        await run(() =>
+          adminSetConversationColorAction({
+            conversationId: conversationId ?? 0,
+            color: null,
+          }),
+        ),
+      );
     });
   };
 
   return (
     <BottomSheet
       isOpen={isOpen}
-      onOpenChange={onOpenChange}
+      // The photo viewer sits above the sheet; a tap in it is not a tap
+      // outside the sheet.
+      onOpenChange={(next) => {
+        if (next || !isPhotoOpen) {
+          onOpenChange(next);
+        }
+      }}
       title="Cài đặt cuộc trò chuyện"
       description="Biệt danh và màu tin nhắn"
     >
@@ -436,17 +356,27 @@ export const ChatSettingsSheet = ({
           </p>
         )}
 
-        <section className="space-y-3">
-          <h3 className={SECTION_TITLE}>Ảnh đại diện</h3>
-          <p className="text-sm text-muted">
-            Ảnh của bạn hiện ở đầu cuộc trò chuyện và cạnh tin nhắn của bạn.
-          </p>
-          <AvatarField
-            role={viewer.role}
-            name={selfName}
-            savedUrl={selfAvatarUrl}
-            onSaved={(url) => onAvatarChange?.(url)}
-          />
+        <section
+          aria-label="Ảnh đại diện"
+          className="flex flex-col items-center gap-2"
+        >
+          {peerAvatarUrl ? (
+            <button
+              type="button"
+              onClick={() => setIsPhotoOpen(true)}
+              aria-label={`Xem ảnh của ${peerName}`}
+              className="rounded-full transition active:scale-95"
+            >
+              <Avatar
+                name={peerName}
+                src={peerAvatarUrl}
+                className="size-24 text-3xl"
+              />
+            </button>
+          ) : (
+            <Avatar name={peerName} className="size-24 text-3xl" />
+          )}
+          <p className="text-base font-semibold text-fg">{peerName}</p>
         </section>
 
         <section className="space-y-4">
@@ -480,7 +410,7 @@ export const ChatSettingsSheet = ({
               ? "Chỉ áp dụng cho cuộc trò chuyện này, thay cho màu tài khoản."
               : "Tin nhắn của bạn hiện màu này ở cả hai bên."}
           </p>
-          <Swatches
+          <ColorSwatches
             name="conversation"
             label={isAdmin ? "Màu cho cuộc trò chuyện này" : "Màu tin nhắn"}
             selected={ownColor}
@@ -499,22 +429,6 @@ export const ChatSettingsSheet = ({
           )}
         </section>
 
-        {isAdmin && (
-          <section className="space-y-3">
-            <h3 className={SECTION_TITLE}>Màu tài khoản của bạn</h3>
-            <p className="text-sm text-muted">
-              Dùng cho mọi cuộc trò chuyện chưa chọn màu riêng.
-            </p>
-            <Swatches
-              name="account"
-              label="Màu tài khoản"
-              selected={accountColor}
-              disabled={isPending}
-              onPick={pickAccountColor}
-            />
-          </section>
-        )}
-
         {colorError && (
           <p role="alert" className={FIELD_ERROR}>
             {colorError}
@@ -529,6 +443,14 @@ export const ChatSettingsSheet = ({
           />
         )}
       </div>
+      {peerAvatarUrl && (
+        <AvatarLightbox
+          isOpen={isPhotoOpen}
+          onClose={() => setIsPhotoOpen(false)}
+          src={peerAvatarUrl}
+          name={peerName}
+        />
+      )}
     </BottomSheet>
   );
 };

@@ -11,7 +11,7 @@ export const FALLBACK_PEER_TITLE = "PT của bạn";
 
 interface TraineeChatThreadProps extends Pick<
   ChatThreadProps,
-  "initial" | "userId" | "conversationId" | "avatars" | "selfAvatarUrl"
+  "initial" | "userId" | "conversationId" | "avatars"
 > {
   // Username of the PT who wrote last, from the server; the live thread
   // takes over once a newer PT message arrives.

@@ -13,10 +13,7 @@ import {
 import { AdminChatThread } from "@/features/chat/components/AdminChatThread";
 import { ChatLockSwitch } from "@/features/chat/components/ChatLockSwitch";
 import { isChatEnabled } from "@/features/chat/services/chat-permission";
-import {
-  loadAdminAccountColor,
-  loadChatProfile,
-} from "@/features/chat/services/chat-profile";
+import { loadChatProfile } from "@/features/chat/services/chat-profile";
 import {
   findConversationByUserId,
   getOrCreateConversation,
@@ -91,14 +88,12 @@ const AdminMessagesPage = async ({
     { messages, hasMore },
     peerReadUpTo,
     profile,
-    accountColor,
     adminAvatars,
     traineeAvatarUrl,
   ] = await Promise.all([
     listMessages(conversation.id),
     getPeerReadCursor(conversation.id, "admin"),
     loadChatProfile(conversation.id),
-    loadAdminAccountColor(admin.id),
     listAdminAvatarUrls(),
     getAvatarUrl("user", user.id),
   ]);
@@ -125,9 +120,7 @@ const AdminMessagesPage = async ({
         adminName: admin.username,
         peerName: user.name,
       }}
-      accountColor={accountColor}
       avatars={avatars}
-      selfAvatarUrl={adminAvatars.get(admin.id) ?? null}
       emptyText={EMPTY_TEXT}
       ariaLabel={`Cuộc trò chuyện với ${user.name}`}
       initial={{

@@ -11,6 +11,7 @@ export const findAdminById = async (id: number) => {
     .select({
       id: admins.id,
       username: admins.username,
+      presenceHidden: admins.presenceHidden,
       // Never expose the hash itself, only whether a passcode exists.
       hasPasscode: sql<boolean>`${admins.passcodeHash} is not null`.mapWith(
         Boolean,
