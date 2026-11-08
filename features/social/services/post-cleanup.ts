@@ -4,10 +4,15 @@ import { and, eq, inArray } from "drizzle-orm";
 
 import type { db } from "@/db";
 import { socialPostPhotos, socialPosts } from "@/db/schema";
+import {
+  deleteEngagementOfAccount,
+  deleteEngagementOfPosts,
+} from "@/features/social/services/engagement-cleanup";
 
 type Executor = Pick<typeof db, "delete" | "select">;
 
-// Account deletion removes the trainee's posts and photos (spec A12). Call
+// Account deletion removes the trainee's posts, photos, reactions, comments
+// and notifications (spec A12). Call
 // inside the member delete transaction.
 export const deleteSocialContentOfUser = async (
   executor: Executor,
@@ -21,6 +26,8 @@ export const deleteSocialContentOfUser = async (
     );
   const postIds = posts.map((post) => post.id);
 
+  await deleteEngagementOfPosts(executor, postIds);
+  await deleteEngagementOfAccount(executor, `user:${userId}`);
   if (postIds.length > 0) {
     await executor
       .delete(socialPostPhotos)

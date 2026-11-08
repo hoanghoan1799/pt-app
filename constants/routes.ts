@@ -8,6 +8,8 @@ export const ROUTES = {
   FEED: "/feed",
   TERMS: "/terms",
   PROFILE: "/profile",
+  POST: "/post",
+  NOTIFICATIONS: "/notifications",
   ACCOUNT_PASSWORD: "/account/password",
   // Static fallback the service worker shows when the network is down.
   OFFLINE: "/offline",
@@ -20,6 +22,7 @@ export const ROUTES = {
   ADMIN_MESSAGES: "/admin/messages",
   ADMIN_PTS: "/admin/pts",
   ADMIN_SOCIAL: "/admin/social",
+  ADMIN_SOCIAL_NOTIFICATIONS: "/admin/social/notifications",
   ADMIN_FOODS: "/admin/foods",
   ADMIN_FOODS_NEW: "/admin/foods/new",
   // Route handler that clears a stale session cookie, see app/session/end.

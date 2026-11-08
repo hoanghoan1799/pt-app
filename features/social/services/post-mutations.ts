@@ -4,6 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 
 import { db } from "@/db";
 import { admins, socialPostPhotos, socialPosts, users } from "@/db/schema";
+import { deleteEngagementOfPosts } from "@/features/social/services/engagement-cleanup";
 import { uploaderKeyOf } from "@/features/social/services/post-photos";
 import type { PostPrivacy, SocialActor } from "@/features/social/types/social";
 import {
@@ -149,6 +150,7 @@ export const deletePost = async (
     await tx
       .delete(socialPostPhotos)
       .where(eq(socialPostPhotos.postId, post.id));
+    await deleteEngagementOfPosts(tx, [post.id]);
   });
   return { ok: true };
 };
