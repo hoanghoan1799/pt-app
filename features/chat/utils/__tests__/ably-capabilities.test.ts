@@ -7,6 +7,8 @@ import {
   CHAT_EVENTS,
   chatStatusEvent,
   conversationChannel,
+  dmConversationChannel,
+  dmEvent,
   INBOX_CHANNEL,
   inboxEvent,
   messageEvent,
@@ -142,6 +144,40 @@ describe("typing event", () => {
     expect(typingEvent("user", "user:3")).toEqual({
       role: "user",
       senderKey: "user:3",
+    });
+  });
+});
+
+describe("trainee chat (dm) channels", () => {
+  it("lives under chat:dm:conversation:<id>", () => {
+    expect(dmConversationChannel(7)).toBe("chat:dm:conversation:7");
+    expect(() => dmConversationChannel(0)).toThrow();
+  });
+
+  it("subscribes a trainee to their own dm conversations only, no wildcard", () => {
+    const capability = traineeCapability(3, 5, [7, 9]);
+
+    expect(capability).toEqual({
+      "chat:conversation:5": ["subscribe"],
+      "chat:user:3": ["subscribe"],
+      "chat:dm:conversation:7": ["subscribe"],
+      "chat:dm:conversation:9": ["subscribe"],
+    });
+    for (const [channel, operations] of Object.entries(capability)) {
+      expect(channel).not.toContain("*");
+      expect(operations).toEqual(["subscribe"]);
+    }
+  });
+
+  it("adds nothing without dm conversations", () => {
+    expect(Object.keys(traineeCapability(3, 5))).toHaveLength(2);
+  });
+
+  it("an event carries ids only", () => {
+    expect(dmEvent(1, 2, 3)).toEqual({
+      conversationId: 1,
+      messageId: 2,
+      senderId: 3,
     });
   });
 });

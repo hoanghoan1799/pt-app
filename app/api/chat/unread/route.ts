@@ -6,6 +6,7 @@ import {
   findConversationByUserId,
   listUnreadByTraineeForAdmin,
 } from "@/features/chat/services/chat-queries";
+import { countDmUnread } from "@/features/social/services/dm-queries";
 import { getApiAdmin, getApiUser } from "@/services/auth-guard";
 
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -42,14 +43,19 @@ export const GET = async (request: NextRequest) => {
   if (!user) {
     return unauthorized();
   }
-  const [count, conversation] = await Promise.all([
+  const [coachCount, conversation, dmCount] = await Promise.all([
     countUnreadForUser(user.id),
     findConversationByUserId(user.id),
+    countDmUnread(user.id),
   ]);
+  // The Messages tab badge covers the coach chat and the friend chats.
+  const count = coachCount + dmCount;
 
   return NextResponse.json(
     {
       count,
+      coachCount,
+      dmCount,
       chatEnabled: isChatEnabled(user),
       hasHistory: conversation?.lastMessageId != null,
     },

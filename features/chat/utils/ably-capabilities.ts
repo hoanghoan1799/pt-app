@@ -25,6 +25,11 @@ const assertId = (value: number, label: string) => {
 export const conversationChannel = (conversationId: number) =>
   `${CHAT_CHANNEL_PREFIX}:conversation:${assertId(conversationId, "conversationId")}`;
 
+// Trainee-to-trainee chats (P5). The Ably key only covers `chat:*`, so the
+// channel lives under that prefix: `chat:dm:conversation:<id>`.
+export const dmConversationChannel = (conversationId: number) =>
+  `${CHAT_CHANNEL_PREFIX}:dm:conversation:${assertId(conversationId, "conversationId")}`;
+
 export const userChannel = (userId: number) =>
   `${CHAT_CHANNEL_PREFIX}:user:${assertId(userId, "userId")}`;
 
@@ -37,9 +42,14 @@ export type AblyCapability = Record<string, string[]>;
 export const traineeCapability = (
   userId: number,
   conversationId: number,
+  dmConversationIds: number[] = [],
 ): AblyCapability => ({
   [conversationChannel(conversationId)]: ["subscribe"],
   [userChannel(userId)]: ["subscribe"],
+  // Only the trainee's own chats, one entry each, never a wildcard.
+  ...Object.fromEntries(
+    dmConversationIds.map((id) => [dmConversationChannel(id), ["subscribe"]]),
+  ),
 });
 
 // A super admin follows every conversation; a PT (conversationIds given) only
@@ -54,6 +64,19 @@ export const adminCapability = (
       )
     : { [`${CHAT_CHANNEL_PREFIX}:conversation:*`]: ["subscribe"] }),
   [INBOX_CHANNEL]: ["subscribe"],
+});
+
+// Trainee chat events carry ids only, never text; clients fetch what is new.
+export const DM_EVENTS = { MESSAGE: "message", UPDATE: "update" } as const;
+
+export const dmEvent = (
+  conversationId: number,
+  messageId: number,
+  senderId: number,
+) => ({
+  conversationId: assertId(conversationId, "conversationId"),
+  messageId: assertId(messageId, "messageId"),
+  senderId: assertId(senderId, "senderId"),
 });
 
 export const traineeClientId = (userId: number) =>

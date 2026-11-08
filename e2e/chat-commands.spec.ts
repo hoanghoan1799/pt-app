@@ -147,7 +147,7 @@ test("/imlang becomes a chip, sends silently without the command text, and still
     await page.goto("/");
     await fillTraineeLogin(page, E2E_CHAT_NAME);
     await expect(page).toHaveURL(/\/workouts/);
-    await page.goto("/messages");
+    await page.goto("/messages/coach");
     const composer = getComposer(page);
 
     // 1. Typing "/" lists the command; clicking it makes the chip.

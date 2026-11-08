@@ -55,7 +55,7 @@ describe("buildChatPushPayload", () => {
     ).toEqual({
       title: "PT App",
       body: "Bạn có tin nhắn mới từ PT",
-      url: "/messages",
+      url: "/messages/coach",
       tag: "chat-5",
     });
   });
