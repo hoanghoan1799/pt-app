@@ -23,6 +23,7 @@ import {
 } from "@/features/social/services/engagement-queries";
 import { loadVisiblePost } from "@/features/social/services/post-access";
 import { loadVisibilityContext } from "@/features/social/services/post-context";
+import { listFriendIds } from "@/features/social/services/relationships";
 import type {
   PostAuthorRef,
   PostPage,
@@ -182,12 +183,14 @@ export const listProfilePosts = async (
 };
 
 // Home feed of a trainee (spec R6): own posts, admins' posts that reach them
-// (A1) and, from P4, their friends' posts (`friendIds`).
+// (A1) and their accepted friends' posts (everyone + friends), never anyone
+// blocked either way. `friendIds` is for callers that already have the list.
 export const listUserFeed = async (
   userId: number,
   cursor: number | null = null,
-  friendIds: number[] = [],
+  knownFriendIds?: number[],
 ): Promise<PostPage> => {
+  const friendIds = knownFriendIds ?? (await listFriendIds(userId));
   const [me] = await db
     .select({ ptAdminId: users.ptAdminId })
     .from(users)
