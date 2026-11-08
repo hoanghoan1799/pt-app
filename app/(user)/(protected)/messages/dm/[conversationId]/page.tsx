@@ -6,11 +6,13 @@ import { DmThread } from "@/features/social/components/DmThread";
 import { resolveDmView } from "@/features/social/services/dm-access";
 import { markDmConversationRead } from "@/features/social/services/dm-mutations";
 import { listDmThread } from "@/features/social/services/dm-queries";
+import { loadReplyPostFor } from "@/features/social/services/dm-reply-post";
 import { loadPeople } from "@/features/social/services/friend-queries";
 import { actorOfUser } from "@/features/social/services/post-context";
 import { hasAcceptedTerms } from "@/features/social/services/terms";
 import { parseDmId } from "@/features/social/utils/dm-rules";
 import { requireUser } from "@/services/auth-guard";
+import { readSearchParam } from "@/utils/search-params";
 
 export const metadata: Metadata = { title: "Nhắn tin" };
 
@@ -18,6 +20,7 @@ export const metadata: Metadata = { title: "Nhắn tin" };
 // chat a block hid) gets a 404, the same as for an unknown id.
 const DmPage = async ({
   params,
+  searchParams,
 }: PageProps<"/messages/dm/[conversationId]">) => {
   const user = await requireUser();
 
@@ -30,9 +33,16 @@ const DmPage = async ({
   if (id === null || !view || view.otherId === null) {
     notFound();
   }
-  const [thread, people] = await Promise.all([
-    listDmThread(id, { otherId: view.otherId }),
+  const actor = actorOfUser(user);
+  const replyPostId = parseDmId(
+    readSearchParam((await searchParams).replyPost) ?? "",
+  );
+  const [thread, people, replyPost] = await Promise.all([
+    listDmThread(id, { otherId: view.otherId, viewer: actor }),
     loadPeople([view.otherId]),
+    replyPostId !== null && view.readOnlyReason === null
+      ? loadReplyPostFor(actor, replyPostId, view.otherId)
+      : null,
   ]);
   const other = people.get(view.otherId);
 
@@ -46,6 +56,7 @@ const DmPage = async ({
       conversationId={id}
       meId={user.id}
       other={other}
+      replyPost={replyPost}
       initial={{
         ...thread,
         readOnlyReason: view.readOnlyReason,

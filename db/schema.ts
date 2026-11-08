@@ -893,6 +893,8 @@ export const dmMessages = sqliteTable(
     senderId: integer("sender_id").notNull(),
     body: text("body"),
     photoId: integer("photo_id"),
+    // The post this message replies to (story-reply style); null otherwise.
+    replyPostId: integer("reply_post_id"),
     // Client-generated uuid so a retried send is a no-op.
     clientId: text("client_id").notNull(),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),

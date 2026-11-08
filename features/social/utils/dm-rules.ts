@@ -33,6 +33,8 @@ export const dmSendSchema = z.object({
     .optional()
     .default(""),
   photoId: dmIdSchema.nullable().optional().default(null),
+  // The post being replied to (a text is required then).
+  postId: dmIdSchema.nullable().optional().default(null),
 });
 
 export type DmSendInput = z.infer<typeof dmSendSchema>;
@@ -127,3 +129,7 @@ export const dmPreview = (message: {
   }
   return message.body ?? "";
 };
+
+// "?replyPost=<id>" of the DM page, as the post card opens it.
+export const dmReplyPath = (conversationId: number, postId: number) =>
+  `${dmPath(conversationId)}?replyPost=${postId}`;

@@ -37,6 +37,7 @@ const MESSAGES: Record<DmError, string> = {
   empty: DM_MESSAGES.EMPTY,
   too_long: DM_MESSAGES.TOO_LONG,
   photo_not_found: DM_MESSAGES.PHOTO_NOT_FOUND,
+  post_not_found: DM_MESSAGES.POST_NOT_FOUND,
 };
 
 export type OpenDmResult =
@@ -86,6 +87,7 @@ export const sendDmAction = withResultErrorHandling(
       clientId: parsed.data.clientId,
       body: parsed.data.body,
       photoId: parsed.data.photoId,
+      postId: parsed.data.postId,
     });
 
     if (!result.ok) {
