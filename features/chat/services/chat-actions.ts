@@ -34,6 +34,7 @@ import {
   ownsSticker,
   type StickerOwner,
 } from "@/features/chat/services/custom-stickers";
+import { parseChatCommand } from "@/features/chat/utils/chat-commands";
 import {
   adminReaderKey,
   hasBodyOrSticker,
@@ -80,14 +81,30 @@ const ownsStickerInput = async (
 ) =>
   !sticker || !("customId" in sticker) || ownsSticker(owner, sticker.customId);
 
-const toNewContent = (parsed: {
+// Slash commands (KAN-167) only apply to text and photo captions. The stored
+// body is the text without the command; a text-only message left empty is
+// rejected. Stickers carry no text, so they are never silent.
+const resolveContent = (parsed: {
   body?: string;
   sticker?: StickerInput;
   photoId?: number;
-}) =>
-  parsed.sticker
-    ? { body: "", ...toStoredSticker(parsed.sticker) }
-    : { body: parsed.body ?? "", photoId: parsed.photoId ?? null };
+}) => {
+  if (parsed.sticker) {
+    return {
+      content: { body: "", ...toStoredSticker(parsed.sticker) },
+      silent: false,
+    };
+  }
+  const { body, effects } = parseChatCommand(parsed.body ?? "");
+
+  if (!body && parsed.photoId === undefined) {
+    return null;
+  }
+  return {
+    content: { body, photoId: parsed.photoId ?? null },
+    silent: effects.silent === true,
+  };
+};
 
 type Conversation = Awaited<ReturnType<typeof getOrCreateConversation>>;
 
@@ -127,6 +144,11 @@ export const sendMessageAction = withResultErrorHandling(
     ) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
+    const resolved = resolveContent(parsed.data);
+
+    if (!resolved) {
+      return fail(CHAT_MESSAGES.INVALID_INPUT);
+    }
     const conversation = await getOrCreateConversation(user.id);
 
     const retried = await findPhotoRetry(conversation, parsed.data);
@@ -151,7 +173,7 @@ export const sendMessageAction = withResultErrorHandling(
       conversationId: conversation.id,
       senderRole: "user",
       senderAdminId: null,
-      ...toNewContent(parsed.data),
+      ...resolved.content,
       clientId,
       replyToMessageId,
     });
@@ -162,8 +184,9 @@ export const sendMessageAction = withResultErrorHandling(
     // After the DB write; publishChatEvent never throws. A retried send
     // republishes the stored message, clients dedupe by id.
     await publishNewMessage(conversation.id, message);
-    // Push only for a new row, never for a retried clientId.
-    if (created) {
+    // Push only for a new row, never for a retried clientId, and never for a
+    // silent (/imlang) message.
+    if (created && !resolved.silent) {
       schedulePush({
         senderRole: "user",
         traineeUserId: user.id,
@@ -207,6 +230,11 @@ export const adminSendMessageAction = withResultErrorHandling(
     ) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
+    const resolved = resolveContent(parsed.data);
+
+    if (!resolved) {
+      return fail(CHAT_MESSAGES.INVALID_INPUT);
+    }
     const conversation = await getOrCreateConversation(trainee.id);
 
     const retried = await findPhotoRetry(conversation, parsed.data);
@@ -231,7 +259,7 @@ export const adminSendMessageAction = withResultErrorHandling(
       conversationId: conversation.id,
       senderRole: "admin",
       senderAdminId: admin.id,
-      ...toNewContent(parsed.data),
+      ...resolved.content,
       clientId,
       replyToMessageId,
     });
@@ -242,7 +270,7 @@ export const adminSendMessageAction = withResultErrorHandling(
       await attachPhotoToMessage(parsed.data.photoId, message.id);
     }
     await publishNewMessage(conversation.id, message);
-    if (created) {
+    if (created && !resolved.silent) {
       schedulePush({
         senderRole: "admin",
         traineeUserId: trainee.id,
