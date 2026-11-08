@@ -22,8 +22,32 @@ import {
   type ThreadViewer,
   UNSENT_TEXT,
 } from "@/features/chat/utils/chat-thread-rules";
+import { tokenizeLinks } from "@/features/chat/utils/link-rules";
 
 const STICKER_SIZE_PX = 120;
+
+// The text with its http(s) links as anchors. A tap on a link opens it; the
+// bubble gesture ignores taps on anchors, so double-tap and long-press on the
+// rest of the bubble work as before. Plain React nodes only, no raw HTML.
+const LinkedText = ({ body }: { body: string }) => (
+  <>
+    {tokenizeLinks(body).map((token, index) =>
+      token.kind === "link" ? (
+        <a
+          key={index}
+          href={token.href}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          className="font-medium underline underline-offset-2 [overflow-wrap:anywhere]"
+        >
+          {token.text}
+        </a>
+      ) : (
+        token.text
+      ),
+    )}
+  </>
+);
 
 type MessageItem = Extract<ThreadItem, { kind: "message" }>;
 
@@ -233,7 +257,7 @@ export const MessageBubble = ({
                     hasPhoto && "px-2.5 pt-1.5 pb-1",
                   )}
                 >
-                  {isUnsent ? UNSENT_TEXT : message.body}
+                  {isUnsent ? UNSENT_TEXT : <LinkedText body={message.body} />}
                 </p>
               )}
             </>

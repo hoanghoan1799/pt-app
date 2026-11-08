@@ -5,21 +5,25 @@ import {
   getAvatarUrl,
   listAdminAvatarUrls,
 } from "@/features/avatar/services/avatar";
-import { PhotoGallery } from "@/features/chat/components/PhotoGallery";
+import { GalleryView } from "@/features/chat/components/GalleryView";
 import { loadGalleryForTrainee } from "@/features/chat/services/chat-gallery";
 import { findConversationByUserId } from "@/features/chat/services/chat-queries";
 import { chatPaths } from "@/features/chat/utils/chat-links";
+import { parseGalleryTab } from "@/features/chat/utils/gallery-rules";
 import { requireUser } from "@/services/auth-guard";
 
-export const metadata: Metadata = { title: "Ảnh đã gửi" };
+export const metadata: Metadata = { title: "Ảnh, sticker và link" };
 
-// The trainee's photo gallery (KAN-160): every photo of the conversation,
-// newest first.
-const MessagesPhotosPage = async () => {
+// The trainee's gallery (KAN-160): the photos, stickers or links of the
+// conversation by `?tab=`, newest first.
+const MessagesPhotosPage = async ({
+  searchParams,
+}: PageProps<"/messages/photos">) => {
   const user = await requireUser();
+  const tab = parseGalleryTab((await searchParams).tab);
   const conversation = await findConversationByUserId(user.id);
   const [result, adminAvatars, ownAvatar] = await Promise.all([
-    loadGalleryForTrainee(conversation?.id ?? null),
+    loadGalleryForTrainee(conversation?.id ?? null, undefined, tab),
     listAdminAvatarUrls(),
     getAvatarUrl("user", user.id),
   ]);
@@ -34,14 +38,16 @@ const MessagesPhotosPage = async () => {
 
   return (
     <>
-      <AppHeader title="Ảnh đã gửi" backHref={paths.info} />
-      <main className="mx-auto w-full max-w-lg pb-12">
-        <PhotoGallery
-          initial={
+      <AppHeader title="Ảnh, sticker và link" backHref={paths.info} />
+      <main className="mx-auto w-full max-w-lg pt-3 pb-12">
+        <GalleryView
+          tab={tab}
+          page={
             result.status === "ok"
               ? result.page
               : { items: [], nextCursor: null }
           }
+          basePath={paths.photos}
           endpoint="/api/chat/gallery"
           chatPath={paths.chat}
           avatars={avatars}

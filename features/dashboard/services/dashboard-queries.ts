@@ -24,6 +24,9 @@ import {
   users,
   workoutDays,
 } from "@/db/schema";
+import { avatarUrl } from "@/features/avatar/utils/avatar-rules";
+import { listTraineeNicknames } from "@/features/chat/services/chat-queries";
+import { resolveDisplayName } from "@/features/chat/utils/display-name";
 import type {
   ActivityItem,
   MemberProgress,
@@ -52,7 +55,11 @@ export const getMemberProgress = async (
   const [members, assignedRows, completedRows, lastActiveRows, nutritionRows] =
     await Promise.all([
       db
-        .select({ id: users.id, name: users.name })
+        .select({
+          id: users.id,
+          name: users.name,
+          avatarUpdatedAt: users.avatarUpdatedAt,
+        })
         .from(users)
         .where(notInArray(users.id, hiddenUserIdsOf(adminId)))
         .orderBy(asc(users.nameKey)),
@@ -94,7 +101,9 @@ export const getMemberProgress = async (
         .groupBy(foodEntries.userId),
     ]);
 
-  return members.map((member) => {
+  const nicknames = await listTraineeNicknames(members.map((row) => row.id));
+
+  return members.map(({ avatarUpdatedAt, ...member }) => {
     const assigned = assignedRows.find((row) => row.userId === member.id);
     const completed = completedRows.find((row) => row.userId === member.id);
     const lastActive = lastActiveRows.find((row) => row.userId === member.id);
@@ -102,6 +111,8 @@ export const getMemberProgress = async (
 
     return {
       ...member,
+      displayName: resolveDisplayName(nicknames.get(member.id), member.name),
+      avatarUrl: avatarUrl("user", member.id, avatarUpdatedAt),
       assigned: assigned?.assigned ?? 0,
       plannedDays: assigned?.plannedDays ?? 0,
       completed: completed?.completed ?? 0,

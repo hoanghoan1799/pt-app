@@ -71,6 +71,13 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     getAvatarUrl("admin", admin.id),
     loadAdminAccountColor(admin.id),
   ]);
+  const displayNames = new Map(
+    members.map((member) => [member.id, member.displayName]),
+  );
+  const namedActivity = activity.map((item) => ({
+    ...item,
+    displayName: displayNames.get(item.userId) ?? item.userName,
+  }));
   const rows = toMemberRows(members, {
     weekStart: schedule.weekStart,
     timeZone: TIME_ZONE,
@@ -150,7 +157,7 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
         </section>
         <section className="space-y-2">
           <h2 className={SECTION_TITLE}>Hoạt động gần đây</h2>
-          <RecentActivityList items={activity} isUserShown now={now} />
+          <RecentActivityList items={namedActivity} isUserShown now={now} />
         </section>
       </main>
     </>

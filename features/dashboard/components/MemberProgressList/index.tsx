@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
+import { Avatar } from "@/components/common/Avatar";
 import { ProgressBar } from "@/components/common/ProgressBar";
 import { CARD, INPUT, SECTION_TITLE } from "@/constants/styles";
 import { HiddenUserList } from "@/features/chat/components/HiddenUserList";
@@ -15,7 +16,6 @@ import { useHiddenReveal } from "@/features/chat/hooks/use-hidden-reveal";
 import { unhideUserAction } from "@/features/chat/services/chat-hidden-actions";
 import { useMemberSearch } from "@/features/dashboard/hooks/use-member-search";
 import type { MemberRow } from "@/features/dashboard/types/dashboard";
-import { getInitial } from "@/utils/name";
 
 interface MemberProgressListProps {
   members: MemberRow[];
@@ -104,21 +104,20 @@ export const MemberProgressList = ({
                 href={member.href}
                 className="flex items-center gap-3 px-4 py-3.5 transition active:bg-line/60"
               >
-                <span
+                <Avatar
+                  name={member.displayName}
+                  src={member.avatarUrl}
+                  tone="soft"
                   className={clsx(
-                    "flex size-10 shrink-0 items-center justify-center rounded-full font-bold",
-                    member.status === "done"
-                      ? "bg-success/15 text-success"
-                      : "bg-accent/15 text-accent",
+                    "size-10 text-base",
+                    member.status === "done" && "bg-success/15 text-success",
                   )}
-                >
-                  {getInitial(member.name)}
-                </span>
+                />
                 <span className="min-w-0 flex-1 space-y-1.5">
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="flex min-w-0 items-center gap-2">
                       <span className="truncate font-semibold text-fg">
-                        {member.name}
+                        {member.displayName}
                       </span>
                       <UnreadBadge count={member.unread} className="shrink-0" />
                     </span>
@@ -136,7 +135,7 @@ export const MemberProgressList = ({
                   {member.status !== "no-plan" && (
                     <ProgressBar
                       percent={member.percent}
-                      label={`Tiến độ của ${member.name}`}
+                      label={`Tiến độ của ${member.displayName}`}
                     />
                   )}
                   <span className="flex flex-wrap items-start justify-between gap-x-2 gap-y-0.5 text-xs">

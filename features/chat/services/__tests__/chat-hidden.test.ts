@@ -5,6 +5,7 @@ import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
 import {
   adminHiddenUsers,
   admins,
+  chatNicknames,
   loginAttempts,
   pushSubscriptions,
   users,
@@ -242,6 +243,30 @@ describe("revealHiddenUsers", () => {
       unread: 1,
     });
     expect(result.users.map((u) => u.userName)).toEqual(["An", "Binh"]);
+  });
+
+  it("shows the nickname of a hidden trainee, else the real name", async () => {
+    const nick = await addTrainee("Binh");
+    const plain = await addTrainee("An");
+
+    await db.insert(chatNicknames).values({
+      conversationId: nick.conversationId,
+      targetKey: "user",
+      nickname: "Bé Bình",
+      setByKey: "admin:1",
+      updatedAt: new Date(),
+    });
+    await hidden.hideConversations(A, [
+      nick.conversationId,
+      plain.conversationId,
+    ]);
+
+    const result = await hidden.revealHiddenUsers(A, "1234");
+
+    expect(result.status === "success" && result.users).toMatchObject([
+      { userName: "An", displayName: "An" },
+      { userName: "Binh", displayName: "Bé Bình" },
+    ]);
   });
 
   it("also lists a hidden trainee without a conversation", async () => {

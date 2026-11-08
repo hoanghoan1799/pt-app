@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   GALLERY_PAGE_SIZE,
   parseGalleryCursor,
+  parseGalleryTab,
   photoFileName,
   photoLabel,
   stepIndex,
+  stickerFileName,
 } from "@/features/chat/utils/gallery-rules";
 
 describe("parseGalleryCursor", () => {
@@ -57,5 +59,25 @@ describe("stepIndex", () => {
     expect(stepIndex(0, -1, 3)).toBe(0);
     expect(stepIndex(1, -1, 3)).toBe(0);
     expect(stepIndex(0, 1, 0)).toBe(0);
+  });
+});
+
+describe("parseGalleryTab", () => {
+  it("knows the three tabs and falls back to photos", () => {
+    expect(parseGalleryTab("stickers")).toBe("stickers");
+    expect(parseGalleryTab("links")).toBe("links");
+    expect(parseGalleryTab(["links", "stickers"])).toBe("links");
+    for (const bad of [undefined, null, "", "Links", "x", ["nope"]]) {
+      expect(parseGalleryTab(bad)).toBe("photos");
+    }
+  });
+});
+
+describe("stickerFileName", () => {
+  it("follows the real type, GIF included", () => {
+    expect(stickerFileName(5, "image/gif")).toBe("pt-app-sticker-5.gif");
+    expect(stickerFileName(5, "image/png")).toBe("pt-app-sticker-5.png");
+    expect(stickerFileName(5, "image/svg+xml")).toBe("pt-app-sticker-5.webp");
+    expect(stickerFileName(5, null)).toBe("pt-app-sticker-5.webp");
   });
 });

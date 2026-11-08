@@ -3,6 +3,10 @@ import type { BestSet } from "@/features/workouts/types/workout";
 export interface MemberProgress {
   id: number;
   name: string;
+  // The nickname an admin set, else the real name (same as the inbox).
+  displayName: string;
+  // Versioned /api/avatar URL; null = no photo.
+  avatarUrl: string | null;
   // Exercises scheduled in the week, and how many of those are done.
   assigned: number;
   completed: number;
@@ -39,6 +43,8 @@ interface ActivityBase {
   id: number;
   userId: number;
   userName: string;
+  // Nickname if set, else userName; filled in by the page.
+  displayName?: string;
   exerciseTitle: string;
   // Scheduled day (YYYY-MM-DD) of the exercise.
   date: string;
