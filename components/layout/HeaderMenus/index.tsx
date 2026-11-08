@@ -5,6 +5,7 @@ import {
   Camera,
   CircleDot,
   KeyRound,
+  Lock,
   LockKeyhole,
   LogOut,
   Palette,
@@ -12,6 +13,7 @@ import {
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   type KeyboardEvent,
   type ReactNode,
@@ -31,6 +33,8 @@ import {
   logoutAdminAction,
   logoutUserAction,
 } from "@/features/auth/services/auth-actions";
+import { lockNow } from "@/features/auth/services/passcode-actions";
+import { buildLockUrl } from "@/features/auth/utils/lock-redirect";
 import { AvatarSheet } from "@/features/avatar/components/AvatarSheet";
 import { AccountColorSheet } from "@/features/chat/components/AccountColorSheet";
 import { PushToggle } from "@/features/chat/components/PushToggle";
@@ -68,6 +72,8 @@ const THEME_OPTIONS: { value: Theme; label: string }[] = [
 
 const PRESENCE_FAILED = "Không lưu được. Thử lại nhé.";
 const UPDATING_MESSAGE = "Tính năng đang cập nhật";
+const LOCK_FAILED = "Không khoá được. Thử lại nhé.";
+const LOCK_NEEDS_PASSCODE = "Đặt mã khoá trước để khoá ứng dụng.";
 
 const readCurrentTheme = () =>
   parseTheme(document.documentElement.dataset.theme);
@@ -77,7 +83,7 @@ const paintTheme = (theme: Theme) => {
 };
 
 // The gear (Giao diện, Thông báo đẩy; admins also Màu tài khoản, Trạng thái
-// hoạt động, Mã khoá) and avatar (Ảnh đại diện, Đổi mật khẩu, Đăng xuất)
+// hoạt động, Mã khoá, Khoá ngay) and avatar (Ảnh đại diện, Đổi mật khẩu, Đăng xuất)
 // menus of the app header, shared by the trainee and admin sites. One menu is
 // open at a time; a tap outside or Esc closes it.
 export const HeaderMenus = ({
@@ -103,6 +109,8 @@ export const HeaderMenus = ({
     avatar: null,
   });
   const confirm = useConfirm();
+  const router = useRouter();
+  const [isLocking, startLocking] = useTransition();
 
   useEffect(() => {
     if (!openMenu) {
@@ -209,6 +217,34 @@ export const HeaderMenus = ({
         void (role === "admin" ? logoutAdminAction() : logoutUserAction());
       });
     }
+  };
+
+  // One tap locks the admin site right away (no confirm): the unlock cookie
+  // is dropped on the server, then the lock screen opens for this page.
+  const lockApp = () => {
+    setOpenMenu(null);
+    if (!hasPasscode) {
+      toast.info(LOCK_NEEDS_PASSCODE);
+      setIsPasscodeOpen(true);
+      return;
+    }
+    startLocking(async () => {
+      try {
+        const result = await lockNow();
+
+        if (result.status === "success") {
+          router.replace(
+            buildLockUrl(
+              `${window.location.pathname}${window.location.search}`,
+            ),
+          );
+          return;
+        }
+        toast.error(result.message ?? LOCK_FAILED);
+      } catch {
+        toast.error(LOCK_FAILED);
+      }
+    });
   };
 
   const renderTrigger = (menu: MenuId, label: string, icon: ReactNode) => (
@@ -324,6 +360,16 @@ export const HeaderMenus = ({
                   >
                     <LockKeyhole className="size-5 text-muted" aria-hidden />
                     Mã khoá
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={ITEM}
+                    onClick={lockApp}
+                    disabled={isLocking}
+                  >
+                    <Lock className="size-5 text-muted" aria-hidden />
+                    Khoá ngay
                   </button>
                 </>
               )}
