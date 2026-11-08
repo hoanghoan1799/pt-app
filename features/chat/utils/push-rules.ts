@@ -108,7 +108,7 @@ export const buildChatPushPayload = ({
           : `${traineeName} vừa nhắn tin`,
   url:
     recipientRole === "user"
-      ? ROUTES.MESSAGES
+      ? ROUTES.MESSAGES_COACH
       : getAdminMessagesPath(traineeUserId),
   // One notification per conversation: a newer one replaces the older.
   tag: `chat-${conversationId}`,
@@ -134,7 +134,7 @@ export const buildReactionPushPayload = ({
   body: `${reactorName} đã thả ${emoji} vào tin nhắn của bạn`,
   url:
     recipientRole === "user"
-      ? ROUTES.MESSAGES
+      ? ROUTES.MESSAGES_COACH
       : getAdminMessagesPath(traineeUserId),
   tag: `chat-react-${conversationId}`,
 });

@@ -226,6 +226,8 @@ describe("GET /api/chat/unread", () => {
 
     expect(await response.json()).toEqual({
       count: 1,
+      coachCount: 1,
+      dmCount: 0,
       chatEnabled: true,
       hasHistory: true,
     });
@@ -298,7 +300,13 @@ describe("GET /api/chat/unread?as=admin", () => {
     state.admin = null;
     const body = await (await unreadRoute.GET(get("/api/chat/unread"))).json();
 
-    expect(body).toEqual({ count: 1, chatEnabled: true, hasHistory: true });
+    expect(body).toEqual({
+      count: 1,
+      coachCount: 1,
+      dmCount: 0,
+      chatEnabled: true,
+      hasHistory: true,
+    });
   });
 });
 

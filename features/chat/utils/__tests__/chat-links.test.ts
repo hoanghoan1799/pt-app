@@ -9,10 +9,10 @@ import {
 describe("chatPaths", () => {
   it("has a fixed set for the trainee", () => {
     expect(chatPaths("user", 5)).toEqual({
-      chat: "/messages",
-      info: "/messages/info",
-      photos: "/messages/photos",
-      search: "/messages/search",
+      chat: "/messages/coach",
+      info: "/messages/coach/info",
+      photos: "/messages/coach/photos",
+      search: "/messages/coach/search",
     });
   });
 
@@ -28,9 +28,9 @@ describe("chatPaths", () => {
 
 describe("jumpHref / parseJumpId", () => {
   it("round-trips a message id", () => {
-    const href = jumpHref("/messages", 123);
+    const href = jumpHref("/messages/coach", 123);
 
-    expect(href).toBe("/messages?m=123");
+    expect(href).toBe("/messages/coach?m=123");
     expect(
       parseJumpId(new URL(href, "http://x").searchParams.get("m") ?? ""),
     ).toBe(123);

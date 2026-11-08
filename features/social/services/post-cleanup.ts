@@ -4,6 +4,7 @@ import { and, eq, inArray } from "drizzle-orm";
 
 import type { db } from "@/db";
 import { socialPostPhotos, socialPosts } from "@/db/schema";
+import { deleteDmDataOfUser } from "@/features/social/services/dm-mutations";
 import {
   deleteEngagementOfAccount,
   deleteEngagementOfPosts,
@@ -14,7 +15,7 @@ import { deleteReportsOfUser } from "@/features/social/services/report-mutations
 type Executor = Pick<typeof db, "delete" | "select">;
 
 // Account deletion removes the trainee's posts, photos, reactions, comments,
-// notifications, friendships, blocks and reports by or about them (spec A12).
+// notifications, friendships, blocks and reports by or about them, and their trainee chats (spec A12).
 // Call inside the member delete transaction.
 export const deleteSocialContentOfUser = async (
   executor: Executor,
@@ -31,6 +32,7 @@ export const deleteSocialContentOfUser = async (
   // Reports first: they look up the trainee's posts and comments.
   await deleteReportsOfUser(executor, userId);
   await deleteFriendDataOfUser(executor, userId);
+  await deleteDmDataOfUser(executor, userId);
   await deleteEngagementOfPosts(executor, postIds);
   await deleteEngagementOfAccount(executor, `user:${userId}`);
   if (postIds.length > 0) {

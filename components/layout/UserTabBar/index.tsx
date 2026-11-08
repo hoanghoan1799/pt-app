@@ -48,10 +48,13 @@ const isUnder = (pathname: string, base: string) =>
 // pill so it reads at a glance, not just a tinted icon.
 export const UserTabBar = () => {
   const pathname = usePathname();
-  const inChat = isUnder(pathname, ROUTES.MESSAGES);
+  // The inbox keeps the bar; every thread (coach or friend) has its own
+  // header and composer, which the bar would cover.
+  const inChat =
+    isUnder(pathname, ROUTES.MESSAGES_COACH) ||
+    isUnder(pathname, ROUTES.MESSAGES_DM);
   const unread = useChatUnread(inChat);
 
-  // The thread has its own header and composer; the bar would cover them.
   if (inChat) {
     return null;
   }

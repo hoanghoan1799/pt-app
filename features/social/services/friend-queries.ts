@@ -26,7 +26,9 @@ export interface SearchResult extends PersonView {
   relationship: Relationship;
 }
 
-const loadPeople = async (ids: number[]): Promise<Map<number, PersonView>> => {
+export const loadPeople = async (
+  ids: number[],
+): Promise<Map<number, PersonView>> => {
   if (ids.length === 0) {
     return new Map();
   }

@@ -201,7 +201,7 @@ const withScene = async (
     await trainee.goto("/");
     await fillTraineeLogin(trainee, E2E_CHAT_NAME);
     await expect(trainee).toHaveURL(/\/workouts/);
-    await trainee.goto("/messages");
+    await trainee.goto("/messages/coach");
 
     await send(trainee, mine);
     await expect(bubble(admin, mine)).toBeVisible(SYNC);

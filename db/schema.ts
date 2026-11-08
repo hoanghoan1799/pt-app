@@ -862,3 +862,81 @@ export const socialReports = sqliteTable(
   },
   (table) => [index("social_reports_status").on(table.status, table.createdAt)],
 );
+
+// Trainee-to-trainee chat (P5). One conversation per pair (user_low <
+// user_high, same ordering as social_friendships). No foreign keys, member
+// delete removes these by hand.
+export const dmConversations = sqliteTable(
+  "dm_conversations",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userLow: integer("user_low").notNull(),
+    userHigh: integer("user_high").notNull(),
+    // Denormalised for the inbox sort and preview.
+    lastMessageId: integer("last_message_id"),
+    lastMessageAt: integer("last_message_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("dm_conversations_pair").on(table.userLow, table.userHigh),
+    index("dm_conversations_high").on(table.userHigh),
+  ],
+);
+
+// Text and/or one photo. Unsend soft-deletes (deletedAt) and drops the text
+// and the photo bytes.
+export const dmMessages = sqliteTable(
+  "dm_messages",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    conversationId: integer("conversation_id").notNull(),
+    senderId: integer("sender_id").notNull(),
+    body: text("body"),
+    photoId: integer("photo_id"),
+    // Client-generated uuid so a retried send is a no-op.
+    clientId: text("client_id").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    uniqueIndex("dm_messages_conversation_client").on(
+      table.conversationId,
+      table.clientId,
+    ),
+    index("dm_messages_conversation_id").on(table.conversationId, table.id),
+  ],
+);
+
+// Like chat_photos: pending (messageId null) from the upload until a message
+// carries it.
+export const dmPhotos = sqliteTable(
+  "dm_photos",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    conversationId: integer("conversation_id").notNull(),
+    messageId: integer("message_id"),
+    uploaderId: integer("uploader_id").notNull(),
+    mime: text("mime", {
+      enum: ["image/webp", "image/jpeg", "image/png"],
+    }).notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    data: blob("data", { mode: "buffer" }).notNull(),
+    size: integer("size").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("dm_photos_message").on(table.messageId),
+    index("dm_photos_conversation").on(table.conversationId),
+  ],
+);
+
+export const dmReads = sqliteTable(
+  "dm_reads",
+  {
+    conversationId: integer("conversation_id").notNull(),
+    userId: integer("user_id").notNull(),
+    lastReadMessageId: integer("last_read_message_id").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.conversationId, table.userId] })],
+);

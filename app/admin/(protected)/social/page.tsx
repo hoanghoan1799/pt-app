@@ -1,13 +1,16 @@
+import { MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
-import { PAGE_CONTAINER } from "@/constants/styles";
+import { ICON_BUTTON, PAGE_CONTAINER } from "@/constants/styles";
 import { NotificationBell } from "@/features/social/components/NotificationBell";
 import { PostComposer } from "@/features/social/components/PostComposer";
 import { PostList } from "@/features/social/components/PostList";
 import { listAdminFeed } from "@/features/social/services/post-queries";
 import { countUnreadNotifications } from "@/features/social/services/social-notifications";
+import { isSuperAdmin } from "@/services/admin-scope";
 import { requireAdmin } from "@/services/auth-guard";
 
 export const metadata: Metadata = { title: "Mạng xã hội" };
@@ -26,10 +29,21 @@ const AdminSocialPage = async () => {
         title="Mạng xã hội"
         backHref={ROUTES.ADMIN}
         actions={
-          <NotificationBell
-            href={ROUTES.ADMIN_SOCIAL_NOTIFICATIONS}
-            unreadCount={unreadCount}
-          />
+          <>
+            {isSuperAdmin(admin) && (
+              <Link
+                href={ROUTES.ADMIN_SOCIAL_CHATS}
+                className={ICON_BUTTON}
+                aria-label="Chat học viên"
+              >
+                <MessageCircle className="size-6" aria-hidden />
+              </Link>
+            )}
+            <NotificationBell
+              href={ROUTES.ADMIN_SOCIAL_NOTIFICATIONS}
+              unreadCount={unreadCount}
+            />
+          </>
         }
       />
       <main
