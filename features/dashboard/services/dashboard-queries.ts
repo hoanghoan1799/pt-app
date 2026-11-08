@@ -10,6 +10,7 @@ import {
   eq,
   inArray,
   isNotNull,
+  isNull,
   lte,
   max,
   notInArray,
@@ -17,6 +18,7 @@ import {
 
 import { db } from "@/db";
 import {
+  admins,
   exerciseCompletions,
   exercises,
   exerciseSets,
@@ -44,11 +46,24 @@ import { getWeekDates } from "@/utils/week";
 const toEpochMs = (value: Date | number | null | undefined) =>
   value instanceof Date ? value.getTime() : (value ?? null);
 
+// Dashboard filter by PT: everyone, trainees without a PT, or one PT's.
+export type PtFilter = "all" | "none" | number;
+
+export const ptFilterCondition = (filter: PtFilter) => {
+  if (filter === "all") {
+    return undefined;
+  }
+  return filter === "none"
+    ? isNull(users.ptAdminId)
+    : eq(users.ptAdminId, filter);
+};
+
 // Trainees `adminId` hid are left out (KAN-163), so the list and the totals
 // built from it never count them.
 export const getMemberProgress = async (
   weekStart: string,
   adminId: number,
+  ptFilter: PtFilter = "all",
 ): Promise<MemberProgress[]> => {
   const dates = getWeekDates(weekStart);
   const inWeek = between(workoutDays.date, dates[0], dates[dates.length - 1]);
@@ -60,12 +75,16 @@ export const getMemberProgress = async (
           id: users.id,
           name: users.name,
           avatarUpdatedAt: users.avatarUpdatedAt,
+          ptAdminId: users.ptAdminId,
+          ptName: admins.username,
         })
         .from(users)
+        .leftJoin(admins, eq(admins.id, users.ptAdminId))
         .where(
           and(
             notInArray(users.id, hiddenUserIdsOf(adminId)),
             notInArray(users.id, outOfScopeUserIdsOf(adminId)),
+            ptFilterCondition(ptFilter),
           ),
         )
         .orderBy(asc(users.nameKey)),

@@ -8,15 +8,22 @@ import { OneTimePassword } from "@/features/members/components/OneTimePassword";
 import { useCreateMember } from "@/features/members/hooks/use-create-member";
 
 interface CreateMemberFormProps {
+  // Set for a super admin: the "PT phụ trách" choices. A PT's trainees always
+  // join their own workspace, so no select is shown.
+  ptOptions?: { id: number; username: string }[];
   // Called when the admin dismisses the one-time password panel.
   onDone?: () => void;
 }
 
-export const CreateMemberForm = ({ onDone }: CreateMemberFormProps) => {
+export const CreateMemberForm = ({
+  ptOptions,
+  onDone,
+}: CreateMemberFormProps) => {
   const {
     formAction,
     nameError,
     emailError,
+    ptError,
     defaultName,
     defaultEmail,
     credentials,
@@ -78,6 +85,32 @@ export const CreateMemberForm = ({ onDone }: CreateMemberFormProps) => {
           </p>
         )}
       </div>
+      {ptOptions && (
+        <div>
+          <label htmlFor="member-pt" className={LABEL}>
+            PT phụ trách
+          </label>
+          <select
+            id="member-pt"
+            name="ptAdminId"
+            defaultValue=""
+            aria-invalid={Boolean(ptError)}
+            className={INPUT}
+          >
+            <option value="">Chưa giao (chỉ super admin)</option>
+            {ptOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.username}
+              </option>
+            ))}
+          </select>
+          {ptError && (
+            <p role="alert" className={FIELD_ERROR}>
+              {ptError}
+            </p>
+          )}
+        </div>
+      )}
       {/* Pinned to the sheet's bottom edge so it stays reachable while the
           keyboard is up; the negative margin cancels the sheet's own padding. */}
       <div className="sticky bottom-0 -mb-[calc(env(safe-area-inset-bottom)+1.25rem)] bg-bg pt-2 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
