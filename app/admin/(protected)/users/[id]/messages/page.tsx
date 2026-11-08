@@ -13,19 +13,19 @@ import {
 import { AdminChatThread } from "@/features/chat/components/AdminChatThread";
 import { ChatLockSwitch } from "@/features/chat/components/ChatLockSwitch";
 import { isChatEnabled } from "@/features/chat/services/chat-permission";
-import {
-  loadAdminAccountColor,
-  loadChatProfile,
-} from "@/features/chat/services/chat-profile";
+import { loadChatProfile } from "@/features/chat/services/chat-profile";
 import {
   findConversationByUserId,
   getOrCreateConversation,
   getPeerReadCursor,
   listMessages,
+  listMessagesAround,
 } from "@/features/chat/services/chat-queries";
+import { parseJumpId } from "@/features/chat/utils/chat-links";
 import { serializeMessage } from "@/features/chat/utils/chat-thread-rules";
 import { serializeLastSeen } from "@/features/chat/utils/presence";
 import { requireAdmin } from "@/services/auth-guard";
+import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
 import { readSearchParam } from "@/utils/search-params";
 import { getTodayDate, resolveSchedule } from "@/utils/week";
@@ -45,7 +45,7 @@ const AdminMessagesPage = async ({
   const { id } = await params;
   const user = await findUserById(Number(id));
 
-  if (!user) {
+  if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
     notFound();
   }
   const query = await searchParams;
@@ -87,18 +87,19 @@ const AdminMessagesPage = async ({
       </>
     );
   }
+  const jumpId = parseJumpId(query.m);
+  const around =
+    jumpId === null ? null : await listMessagesAround(conversation.id, jumpId);
   const [
     { messages, hasMore },
     peerReadUpTo,
     profile,
-    accountColor,
     adminAvatars,
     traineeAvatarUrl,
   ] = await Promise.all([
-    listMessages(conversation.id),
+    around ?? listMessages(conversation.id),
     getPeerReadCursor(conversation.id, "admin"),
     loadChatProfile(conversation.id),
-    loadAdminAccountColor(admin.id),
     listAdminAvatarUrls(),
     getAvatarUrl("user", user.id),
   ]);
@@ -119,15 +120,14 @@ const AdminMessagesPage = async ({
       userName={user.name}
       userId={user.id}
       conversationId={conversation.id}
+      jumpToId={around ? jumpId : null}
       viewer={{
         role: "admin",
         adminId: admin.id,
         adminName: admin.username,
         peerName: user.name,
       }}
-      accountColor={accountColor}
       avatars={avatars}
-      selfAvatarUrl={adminAvatars.get(admin.id) ?? null}
       emptyText={EMPTY_TEXT}
       ariaLabel={`Cuộc trò chuyện với ${user.name}`}
       initial={{

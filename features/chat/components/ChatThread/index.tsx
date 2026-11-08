@@ -14,7 +14,6 @@ import {
 import { toast } from "sonner";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
-import { ChatSettingsSheet } from "@/features/chat/components/ChatSettingsSheet";
 import { Composer } from "@/features/chat/components/Composer";
 import { EditHistorySheet } from "@/features/chat/components/EditHistorySheet";
 import { LockedBanner } from "@/features/chat/components/LockedBanner";
@@ -30,8 +29,8 @@ import { useChatAdapter } from "@/features/chat/hooks/use-chat-adapter";
 import type { ThreadSnapshot } from "@/features/chat/hooks/use-chat-messages";
 import { useChatMessages } from "@/features/chat/hooks/use-chat-messages";
 import { useChatTransport } from "@/features/chat/hooks/use-chat-transport";
+import { useNeutralChatColors } from "@/features/chat/hooks/use-neutral-chat-colors";
 import { usePeerPresence } from "@/features/chat/hooks/use-peer-presence";
-import type { ChatColorKey } from "@/features/chat/utils/chat-palette";
 import {
   adminLabel,
   bubbleColorFor,
@@ -52,12 +51,17 @@ import {
   USER_VIEWER,
 } from "@/features/chat/utils/chat-thread-rules";
 import { displayNameFor } from "@/features/chat/utils/display-name";
+import type { PreparedPhoto } from "@/features/chat/utils/encode-photo";
 import type { PresenceView } from "@/features/chat/utils/presence-status";
 
 export interface ChatThreadProps {
   initial: ThreadSnapshot;
   userId: number;
   conversationId: number | null;
+  // The chat info page the header opens.
+  infoHref: string;
+  // Open scrolled to this message and highlight it (gallery, search).
+  jumpToId?: number | null;
   // The page header; rendered inside the shell so the keyboard resize keeps
   // it in place. A function receives the username of the newest PT who wrote
   // in the loaded messages (null if none or deleted) and the peer presence
@@ -69,26 +73,20 @@ export interface ChatThreadProps {
         presence: PresenceView | null,
         settings: {
           profile: ChatProfileView;
-          openSettings: () => void;
+          // The chat info page (KAN-160).
+          infoHref: string;
           // The other side's photo for the header (versioned URL) or null.
           peerAvatar: string | null;
         },
       ) => ReactNode);
-  // The viewer's real name, for the settings sheet (the trainee's name; the
-  // admin view uses `viewer.adminName`).
-  selfName?: string;
   // Real name of the other side before any PT message names them (trainee).
   fallbackPeerName?: string;
   viewer?: ThreadViewer;
-  // Admin only: the saved account colour, preselected in the settings sheet.
-  accountColor?: ChatColorKey | null;
   emptyText?: string;
   ariaLabel?: string;
   // Photos of the people in this thread (versioned /api/avatar URLs), keyed
   // like nicknames: "user" or "admin:<id>". Only people with a photo.
   avatars?: Readonly<Record<string, string>>;
-  // The viewer's own saved photo, editable in the settings sheet.
-  selfAvatarUrl?: string | null;
 }
 
 const NO_AVATARS: Readonly<Record<string, string>> = {};
@@ -110,6 +108,8 @@ const StickerPanel = dynamic(
 );
 
 const HIGHLIGHT_MS = 1500;
+// A jumped-to message stays marked a little longer.
+const JUMP_HIGHLIGHT_MS = 2000;
 
 type SheetKind = "actions" | "reactors" | "history";
 
@@ -136,12 +136,35 @@ const useVisualViewport = () => {
       });
     };
 
+    // iOS can skip the last visualViewport event when the keyboard closes and
+    // leaves the page scrolled up, so the thread stayed lifted. Re-read the
+    // viewport a few times after the composer loses focus and scroll the page
+    // back to the top.
+    const timers: number[] = [];
+    const settleAfterKeyboard = () => {
+      for (const delay of [0, 120, 300, 600]) {
+        timers.push(
+          window.setTimeout(() => {
+            if (window.scrollY !== 0) {
+              window.scrollTo(0, 0);
+            }
+            update();
+          }, delay),
+        );
+      }
+    };
+
     update();
     vv.addEventListener("resize", update);
     vv.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    document.addEventListener("focusout", settleAfterKeyboard);
     return () => {
       vv.removeEventListener("resize", update);
       vv.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      document.removeEventListener("focusout", settleAfterKeyboard);
+      timers.forEach((timer) => window.clearTimeout(timer));
     };
   }, []);
 
@@ -153,16 +176,17 @@ export const ChatThread = ({
   userId,
   conversationId,
   header,
+  infoHref,
+  jumpToId = null,
   viewer = USER_VIEWER,
-  accountColor = null,
-  selfName = "Bạn",
   fallbackPeerName = "PT",
   emptyText,
   ariaLabel = TRAINEE_ARIA_LABEL,
   avatars = NO_AVATARS,
-  selfAvatarUrl = null,
 }: ChatThreadProps) => {
   const isAdmin = viewer.role === "admin";
+  // Admin-only and per device; trainee views never read the stored value.
+  const [neutralColors] = useNeutralChatColors(isAdmin);
   const [isVisible, setIsVisible] = useState(true);
   const adapter = useChatAdapter(viewer, userId, conversationId);
   const chat = useChatMessages({ adapter, initial, isViewing: isVisible });
@@ -194,11 +218,6 @@ export const ChatThread = ({
   );
   const [highlightId, setHighlightId] = useState<number | null>(null);
   const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  // Set once the viewer saves or removes their own photo in the sheet.
-  const [savedSelfAvatar, setSavedSelfAvatar] = useState<
-    string | null | undefined
-  >(undefined);
   // The panel mounts on the first tap and stays, so its sheet can animate out.
   const [isStickerOpen, setIsStickerOpen] = useState(false);
   const [hasStickerPanel, setHasStickerPanel] = useState(false);
@@ -314,6 +333,27 @@ export const ChatThread = ({
     }
   }, [viewportHeight, scrollToBottom]);
 
+  // When the keyboard closes the list grows back, but iOS keeps the old
+  // scrollTop (past the new end) and paints an empty gap under the last
+  // message until the user scrolls. Re-anchor on every size change of the list.
+  useEffect(() => {
+    const node = scroller.current;
+
+    if (!node || typeof ResizeObserver === "undefined") {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      const maxTop = Math.max(0, node.scrollHeight - node.clientHeight);
+
+      if (wasNearBottom.current || node.scrollTop > maxTop) {
+        node.scrollTop = maxTop;
+      }
+    });
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   const findMessage = useCallback(
     (id: number | null) =>
       id === null ? undefined : messages.find((message) => message.id === id),
@@ -423,13 +463,21 @@ export const ChatThread = ({
     void chat.unsend(id);
   };
 
-  const jumpToMessage = (id: number) => {
+  const jumpToMessage = (
+    id: number,
+    { smooth = true, durationMs = HIGHLIGHT_MS } = {},
+  ) => {
     const node = scroller.current?.querySelector(`[data-message-id="${id}"]`);
 
     if (!node) {
       return;
     }
-    node.scrollIntoView({ block: "center", behavior: "smooth" });
+    // Leave "stay at the bottom" mode, or a later resize snaps back down.
+    wasNearBottom.current = false;
+    node.scrollIntoView({
+      block: "center",
+      behavior: smooth ? "smooth" : "auto",
+    });
     setHighlightId(id);
     if (highlightTimer.current !== null) {
       clearTimeout(highlightTimer.current);
@@ -437,11 +485,29 @@ export const ChatThread = ({
     highlightTimer.current = setTimeout(() => {
       highlightTimer.current = null;
       setHighlightId(null);
-    }, HIGHLIGHT_MS);
+    }, durationMs);
   };
 
-  const handleSend = (body: string) => {
-    chat.send(body, replyMessage);
+  // Opened from the gallery or a search result: the page loaded the thread
+  // around the message, so it is in the DOM after the first paint. It may run
+  // twice (strict mode remounts effects); jumping again is harmless and, as
+  // it runs after the first-paint scroll, it also wins over it.
+  useEffect(() => {
+    if (jumpToId !== null) {
+      jumpToMessage(jumpToId, {
+        smooth: false,
+        durationMs: JUMP_HIGHLIGHT_MS,
+      });
+    }
+    // Only the target matters; jumpToMessage reads refs and state setters.
+  }, [jumpToId]);
+
+  const handleSend = (body: string, photo?: PreparedPhoto) => {
+    if (photo) {
+      chat.sendPhoto(photo, body, replyMessage);
+    } else {
+      chat.send(body, replyMessage);
+    }
     setReplyId(null);
   };
 
@@ -492,7 +558,6 @@ export const ChatThread = ({
   const emptyMessage =
     emptyText ?? (chatEnabled ? TRAINEE_EMPTY_TEXT : TRAINEE_LOCKED_EMPTY_TEXT);
   const latestPeerName = latestAdminName(messages);
-  const openSettings = () => setIsSettingsOpen(true);
   // The other side's photo in the header: the trainee for an admin, the PT who
   // wrote last for a trainee.
   const peerAvatar =
@@ -501,7 +566,7 @@ export const ChatThread = ({
       : (avatars[`admin:${latestAdminId(messages)}`] ?? null);
   const headerNode =
     typeof header === "function"
-      ? header(latestPeerName, presence, { profile, openSettings, peerAvatar })
+      ? header(latestPeerName, presence, { profile, infoHref, peerAvatar })
       : header;
   const peerRealName =
     viewer.role === "admin"
@@ -591,6 +656,7 @@ export const ChatThread = ({
                       }
                       onOpenHistory={(message) => openSheet("history", message)}
                       onJumpToReply={jumpToMessage}
+                      isNeutral={isAdmin && neutralColors}
                       color={bubbleColorFor(
                         item.message,
                         item.mine,
@@ -649,6 +715,7 @@ export const ChatThread = ({
             snippet={quoteText({
               deleted: replyMessage.deleted,
               isSticker: Boolean(replyMessage.sticker),
+              isPhoto: Boolean(replyMessage.photo),
               body: replyMessage.body,
             })}
             closeLabel="Huỷ trả lời"
@@ -658,6 +725,7 @@ export const ChatThread = ({
         {chatEnabled ? (
           <Composer
             onSend={handleSend}
+            canAttachPhoto
             editing={activeEditing}
             onSaveEdit={handleSaveEdit}
             replyId={replyMessage?.id ?? null}
@@ -718,23 +786,6 @@ export const ChatThread = ({
           currentBody={sheetMessage.body}
         />
       )}
-      <ChatSettingsSheet
-        isOpen={isSettingsOpen}
-        onOpenChange={setIsSettingsOpen}
-        viewer={adapter.viewer}
-        conversationId={conversationId}
-        peerName={peerRealName}
-        selfName={viewer.role === "admin" ? viewer.adminName : selfName}
-        profile={profile}
-        onProfileChange={chat.setProfile}
-        accountColor={accountColor}
-        onSync={sync}
-        chatEnabled={chatEnabled}
-        selfAvatarUrl={
-          savedSelfAvatar === undefined ? selfAvatarUrl : savedSelfAvatar
-        }
-        onAvatarChange={setSavedSelfAvatar}
-      />
     </div>
   );
 };

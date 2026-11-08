@@ -9,6 +9,15 @@ import { isRecordLocked, nextFailureState } from "@/utils/login-limiter-rules";
 export const userLimiterKey = (emailKey: string) => `user:${emailKey}`;
 export const adminLimiterKey = (usernameKey: string) => `admin:${usernameKey}`;
 
+// Wrong account password in "Quên mã khoá" (KAN-160).
+export const passcodeResetLimiterKey = (adminId: number) =>
+  `passcode-reset:${adminId}`;
+
+// Wrong passcode typed to reveal hidden chats (KAN-163). Separate from the
+// lock-screen counter, so it never signs the admin out.
+export const passcodeRevealLimiterKey = (adminId: number) =>
+  `passcode-reveal:${adminId}`;
+
 const findRecord = async (key: string) => {
   const [record] = await db
     .select()

@@ -5,6 +5,7 @@ import {
   formatClockTime,
   formatRelativeTime,
   formatShortDate,
+  formatShortDateTime,
 } from "@/utils/time";
 
 const TIME_ZONE = "Asia/Ho_Chi_Minh";
@@ -42,5 +43,13 @@ describe("calculatePercent", () => {
   it("rounds and handles zero totals", () => {
     expect(calculatePercent(2, 3)).toBe(67);
     expect(calculatePercent(0, 0)).toBe(0);
+  });
+});
+
+describe("formatShortDateTime", () => {
+  it("joins the local date and time", () => {
+    expect(
+      formatShortDateTime(Date.parse("2026-10-05T11:32:00Z"), TIME_ZONE),
+    ).toBe("05/10 18:32");
   });
 });

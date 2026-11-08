@@ -34,6 +34,18 @@ export const admins = sqliteTable("admins", {
   // whenever `avatar` is, and versions the /api/avatar URL.
   avatar: text("avatar"),
   avatarUpdatedAt: integer("avatar_updated_at", { mode: "timestamp" }),
+  // Admin passcode (KAN-160): scrypt hash of a 4-digit code, see
+  // services/password.ts. Null = no passcode, no lock.
+  passcodeHash: text("passcode_hash"),
+  // Wrong passcodes in a row; the 5th signs the admin out and resets it.
+  // Nullable on purpose (null = 0): drizzle-kit push treats a NOT NULL column
+  // added to a non-empty table as data loss and the Vercel build skipped it.
+  passcodeFailedCount: integer("passcode_failed_count").default(0),
+  // "Trạng thái hoạt động" switch: true hides this admin's online status
+  // from trainees. Nullable for the same reason (null = shown).
+  presenceHidden: integer("presence_hidden", { mode: "boolean" }).default(
+    false,
+  ),
   createdAt: createdAt(),
 });
 
@@ -480,6 +492,10 @@ export const chatMessages = sqliteTable(
     // "giphy:<id>"; the URL is a bundled path or a GIPHY media URL.
     stickerRef: text("sticker_ref"),
     stickerUrl: text("sticker_url"),
+    // KAN-160: a photo message points at its chat_photos row. Nullable on
+    // purpose (production incident #121: new columns on existing tables must
+    // not be notNull).
+    photoId: integer("photo_id"),
     editedAt: integer("edited_at", { mode: "timestamp_ms" }),
     // Null until the first edit, unsend or reaction.
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
@@ -513,6 +529,33 @@ export const chatCustomStickers = sqliteTable(
   },
   (table) => [
     index("chat_custom_stickers_owner").on(table.ownerKind, table.ownerId),
+  ],
+);
+
+// Photos sent in chat (KAN-160): the browser resized and re-encoded the image
+// (WebP, long side <= 1600 px); the bytes live here like avatars. A row is
+// pending (messageId null) from the upload until the message that carries it
+// is stored. Unsending the message deletes the row, bytes included.
+export const chatPhotos = sqliteTable(
+  "chat_photos",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    conversationId: integer("conversation_id").notNull(),
+    messageId: integer("message_id"),
+    // Who uploaded it: "user" or "admin:<id>" (same format as reader keys).
+    uploaderKey: text("uploader_key").notNull(),
+    mime: text("mime", {
+      enum: ["image/webp", "image/jpeg", "image/png"],
+    }).notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    data: blob("data", { mode: "buffer" }).notNull(),
+    size: integer("size").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("chat_photos_message").on(table.messageId),
+    index("chat_photos_conversation").on(table.conversationId),
   ],
 );
 
@@ -566,6 +609,34 @@ export const chatColorOverrides = sqliteTable(
     color: text("color").notNull(),
   },
   (table) => [primaryKey({ columns: [table.conversationId, table.adminId] })],
+);
+
+// Legacy (KAN-160 round 1): per-conversation hiding. App code no longer reads or
+// writes it; scripts/setup-database.ts moves its rows into adminHiddenUsers.
+export const chatHiddenConversations = sqliteTable(
+  "chat_hidden_conversations",
+  {
+    adminId: integer("admin_id").notNull(),
+    conversationId: integer("conversation_id").notNull(),
+    hiddenAt: integer("hidden_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [primaryKey({ columns: [table.adminId, table.conversationId] })],
+);
+
+// Trainees an admin hid behind their passcode (KAN-163). Per admin: other
+// admins and the trainee see no change. No foreign keys, like the tables above.
+export const adminHiddenUsers = sqliteTable(
+  "admin_hidden_users",
+  {
+    adminId: integer("admin_id").notNull(),
+    userId: integer("user_id").notNull(),
+    hiddenAt: integer("hidden_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [primaryKey({ columns: [table.adminId, table.userId] })],
 );
 
 // Read cursor per reader. readerKey is "user" or "admin:<id>".

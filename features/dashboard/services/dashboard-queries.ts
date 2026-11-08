@@ -12,6 +12,7 @@ import {
   isNotNull,
   lte,
   max,
+  notInArray,
 } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -23,6 +24,9 @@ import {
   users,
   workoutDays,
 } from "@/db/schema";
+import { avatarUrl } from "@/features/avatar/utils/avatar-rules";
+import { listTraineeNicknames } from "@/features/chat/services/chat-queries";
+import { resolveDisplayName } from "@/features/chat/utils/display-name";
 import type {
   ActivityItem,
   MemberProgress,
@@ -33,13 +37,17 @@ import {
   mergeActivity,
 } from "@/features/dashboard/utils/activity";
 import { groupSetRows } from "@/features/workouts/utils/set-rows";
+import { hiddenUserIdsOf } from "@/services/hidden-users";
 import { getWeekDates } from "@/utils/week";
 
 const toEpochMs = (value: Date | number | null | undefined) =>
   value instanceof Date ? value.getTime() : (value ?? null);
 
+// Trainees `adminId` hid are left out (KAN-163), so the list and the totals
+// built from it never count them.
 export const getMemberProgress = async (
   weekStart: string,
+  adminId: number,
 ): Promise<MemberProgress[]> => {
   const dates = getWeekDates(weekStart);
   const inWeek = between(workoutDays.date, dates[0], dates[dates.length - 1]);
@@ -47,8 +55,13 @@ export const getMemberProgress = async (
   const [members, assignedRows, completedRows, lastActiveRows, nutritionRows] =
     await Promise.all([
       db
-        .select({ id: users.id, name: users.name })
+        .select({
+          id: users.id,
+          name: users.name,
+          avatarUpdatedAt: users.avatarUpdatedAt,
+        })
         .from(users)
+        .where(notInArray(users.id, hiddenUserIdsOf(adminId)))
         .orderBy(asc(users.nameKey)),
       db
         .select({
@@ -88,7 +101,9 @@ export const getMemberProgress = async (
         .groupBy(foodEntries.userId),
     ]);
 
-  return members.map((member) => {
+  const nicknames = await listTraineeNicknames(members.map((row) => row.id));
+
+  return members.map(({ avatarUpdatedAt, ...member }) => {
     const assigned = assignedRows.find((row) => row.userId === member.id);
     const completed = completedRows.find((row) => row.userId === member.id);
     const lastActive = lastActiveRows.find((row) => row.userId === member.id);
@@ -96,6 +111,8 @@ export const getMemberProgress = async (
 
     return {
       ...member,
+      displayName: resolveDisplayName(nicknames.get(member.id), member.name),
+      avatarUrl: avatarUrl("user", member.id, avatarUpdatedAt),
       assigned: assigned?.assigned ?? 0,
       plannedDays: assigned?.plannedDays ?? 0,
       completed: completed?.completed ?? 0,
@@ -109,11 +126,15 @@ export const getMemberProgress = async (
 interface RecentActivityOptions {
   limit: number;
   userId?: number;
+  // Leave out the trainees this admin hid (KAN-163). The per-trainee page
+  // passes `userId` and is guarded separately.
+  adminId?: number;
 }
 
 const getRecentCompletions = async ({
   limit,
   userId,
+  adminId,
 }: RecentActivityOptions): Promise<ActivityItem[]> => {
   const rows = await db
     .select({
@@ -128,7 +149,14 @@ const getRecentCompletions = async ({
     .innerJoin(exercises, eq(exercises.id, exerciseCompletions.exerciseId))
     .innerJoin(workoutDays, eq(workoutDays.id, exercises.dayId))
     .innerJoin(users, eq(users.id, exerciseCompletions.userId))
-    .where(userId ? eq(exerciseCompletions.userId, userId) : undefined)
+    .where(
+      and(
+        userId ? eq(exerciseCompletions.userId, userId) : undefined,
+        adminId === undefined
+          ? undefined
+          : notInArray(exerciseCompletions.userId, hiddenUserIdsOf(adminId)),
+      ),
+    )
     .orderBy(desc(exerciseCompletions.completedAt))
     .limit(limit);
 
@@ -146,6 +174,7 @@ const getRecentCompletions = async ({
 const getRecentPersonalBests = async ({
   limit,
   userId,
+  adminId,
 }: RecentActivityOptions): Promise<ActivityItem[]> => {
   const lastSavedAt = max(exerciseSets.createdAt);
   const window = await db
@@ -165,6 +194,9 @@ const getRecentPersonalBests = async ({
       and(
         isNotNull(exerciseSets.weightKg),
         userId ? eq(exerciseSets.userId, userId) : undefined,
+        adminId === undefined
+          ? undefined
+          : notInArray(exerciseSets.userId, hiddenUserIdsOf(adminId)),
       ),
     )
     .groupBy(exerciseSets.exerciseId)

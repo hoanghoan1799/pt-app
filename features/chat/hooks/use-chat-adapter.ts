@@ -21,12 +21,43 @@ import {
   adminUnsendMessageAction,
 } from "@/features/chat/services/chat-admin-actions";
 import type { ThreadViewer } from "@/features/chat/utils/chat-thread-rules";
+import { PHOTO_ERRORS } from "@/features/chat/utils/photo-rules";
 
 const USER_MESSAGES_URL = "/api/chat/messages";
 
-// The action input for a text or a sticker send.
-const contentInput = (content: SendContent) =>
-  "sticker" in content ? { sticker: content.sticker.input } : content;
+// The action input for a text, a sticker or a photo send.
+const contentInput = (content: SendContent) => {
+  if ("sticker" in content) {
+    return { sticker: content.sticker.input };
+  }
+  if ("photo" in content) {
+    return { photoId: content.photo.photoId, body: content.body };
+  }
+  return content;
+};
+
+// Raw bytes to /api/chat/photos; the server reads type and size from them.
+const uploadPhotoTo = async (blob: Blob, query: string) => {
+  let response: Response;
+
+  try {
+    response = await fetch(`/api/chat/photos${query}`, {
+      method: "POST",
+      body: blob,
+    });
+  } catch {
+    throw new Error(PHOTO_ERRORS.GENERIC);
+  }
+  const data = (await response.json().catch(() => null)) as {
+    photo?: { id?: number };
+    message?: string;
+  } | null;
+
+  if (!response.ok || typeof data?.photo?.id !== "number") {
+    throw new Error(data?.message ?? PHOTO_ERRORS.GENERIC);
+  }
+  return data.photo.id;
+};
 
 // Wires the thread to the trainee or the admin endpoints and actions. Server
 // actions cannot be passed down from a server page as plain props with extra
@@ -50,6 +81,8 @@ export const useChatAdapter = (
         editsUrl: (messageId) =>
           `/api/admin/chat/${cid}/messages/${messageId}/edits`,
         viewer: { role, adminId, adminName, peerName },
+        uploadPhoto: (blob) =>
+          uploadPhotoTo(blob, `?as=admin&userId=${userId}`),
         sendMessage: (content, clientId, replyToMessageId) =>
           adminSendMessageAction({
             userId,
@@ -74,6 +107,7 @@ export const useChatAdapter = (
       messagesUrl: USER_MESSAGES_URL,
       editsUrl: (messageId) => `${USER_MESSAGES_URL}/${messageId}/edits`,
       viewer: { role: "user" },
+      uploadPhoto: (blob) => uploadPhotoTo(blob, ""),
       sendMessage: (content, clientId, replyToMessageId) =>
         sendMessageAction({
           ...contentInput(content),

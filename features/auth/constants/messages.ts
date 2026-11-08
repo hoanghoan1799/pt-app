@@ -12,6 +12,15 @@ export const AUTH_MESSAGES = {
   CONFIRM_MISMATCH: "Mật khẩu nhập lại không khớp",
   PASSWORD_CHANGED: "Đã đổi mật khẩu",
   PASSWORD_CHANGED_TOAST: "Đã đổi mật khẩu. Thiết bị khác đã bị đăng xuất.",
+  PASSCODE_INVALID: "Mã khoá gồm đúng 4 chữ số",
+  PASSCODE_ALREADY_SET: "Đã có mã khoá. Hãy đổi mã khoá thay vì đặt mới.",
+  PASSCODE_NOT_SET: "Chưa đặt mã khoá",
+  PASSCODE_WRONG: "Mã khoá không đúng",
+  PASSCODE_SIGNED_OUT: "Nhập sai mã khoá quá nhiều lần. Bạn đã bị đăng xuất.",
+  PASSCODE_SAME: "Mã khoá mới phải khác mã khoá hiện tại",
+  PASSCODE_HAS_HIDDEN_CHATS:
+    "Hãy bỏ ẩn các học viên đã ẩn trước khi tắt mã khoá",
+  PASSCODE_RESET_PASSWORD_WRONG: "Mật khẩu không đúng",
 } as const;
 
 // Slows down password guessing on admin accounts.

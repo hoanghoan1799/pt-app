@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
 import {
+  adminHiddenUsers,
   chatColorOverrides,
   chatConversations,
   chatMessages,
@@ -142,6 +143,26 @@ describe("deleteMemberAction chat cleanup", () => {
     expect(
       (await db.select().from(chatColorOverrides)).map((r) => r.conversationId),
     ).toEqual([kept.conversationId]);
+  });
+
+  it("removes the trainee's hidden-chat rows for every admin, only theirs", async () => {
+    const gone = await seedTrainee("An");
+    const kept = await seedTrainee("Binh");
+
+    await db.insert(adminHiddenUsers).values([
+      { adminId: 1, userId: gone.userId },
+      { adminId: 2, userId: gone.userId },
+      { adminId: 1, userId: kept.userId },
+    ]);
+
+    await deleteMemberAction(gone.userId);
+
+    expect(
+      (await db.select().from(adminHiddenUsers)).map((r) => [
+        r.adminId,
+        r.userId,
+      ]),
+    ).toEqual([[1, kept.userId]]);
   });
 
   it("removes the trainee's push subscriptions only", async () => {

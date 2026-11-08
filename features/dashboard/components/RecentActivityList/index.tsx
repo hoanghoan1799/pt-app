@@ -58,7 +58,7 @@ export const RecentActivityList = ({
                     href={getAdminUserPath(item.userId)}
                     className="font-semibold underline-offset-2 active:underline"
                   >
-                    {item.userName}
+                    {item.displayName ?? item.userName}
                   </Link>{" "}
                   {item.kind === "personalBest" ? "lập kỷ lục" : "đã tập"}{" "}
                 </>

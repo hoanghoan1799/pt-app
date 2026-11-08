@@ -1,7 +1,15 @@
 "use client";
 
 import clsx from "clsx";
-import { KeyRound, LogOut, Settings, User } from "lucide-react";
+import {
+  Camera,
+  CircleDot,
+  KeyRound,
+  LockKeyhole,
+  LogOut,
+  Palette,
+  Settings,
+} from "lucide-react";
 import Link from "next/link";
 import {
   type KeyboardEvent,
@@ -13,14 +21,20 @@ import {
 } from "react";
 import { toast } from "sonner";
 
+import { Avatar } from "@/components/common/Avatar";
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON } from "@/constants/styles";
+import { PasscodeSettingsSheet } from "@/features/auth/components/PasscodeSettingsSheet";
 import {
   logoutAdminAction,
   logoutUserAction,
 } from "@/features/auth/services/auth-actions";
+import { AvatarSheet } from "@/features/avatar/components/AvatarSheet";
+import { AccountColorSheet } from "@/features/chat/components/AccountColorSheet";
 import { PushToggle } from "@/features/chat/components/PushToggle";
+import { setPresenceHiddenAction } from "@/features/chat/services/presence-actions";
+import type { ChatColorKey } from "@/features/chat/utils/chat-palette";
 import { setThemeAction } from "@/services/theme-actions";
 import { parseTheme, type Theme } from "@/utils/theme";
 
@@ -29,6 +43,15 @@ type MenuId = "gear" | "avatar";
 
 interface HeaderMenusProps {
   role: Role;
+  // Admins only: whether a lock passcode is set (decides set vs change/off).
+  hasPasscode?: boolean;
+  // The signed-in person's name and saved photo (versioned URL or null).
+  name: string;
+  avatarUrl?: string | null;
+  // Admins only: the saved account colour (null = never picked) and whether
+  // the online status is switched off.
+  accountColor?: ChatColorKey | null;
+  isPresenceHidden?: boolean;
 }
 
 const ITEM =
@@ -40,6 +63,7 @@ const THEME_OPTIONS: { value: Theme; label: string }[] = [
   { value: "system", label: "Hệ thống" },
 ];
 
+const PRESENCE_FAILED = "Không lưu được. Thử lại nhé.";
 const UPDATING_MESSAGE = "Tính năng đang cập nhật";
 
 const readCurrentTheme = () =>
@@ -49,11 +73,23 @@ const paintTheme = (theme: Theme) => {
   document.documentElement.dataset.theme = theme;
 };
 
-// The gear (Giao diện, Thông báo đẩy) and avatar (Đổi mật khẩu, Đăng xuất)
+// The gear (Giao diện, Thông báo đẩy; admins also Màu tài khoản, Trạng thái
+// hoạt động, Mã khoá) and avatar (Ảnh đại diện, Đổi mật khẩu, Đăng xuất)
 // menus of the app header, shared by the trainee and admin sites. One menu is
 // open at a time; a tap outside or Esc closes it.
-export const HeaderMenus = ({ role }: HeaderMenusProps) => {
+export const HeaderMenus = ({
+  role,
+  hasPasscode = false,
+  name,
+  avatarUrl = null,
+  accountColor = null,
+  isPresenceHidden = false,
+}: HeaderMenusProps) => {
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
+  const [isPasscodeOpen, setIsPasscodeOpen] = useState(false);
+  const [isAvatarOpen, setIsAvatarOpen] = useState(false);
+  const [isColorOpen, setIsColorOpen] = useState(false);
+  const [isHidden, setIsHidden] = useState(isPresenceHidden);
   const [theme, setTheme] = useState<Theme>("system");
   const [, startTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -129,6 +165,32 @@ export const HeaderMenus = ({ role }: HeaderMenusProps) => {
     });
   };
 
+  // Saves at once; the switch flips first and goes back if the save fails.
+  const togglePresence = () => {
+    const next = !isHidden;
+
+    setIsHidden(next);
+    startTransition(async () => {
+      try {
+        const result = await setPresenceHiddenAction({ isHidden: next });
+
+        if (result.status === "success") {
+          toast.success(
+            next
+              ? "Đã tắt trạng thái hoạt động"
+              : "Đã bật trạng thái hoạt động",
+          );
+          return;
+        }
+        setIsHidden(!next);
+        toast.error(result.message ?? PRESENCE_FAILED);
+      } catch {
+        setIsHidden(!next);
+        toast.error(PRESENCE_FAILED);
+      }
+    });
+  };
+
   const logOut = async () => {
     setOpenMenu(null);
     const isConfirmed = await confirm({
@@ -170,9 +232,7 @@ export const HeaderMenus = ({ role }: HeaderMenusProps) => {
       {renderTrigger(
         "avatar",
         "Tài khoản",
-        <span className="flex size-8 items-center justify-center rounded-full bg-accent/15 text-accent">
-          <User className="size-[18px]" aria-hidden />
-        </span>,
+        <Avatar name={name} src={avatarUrl} className="size-8 text-xs" />,
       )}
       {openMenu && (
         <div
@@ -210,9 +270,74 @@ export const HeaderMenus = ({ role }: HeaderMenusProps) => {
               </div>
               <hr className="my-1 border-line" />
               <PushToggle role={role} itemClassName={ITEM} />
+              {role === "admin" && (
+                <>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={ITEM}
+                    onClick={() => {
+                      setOpenMenu(null);
+                      setIsColorOpen(true);
+                    }}
+                  >
+                    <Palette className="size-5 text-muted" aria-hidden />
+                    Màu tài khoản
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitemcheckbox"
+                    aria-checked={!isHidden}
+                    className={ITEM}
+                    onClick={togglePresence}
+                  >
+                    <CircleDot className="size-5 text-muted" aria-hidden />
+                    <span className="flex-1">Trạng thái hoạt động</span>
+                    <span
+                      aria-hidden
+                      className={clsx(
+                        "flex h-6 w-10 shrink-0 items-center rounded-full p-0.5 transition",
+                        isHidden ? "bg-line" : "bg-accent",
+                      )}
+                    >
+                      <span
+                        className={clsx(
+                          "size-5 rounded-full bg-white shadow-sm transition-transform",
+                          !isHidden && "translate-x-4",
+                        )}
+                      />
+                    </span>
+                    <span className="sr-only">{isHidden ? "Tắt" : "Bật"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={ITEM}
+                    onClick={() => {
+                      setOpenMenu(null);
+                      setIsPasscodeOpen(true);
+                    }}
+                  >
+                    <LockKeyhole className="size-5 text-muted" aria-hidden />
+                    Mã khoá
+                  </button>
+                </>
+              )}
             </>
           ) : (
             <>
+              <button
+                type="button"
+                role="menuitem"
+                className={ITEM}
+                onClick={() => {
+                  setOpenMenu(null);
+                  setIsAvatarOpen(true);
+                }}
+              >
+                <Camera className="size-5 text-muted" aria-hidden />
+                Ảnh đại diện
+              </button>
               {role === "user" ? (
                 <Link
                   href={ROUTES.ACCOUNT_PASSWORD}
@@ -252,6 +377,27 @@ export const HeaderMenus = ({ role }: HeaderMenusProps) => {
             </>
           )}
         </div>
+      )}
+      <AvatarSheet
+        isOpen={isAvatarOpen}
+        onOpenChange={setIsAvatarOpen}
+        role={role}
+        name={name}
+        savedUrl={avatarUrl}
+      />
+      {role === "admin" && (
+        <>
+          <PasscodeSettingsSheet
+            isOpen={isPasscodeOpen}
+            onOpenChange={setIsPasscodeOpen}
+            hasPasscode={hasPasscode}
+          />
+          <AccountColorSheet
+            isOpen={isColorOpen}
+            onOpenChange={setIsColorOpen}
+            savedColor={accountColor}
+          />
+        </>
       )}
     </div>
   );

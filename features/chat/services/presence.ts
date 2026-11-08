@@ -48,10 +48,13 @@ export const touchAdminPresence = async (adminId: number, now = new Date()) => {
 };
 
 // Newest heartbeat across all PTs (shared inbox): online if any admin is.
+// The one place a trainee's view of PT presence comes from: admins who turned
+// "Trạng thái hoạt động" off are left out, and null when none is left.
 export const getAdminTeamLastSeen = async (): Promise<Date | null> => {
   const [row] = await db
     .select({ lastSeenAt: max(admins.lastSeenAt) })
-    .from(admins);
+    .from(admins)
+    .where(or(isNull(admins.presenceHidden), eq(admins.presenceHidden, false)));
 
   // max() over a timestamp column comes back as raw seconds.
   const value = row?.lastSeenAt as unknown;
@@ -69,4 +72,14 @@ export const getUserLastSeen = async (userId: number): Promise<Date | null> => {
     .where(eq(users.id, userId));
 
   return row?.lastSeenAt ?? null;
+};
+
+export const setAdminPresenceHidden = async (
+  adminId: number,
+  isHidden: boolean,
+) => {
+  await db
+    .update(admins)
+    .set({ presenceHidden: isHidden })
+    .where(eq(admins.id, adminId));
 };

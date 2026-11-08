@@ -2,8 +2,11 @@
 
 import clsx from "clsx";
 import Image from "next/image";
+import { useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
+import { AvatarLightbox } from "@/components/common/AvatarLightbox";
+import { ChatPhotoImage } from "@/features/chat/components/ChatPhotoImage";
 import { useBubbleGesture } from "@/features/chat/hooks/use-bubble-gesture";
 import {
   CHAT_TEXT_ON_COLOR,
@@ -19,8 +22,32 @@ import {
   type ThreadViewer,
   UNSENT_TEXT,
 } from "@/features/chat/utils/chat-thread-rules";
+import { tokenizeLinks } from "@/features/chat/utils/link-rules";
 
 const STICKER_SIZE_PX = 120;
+
+// The text with its http(s) links as anchors. A tap on a link opens it; the
+// bubble gesture ignores taps on anchors, so double-tap and long-press on the
+// rest of the bubble work as before. Plain React nodes only, no raw HTML.
+const LinkedText = ({ body }: { body: string }) => (
+  <>
+    {tokenizeLinks(body).map((token, index) =>
+      token.kind === "link" ? (
+        <a
+          key={index}
+          href={token.href}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          className="font-medium underline underline-offset-2 [overflow-wrap:anywhere]"
+        >
+          {token.text}
+        </a>
+      ) : (
+        token.text
+      ),
+    )}
+  </>
+);
 
 type MessageItem = Extract<ThreadItem, { kind: "message" }>;
 
@@ -41,11 +68,15 @@ interface MessageBubbleProps {
   // The sender's palette colour (white text, AA on every entry); null keeps
   // the neutral surface style (KAN-142).
   color?: ChatColorKey | null;
+  // Admin's "neutral colours" switch: ignore `color`, and draw my bubbles in
+  // the neutral dark style instead of the accent.
+  isNeutral?: boolean;
 }
 
 // One chat bubble: mine right in the accent colour, the other side left. Spacing is
 // tighter inside a run; the other side's avatar sits on the last bubble of a run.
-// Double-tap hearts it, long-press (or Enter / the context-menu key) opens the
+// Double-tap hearts it, a single tap on a sticker opens it full screen (after
+// the double-tap window, so a heart never opens the viewer), long-press (or Enter / the context-menu key) opens the
 // actions sheet; text selection is off so the long press is ours.
 export const MessageBubble = ({
   item,
@@ -57,10 +88,12 @@ export const MessageBubble = ({
   onOpenReactors,
   onOpenHistory,
   onJumpToReply,
-  color = null,
+  color: pickedColor = null,
+  isNeutral = false,
   nicknames,
   avatarSrc = null,
 }: MessageBubbleProps) => {
+  const color = isNeutral ? null : pickedColor;
   const {
     message,
     mine,
@@ -74,17 +107,27 @@ export const MessageBubble = ({
   const isFailed = message.delivery === "failed";
   const isSending = message.delivery === "sending";
   const isUnsent = message.deleted;
-  const { sticker } = message;
+  const { sticker, photo } = message;
   // A sticker is just the picture: no bubble, no background (KAN-145).
   const isSticker = Boolean(sticker) && !isUnsent;
+  // A photo (KAN-160) keeps the bubble, so its caption sits under the picture.
+  const hasPhoto = Boolean(photo) && !isUnsent && !isSticker;
   // Only stored, not unsent messages have actions.
   const isInteractive = message.id !== null && !isUnsent;
+  const [isViewerOpen, setViewerOpen] = useState(false);
   const gesture = useBubbleGesture(isInteractive, {
     onDoubleTap: () => onToggleHeart(message),
     onLongPress: () => onOpenActions(message),
+    onSingleTap:
+      (sticker && isSticker) || hasPhoto
+        ? () => setViewerOpen(true)
+        : undefined,
   });
   const groups = isUnsent ? [] : groupReactions(message.reactions, viewer);
   const { replyTo } = message;
+  const mineBubble = isNeutral
+    ? "bg-bubble-neutral text-bubble-neutral-fg"
+    : "bg-accent text-accent-fg";
   const sideMargin = mine ? "mr-1" : "ml-9";
   const isColored =
     color !== null && !isUnsent && !isSticker && !(mine && isFailed);
@@ -147,11 +190,20 @@ export const MessageBubble = ({
                 ? mine
                   ? "items-end"
                   : "items-start"
-                : isColored
-                  ? "px-3.5 py-2"
-                  : mine
-                    ? "bg-accent px-3.5 py-2 text-accent-fg"
-                    : "border border-line bg-surface px-3.5 py-2 text-fg",
+                : hasPhoto
+                  ? clsx(
+                      "p-1",
+                      isColored
+                        ? ""
+                        : mine
+                          ? mineBubble
+                          : "border border-line bg-surface text-fg",
+                    )
+                  : isColored
+                    ? "px-3.5 py-2"
+                    : mine
+                      ? clsx(mineBubble, "px-3.5 py-2")
+                      : "border border-line bg-surface px-3.5 py-2 text-fg",
             mine && !isUnsent && isSending && "opacity-70",
             mine && !isUnsent && isFailed && "bg-danger text-white",
             isHighlighted && "ring-2 ring-accent",
@@ -202,12 +254,42 @@ export const MessageBubble = ({
               )}
             />
           ) : (
-            <p className="break-words whitespace-pre-wrap">
-              {isUnsent ? UNSENT_TEXT : message.body}
-            </p>
+            <>
+              {photo && hasPhoto && (
+                <ChatPhotoImage photo={photo} isDimmed={mine && isSending} />
+              )}
+              {(isUnsent || message.body !== "" || !hasPhoto) && (
+                <p
+                  className={clsx(
+                    "break-words whitespace-pre-wrap",
+                    hasPhoto && "px-2.5 pt-1.5 pb-1",
+                  )}
+                >
+                  {isUnsent ? UNSENT_TEXT : <LinkedText body={message.body} />}
+                </p>
+              )}
+            </>
           )}
         </div>
       </div>
+      {photo && hasPhoto && (
+        <AvatarLightbox
+          isOpen={isViewerOpen}
+          onClose={() => setViewerOpen(false)}
+          src={photo.url}
+          name="tin nhắn"
+        />
+      )}
+      {sticker && isSticker && (
+        // Outside the gesture element: the portal's events bubble through
+        // React, and a tap in the viewer must not start a bubble gesture.
+        <AvatarLightbox
+          isOpen={isViewerOpen}
+          onClose={() => setViewerOpen(false)}
+          src={sticker.url}
+          name={sticker.alt}
+        />
+      )}
       {groups.length > 0 && (
         <div
           className={clsx(

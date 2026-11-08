@@ -5,9 +5,11 @@ import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
+import { getTraineeDisplayName } from "@/features/chat/services/chat-queries";
 import { WorkoutWeek } from "@/features/workouts/components/WorkoutWeek";
 import { getWeekScheduleWithSets } from "@/features/workouts/services/workout-queries";
 import { requireAdmin } from "@/services/auth-guard";
+import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
 import { getAdminPreviewPath, getAdminUserPath } from "@/utils/routes";
 import { readSearchParam } from "@/utils/search-params";
@@ -19,14 +21,15 @@ const AdminPreviewPage = async ({
   params,
   searchParams,
 }: PageProps<"/admin/users/[id]/preview">) => {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const { id } = await params;
   const user = await findUserById(Number(id));
 
-  if (!user) {
+  if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
     notFound();
   }
+  const displayName = await getTraineeDisplayName(user);
 
   const query = await searchParams;
   const today = getTodayDate(TIME_ZONE);
@@ -40,7 +43,7 @@ const AdminPreviewPage = async ({
     <>
       <AppHeader
         eyebrow="Xem như user"
-        title={user.name}
+        title={displayName}
         backHref={buildScheduleHref(getAdminUserPath(user.id), schedule)}
       />
       <main

@@ -8,16 +8,19 @@ import { MemberSectionTabs } from "@/components/layout/MemberSectionTabs";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
+import { getTraineeDisplayName } from "@/features/chat/services/chat-queries";
 import { RecentActivityList } from "@/features/dashboard/components/RecentActivityList";
 import { MEMBER_ACTIVITY_LIMIT } from "@/features/dashboard/constants/dashboard";
 import { getRecentActivity } from "@/features/dashboard/services/dashboard-queries";
 import { DeleteMemberButton } from "@/features/members/components/DeleteMemberButton";
+import { HideUserButton } from "@/features/members/components/HideUserButton";
 import { MemberLoginCard } from "@/features/members/components/MemberLoginCard";
 import { listMembers } from "@/features/members/services/member-queries";
 import { CopyWeekButton } from "@/features/workouts/components/CopyWeekButton";
 import { WorkoutWeekEditor } from "@/features/workouts/components/WorkoutWeekEditor";
 import { getWeekScheduleWithSets } from "@/features/workouts/services/workout-queries";
 import { requireAdmin } from "@/services/auth-guard";
+import { canAdminAccessUser, isUserHidden } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
 import { getAdminPreviewPath, getAdminUserPath } from "@/utils/routes";
 import { readSearchParam } from "@/utils/search-params";
@@ -35,14 +38,15 @@ const AdminUserPage = async ({
   params,
   searchParams,
 }: PageProps<"/admin/users/[id]">) => {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const { id } = await params;
   const user = await findUserById(Number(id));
 
-  if (!user) {
+  if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
     notFound();
   }
+  const displayName = await getTraineeDisplayName(user);
 
   const query = await searchParams;
   const today = getTodayDate(TIME_ZONE);
@@ -50,17 +54,18 @@ const AdminUserPage = async ({
     { week: readSearchParam(query.week), day: readSearchParam(query.day) },
     today,
   );
-  const [days, members, activity] = await Promise.all([
+  const [days, members, activity, isHidden] = await Promise.all([
     getWeekScheduleWithSets(user.id, schedule.weekStart),
-    listMembers(),
+    listMembers(admin.id, user.id),
     getRecentActivity({ userId: user.id, limit: MEMBER_ACTIVITY_LIMIT }),
+    isUserHidden(admin.id, user.id),
   ]);
 
   return (
     <>
       <AppHeader
         eyebrow="Lịch tập của"
-        title={user.name}
+        title={displayName}
         backHref={`${ROUTES.ADMIN}?${new URLSearchParams({ week: schedule.weekStart })}`}
         actions={
           <Link
@@ -105,6 +110,11 @@ const AdminUserPage = async ({
             weekStart={schedule.weekStart}
             defaultTargetDate={addDays(schedule.weekStart, 7)}
             members={members}
+          />
+          <HideUserButton
+            userId={user.id}
+            isHidden={isHidden}
+            hasPasscode={admin.hasPasscode}
           />
           <DeleteMemberButton userId={user.id} />
         </section>

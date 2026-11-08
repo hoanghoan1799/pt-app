@@ -53,6 +53,37 @@ describe("sendMessageSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("takes a photo alone or with text, but never with a sticker", () => {
+    const sticker = { customId: 3 };
+
+    expect(
+      sendMessageSchema.safeParse({ photoId: 4, clientId: CLIENT_ID }).success,
+    ).toBe(true);
+    expect(
+      sendMessageSchema.parse({
+        photoId: 4,
+        body: " cơm trưa ",
+        clientId: CLIENT_ID,
+      }),
+    ).toEqual({ photoId: 4, body: "cơm trưa", clientId: CLIENT_ID });
+    expect(
+      sendMessageSchema.safeParse({
+        photoId: 4,
+        sticker,
+        clientId: CLIENT_ID,
+      }).success,
+    ).toBe(false);
+    expect(sendMessageSchema.safeParse({ clientId: CLIENT_ID }).success).toBe(
+      false,
+    );
+  });
+
+  it.each([0, -1, 1.5, "4"])("rejects photoId %j", (photoId) => {
+    expect(
+      sendMessageSchema.safeParse({ photoId, clientId: CLIENT_ID }).success,
+    ).toBe(false);
+  });
+
   it.each(["", "not-a-uuid", "123"])("rejects clientId %j", (clientId) => {
     expect(sendMessageSchema.safeParse({ body: "hi", clientId }).success).toBe(
       false,

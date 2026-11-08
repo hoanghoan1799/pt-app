@@ -11,11 +11,17 @@ import {
   unsendChatMessage,
 } from "@/features/chat/services/chat-mutations";
 import { isChatEnabled } from "@/features/chat/services/chat-permission";
+import {
+  attachPhotoToMessage,
+  isPhotoAttachable,
+  photoUploaderKey,
+} from "@/features/chat/services/chat-photos";
 import { schedulePush } from "@/features/chat/services/chat-push";
 import {
   type ChatMessage,
   findConversationById,
   findConversationByUserId,
+  findMessageByClientId,
   getOrCreateConversation,
   insertMessageOnce,
   saveReadCursor,
@@ -28,6 +34,7 @@ import {
   ownsSticker,
   type StickerOwner,
 } from "@/features/chat/services/custom-stickers";
+import { parseChatCommand } from "@/features/chat/utils/chat-commands";
 import {
   adminReaderKey,
   hasBodyOrSticker,
@@ -60,6 +67,8 @@ interface SendInput {
     | { pack: string; id: string }
     | { giphyId: string; url: string }
     | { customId: number };
+  // KAN-160: a photo uploaded to /api/chat/photos, plus optional text.
+  photoId?: number;
   clientId: string;
   replyToMessageId?: number;
 }
@@ -72,10 +81,42 @@ const ownsStickerInput = async (
 ) =>
   !sticker || !("customId" in sticker) || ownsSticker(owner, sticker.customId);
 
-const toNewContent = (parsed: { body?: string; sticker?: StickerInput }) =>
-  parsed.sticker
-    ? { body: "", ...toStoredSticker(parsed.sticker) }
-    : { body: parsed.body ?? "" };
+// Slash commands (KAN-167) only apply to text and photo captions. The stored
+// body is the text without the command; a text-only message left empty is
+// rejected. Stickers carry no text, so they are never silent.
+const resolveContent = (parsed: {
+  body?: string;
+  sticker?: StickerInput;
+  photoId?: number;
+}) => {
+  if (parsed.sticker) {
+    return {
+      content: { body: "", ...toStoredSticker(parsed.sticker) },
+      silent: false,
+    };
+  }
+  const { body, effects } = parseChatCommand(parsed.body ?? "");
+
+  if (!body && parsed.photoId === undefined) {
+    return null;
+  }
+  return {
+    content: { body, photoId: parsed.photoId ?? null },
+    silent: effects.silent === true,
+  };
+};
+
+type Conversation = Awaited<ReturnType<typeof getOrCreateConversation>>;
+
+// A retried send of a photo message (same clientId) finds its photo already
+// attached, so it is answered with the stored message before any check.
+const findPhotoRetry = (
+  conversation: Conversation,
+  parsed: { photoId?: number; clientId: string },
+) =>
+  parsed.photoId === undefined
+    ? null
+    : findMessageByClientId(conversation.id, parsed.clientId);
 
 // Trainee send. The conversation always comes from the session user, never
 // from the client. insertMessage is idempotent: a retried clientId returns
@@ -103,8 +144,28 @@ export const sendMessageAction = withResultErrorHandling(
     ) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
+    const resolved = resolveContent(parsed.data);
+
+    if (!resolved) {
+      return fail(CHAT_MESSAGES.INVALID_INPUT);
+    }
     const conversation = await getOrCreateConversation(user.id);
 
+    const retried = await findPhotoRetry(conversation, parsed.data);
+
+    if (retried) {
+      return { status: "success", message: retried };
+    }
+    if (
+      parsed.data.photoId !== undefined &&
+      !(await isPhotoAttachable(
+        parsed.data.photoId,
+        conversation.id,
+        photoUploaderKey({ kind: "user" }),
+      ))
+    ) {
+      return fail(CHAT_MESSAGES.INVALID_INPUT);
+    }
     if (!(await isReplyTargetValid(conversation, replyToMessageId))) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
@@ -112,21 +173,26 @@ export const sendMessageAction = withResultErrorHandling(
       conversationId: conversation.id,
       senderRole: "user",
       senderAdminId: null,
-      ...toNewContent(parsed.data),
+      ...resolved.content,
       clientId,
       replyToMessageId,
     });
 
+    if (created && parsed.data.photoId !== undefined) {
+      await attachPhotoToMessage(parsed.data.photoId, message.id);
+    }
     // After the DB write; publishChatEvent never throws. A retried send
     // republishes the stored message, clients dedupe by id.
     await publishNewMessage(conversation.id, message);
-    // Push only for a new row, never for a retried clientId.
-    if (created) {
+    // Push only for a new row, never for a retried clientId, and never for a
+    // silent (/imlang) message.
+    if (created && !resolved.silent) {
       schedulePush({
         senderRole: "user",
         traineeUserId: user.id,
         conversationId: conversation.id,
         ...(parsed.data.sticker ? { sticker: true } : {}),
+        ...(parsed.data.photoId === undefined ? {} : { photo: true }),
       });
     }
     return { status: "success", message };
@@ -164,8 +230,28 @@ export const adminSendMessageAction = withResultErrorHandling(
     ) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
+    const resolved = resolveContent(parsed.data);
+
+    if (!resolved) {
+      return fail(CHAT_MESSAGES.INVALID_INPUT);
+    }
     const conversation = await getOrCreateConversation(trainee.id);
 
+    const retried = await findPhotoRetry(conversation, parsed.data);
+
+    if (retried) {
+      return { status: "success", message: retried };
+    }
+    if (
+      parsed.data.photoId !== undefined &&
+      !(await isPhotoAttachable(
+        parsed.data.photoId,
+        conversation.id,
+        photoUploaderKey({ kind: "admin", id: admin.id }),
+      ))
+    ) {
+      return fail(CHAT_MESSAGES.INVALID_INPUT);
+    }
     if (!(await isReplyTargetValid(conversation, replyToMessageId))) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
@@ -173,20 +259,24 @@ export const adminSendMessageAction = withResultErrorHandling(
       conversationId: conversation.id,
       senderRole: "admin",
       senderAdminId: admin.id,
-      ...toNewContent(parsed.data),
+      ...resolved.content,
       clientId,
       replyToMessageId,
     });
 
     // After the DB write; publishChatEvent never throws. A retried send
     // republishes the stored message, clients dedupe by id.
+    if (created && parsed.data.photoId !== undefined) {
+      await attachPhotoToMessage(parsed.data.photoId, message.id);
+    }
     await publishNewMessage(conversation.id, message);
-    if (created) {
+    if (created && !resolved.silent) {
       schedulePush({
         senderRole: "admin",
         traineeUserId: trainee.id,
         conversationId: conversation.id,
         ...(parsed.data.sticker ? { sticker: true } : {}),
+        ...(parsed.data.photoId === undefined ? {} : { photo: true }),
       });
     }
     return { status: "success", message };

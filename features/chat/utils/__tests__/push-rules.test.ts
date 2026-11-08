@@ -18,6 +18,19 @@ describe("owner keys", () => {
 });
 
 describe("buildChatPushPayload", () => {
+  it("says a photo was sent as 📷 Ảnh, never the caption", () => {
+    const base = { traineeName: "Lan", traineeUserId: 9, conversationId: 5 };
+
+    expect(
+      buildChatPushPayload({ ...base, recipientRole: "user", photo: true })
+        .body,
+    ).toBe("📷 Ảnh");
+    expect(
+      buildChatPushPayload({ ...base, recipientRole: "admin", photo: true })
+        .body,
+    ).toBe("Lan: 📷 Ảnh");
+  });
+
   it("says a sticker was sent, to either side, without any content", () => {
     const base = { traineeName: "Lan", traineeUserId: 9, conversationId: 5 };
 

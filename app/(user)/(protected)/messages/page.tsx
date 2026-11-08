@@ -2,24 +2,23 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { ROUTES } from "@/constants/routes";
-import {
-  getAvatarUrl,
-  listAdminAvatarUrls,
-} from "@/features/avatar/services/avatar";
+import { listAdminAvatarUrls } from "@/features/avatar/services/avatar";
 import { TraineeChatThread } from "@/features/chat/components/TraineeChatThread";
 import { isChatEnabled } from "@/features/chat/services/chat-permission";
 import {
   findConversationByUserId,
   findLatestAdminSenderName,
   getOrCreateConversation,
+  listMessagesAround,
 } from "@/features/chat/services/chat-queries";
 import { loadTraineeThread } from "@/features/chat/services/chat-thread";
+import { parseJumpId } from "@/features/chat/utils/chat-links";
 import { serializeMessage } from "@/features/chat/utils/chat-thread-rules";
 import { requireUser } from "@/services/auth-guard";
 
 export const metadata: Metadata = { title: "Nhắn tin" };
 
-const MessagesPage = async () => {
+const MessagesPage = async ({ searchParams }: PageProps<"/messages">) => {
   const user = await requireUser();
   const chatEnabled = isChatEnabled(user);
   const existing = await findConversationByUserId(user.id);
@@ -36,10 +35,13 @@ const MessagesPage = async () => {
     redirect(ROUTES.WORKOUTS);
   }
   const { payload } = result;
-  const [adminAvatars, selfAvatarUrl] = await Promise.all([
-    listAdminAvatarUrls(),
-    getAvatarUrl("user", user.id),
-  ]);
+  // `?m=<id>`: open at that message (from the gallery or a search result).
+  const jumpId = parseJumpId((await searchParams).m);
+  const around =
+    jumpId !== null && existing
+      ? await listMessagesAround(existing.id, jumpId)
+      : null;
+  const adminAvatars = await listAdminAvatarUrls();
   const peerName = existing
     ? await findLatestAdminSenderName(existing.id)
     : null;
@@ -47,16 +49,16 @@ const MessagesPage = async () => {
   return (
     <TraineeChatThread
       initialPeerName={peerName}
-      userName={user.name}
       userId={user.id}
       avatars={Object.fromEntries(
         [...adminAvatars].map(([id, url]) => [`admin:${id}`, url]),
       )}
-      selfAvatarUrl={selfAvatarUrl}
       conversationId={conversation?.id ?? null}
+      jumpToId={around ? jumpId : null}
       initial={{
         ...payload,
-        messages: payload.messages.map(serializeMessage),
+        messages: (around?.messages ?? payload.messages).map(serializeMessage),
+        hasMore: around?.hasMore ?? payload.hasMore,
         // Without `changedSince` the payload has no changes to carry.
         changes: [],
       }}

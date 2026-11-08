@@ -13,7 +13,9 @@ import {
   SECTION_TITLE,
 } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
+import { getAvatarUrl } from "@/features/avatar/services/avatar";
 import { AdminUnreadBadge } from "@/features/chat/components/UnreadBadge";
+import { loadAdminAccountColor } from "@/features/chat/services/chat-profile";
 import {
   countUnreadForAdmin,
   listUnreadByTraineeForAdmin,
@@ -54,13 +56,28 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     { week: readSearchParam(query.week) },
     today,
   );
-  const [members, activity, unreadMessages, unreadByTrainee] =
-    await Promise.all([
-      getMemberProgress(schedule.weekStart),
-      getRecentActivity({ limit: RECENT_ACTIVITY_LIMIT }),
-      countUnreadForAdmin(admin.id),
-      listUnreadByTraineeForAdmin(admin.id),
-    ]);
+  const [
+    members,
+    activity,
+    unreadMessages,
+    unreadByTrainee,
+    avatarUrl,
+    accountColor,
+  ] = await Promise.all([
+    getMemberProgress(schedule.weekStart, admin.id),
+    getRecentActivity({ limit: RECENT_ACTIVITY_LIMIT, adminId: admin.id }),
+    countUnreadForAdmin(admin.id),
+    listUnreadByTraineeForAdmin(admin.id),
+    getAvatarUrl("admin", admin.id),
+    loadAdminAccountColor(admin.id),
+  ]);
+  const displayNames = new Map(
+    members.map((member) => [member.id, member.displayName]),
+  );
+  const namedActivity = activity.map((item) => ({
+    ...item,
+    displayName: displayNames.get(item.userId) ?? item.userName,
+  }));
   const rows = toMemberRows(members, {
     weekStart: schedule.weekStart,
     timeZone: TIME_ZONE,
@@ -89,7 +106,14 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
                 className="absolute top-1 right-1"
               />
             </Link>
-            <HeaderMenus role="admin" />
+            <HeaderMenus
+              role="admin"
+              name={admin.username}
+              avatarUrl={avatarUrl}
+              accountColor={accountColor}
+              isPresenceHidden={admin.presenceHidden}
+              hasPasscode={admin.hasPasscode}
+            />
           </>
         }
       />
@@ -129,11 +153,11 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
         </div>
         <section className="space-y-2">
           <h2 className={SECTION_TITLE}>User · {members.length}</h2>
-          <MemberProgressList members={rows} />
+          <MemberProgressList members={rows} hasPasscode={admin.hasPasscode} />
         </section>
         <section className="space-y-2">
           <h2 className={SECTION_TITLE}>Hoạt động gần đây</h2>
-          <RecentActivityList items={activity} isUserShown now={now} />
+          <RecentActivityList items={namedActivity} isUserShown now={now} />
         </section>
       </main>
     </>

@@ -69,7 +69,9 @@ export const MessageActionsSheet = ({
 }: MessageActionsSheetProps) => {
   const mine = myReactionOf(message, viewer);
   // A sticker has no text: it can be reacted to, replied to and unsent only.
-  const isSticker = Boolean(message.sticker);
+  // A photo without a caption has no text to copy or edit either.
+  const isSticker =
+    Boolean(message.sticker) || (Boolean(message.photo) && !message.body);
   const canModify = canWrite && canEditOrUnsend(message, viewer);
 
   return (

@@ -7,6 +7,10 @@ import {
 } from "@/features/chat/utils/chat-rules";
 import { adminLabel } from "@/features/chat/utils/chat-settings";
 import { displayNameFor } from "@/features/chat/utils/display-name";
+import {
+  type ChatPhoto,
+  PHOTO_QUOTE_TEXT,
+} from "@/features/chat/utils/photo-rules";
 import type { ChatSticker } from "@/features/chat/utils/sticker-rules";
 
 // Pure helpers behind the trainee chat thread: merging, grouping, separators
@@ -21,6 +25,8 @@ export interface SerializedChatMessage {
   body: string;
   // KAN-144: set for a sticker message (body is empty).
   sticker?: ChatSticker | null;
+  // KAN-160: set for a photo message (body is the optional caption).
+  photo?: ChatPhoto | null;
   clientId: string;
   createdAt: string;
   replyTo: SerializedReplyTo | null;
@@ -45,6 +51,8 @@ export interface SerializedReplyTo {
   body: string;
   // The quoted message is a sticker: the UI shows "Sticker".
   isSticker?: boolean;
+  // The quoted message is a photo: the UI shows "Ảnh" when it has no text.
+  isPhoto?: boolean;
   senderRole: "user" | "admin";
   deleted: boolean;
 }
@@ -568,6 +576,7 @@ export const toReplyTo = (message: ThreadMessage): SerializedReplyTo | null =>
         id: message.id,
         body: message.deleted ? "" : toReplySnippet(message.body),
         ...(!message.deleted && message.sticker ? { isSticker: true } : {}),
+        ...(!message.deleted && message.photo ? { isPhoto: true } : {}),
         senderRole: message.senderRole,
         deleted: message.deleted,
       };
@@ -604,10 +613,14 @@ export const STICKER_TEXT = "Sticker";
 export const quoteText = (quote: {
   deleted: boolean;
   isSticker?: boolean;
+  isPhoto?: boolean;
   body: string;
 }) => {
   if (quote.deleted) {
     return UNSENT_TEXT;
+  }
+  if (quote.isPhoto && quote.body === "") {
+    return PHOTO_QUOTE_TEXT;
   }
   return quote.isSticker ? STICKER_TEXT : quote.body;
 };

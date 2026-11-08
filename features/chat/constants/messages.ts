@@ -12,3 +12,12 @@ export const CHAT_MESSAGES = {
   STICKER_NOT_EDITABLE: "Không sửa được sticker",
   MESSAGE_UNSENT: "Tin nhắn đã bị thu hồi",
 } as const;
+
+export const HIDDEN_CHAT_MESSAGES = {
+  PASSCODE_REQUIRED: "Hãy đặt mã khoá trước khi ẩn học viên.",
+  INVALID_INPUT: "Học viên không hợp lệ",
+  NO_MATCH: "Không khớp",
+} as const;
+
+// Shown for the PT side before any PT has written.
+export const FALLBACK_PEER_NAME = "PT của bạn";

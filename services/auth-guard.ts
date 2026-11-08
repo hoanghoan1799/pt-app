@@ -5,6 +5,7 @@ import { cache } from "react";
 
 import { ROUTES, SESSION_ROLE_PARAM } from "@/constants/routes";
 import { ADMIN_COOKIE, USER_COOKIE } from "@/constants/session";
+import { isAdminLocked } from "@/services/admin-lock";
 import { findAdminById } from "@/services/admins";
 import { readSession } from "@/services/session";
 import { findUserById } from "@/services/users";
@@ -31,13 +32,24 @@ export const getCurrentUser = cache(async () => {
   return user;
 });
 
-export const getCurrentAdmin = cache(async () => {
+// The signed-in admin, ignoring the passcode lock (KAN-160). Only the lock
+// page and the passcode actions should use this, through requireAdminSession;
+// everything else goes through getApiAdmin / requireAdmin so a locked admin
+// gets nothing.
+export const getAdminSession = cache(async () => {
   const session = await readSession(ADMIN_COOKIE);
 
   if (session?.role !== "admin") {
     return null;
   }
   return findAdminById(session.adminId);
+});
+
+// Signed in and unlocked. Null for a missing session and for a locked admin.
+export const getCurrentAdmin = cache(async () => {
+  const admin = await getAdminSession();
+
+  return admin && !(await isAdminLocked(admin)) ? admin : null;
 });
 
 // Server components can't delete cookies, so a missing/stale session goes
@@ -52,14 +64,22 @@ export const requireUser = async () => {
   return user ?? endSessionAndRedirect("user");
 };
 
-export const requireAdmin = async () => {
-  const admin = await getCurrentAdmin();
+// Signed in, passcode lock ignored: the lock page and passcode actions.
+export const requireAdminSession = async () => {
+  const admin = await getAdminSession();
 
   return admin ?? endSessionAndRedirect("admin");
 };
 
+// A locked admin is sent to the passcode screen, not signed out.
+export const requireAdmin = async () => {
+  const admin = await requireAdminSession();
+
+  return (await isAdminLocked(admin)) ? redirect(ROUTES.ADMIN_LOCK) : admin;
+};
+
 // Route handlers answer 401 JSON instead of redirecting to a login page, so
-// these return null for a missing/stale session. Same checks as the
+// these return null for a missing/stale session or a locked admin (KAN-160). Same checks as the
 // require* guards above (deleted user, password changed since sign-in).
 export const getApiUser = getCurrentUser;
 export const getApiAdmin = getCurrentAdmin;

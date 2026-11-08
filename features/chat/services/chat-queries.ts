@@ -12,6 +12,7 @@ import {
   like,
   lt,
   max,
+  notInArray,
   sql,
 } from "drizzle-orm";
 
@@ -22,6 +23,7 @@ import {
   chatMessageEdits,
   chatMessages,
   chatNicknames,
+  chatPhotos,
   chatReactions,
   chatReads,
   users,
@@ -38,10 +40,19 @@ import {
 } from "@/features/chat/utils/chat-rules";
 import { resolveDisplayName } from "@/features/chat/utils/display-name";
 import {
+  type ChatPhoto,
+  photoPreview,
+  toChatPhoto,
+} from "@/features/chat/utils/photo-rules";
+import {
   type ChatSticker,
   STICKER_PREVIEW,
   toChatSticker,
 } from "@/features/chat/utils/sticker-rules";
+import {
+  hiddenConversationIdsOf,
+  hiddenUserIdsOf,
+} from "@/services/hidden-users";
 
 export interface ChatReaction {
   emoji: string;
@@ -56,6 +67,8 @@ export interface ChatReplyTo {
   body: string;
   // The quoted message is a sticker: the UI shows "Sticker".
   isSticker: boolean;
+  // The quoted message is a photo: the UI shows "Ảnh" when there is no text.
+  isPhoto: boolean;
   senderRole: "user" | "admin";
   deleted: boolean;
 }
@@ -70,6 +83,9 @@ export interface ChatMessage {
   body: string;
   // KAN-144: set for a sticker message (body is empty); null once unsent.
   sticker: ChatSticker | null;
+  // KAN-160: set for a photo message (body is the optional caption); null
+  // once unsent.
+  photo: ChatPhoto | null;
   clientId: string;
   createdAt: Date;
   replyTo: ChatReplyTo | null;
@@ -90,6 +106,7 @@ const messageColumns = {
   body: chatMessages.body,
   stickerRef: chatMessages.stickerRef,
   stickerUrl: chatMessages.stickerUrl,
+  photoId: chatMessages.photoId,
   clientId: chatMessages.clientId,
   createdAt: chatMessages.createdAt,
   replyToMessageId: chatMessages.replyToMessageId,
@@ -107,6 +124,7 @@ interface MessageRow {
   body: string;
   stickerRef: string | null;
   stickerUrl: string | null;
+  photoId: number | null;
   clientId: string;
   createdAt: Date;
   replyToMessageId: number | null;
@@ -133,7 +151,14 @@ const hydrateMessages = async (rows: MessageRow[]): Promise<ChatMessage[]> => {
   ];
   const liveIds = rows.filter((row) => !row.deletedAt).map((row) => row.id);
   const conversationIds = [...new Set(rows.map((row) => row.conversationId))];
-  const [targets, reactionRows, traineeRows] = await Promise.all([
+  const photoIds = [
+    ...new Set(
+      rows.flatMap((row) =>
+        row.photoId !== null && row.deletedAt === null ? [row.photoId] : [],
+      ),
+    ),
+  ];
+  const [targets, reactionRows, traineeRows, photoRows] = await Promise.all([
     replyIds.length === 0
       ? []
       : db
@@ -142,6 +167,7 @@ const hydrateMessages = async (rows: MessageRow[]): Promise<ChatMessage[]> => {
             conversationId: chatMessages.conversationId,
             body: chatMessages.body,
             stickerRef: chatMessages.stickerRef,
+            photoId: chatMessages.photoId,
             senderRole: chatMessages.senderRole,
             deletedAt: chatMessages.deletedAt,
           })
@@ -168,7 +194,19 @@ const hydrateMessages = async (rows: MessageRow[]): Promise<ChatMessage[]> => {
       .from(chatConversations)
       .innerJoin(users, eq(users.id, chatConversations.userId))
       .where(inArray(chatConversations.id, conversationIds)),
+    // Size only: the bytes are served by /api/chat/photos/<id>.
+    photoIds.length === 0
+      ? []
+      : db
+          .select({
+            id: chatPhotos.id,
+            width: chatPhotos.width,
+            height: chatPhotos.height,
+          })
+          .from(chatPhotos)
+          .where(inArray(chatPhotos.id, photoIds)),
   ]);
+  const photoSizeById = new Map(photoRows.map((row) => [row.id, row]));
   const targetById = new Map(targets.map((row) => [row.id, row]));
   const traineeName = new Map(
     traineeRows.map((row) => [row.conversationId, row.name]),
@@ -207,6 +245,7 @@ const hydrateMessages = async (rows: MessageRow[]): Promise<ChatMessage[]> => {
             id: target.id,
             body: target.deletedAt ? "" : toReplySnippet(target.body),
             isSticker: target.deletedAt === null && target.stickerRef !== null,
+            isPhoto: target.deletedAt === null && target.photoId !== null,
             senderRole: target.senderRole,
             deleted: target.deletedAt !== null,
           }
@@ -219,6 +258,9 @@ const hydrateMessages = async (rows: MessageRow[]): Promise<ChatMessage[]> => {
       senderAdminName: row.senderAdminName,
       body: deleted ? "" : row.body,
       sticker: deleted ? null : toChatSticker(row.stickerRef, row.stickerUrl),
+      photo: deleted
+        ? null
+        : toChatPhoto(row.photoId, photoSizeById.get(row.photoId ?? 0)),
       clientId: row.clientId,
       createdAt: row.createdAt,
       replyTo,
@@ -291,6 +333,7 @@ interface NewMessage {
   body: string;
   stickerRef?: string | null;
   stickerUrl?: string | null;
+  photoId?: number | null;
   clientId: string;
   replyToMessageId?: number | null;
 }
@@ -369,6 +412,57 @@ export const listMessages = async (
   return {
     messages: await hydrateMessages(forward ? page : page.reverse()),
     hasMore,
+  };
+};
+
+// The most messages after the target a jump loads in one go; a longer tail
+// means the target is far back and the jump is skipped (the chat opens at the
+// newest as usual). Conversations are small, so this is rare.
+export const JUMP_MAX_NEWER = 500;
+
+// The thread as the chat opens it for a jump to `messageId` (KAN-160): the
+// page that ends at the target plus every newer message, so it still joins up
+// with the newest and the poll cursor stays valid. Null when the message is
+// not in this conversation or too far back.
+export const listMessagesAround = async (
+  conversationId: number,
+  messageId: number,
+) => {
+  const [target] = await db
+    .select({ id: chatMessages.id })
+    .from(chatMessages)
+    .where(
+      and(
+        eq(chatMessages.id, messageId),
+        eq(chatMessages.conversationId, conversationId),
+      ),
+    );
+
+  if (!target) {
+    return null;
+  }
+  const [older, newerRows] = await Promise.all([
+    listMessages(conversationId, { before: messageId + 1 }),
+    db
+      .select(messageColumns)
+      .from(chatMessages)
+      .leftJoin(admins, eq(admins.id, chatMessages.senderAdminId))
+      .where(
+        and(
+          eq(chatMessages.conversationId, conversationId),
+          gt(chatMessages.id, messageId),
+        ),
+      )
+      .orderBy(asc(chatMessages.id))
+      .limit(JUMP_MAX_NEWER + 1),
+  ]);
+
+  if (newerRows.length > JUMP_MAX_NEWER) {
+    return null;
+  }
+  return {
+    messages: [...older.messages, ...(await hydrateMessages(newerRows))],
+    hasMore: older.hasMore,
   };
 };
 
@@ -549,6 +643,7 @@ const unreadByConversation = (
   senderRole: "user" | "admin",
   readerKey: string,
   conversationId?: number,
+  hiddenForAdminId?: number,
 ) =>
   db
     .select({ conversationId: chatMessages.conversationId, unread: count() })
@@ -566,6 +661,12 @@ const unreadByConversation = (
         conversationId === undefined
           ? undefined
           : eq(chatMessages.conversationId, conversationId),
+        hiddenForAdminId === undefined
+          ? undefined
+          : notInArray(
+              chatMessages.conversationId,
+              hiddenConversationIdsOf(hiddenForAdminId),
+            ),
         gt(chatMessages.id, sql`coalesce(${chatReads.lastReadMessageId}, 0)`),
       ),
     )
@@ -587,7 +688,12 @@ export const countUnreadForUser = async (userId: number) => {
 };
 
 export const countUnreadForAdmin = async (adminId: number) => {
-  const rows = await unreadByConversation("user", adminReaderKey(adminId));
+  const rows = await unreadByConversation(
+    "user",
+    adminReaderKey(adminId),
+    undefined,
+    adminId,
+  );
 
   return rows.reduce((total, row) => total + row.unread, 0);
 };
@@ -597,6 +703,8 @@ export const listUnreadByTraineeForAdmin = async (adminId: number) => {
   const unreadRows = await unreadByConversation(
     "user",
     adminReaderKey(adminId),
+    undefined,
+    adminId,
   );
 
   if (unreadRows.length === 0) {
@@ -622,11 +730,12 @@ export const listUnreadByTraineeForAdmin = async (adminId: number) => {
   });
 };
 
-// Username of the PT who wrote the newest admin message, for the trainee's
-// header. Null when no admin has written yet or that admin was deleted.
-export const findLatestAdminSenderName = async (conversationId: number) => {
+// The PT who wrote the newest admin message, for the trainee's header and chat
+// info page. Null when no admin has written yet; `name` is null when that
+// admin was deleted.
+export const findLatestAdminSender = async (conversationId: number) => {
   const [row] = await db
-    .select({ name: admins.username })
+    .select({ id: chatMessages.senderAdminId, name: admins.username })
     .from(chatMessages)
     .leftJoin(admins, eq(admins.id, chatMessages.senderAdminId))
     .where(
@@ -638,8 +747,52 @@ export const findLatestAdminSenderName = async (conversationId: number) => {
     .orderBy(desc(chatMessages.id))
     .limit(1);
 
-  return row?.name ?? null;
+  return row ?? null;
 };
+
+// Username of that PT; null when none or deleted.
+export const findLatestAdminSenderName = async (conversationId: number) =>
+  (await findLatestAdminSender(conversationId))?.name ?? null;
+
+// The nickname an admin set for each trainee (the same row the inbox reads:
+// target "user" of the trainee's conversation), by user id. Trainees without
+// one are absent.
+export const listTraineeNicknames = async (
+  userIds: readonly number[],
+): Promise<Map<number, string>> => {
+  if (userIds.length === 0) {
+    return new Map();
+  }
+  const rows = await db
+    .select({
+      userId: chatConversations.userId,
+      nickname: chatNicknames.nickname,
+    })
+    .from(chatNicknames)
+    .innerJoin(
+      chatConversations,
+      eq(chatConversations.id, chatNicknames.conversationId),
+    )
+    .where(
+      and(
+        eq(chatNicknames.targetKey, USER_READER_KEY),
+        inArray(chatConversations.userId, [...userIds]),
+      ),
+    );
+
+  return new Map(rows.map((row) => [row.userId, row.nickname]));
+};
+
+// The name admin pages show for one trainee: the chat nickname if an admin
+// set one, else the real name (same rule as the inbox and dashboard).
+export const getTraineeDisplayName = async (user: {
+  id: number;
+  name: string;
+}) =>
+  resolveDisplayName(
+    (await listTraineeNicknames([user.id])).get(user.id),
+    user.name,
+  );
 
 export interface InboxItem {
   conversationId: number;
@@ -669,7 +822,9 @@ export interface InboxWithoutConversation {
   avatarUrl: string | null;
 }
 
-export const listAdminInbox = async (adminId: number) => {
+// `hidden: false` is the normal inbox (this admin's hidden trainees left out);
+// `hidden: true` is only those, for the passcode reveal (KAN-163).
+const loadInbox = async (adminId: number, hidden: boolean) => {
   const [rows, unreadRows, fresh] = await Promise.all([
     db
       .select({
@@ -681,6 +836,7 @@ export const listAdminInbox = async (adminId: number) => {
         avatarUpdatedAt: users.avatarUpdatedAt,
         lastBody: chatMessages.body,
         lastStickerRef: chatMessages.stickerRef,
+        lastPhotoId: chatMessages.photoId,
         lastDeletedAt: chatMessages.deletedAt,
         lastSenderRole: chatMessages.senderRole,
         lastSenderAdminId: chatMessages.senderAdminId,
@@ -694,6 +850,11 @@ export const listAdminInbox = async (adminId: number) => {
         eq(chatMessages.id, chatConversations.lastMessageId),
       )
       .leftJoin(admins, eq(admins.id, chatMessages.senderAdminId))
+      .where(
+        hidden
+          ? inArray(chatConversations.userId, hiddenUserIdsOf(adminId))
+          : notInArray(chatConversations.userId, hiddenUserIdsOf(adminId)),
+      )
       .orderBy(
         sql`${chatConversations.lastMessageAt} is null`,
         desc(chatConversations.lastMessageAt),
@@ -709,7 +870,15 @@ export const listAdminInbox = async (adminId: number) => {
       })
       .from(users)
       .leftJoin(chatConversations, eq(chatConversations.userId, users.id))
-      .where(and(eq(users.chatEnabled, true), isNull(chatConversations.id)))
+      .where(
+        and(
+          eq(users.chatEnabled, true),
+          isNull(chatConversations.id),
+          hidden
+            ? inArray(users.id, hiddenUserIdsOf(adminId))
+            : notInArray(users.id, hiddenUserIdsOf(adminId)),
+        ),
+      )
       .orderBy(asc(users.name)),
   ]);
   const nicknameRows =
@@ -749,7 +918,9 @@ export const listAdminInbox = async (adminId: number) => {
       ? ""
       : row.lastStickerRef
         ? STICKER_PREVIEW
-        : toPreview(row.lastBody ?? ""),
+        : row.lastPhotoId
+          ? photoPreview(toPreview(row.lastBody ?? ""))
+          : toPreview(row.lastBody ?? ""),
     lastFromAdmin: row.lastSenderRole === "admin",
     lastSenderAdminId: row.lastSenderAdminId,
     lastSenderAdminName: row.lastSenderAdminName,
@@ -767,3 +938,10 @@ export const listAdminInbox = async (adminId: number) => {
 
   return { conversations, withoutConversation };
 };
+
+export const listAdminInbox = (adminId: number) => loadInbox(adminId, false);
+
+// This admin's hidden trainees in the inbox shapes: conversations newest
+// first, then the ones nobody has written to yet.
+export const listHiddenInboxForAdmin = (adminId: number) =>
+  loadInbox(adminId, true);

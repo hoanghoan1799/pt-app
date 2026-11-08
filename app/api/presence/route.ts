@@ -4,6 +4,7 @@ import {
   touchAdminPresence,
   touchUserPresence,
 } from "@/features/chat/services/presence";
+import { issueUnlock } from "@/services/admin-lock";
 import { getApiAdmin, getApiUser } from "@/services/auth-guard";
 
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -23,6 +24,11 @@ export const POST = async (request: NextRequest) => {
       );
     }
     await touchAdminPresence(admin.id);
+    // getApiAdmin is null while locked, so this only slides an existing
+    // unlock forward (KAN-160). Admins without a passcode need no cookie.
+    if (admin.hasPasscode) {
+      await issueUnlock(admin.id);
+    }
     return new NextResponse(null, { status: 204, headers: NO_STORE });
   }
   const user = await getApiUser();

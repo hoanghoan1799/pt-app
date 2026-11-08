@@ -5,7 +5,7 @@ import { after } from "next/server";
 import webpush from "web-push";
 
 import { db } from "@/db";
-import { pushSubscriptions, users } from "@/db/schema";
+import { adminHiddenUsers, pushSubscriptions, users } from "@/db/schema";
 import {
   ADMIN_OWNER_PREFIX,
   adminOwnerKey,
@@ -17,6 +17,7 @@ import {
   userOwnerKey,
 } from "@/features/chat/utils/push-rules";
 import { getVapidConfig } from "@/services/env";
+import { isUserHidden } from "@/services/hidden-users";
 import { logServerError } from "@/services/logger";
 
 const PUSH_TTL_SECONDS = 3600;
@@ -120,17 +121,35 @@ export interface SendChatPushInput {
   conversationId: number;
   // The message is a sticker (changes the push text, never carries content).
   sticker?: boolean;
+  // The message carries a photo (KAN-160): the text becomes "📷 Ảnh".
+  photo?: boolean;
 }
 
-const loadTargets = (senderRole: "user" | "admin", traineeUserId: number) =>
-  db
-    .select()
-    .from(pushSubscriptions)
-    .where(
-      senderRole === "user"
-        ? like(pushSubscriptions.ownerKey, `${ADMIN_OWNER_PREFIX}%`)
-        : eq(pushSubscriptions.ownerKey, userOwnerKey(traineeUserId)),
-    );
+const loadTargets = async (
+  senderRole: "user" | "admin",
+  traineeUserId: number,
+) => {
+  if (senderRole === "admin") {
+    return db
+      .select()
+      .from(pushSubscriptions)
+      .where(eq(pushSubscriptions.ownerKey, userOwnerKey(traineeUserId)));
+  }
+  const [targets, hidden] = await Promise.all([
+    db
+      .select()
+      .from(pushSubscriptions)
+      .where(like(pushSubscriptions.ownerKey, `${ADMIN_OWNER_PREFIX}%`)),
+    db
+      .select({ adminId: adminHiddenUsers.adminId })
+      .from(adminHiddenUsers)
+      .where(eq(adminHiddenUsers.userId, traineeUserId)),
+  ]);
+  const hiddenKeys = new Set(hidden.map((row) => adminOwnerKey(row.adminId)));
+
+  // KAN-163: an admin who hid this trainee gets no push for them.
+  return targets.filter((target) => !hiddenKeys.has(target.ownerKey));
+};
 
 const deliver = async (
   targets: StoredSubscription[],
@@ -168,7 +187,13 @@ const deliver = async (
 // counts. Trainee message -> every admin's devices; admin message -> the
 // trainee's devices. 404/410 means the subscription is dead and is dropped.
 export const sendChatPush = async (
-  { senderRole, traineeUserId, conversationId, sticker }: SendChatPushInput,
+  {
+    senderRole,
+    traineeUserId,
+    conversationId,
+    sticker,
+    photo,
+  }: SendChatPushInput,
   sender: PushSender = sendWithWebPush,
 ) => {
   try {
@@ -199,6 +224,7 @@ export const sendChatPush = async (
       traineeUserId,
       conversationId,
       sticker,
+      photo,
     });
 
     await deliver(targets, payload, vapid, sender);
@@ -233,6 +259,12 @@ export const sendReactionPush = async (
     const vapid = getVapid();
 
     if (!vapid) {
+      return;
+    }
+    if (
+      recipient.role === "admin" &&
+      (await isUserHidden(recipient.adminId, traineeUserId))
+    ) {
       return;
     }
     const targets = await db

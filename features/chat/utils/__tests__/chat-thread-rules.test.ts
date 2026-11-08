@@ -645,6 +645,36 @@ describe("reply and time helpers", () => {
     expect(quoteText({ deleted: false, body: "xin chào" })).toBe("xin chào");
   });
 
+  it('marks a quoted photo: "Ảnh" without a caption, the caption with one', () => {
+    const photo = {
+      url: "/api/chat/photos/3",
+      width: 800,
+      height: 600,
+      alt: "Ảnh trong tin nhắn",
+    };
+    const bare = toReplyTo(toThreadMessage(msg(6, { body: "", photo })));
+    const captioned = toReplyTo(
+      toThreadMessage(msg(7, { body: "bữa trưa", photo })),
+    );
+
+    expect(bare).toEqual({
+      id: 6,
+      body: "",
+      isPhoto: true,
+      senderRole: "admin",
+      deleted: false,
+    });
+    expect(quoteText(bare!)).toBe("Ảnh");
+    expect(quoteText(captioned!)).toBe("bữa trưa");
+    expect(
+      toReplyTo(toThreadMessage(msg(6, { body: "", photo, deleted: true })))
+        ?.isPhoto,
+    ).toBeUndefined();
+    expect(quoteText({ deleted: true, isPhoto: true, body: "" })).toBe(
+      "Tin nhắn đã bị thu hồi",
+    );
+  });
+
   it("formats the exact send time as HH:mm, dd/MM in the app time zone", () => {
     // 03:42 UTC = 10:42 in Asia/Ho_Chi_Minh (UTC+7).
     expect(formatSentAt("2026-11-06T03:42:00.000Z")).toBe("10:42, 06/11");
