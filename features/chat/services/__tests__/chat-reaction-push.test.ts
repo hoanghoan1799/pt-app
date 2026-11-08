@@ -84,7 +84,7 @@ describe("sendReactionPush", () => {
       sender,
     );
 
-    expect(sender.mock.calls[0][1].url).toBe("/messages");
+    expect(sender.mock.calls[0][1].url).toBe("/messages/coach");
   });
 
   it("drops a dead subscription and does not throw", async () => {

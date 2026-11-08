@@ -9,6 +9,7 @@ import {
   LogOut,
   Palette,
   Settings,
+  UserRound,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -48,6 +49,8 @@ interface HeaderMenusProps {
   // The signed-in person's name and saved photo (versioned URL or null).
   name: string;
   avatarUrl?: string | null;
+  // Trainees only: link to their social profile, shown first in the avatar menu.
+  profileHref?: string;
   // Admins only: the saved account colour (null = never picked) and whether
   // the online status is switched off.
   accountColor?: ChatColorKey | null;
@@ -79,6 +82,7 @@ const paintTheme = (theme: Theme) => {
 // open at a time; a tap outside or Esc closes it.
 export const HeaderMenus = ({
   role,
+  profileHref,
   hasPasscode = false,
   name,
   avatarUrl = null,
@@ -326,6 +330,17 @@ export const HeaderMenus = ({
             </>
           ) : (
             <>
+              {profileHref && (
+                <Link
+                  href={profileHref}
+                  role="menuitem"
+                  className={ITEM}
+                  onClick={() => setOpenMenu(null)}
+                >
+                  <UserRound className="size-5 text-muted" aria-hidden />
+                  Trang cá nhân
+                </Link>
+              )}
               <button
                 type="button"
                 role="menuitem"

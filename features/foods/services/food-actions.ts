@@ -16,7 +16,7 @@ import {
   withFormErrorHandling,
   withResultErrorHandling,
 } from "@/services/action-errors";
-import { requireAdmin } from "@/services/auth-guard";
+import { requireSuperAdmin } from "@/services/auth-guard";
 import type { ActionResult } from "@/types/error";
 import type { FormState } from "@/types/form";
 import { isUniqueViolation } from "@/utils/errors";
@@ -67,7 +67,7 @@ const nameTakenState = () =>
 export const createFoodAction = withFormErrorHandling(
   "createFood",
   async (_previousState: FormState, formData: FormData): Promise<FormState> => {
-    await requireAdmin();
+    await requireSuperAdmin();
 
     const { error, values } = readFoodForm(formData);
 
@@ -95,7 +95,7 @@ export const createFoodAction = withFormErrorHandling(
 export const updateFoodAction = withFormErrorHandling(
   "updateFood",
   async (_previousState: FormState, formData: FormData): Promise<FormState> => {
-    await requireAdmin();
+    await requireSuperAdmin();
 
     const id = foodIdSchema.safeParse(formData.get("id"));
 
@@ -140,7 +140,7 @@ export const updateFoodAction = withFormErrorHandling(
 export const archiveFoodAction = withResultErrorHandling(
   "archiveFood",
   async (foodId: number): Promise<ActionResult> => {
-    await requireAdmin();
+    await requireSuperAdmin();
 
     const id = foodIdSchema.safeParse(foodId);
 

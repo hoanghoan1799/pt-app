@@ -392,7 +392,7 @@ test("enable, message, reply, unread badges and the PT name work end to end", as
     await shot(trainee.page, "chat-04-trainee-tab-badge");
 
     // Opening the thread shows the reply, the PT name, and clears the badge.
-    await trainee.page.goto("/messages");
+    await trainee.page.goto("/messages/coach");
     await expect(
       trainee.page.getByRole("log").getByText(reply, { exact: true }),
     ).toBeVisible();
@@ -430,7 +430,7 @@ test("locking chat shows the banner, keeps history, refuses sends and unlocking 
     await logInAsAdmin(admin);
     await setChatSwitch(admin, userId, true);
     await logInAsTrainee(trainee.page, E2E_CHAT_NAME);
-    await trainee.page.goto("/messages");
+    await trainee.page.goto("/messages/coach");
     await sendFromComposer(trainee.page, history);
     await expect(
       trainee.page.getByRole("log").getByText(history, { exact: true }),
@@ -507,7 +507,7 @@ test("the service worker never caches /api/chat responses", async ({
     await logInAsAdmin(admin);
     await setChatSwitch(admin, userId, true);
     await logInAsTrainee(trainee.page, E2E_CHAT_NAME);
-    await trainee.page.goto("/messages");
+    await trainee.page.goto("/messages/coach");
     await trainee.page.evaluate(() => navigator.serviceWorker.ready);
     // A worker that activated after this page loaded controls it on reload.
     if (
@@ -643,7 +643,7 @@ test("the push opt-in card shows once for a trainee: Để sau hides it for good
     await logInAsAdmin(admin);
     await setChatSwitch(admin, userId, true);
     await logInAsTrainee(trainee.page, E2E_CHAT_NAME);
-    await trainee.page.goto("/messages");
+    await trainee.page.goto("/messages/coach");
 
     await expect(title).toBeVisible();
     await expect(

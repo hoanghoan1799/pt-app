@@ -6,6 +6,7 @@ import { cache } from "react";
 import { ROUTES, SESSION_ROLE_PARAM } from "@/constants/routes";
 import { ADMIN_COOKIE, USER_COOKIE } from "@/constants/session";
 import { isAdminLocked } from "@/services/admin-lock";
+import { isSuperAdmin } from "@/services/admin-scope";
 import { findAdminById } from "@/services/admins";
 import { readSession } from "@/services/session";
 import { findUserById } from "@/services/users";
@@ -51,6 +52,13 @@ export const getCurrentAdmin = cache(async () => {
 
   return admin && !(await isAdminLocked(admin)) ? admin : null;
 });
+
+// Super admin only (P1): a PT is sent back to the admin dashboard.
+export const requireSuperAdmin = async () => {
+  const admin = await requireAdmin();
+
+  return isSuperAdmin(admin) ? admin : redirect(ROUTES.ADMIN);
+};
 
 // Server components can't delete cookies, so a missing/stale session goes
 // through a route handler that clears the cookie before showing the login

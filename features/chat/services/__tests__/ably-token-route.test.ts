@@ -8,7 +8,7 @@ const state = vi.hoisted(() => ({
   db: null as unknown,
   configured: true,
   user: null as null | { id: number; chatEnabled: boolean | null },
-  admin: null as null | { id: number },
+  admin: null as null | { id: number; role?: "super_admin" | "pt" },
 }));
 
 vi.mock("server-only", () => ({}));
@@ -93,7 +93,7 @@ describe("GET /api/chat/ably-token", () => {
   });
 
   it("signs the admin capability for ?as=admin", async () => {
-    state.admin = { id: 7 };
+    state.admin = { id: 7, role: "super_admin" };
     const response = await get("?as=admin");
 
     expect(response.status).toBe(200);

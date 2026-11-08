@@ -1,0 +1,76 @@
+import type { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
+
+import { AppHeader } from "@/components/layout/AppHeader";
+import { ROUTES } from "@/constants/routes";
+import { PAGE_CONTAINER } from "@/constants/styles";
+import { ProfileView } from "@/features/social/components/ProfileView";
+import { actorOfUser } from "@/features/social/services/post-context";
+import { listProfilePosts } from "@/features/social/services/post-queries";
+import { getProfile } from "@/features/social/services/profile-queries";
+import {
+  countFriends,
+  getRelationship,
+  isBlockedBetween,
+} from "@/features/social/services/relationships";
+import { hasAcceptedTerms } from "@/features/social/services/terms";
+import { parseProfileKind } from "@/features/social/utils/post-rules";
+import { requireUser } from "@/services/auth-guard";
+
+export const metadata: Metadata = { title: "Trang cá nhân" };
+
+const ProfilePage = async ({ params }: PageProps<"/profile/[kind]/[id]">) => {
+  const user = await requireUser();
+
+  // Social pages sit behind the terms; the feed shows them.
+  if (!hasAcceptedTerms(user)) {
+    redirect(ROUTES.FEED);
+  }
+  const { kind: rawKind, id: rawId } = await params;
+  const kind = parseProfileKind(rawKind);
+  const profile = kind ? await getProfile(kind, Number(rawId)) : null;
+
+  if (!kind || !profile) {
+    notFound();
+  }
+  const isTrainee = kind === "user";
+  const isOwn = isTrainee && profile.id === user.id;
+
+  // Blocked either way: the profile does not exist for you (spec M1).
+  if (isTrainee && !isOwn && (await isBlockedBetween(user.id, profile.id))) {
+    notFound();
+  }
+  const [posts, friendCount, relationship] = await Promise.all([
+    listProfilePosts(actorOfUser(user), { kind, id: profile.id }),
+    isTrainee ? countFriends(profile.id) : null,
+    isTrainee && !isOwn ? getRelationship(user.id, profile.id) : null,
+  ]);
+
+  return (
+    <>
+      <AppHeader
+        eyebrow="Trang cá nhân"
+        title={profile.name}
+        backHref={ROUTES.FEED}
+      />
+      <main
+        className={`${PAGE_CONTAINER} pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]`}
+      >
+        <ProfileView
+          profile={profile}
+          mode="user"
+          isOwn={isOwn}
+          posts={posts}
+          friendCount={friendCount}
+          relationship={
+            relationship && relationship !== "self" ? relationship : null
+          }
+          canBlock={isTrainee && !isOwn}
+          canReport={isTrainee && !isOwn}
+        />
+      </main>
+    </>
+  );
+};
+
+export default ProfilePage;

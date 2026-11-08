@@ -185,7 +185,7 @@ const withScene = async (
     await trainee.goto("/");
     await fillTraineeLogin(trainee, E2E_CHAT_NAME);
     await expect(trainee).toHaveURL(/\/workouts/);
-    await trainee.goto("/messages");
+    await trainee.goto("/messages/coach");
 
     if (isLocked) {
       // A sticker first, so the locked thread has one to long-press.

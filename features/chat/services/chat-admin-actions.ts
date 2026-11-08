@@ -21,6 +21,7 @@ import {
 } from "@/features/chat/services/chat-queries";
 import { publishChatStatus } from "@/features/chat/services/chat-realtime";
 import { withResultErrorHandling } from "@/services/action-errors";
+import { requireAdminForUser } from "@/services/admin-access";
 import { requireAdmin } from "@/services/auth-guard";
 import { findUserById } from "@/services/users";
 
@@ -35,6 +36,8 @@ export const setChatEnabledAction = withResultErrorHandling(
   async (userId: number, enabled: boolean) => {
     const admin = await requireAdmin();
     const input = inputSchema.parse({ userId, enabled });
+
+    await requireAdminForUser(input.userId);
     const { updated } = await setChatEnabled(
       input.userId,
       input.enabled,
@@ -90,6 +93,7 @@ const withAdminConversation = async <T>(
       message: CHAT_MESSAGES.CONVERSATION_NOT_FOUND,
     };
   }
+  await requireAdminForUser(trainee.id);
   if (!isChatEnabled(trainee)) {
     return { status: "error" as const, message: CHAT_MESSAGES.CHAT_LOCKED };
   }

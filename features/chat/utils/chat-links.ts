@@ -19,7 +19,7 @@ const pathsUnder = (base: string): ChatPaths => ({
 export const chatPaths = (role: "user" | "admin", userId: number): ChatPaths =>
   role === "admin"
     ? pathsUnder(`${ROUTES.ADMIN_USERS}/${userId}/${ADMIN_MESSAGES_SEGMENT}`)
-    : pathsUnder(ROUTES.MESSAGES);
+    : pathsUnder(ROUTES.MESSAGES_COACH);
 
 // The chat opened at one message: it is loaded, scrolled to and highlighted.
 export const jumpHref = (chatPath: string, messageId: number) =>

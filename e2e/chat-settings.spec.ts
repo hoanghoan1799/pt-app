@@ -195,7 +195,7 @@ test.describe("chat settings", () => {
     await t.goto("/");
     await fillTraineeLogin(t, E2E_CHAT_NAME);
     await expect(t).toHaveURL(/\/workouts/);
-    await t.goto("/messages");
+    await t.goto("/messages/coach");
     await send(t, "Chào PT, hôm nay tập gì ạ?");
 
     await logInAsAdmin(a);
@@ -377,7 +377,7 @@ test.describe("chat settings", () => {
     await t.goto("/");
     await fillTraineeLogin(t, E2E_CHAT_NAME);
     await expect(t).toHaveURL(/\/workouts/);
-    await t.goto("/messages");
+    await t.goto("/messages/coach");
     await send(t, "Tin cuối trước khi khoá");
     await setLocked(userId);
 

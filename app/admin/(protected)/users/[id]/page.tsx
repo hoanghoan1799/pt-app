@@ -16,9 +16,12 @@ import { DeleteMemberButton } from "@/features/members/components/DeleteMemberBu
 import { HideUserButton } from "@/features/members/components/HideUserButton";
 import { MemberLoginCard } from "@/features/members/components/MemberLoginCard";
 import { listMembers } from "@/features/members/services/member-queries";
+import { PtAssignSelect } from "@/features/pts/components/PtAssignSelect";
+import { listPtOptions } from "@/features/pts/services/pt-queries";
 import { CopyWeekButton } from "@/features/workouts/components/CopyWeekButton";
 import { WorkoutWeekEditor } from "@/features/workouts/components/WorkoutWeekEditor";
 import { getWeekScheduleWithSets } from "@/features/workouts/services/workout-queries";
+import { isSuperAdmin } from "@/services/admin-scope";
 import { requireAdmin } from "@/services/auth-guard";
 import { canAdminAccessUser, isUserHidden } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
@@ -54,6 +57,7 @@ const AdminUserPage = async ({
     { week: readSearchParam(query.week), day: readSearchParam(query.day) },
     today,
   );
+  const ptOptions = isSuperAdmin(admin) ? await listPtOptions() : [];
   const [days, members, activity, isHidden] = await Promise.all([
     getWeekScheduleWithSets(user.id, schedule.weekStart),
     listMembers(admin.id, user.id),
@@ -111,6 +115,13 @@ const AdminUserPage = async ({
             defaultTargetDate={addDays(schedule.weekStart, 7)}
             members={members}
           />
+          {isSuperAdmin(admin) && (
+            <PtAssignSelect
+              userId={user.id}
+              currentPtId={user.ptAdminId}
+              options={ptOptions}
+            />
+          )}
           <HideUserButton
             userId={user.id}
             isHidden={isHidden}

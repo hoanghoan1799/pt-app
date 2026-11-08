@@ -5,7 +5,12 @@ import { after } from "next/server";
 import webpush from "web-push";
 
 import { db } from "@/db";
-import { adminHiddenUsers, pushSubscriptions, users } from "@/db/schema";
+import {
+  adminHiddenUsers,
+  admins as adminsTable,
+  pushSubscriptions,
+  users,
+} from "@/db/schema";
 import {
   ADMIN_OWNER_PREFIX,
   adminOwnerKey,
@@ -16,6 +21,7 @@ import {
   type PushSubscriptionInput,
   userOwnerKey,
 } from "@/features/chat/utils/push-rules";
+import { isUserInAdminScope, toAdminRole } from "@/services/admin-scope";
 import { getVapidConfig } from "@/services/env";
 import { isUserHidden } from "@/services/hidden-users";
 import { logServerError } from "@/services/logger";
@@ -33,7 +39,7 @@ export type PushSender = (
   vapid: VapidConfig,
 ) => Promise<unknown>;
 
-const sendWithWebPush: PushSender = (subscription, payload, vapid) =>
+export const sendWithWebPush: PushSender = (subscription, payload, vapid) =>
   webpush.sendNotification(
     {
       endpoint: subscription.endpoint,
@@ -59,7 +65,7 @@ export const resetChatPushForTests = () => {
   warned = false;
 };
 
-const getVapid = () => {
+export const getVapid = () => {
   const config = getVapidConfig();
 
   if (!config && !warned) {
@@ -135,7 +141,7 @@ const loadTargets = async (
       .from(pushSubscriptions)
       .where(eq(pushSubscriptions.ownerKey, userOwnerKey(traineeUserId)));
   }
-  const [targets, hidden] = await Promise.all([
+  const [targets, hidden, admins] = await Promise.all([
     db
       .select()
       .from(pushSubscriptions)
@@ -144,14 +150,32 @@ const loadTargets = async (
       .select({ adminId: adminHiddenUsers.adminId })
       .from(adminHiddenUsers)
       .where(eq(adminHiddenUsers.userId, traineeUserId)),
+    db.select({ id: adminsTable.id, role: adminsTable.role }).from(adminsTable),
   ]);
   const hiddenKeys = new Set(hidden.map((row) => adminOwnerKey(row.adminId)));
+  const [trainee] = await db
+    .select({ ptAdminId: users.ptAdminId })
+    .from(users)
+    .where(eq(users.id, traineeUserId));
+  // P1: super admins plus this trainee's own PT; other PTs get nothing.
+  const outOfScopeKeys = new Set(
+    admins
+      .filter(
+        (admin) =>
+          toAdminRole(admin.role) === "pt" &&
+          admin.id !== (trainee?.ptAdminId ?? null),
+      )
+      .map((admin) => adminOwnerKey(admin.id)),
+  );
 
   // KAN-163: an admin who hid this trainee gets no push for them.
-  return targets.filter((target) => !hiddenKeys.has(target.ownerKey));
+  return targets.filter(
+    (target) =>
+      !hiddenKeys.has(target.ownerKey) && !outOfScopeKeys.has(target.ownerKey),
+  );
 };
 
-const deliver = async (
+export const deliver = async (
   targets: StoredSubscription[],
   payload: ChatPushPayload,
   vapid: VapidConfig,
@@ -263,7 +287,8 @@ export const sendReactionPush = async (
     }
     if (
       recipient.role === "admin" &&
-      (await isUserHidden(recipient.adminId, traineeUserId))
+      ((await isUserHidden(recipient.adminId, traineeUserId)) ||
+        !(await isUserInAdminScope(recipient.adminId, traineeUserId)))
     ) {
       return;
     }

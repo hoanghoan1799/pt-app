@@ -2,7 +2,12 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
-import { adminHiddenUsers, pushSubscriptions, users } from "@/db/schema";
+import {
+  adminHiddenUsers,
+  admins,
+  pushSubscriptions,
+  users,
+} from "@/db/schema";
 
 const state = vi.hoisted(() => ({ db: null as unknown }));
 
@@ -219,5 +224,73 @@ describe("subscriptions", () => {
         .from(pushSubscriptions)
         .where(eq(pushSubscriptions.ownerKey, "user:1")),
     ).toHaveLength(0);
+  });
+});
+
+describe("P1 workspace scope of trainee message pushes", () => {
+  const addAdmin = async (name: string, role: "pt" | "super_admin" | null) => {
+    const [row] = await db
+      .insert(admins)
+      .values({ username: name, usernameKey: name, passwordHash: "x", role })
+      .returning({ id: admins.id });
+
+    return row.id;
+  };
+
+  const sendFromTrainee = async () => {
+    const sender = vi.fn<
+      import("@/features/chat/services/chat-push").PushSender
+    >(async () => undefined);
+
+    await push.sendChatPush(
+      { senderRole: "user", traineeUserId: traineeId, conversationId: 3 },
+      sender,
+    );
+    return sender.mock.calls
+      .map(([sub]) => sub.endpoint.split("/").pop())
+      .sort();
+  };
+
+  it("notifies super admins and the trainee's own PT, not other PTs", async () => {
+    const superId = await addAdmin("boss", "super_admin");
+    const legacyId = await addAdmin("legacy", null);
+    const ownPt = await addAdmin("own", "pt");
+    const otherPt = await addAdmin("other", "pt");
+
+    await db
+      .update(users)
+      .set({ ptAdminId: ownPt })
+      .where(eq(users.id, traineeId));
+    await addSub(`admin:${superId}`, "super");
+    await addSub(`admin:${legacyId}`, "legacy");
+    await addSub(`admin:${ownPt}`, "own");
+    await addSub(`admin:${otherPt}`, "other");
+
+    expect(await sendFromTrainee()).toEqual(["legacy", "own", "super"]);
+  });
+
+  it("sends a trainee without a PT to super admins only", async () => {
+    const superId = await addAdmin("boss", "super_admin");
+    const pt = await addAdmin("pt", "pt");
+
+    await addSub(`admin:${superId}`, "super");
+    await addSub(`admin:${pt}`, "pt");
+
+    expect(await sendFromTrainee()).toEqual(["super"]);
+  });
+
+  it("still drops an admin who hid the trainee, even the own PT", async () => {
+    const ownPt = await addAdmin("own", "pt");
+
+    await db
+      .update(users)
+      .set({ ptAdminId: ownPt })
+      .where(eq(users.id, traineeId));
+    await addSub(`admin:${ownPt}`, "own");
+    await db
+      .insert(adminHiddenUsers)
+      .values({ adminId: ownPt, userId: traineeId });
+
+    expect(await sendFromTrainee()).toEqual([]);
   });
 });

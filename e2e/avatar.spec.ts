@@ -188,7 +188,7 @@ test.describe("avatars", () => {
       await t.goto("/");
       await fillTraineeLogin(t, E2E_CHAT_NAME);
       await expect(t).toHaveURL(/\/workouts/);
-      await t.goto("/messages");
+      await t.goto("/messages/coach");
       await uploadAvatar(t, "Cài đặt cuộc trò chuyện");
 
       await logInAsAdmin(a);
@@ -267,7 +267,7 @@ test.describe("avatars", () => {
       await t.goto("/");
       await fillTraineeLogin(t, E2E_CHAT_NAME);
       await expect(t).toHaveURL(/\/workouts/);
-      await t.goto("/messages");
+      await t.goto("/messages/coach");
       await expect(t.getByText("Chào em")).toBeVisible();
       await expect(t.locator("header [data-avatar-image]")).toHaveAttribute(
         "src",

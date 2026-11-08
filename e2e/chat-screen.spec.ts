@@ -271,8 +271,8 @@ test.describe("trainee conversation screen", () => {
       // A new tab shares the session but has no history of its own.
       const fresh = await trainee.context.newPage();
 
-      await fresh.goto("/messages");
-      await expect(fresh).toHaveURL(/\/messages$/);
+      await fresh.goto("/messages/coach");
+      await expect(fresh).toHaveURL(/\/messages\/coach$/);
       await expect(getTabBar(fresh)).toHaveCount(0);
       // Nothing of this app behind it: a new tab has no same-origin referrer.
       expect(await fresh.evaluate(() => document.referrer)).toBe("");
@@ -293,7 +293,7 @@ test.describe("trainee conversation screen", () => {
 
     try {
       await logInAsTrainee(trainee.page, E2E_CHAT_NAME);
-      await trainee.page.goto("/messages");
+      await trainee.page.goto("/messages/coach");
       const header = getHeader(trainee.page);
       const name = header.getByRole("heading", { level: 1 });
       const status = header.getByRole("status", {
@@ -335,7 +335,7 @@ test.describe("trainee conversation screen", () => {
 
     try {
       await logInAsTrainee(trainee.page, E2E_CHAT_NAME);
-      await trainee.page.goto("/messages");
+      await trainee.page.goto("/messages/coach");
       const header = getHeader(trainee.page);
       const status = header.getByRole("status", {
         name: /^Trạng thái hoạt động/,
@@ -368,7 +368,7 @@ test.describe("trainee conversation screen", () => {
 
     try {
       await logInAsTrainee(trainee.page, E2E_CHAT_NAME);
-      await trainee.page.goto("/messages");
+      await trainee.page.goto("/messages/coach");
       await expect(getLog(trainee.page).getByText(body("C"))).toBeVisible();
 
       // 29 minutes apart: no separator of any kind between A and B.

@@ -4,12 +4,12 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { FoodForm } from "@/features/foods/components/FoodForm";
-import { requireAdmin } from "@/services/auth-guard";
+import { requireSuperAdmin } from "@/services/auth-guard";
 
 export const metadata: Metadata = { title: "Thêm món" };
 
 const NewFoodPage = async () => {
-  await requireAdmin();
+  await requireSuperAdmin();
 
   return (
     <>

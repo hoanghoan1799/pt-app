@@ -18,7 +18,7 @@ export const metadata: Metadata = { title: "Ảnh, sticker và link" };
 // conversation by `?tab=`, newest first.
 const MessagesPhotosPage = async ({
   searchParams,
-}: PageProps<"/messages/photos">) => {
+}: PageProps<"/messages/coach/photos">) => {
   const user = await requireUser();
   const tab = parseGalleryTab((await searchParams).tab);
   const conversation = await findConversationByUserId(user.id);

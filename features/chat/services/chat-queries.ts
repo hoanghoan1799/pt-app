@@ -50,6 +50,10 @@ import {
   toChatSticker,
 } from "@/features/chat/utils/sticker-rules";
 import {
+  adminScopeFilter,
+  outOfScopeConversationIdsOf,
+} from "@/services/admin-scope";
+import {
   hiddenConversationIdsOf,
   hiddenUserIdsOf,
 } from "@/services/hidden-users";
@@ -663,9 +667,16 @@ const unreadByConversation = (
           : eq(chatMessages.conversationId, conversationId),
         hiddenForAdminId === undefined
           ? undefined
-          : notInArray(
-              chatMessages.conversationId,
-              hiddenConversationIdsOf(hiddenForAdminId),
+          : and(
+              notInArray(
+                chatMessages.conversationId,
+                hiddenConversationIdsOf(hiddenForAdminId),
+              ),
+              // P1: a PT counts only their own trainees' messages.
+              notInArray(
+                chatMessages.conversationId,
+                outOfScopeConversationIdsOf(hiddenForAdminId),
+              ),
             ),
         gt(chatMessages.id, sql`coalesce(${chatReads.lastReadMessageId}, 0)`),
       ),
@@ -851,9 +862,12 @@ const loadInbox = async (adminId: number, hidden: boolean) => {
       )
       .leftJoin(admins, eq(admins.id, chatMessages.senderAdminId))
       .where(
-        hidden
-          ? inArray(chatConversations.userId, hiddenUserIdsOf(adminId))
-          : notInArray(chatConversations.userId, hiddenUserIdsOf(adminId)),
+        and(
+          hidden
+            ? inArray(chatConversations.userId, hiddenUserIdsOf(adminId))
+            : notInArray(chatConversations.userId, hiddenUserIdsOf(adminId)),
+          adminScopeFilter(adminId, chatConversations.userId),
+        ),
       )
       .orderBy(
         sql`${chatConversations.lastMessageAt} is null`,
@@ -877,6 +891,7 @@ const loadInbox = async (adminId: number, hidden: boolean) => {
           hidden
             ? inArray(users.id, hiddenUserIdsOf(adminId))
             : notInArray(users.id, hiddenUserIdsOf(adminId)),
+          adminScopeFilter(adminId),
         ),
       )
       .orderBy(asc(users.name)),

@@ -200,7 +200,7 @@ test("the trainee sees the PT side online while an admin has the app open", asyn
     );
 
     await logInAsTrainee(trainee.page, E2E_CHAT_NAME);
-    await trainee.page.goto("/messages");
+    await trainee.page.goto("/messages/coach");
     const status = getStatus(trainee.page);
 
     await expect(status).toHaveAttribute("data-online", "true");

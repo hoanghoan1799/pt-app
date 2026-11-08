@@ -51,6 +51,7 @@ import { splitDayTarget } from "@/features/meal-plans/utils/meal-targets";
 import { solveGrams } from "@/features/meal-plans/utils/solve-grams";
 import { getTargetForDate } from "@/features/nutrition/services/nutrition-queries";
 import { withResultErrorHandling } from "@/services/action-errors";
+import { requireAdminForUser } from "@/services/admin-access";
 import { requireAdmin } from "@/services/auth-guard";
 import { findUserById } from "@/services/users";
 import type { ActionErrorResult } from "@/types/error";
@@ -88,6 +89,8 @@ export const createDayPlanAction = withResultErrorHandling(
     if (!data) {
       return error;
     }
+
+    await requireAdminForUser(data.userId);
 
     const member = await findUserById(data.userId);
 
@@ -136,6 +139,8 @@ export const deleteDayPlanAction = withResultErrorHandling(
       return error;
     }
 
+    await requireAdminForUser(data.userId);
+
     const day = await findOwnedDay(data.userId, data.dayId);
 
     if (!day) {
@@ -158,6 +163,8 @@ export const addMealAction = withResultErrorHandling(
     if (!data) {
       return error;
     }
+
+    await requireAdminForUser(data.userId);
 
     const day = await findOwnedDay(data.userId, data.dayId);
 
@@ -205,6 +212,8 @@ export const removeMealAction = withResultErrorHandling(
     if (!data) {
       return error;
     }
+
+    await requireAdminForUser(data.userId);
 
     const found = await findOwnedMeal(data.userId, data.mealId);
 
@@ -254,6 +263,8 @@ export const renameMealAction = withResultErrorHandling(
       return error;
     }
 
+    await requireAdminForUser(data.userId);
+
     const found = await findOwnedMeal(data.userId, data.mealId);
 
     if (!found) {
@@ -280,6 +291,8 @@ export const reorderMealsAction = withResultErrorHandling(
     if (!data) {
       return error;
     }
+
+    await requireAdminForUser(data.userId);
 
     const day = await findOwnedDay(data.userId, data.dayId);
 
@@ -323,6 +336,8 @@ export const setMealSharesAction = withResultErrorHandling(
     if (!data) {
       return error;
     }
+
+    await requireAdminForUser(data.userId);
 
     const day = await findOwnedDay(data.userId, data.dayId);
 
@@ -384,6 +399,8 @@ export const addItemAction = withResultErrorHandling(
       return error;
     }
 
+    await requireAdminForUser(data.userId);
+
     const found = await findOwnedMeal(data.userId, data.mealId);
 
     if (!found) {
@@ -428,6 +445,8 @@ export const removeItemAction = withResultErrorHandling(
       return error;
     }
 
+    await requireAdminForUser(data.userId);
+
     const found = await findOwnedItem(data.userId, data.itemId);
 
     if (!found) {
@@ -450,6 +469,8 @@ export const updateItemGramsAction = withResultErrorHandling(
     if (!data) {
       return error;
     }
+
+    await requireAdminForUser(data.userId);
 
     const found = await findOwnedItem(data.userId, data.itemId);
 
@@ -479,6 +500,8 @@ export const autoSolveMealAction = withResultErrorHandling(
     if (!data) {
       return error;
     }
+
+    await requireAdminForUser(data.userId);
 
     const found = await findOwnedMeal(data.userId, data.mealId);
 
@@ -566,6 +589,8 @@ export const copyDayAction = withResultErrorHandling(
       return error;
     }
 
+    await requireAdminForUser(data.userId);
+
     const source = await findOwnedDay(data.userId, data.dayId);
 
     if (!source) {
@@ -640,6 +665,8 @@ export const getCopyMonthInfoAction = withResultErrorHandling(
       return error;
     }
 
+    await requireAdminForUser(data.userId);
+
     const [planDates, logDates] = await Promise.all([
       listDaysInRange(data.userId, data.from, data.to).then((days) =>
         days.map((day) => day.date),
@@ -663,6 +690,8 @@ export const applyLastWeekAction = withResultErrorHandling(
     if (!data) {
       return error;
     }
+
+    await requireAdminForUser(data.userId);
 
     const member = await findUserById(data.userId);
 

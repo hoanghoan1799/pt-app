@@ -46,44 +46,68 @@ export const admins = sqliteTable("admins", {
   presenceHidden: integer("presence_hidden", { mode: "boolean" }).default(
     false,
   ),
+  // Social roles (P1): null = super_admin, so every admin that existed before
+  // roles keeps full rights. Nullable on purpose, see passcodeFailedCount.
+  role: text("role", { enum: ["super_admin", "pt"] }),
+  // Blue tick (P1): set by the super admin; null = not verified.
+  verifiedAt: integer("verified_at", { mode: "timestamp" }),
+  // Profile bio (P2), up to 150 characters; null = none.
+  bio: text("bio"),
   createdAt: createdAt(),
 });
 
-export const users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  name: text("name").notNull(),
-  // Lower-cased, whitespace-collapsed name used for login lookups.
-  nameKey: text("name_key").notNull().unique(),
-  // The trainee's meal plan request (KAN-69, Q1): meals per day (2-6) and
-  // foods they like or avoid. Null = no request.
-  preferredMealCount: integer("preferred_meal_count"),
-  foodNote: text("food_note"),
-  // Email + password login (KAN-82). All nullable so trainees created before
-  // it stay valid until the admin sets their login.
-  email: text("email"),
-  // Trimmed, lower-cased email used for login lookups; unique when set.
-  emailKey: text("email_key").unique(),
-  // scrypt hash, see services/password.ts.
-  passwordHash: text("password_hash"),
-  // Sessions issued before this moment are rejected (whole seconds).
-  passwordChangedAt: integer("password_changed_at", { mode: "timestamp" }),
-  // Realtime chat permission (KAN-97, S1). Null or false = locked; only the
-  // admin switch sets it. Audit: who changed it and when (admins.id, not
-  // enforced, D10).
-  chatEnabled: integer("chat_enabled", { mode: "boolean" }),
-  chatEnabledChangedAt: integer("chat_enabled_changed_at", {
-    mode: "timestamp",
-  }),
-  chatEnabledByAdminId: integer("chat_enabled_by_admin_id"),
-  // Presence heartbeat (KAN-128), see admins.lastSeenAt.
-  lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
-  // Chat bubble colour (KAN-141), see admins.chatColor.
-  chatColor: text("chat_color"),
-  // Profile photo (KAN-157), see admins.avatar.
-  avatar: text("avatar"),
-  avatarUpdatedAt: integer("avatar_updated_at", { mode: "timestamp" }),
-  createdAt: createdAt(),
-});
+export const users = sqliteTable(
+  "users",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    name: text("name").notNull(),
+    // Lower-cased, whitespace-collapsed name used for login lookups.
+    nameKey: text("name_key").notNull().unique(),
+    // The trainee's meal plan request (KAN-69, Q1): meals per day (2-6) and
+    // foods they like or avoid. Null = no request.
+    preferredMealCount: integer("preferred_meal_count"),
+    foodNote: text("food_note"),
+    // Email + password login (KAN-82). All nullable so trainees created before
+    // it stay valid until the admin sets their login.
+    email: text("email"),
+    // Trimmed, lower-cased email used for login lookups; unique when set.
+    emailKey: text("email_key").unique(),
+    // scrypt hash, see services/password.ts.
+    passwordHash: text("password_hash"),
+    // Sessions issued before this moment are rejected (whole seconds).
+    passwordChangedAt: integer("password_changed_at", { mode: "timestamp" }),
+    // Realtime chat permission (KAN-97, S1). Null or false = locked; only the
+    // admin switch sets it. Audit: who changed it and when (admins.id, not
+    // enforced, D10).
+    chatEnabled: integer("chat_enabled", { mode: "boolean" }),
+    chatEnabledChangedAt: integer("chat_enabled_changed_at", {
+      mode: "timestamp",
+    }),
+    chatEnabledByAdminId: integer("chat_enabled_by_admin_id"),
+    // Presence heartbeat (KAN-128), see admins.lastSeenAt.
+    lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
+    // Chat bubble colour (KAN-141), see admins.chatColor.
+    chatColor: text("chat_color"),
+    // Profile photo (KAN-157), see admins.avatar.
+    avatar: text("avatar"),
+    avatarUpdatedAt: integer("avatar_updated_at", { mode: "timestamp" }),
+    // PT workspace (P1): the PT admin responsible for this trainee (admins.id,
+    // not enforced). Null = only super admins manage the trainee.
+    ptAdminId: integer("pt_admin_id"),
+    // Social profile (P2). All nullable: columns added to existing tables must
+    // not be NOT NULL. Bio up to 150 characters.
+    bio: text("bio"),
+    // Version of the terms the trainee accepted and when; null = never.
+    termsVersion: integer("terms_version"),
+    termsAcceptedAt: integer("terms_accepted_at", { mode: "timestamp" }),
+    // The privacy the composer starts with (the last one chosen); null = friends.
+    postPrivacyDefault: text("post_privacy_default", {
+      enum: ["everyone", "friends", "only_me"],
+    }),
+    createdAt: createdAt(),
+  },
+  (table) => [index("users_pt_admin").on(table.ptAdminId)],
+);
 
 // Failed-login counters shared by all serverless instances (KAN-82, D9).
 // Key: "user:<email_key>" or "admin:<username_key>".
@@ -680,3 +704,239 @@ export const rateLimits = sqliteTable("rate_limits", {
     mode: "timestamp_ms",
   }).notNull(),
 });
+
+// Social posts (P2). The author is a trainee or an admin (author_kind +
+// author_id, not enforced). Deleting sets deleted_at and drops the photo.
+export const socialPosts = sqliteTable(
+  "social_posts",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    authorKind: text("author_kind", { enum: ["user", "admin"] }).notNull(),
+    authorId: integer("author_id").notNull(),
+    caption: text("caption"),
+    privacy: text("privacy", {
+      enum: ["everyone", "friends", "only_me"],
+    }).notNull(),
+    photoId: integer("photo_id"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    index("social_posts_author").on(
+      table.authorKind,
+      table.authorId,
+      table.createdAt,
+    ),
+  ],
+);
+
+// One photo per post, stored like chat_photos. post_id null = uploaded but not
+// posted yet (dropped after a day).
+export const socialPostPhotos = sqliteTable(
+  "social_post_photos",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    // "user:<id>" or "admin:<id>".
+    uploaderKey: text("uploader_key").notNull(),
+    postId: integer("post_id"),
+    mime: text("mime", {
+      enum: ["image/webp", "image/jpeg", "image/png"],
+    }).notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    data: blob("data", { mode: "buffer" }).notNull(),
+    size: integer("size").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("social_post_photos_post").on(table.postId)],
+);
+
+// One reaction per person per post (P3). reactor_key is "user:<id>" or
+// "admin:<id>".
+export const socialReactions = sqliteTable(
+  "social_reactions",
+  {
+    postId: integer("post_id").notNull(),
+    reactorKey: text("reactor_key").notNull(),
+    emoji: text("emoji").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.postId, table.reactorKey] })],
+);
+
+// Flat, text-only comments (P3). Deleting sets deleted_at and empties body.
+export const socialComments = sqliteTable(
+  "social_comments",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    postId: integer("post_id").notNull(),
+    authorKey: text("author_key").notNull(),
+    body: text("body").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [index("social_comments_post").on(table.postId, table.createdAt)],
+);
+
+// What the notifications page lists (P3). pushed_at is when a push for this
+// row went out; it throttles reaction pushes to one per post per hour.
+export const socialNotifications = sqliteTable(
+  "social_notifications",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    recipientKey: text("recipient_key").notNull(),
+    kind: text("kind", {
+      enum: [
+        "friend_request",
+        "friend_accepted",
+        "post_reaction",
+        "post_comment",
+      ],
+    }).notNull(),
+    actorKey: text("actor_key").notNull(),
+    postId: integer("post_id"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    readAt: integer("read_at", { mode: "timestamp_ms" }),
+    pushedAt: integer("pushed_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    index("social_notifications_recipient").on(
+      table.recipientKey,
+      table.createdAt,
+    ),
+  ],
+);
+
+// Friendships between two trainees (P4). One row per pair: user_low < user_high.
+// requested_by is the one who sent the request; accepted_at is null while
+// pending. Declining, cancelling and unfriending delete the row.
+export const socialFriendships = sqliteTable(
+  "social_friendships",
+  {
+    userLow: integer("user_low").notNull(),
+    userHigh: integer("user_high").notNull(),
+    status: text("status", { enum: ["pending", "accepted"] }).notNull(),
+    requestedBy: integer("requested_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    acceptedAt: integer("accepted_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userLow, table.userHigh] }),
+    index("social_friendships_high").on(table.userHigh),
+  ],
+);
+
+// blocker_id blocked blocked_id (trainees, P4).
+export const socialBlocks = sqliteTable(
+  "social_blocks",
+  {
+    blockerId: integer("blocker_id").notNull(),
+    blockedId: integer("blocked_id").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.blockerId, table.blockedId] }),
+    index("social_blocks_blocked").on(table.blockedId),
+  ],
+);
+
+// Reports on a post, comment or user (P4). reporter_key is "user:<id>" or
+// "admin:<id>"; target_id is the id of the post, comment or trainee.
+export const socialReports = sqliteTable(
+  "social_reports",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    reporterKey: text("reporter_key").notNull(),
+    targetKind: text("target_kind", {
+      enum: ["post", "comment", "user"],
+    }).notNull(),
+    targetId: integer("target_id").notNull(),
+    reason: text("reason").notNull().default(""),
+    status: text("status", { enum: ["open", "resolved"] }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    resolvedBy: integer("resolved_by"),
+    resolvedAt: integer("resolved_at", { mode: "timestamp_ms" }),
+    resolution: text("resolution", { enum: ["kept", "deleted"] }),
+  },
+  (table) => [index("social_reports_status").on(table.status, table.createdAt)],
+);
+
+// Trainee-to-trainee chat (P5). One conversation per pair (user_low <
+// user_high, same ordering as social_friendships). No foreign keys, member
+// delete removes these by hand.
+export const dmConversations = sqliteTable(
+  "dm_conversations",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userLow: integer("user_low").notNull(),
+    userHigh: integer("user_high").notNull(),
+    // Denormalised for the inbox sort and preview.
+    lastMessageId: integer("last_message_id"),
+    lastMessageAt: integer("last_message_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("dm_conversations_pair").on(table.userLow, table.userHigh),
+    index("dm_conversations_high").on(table.userHigh),
+  ],
+);
+
+// Text and/or one photo. Unsend soft-deletes (deletedAt) and drops the text
+// and the photo bytes.
+export const dmMessages = sqliteTable(
+  "dm_messages",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    conversationId: integer("conversation_id").notNull(),
+    senderId: integer("sender_id").notNull(),
+    body: text("body"),
+    photoId: integer("photo_id"),
+    // Client-generated uuid so a retried send is a no-op.
+    clientId: text("client_id").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    uniqueIndex("dm_messages_conversation_client").on(
+      table.conversationId,
+      table.clientId,
+    ),
+    index("dm_messages_conversation_id").on(table.conversationId, table.id),
+  ],
+);
+
+// Like chat_photos: pending (messageId null) from the upload until a message
+// carries it.
+export const dmPhotos = sqliteTable(
+  "dm_photos",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    conversationId: integer("conversation_id").notNull(),
+    messageId: integer("message_id"),
+    uploaderId: integer("uploader_id").notNull(),
+    mime: text("mime", {
+      enum: ["image/webp", "image/jpeg", "image/png"],
+    }).notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    data: blob("data", { mode: "buffer" }).notNull(),
+    size: integer("size").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("dm_photos_message").on(table.messageId),
+    index("dm_photos_conversation").on(table.conversationId),
+  ],
+);
+
+export const dmReads = sqliteTable(
+  "dm_reads",
+  {
+    conversationId: integer("conversation_id").notNull(),
+    userId: integer("user_id").notNull(),
+    lastReadMessageId: integer("last_read_message_id").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.conversationId, table.userId] })],
+);

@@ -1,69 +1,110 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import Link from "next/link";
 
+import { Avatar } from "@/components/common/Avatar";
+import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
-import { listAdminAvatarUrls } from "@/features/avatar/services/avatar";
-import { TraineeChatThread } from "@/features/chat/components/TraineeChatThread";
-import { isChatEnabled } from "@/features/chat/services/chat-permission";
-import {
-  findConversationByUserId,
-  findLatestAdminSenderName,
-  getOrCreateConversation,
-  listMessagesAround,
-} from "@/features/chat/services/chat-queries";
-import { loadTraineeThread } from "@/features/chat/services/chat-thread";
-import { parseJumpId } from "@/features/chat/utils/chat-links";
-import { serializeMessage } from "@/features/chat/utils/chat-thread-rules";
+import { CARD, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
+import { TIME_ZONE } from "@/constants/time";
+import { countUnreadForUser } from "@/features/chat/services/chat-queries";
+import { DmInboxRefresh } from "@/features/social/components/DmInboxRefresh";
+import { DM_COACH_TITLE, DM_MESSAGES } from "@/features/social/constants/dm";
+import { listDmInbox } from "@/features/social/services/dm-queries";
+import { hasAcceptedTerms } from "@/features/social/services/terms";
+import { dmPath } from "@/features/social/utils/dm-rules";
 import { requireUser } from "@/services/auth-guard";
+import { formatRelativeTime } from "@/utils/time";
 
 export const metadata: Metadata = { title: "Nhắn tin" };
 
-const MessagesPage = async ({ searchParams }: PageProps<"/messages">) => {
+const ROW = `${CARD} flex items-center gap-3 p-3 active:bg-line/60`;
+
+const UnreadDot = () => (
+  <span
+    role="status"
+    aria-label="Có tin nhắn chưa đọc"
+    className="size-3 shrink-0 rounded-full bg-danger"
+  />
+);
+
+// The Messages tab: the coach chat first (unchanged, under /messages/coach),
+// then the chats with friends, newest first.
+const MessagesInboxPage = async () => {
   const user = await requireUser();
-  const chatEnabled = isChatEnabled(user);
-  const existing = await findConversationByUserId(user.id);
-
-  // Chat off: the thread opens read-only (old messages, if any, and the
-  // locked banner); no conversation is created for it.
-  // The realtime token is scoped to the conversation, so make sure it exists.
-  const conversation =
-    existing ?? (chatEnabled ? await getOrCreateConversation(user.id) : null);
-  const result = await loadTraineeThread(user, {}, {});
-
-  if (result.notModified) {
-    // Unreachable without `after`; keeps the type honest.
-    redirect(ROUTES.WORKOUTS);
-  }
-  const { payload } = result;
-  // `?m=<id>`: open at that message (from the gallery or a search result).
-  const jumpId = parseJumpId((await searchParams).m);
-  const around =
-    jumpId !== null && existing
-      ? await listMessagesAround(existing.id, jumpId)
-      : null;
-  const adminAvatars = await listAdminAvatarUrls();
-  const peerName = existing
-    ? await findLatestAdminSenderName(existing.id)
-    : null;
+  const [coachUnread, chats] = await Promise.all([
+    countUnreadForUser(user.id),
+    hasAcceptedTerms(user) ? listDmInbox(user.id) : [],
+  ]);
 
   return (
-    <TraineeChatThread
-      initialPeerName={peerName}
-      userId={user.id}
-      avatars={Object.fromEntries(
-        [...adminAvatars].map(([id, url]) => [`admin:${id}`, url]),
-      )}
-      conversationId={conversation?.id ?? null}
-      jumpToId={around ? jumpId : null}
-      initial={{
-        ...payload,
-        messages: (around?.messages ?? payload.messages).map(serializeMessage),
-        hasMore: around?.hasMore ?? payload.hasMore,
-        // Without `changedSince` the payload has no changes to carry.
-        changes: [],
-      }}
-    />
+    <>
+      <AppHeader title={DM_MESSAGES.INBOX_TITLE} />
+      <DmInboxRefresh />
+      <main
+        className={`${PAGE_CONTAINER} space-y-3 pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]`}
+      >
+        <ul className="space-y-2">
+          <li>
+            <Link href={ROUTES.MESSAGES_COACH} className={ROW}>
+              <Avatar name="PT" className="size-12 shrink-0 text-base" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-semibold text-fg">
+                  {DM_COACH_TITLE}
+                </span>
+                <span className="block truncate text-sm text-muted">
+                  Trao đổi với PT của bạn
+                </span>
+              </span>
+              {coachUnread > 0 && <UnreadDot />}
+            </Link>
+          </li>
+        </ul>
+        <h2 className={SECTION_TITLE}>Bạn bè</h2>
+        {chats.length === 0 ? (
+          <p className={`${CARD} p-6 text-center text-muted`}>
+            {DM_MESSAGES.EMPTY_INBOX}
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {chats.map((chat) => (
+              <li key={chat.conversationId}>
+                <Link href={dmPath(chat.conversationId)} className={ROW}>
+                  <Avatar
+                    name={chat.name}
+                    src={chat.avatarUrl}
+                    className="size-12 shrink-0 text-base"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span
+                        className={`truncate ${chat.unread > 0 ? "font-bold" : "font-semibold"} text-fg`}
+                      >
+                        {chat.name}
+                      </span>
+                      {chat.lastMessageAt && (
+                        <span className="shrink-0 text-xs text-muted">
+                          {formatRelativeTime(
+                            new Date(chat.lastMessageAt).getTime(),
+                            TIME_ZONE,
+                          )}
+                        </span>
+                      )}
+                    </span>
+                    <span
+                      className={`block truncate text-sm ${chat.unread > 0 ? "font-semibold text-fg" : "text-muted"}`}
+                    >
+                      {chat.preview}
+                    </span>
+                  </span>
+                  {chat.unread > 0 && <UnreadDot />}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </main>
+    </>
   );
 };
 
-export default MessagesPage;
+export default MessagesInboxPage;
