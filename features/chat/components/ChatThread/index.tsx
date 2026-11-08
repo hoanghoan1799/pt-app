@@ -29,6 +29,7 @@ import { useChatAdapter } from "@/features/chat/hooks/use-chat-adapter";
 import type { ThreadSnapshot } from "@/features/chat/hooks/use-chat-messages";
 import { useChatMessages } from "@/features/chat/hooks/use-chat-messages";
 import { useChatTransport } from "@/features/chat/hooks/use-chat-transport";
+import { useNeutralChatColors } from "@/features/chat/hooks/use-neutral-chat-colors";
 import { usePeerPresence } from "@/features/chat/hooks/use-peer-presence";
 import {
   adminLabel,
@@ -184,6 +185,8 @@ export const ChatThread = ({
   avatars = NO_AVATARS,
 }: ChatThreadProps) => {
   const isAdmin = viewer.role === "admin";
+  // Admin-only and per device; trainee views never read the stored value.
+  const [neutralColors] = useNeutralChatColors(isAdmin);
   const [isVisible, setIsVisible] = useState(true);
   const adapter = useChatAdapter(viewer, userId, conversationId);
   const chat = useChatMessages({ adapter, initial, isViewing: isVisible });
@@ -653,6 +656,7 @@ export const ChatThread = ({
                       }
                       onOpenHistory={(message) => openSheet("history", message)}
                       onJumpToReply={jumpToMessage}
+                      isNeutral={isAdmin && neutralColors}
                       color={bubbleColorFor(
                         item.message,
                         item.mine,

@@ -11,6 +11,7 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
 import { ChatCustomizePanel } from "@/features/chat/components/ChatCustomizePanel";
 import { HideConversationButton } from "@/features/chat/components/HideConversationButton";
+import { NeutralColorsSwitch } from "@/features/chat/components/NeutralColorsSwitch";
 import { PresenceStatus } from "@/features/chat/components/PresenceStatus";
 import { usePeerPresence } from "@/features/chat/hooks/use-peer-presence";
 import type { ChatPaths } from "@/features/chat/utils/chat-links";
@@ -202,6 +203,15 @@ export const ChatInfo = ({
             </span>
           </Link>
         </section>
+
+        {isAdmin && (
+          <section aria-labelledby="chat-info-display" className="space-y-3">
+            <h2 id="chat-info-display" className={SECTION_TITLE}>
+              Hiển thị
+            </h2>
+            <NeutralColorsSwitch />
+          </section>
+        )}
 
         {isAdmin && (
           <section aria-labelledby="chat-info-actions" className="space-y-3">

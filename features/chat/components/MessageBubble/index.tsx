@@ -68,6 +68,9 @@ interface MessageBubbleProps {
   // The sender's palette colour (white text, AA on every entry); null keeps
   // the neutral surface style (KAN-142).
   color?: ChatColorKey | null;
+  // Admin's "neutral colours" switch: ignore `color`, and draw my bubbles in
+  // the neutral dark style instead of the accent.
+  isNeutral?: boolean;
 }
 
 // One chat bubble: mine right in the accent colour, the other side left. Spacing is
@@ -85,10 +88,12 @@ export const MessageBubble = ({
   onOpenReactors,
   onOpenHistory,
   onJumpToReply,
-  color = null,
+  color: pickedColor = null,
+  isNeutral = false,
   nicknames,
   avatarSrc = null,
 }: MessageBubbleProps) => {
+  const color = isNeutral ? null : pickedColor;
   const {
     message,
     mine,
@@ -120,6 +125,9 @@ export const MessageBubble = ({
   });
   const groups = isUnsent ? [] : groupReactions(message.reactions, viewer);
   const { replyTo } = message;
+  const mineBubble = isNeutral
+    ? "bg-bubble-neutral text-bubble-neutral-fg"
+    : "bg-accent text-accent-fg";
   const sideMargin = mine ? "mr-1" : "ml-9";
   const isColored =
     color !== null && !isUnsent && !isSticker && !(mine && isFailed);
@@ -188,13 +196,13 @@ export const MessageBubble = ({
                       isColored
                         ? ""
                         : mine
-                          ? "bg-accent text-accent-fg"
+                          ? mineBubble
                           : "border border-line bg-surface text-fg",
                     )
                   : isColored
                     ? "px-3.5 py-2"
                     : mine
-                      ? "bg-accent px-3.5 py-2 text-accent-fg"
+                      ? clsx(mineBubble, "px-3.5 py-2")
                       : "border border-line bg-surface px-3.5 py-2 text-fg",
             mine && !isUnsent && isSending && "opacity-70",
             mine && !isUnsent && isFailed && "bg-danger text-white",
