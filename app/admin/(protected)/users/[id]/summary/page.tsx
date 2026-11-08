@@ -7,6 +7,7 @@ import { WeekSummary } from "@/components/layout/WeekSummary";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
+import { getTraineeDisplayName } from "@/features/chat/services/chat-queries";
 import { ExerciseProgressList } from "@/features/members/components/ExerciseProgressList";
 import { getExerciseProgress } from "@/features/members/services/progress-queries";
 import { WEIGHT_CHART_WEEKS } from "@/features/nutrition/constants/weight";
@@ -41,6 +42,7 @@ const AdminSummaryPage = async ({
   if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
     notFound();
   }
+  const displayName = await getTraineeDisplayName(user);
 
   const query = await searchParams;
   const today = getTodayDate(TIME_ZONE);
@@ -61,7 +63,7 @@ const AdminSummaryPage = async ({
     <>
       <AppHeader
         eyebrow="Tổng kết của"
-        title={user.name}
+        title={displayName}
         backHref={`${ROUTES.ADMIN}?${new URLSearchParams({ week: schedule.weekStart })}`}
       />
       <MemberSectionTabs

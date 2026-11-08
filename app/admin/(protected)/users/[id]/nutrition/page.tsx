@@ -6,6 +6,7 @@ import { MemberSectionTabs } from "@/components/layout/MemberSectionTabs";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
+import { getTraineeDisplayName } from "@/features/chat/services/chat-queries";
 import { MealPlanDay } from "@/features/meal-plans/components/MealPlanDay";
 import { PlanKcalNotices } from "@/features/meal-plans/components/PlanKcalNotices";
 import {
@@ -49,6 +50,7 @@ const AdminNutritionPage = async ({
   if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
     notFound();
   }
+  const displayName = await getTraineeDisplayName(user);
 
   const query = await searchParams;
   const today = getTodayDate(TIME_ZONE);
@@ -98,7 +100,7 @@ const AdminNutritionPage = async ({
     <>
       <AppHeader
         eyebrow="Dinh dưỡng của"
-        title={user.name}
+        title={displayName}
         backHref={`${ROUTES.ADMIN}?${new URLSearchParams({ week: schedule.weekStart })}`}
       />
       <MemberSectionTabs

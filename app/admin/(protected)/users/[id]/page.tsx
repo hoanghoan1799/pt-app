@@ -8,6 +8,7 @@ import { MemberSectionTabs } from "@/components/layout/MemberSectionTabs";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
+import { getTraineeDisplayName } from "@/features/chat/services/chat-queries";
 import { RecentActivityList } from "@/features/dashboard/components/RecentActivityList";
 import { MEMBER_ACTIVITY_LIMIT } from "@/features/dashboard/constants/dashboard";
 import { getRecentActivity } from "@/features/dashboard/services/dashboard-queries";
@@ -45,6 +46,7 @@ const AdminUserPage = async ({
   if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
     notFound();
   }
+  const displayName = await getTraineeDisplayName(user);
 
   const query = await searchParams;
   const today = getTodayDate(TIME_ZONE);
@@ -63,7 +65,7 @@ const AdminUserPage = async ({
     <>
       <AppHeader
         eyebrow="Lịch tập của"
-        title={user.name}
+        title={displayName}
         backHref={`${ROUTES.ADMIN}?${new URLSearchParams({ week: schedule.weekStart })}`}
         actions={
           <Link

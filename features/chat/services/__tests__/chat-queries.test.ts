@@ -319,3 +319,26 @@ describe("listAdminInbox", () => {
     });
   });
 });
+
+describe("getTraineeDisplayName", () => {
+  it("returns the trainee nickname when an admin set one, else the real name", async () => {
+    const anId = await addUser("An");
+    const binhId = await addUser("Bình");
+    const an = await q.getOrCreateConversation(anId);
+
+    await db.insert(chatNicknames).values({
+      conversationId: an.id,
+      targetKey: "user",
+      nickname: "Bé Na",
+      setByKey: "admin:1",
+      updatedAt: new Date(),
+    });
+
+    expect(await q.getTraineeDisplayName({ id: anId, name: "An" })).toBe(
+      "Bé Na",
+    );
+    expect(await q.getTraineeDisplayName({ id: binhId, name: "Bình" })).toBe(
+      "Bình",
+    );
+  });
+});
