@@ -17,11 +17,13 @@ export type CreateMemberWithLoginResult =
 
 // Used by the admin create-member action (PR 2, KAN-84): validates name and
 // email, refuses duplicates, inserts the trainee with a random password and
-// returns that password once. Callers must run requireAdmin() first; the
+// returns that password once. `ptAdminId` is the PT workspace (already
+// resolved by the caller). Callers must run requireAdmin() first; the
 // plain password is never stored or logged.
 export const createMemberWithLogin = async (
   rawName: string,
   rawEmail: string,
+  ptAdminId: number | null = null,
 ): Promise<CreateMemberWithLoginResult> => {
   const name = normalizeName(rawName);
 
@@ -76,6 +78,7 @@ export const createMemberWithLogin = async (
       name,
       nameKey: toNameKey(name),
       email,
+      ptAdminId,
       emailKey: toEmailKey(email),
       passwordHash: await hashPassword(password),
       // Whole seconds, so it compares cleanly with a session's `iat`.

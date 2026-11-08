@@ -7,6 +7,9 @@ export interface MemberProgress {
   displayName: string;
   // Versioned /api/avatar URL; null = no photo.
   avatarUrl: string | null;
+  // The PT responsible for this trainee (users.pt_admin_id); null = none.
+  ptAdminId: number | null;
+  ptName: string | null;
   // Exercises scheduled in the week, and how many of those are done.
   assigned: number;
   completed: number;
