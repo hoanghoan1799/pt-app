@@ -783,6 +783,17 @@ export const listTraineeNicknames = async (
   return new Map(rows.map((row) => [row.userId, row.nickname]));
 };
 
+// The name admin pages show for one trainee: the chat nickname if an admin
+// set one, else the real name (same rule as the inbox and dashboard).
+export const getTraineeDisplayName = async (user: {
+  id: number;
+  name: string;
+}) =>
+  resolveDisplayName(
+    (await listTraineeNicknames([user.id])).get(user.id),
+    user.name,
+  );
+
 export interface InboxItem {
   conversationId: number;
   userId: number;
