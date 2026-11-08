@@ -51,6 +51,8 @@ export const admins = sqliteTable("admins", {
   role: text("role", { enum: ["super_admin", "pt"] }),
   // Blue tick (P1): set by the super admin; null = not verified.
   verifiedAt: integer("verified_at", { mode: "timestamp" }),
+  // Profile bio (P2), up to 150 characters; null = none.
+  bio: text("bio"),
   createdAt: createdAt(),
 });
 
@@ -92,6 +94,16 @@ export const users = sqliteTable(
     // PT workspace (P1): the PT admin responsible for this trainee (admins.id,
     // not enforced). Null = only super admins manage the trainee.
     ptAdminId: integer("pt_admin_id"),
+    // Social profile (P2). All nullable: columns added to existing tables must
+    // not be NOT NULL. Bio up to 150 characters.
+    bio: text("bio"),
+    // Version of the terms the trainee accepted and when; null = never.
+    termsVersion: integer("terms_version"),
+    termsAcceptedAt: integer("terms_accepted_at", { mode: "timestamp" }),
+    // The privacy the composer starts with (the last one chosen); null = friends.
+    postPrivacyDefault: text("post_privacy_default", {
+      enum: ["everyone", "friends", "only_me"],
+    }),
     createdAt: createdAt(),
   },
   (table) => [index("users_pt_admin").on(table.ptAdminId)],
@@ -692,3 +704,50 @@ export const rateLimits = sqliteTable("rate_limits", {
     mode: "timestamp_ms",
   }).notNull(),
 });
+
+// Social posts (P2). The author is a trainee or an admin (author_kind +
+// author_id, not enforced). Deleting sets deleted_at and drops the photo.
+export const socialPosts = sqliteTable(
+  "social_posts",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    authorKind: text("author_kind", { enum: ["user", "admin"] }).notNull(),
+    authorId: integer("author_id").notNull(),
+    caption: text("caption"),
+    privacy: text("privacy", {
+      enum: ["everyone", "friends", "only_me"],
+    }).notNull(),
+    photoId: integer("photo_id"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    index("social_posts_author").on(
+      table.authorKind,
+      table.authorId,
+      table.createdAt,
+    ),
+  ],
+);
+
+// One photo per post, stored like chat_photos. post_id null = uploaded but not
+// posted yet (dropped after a day).
+export const socialPostPhotos = sqliteTable(
+  "social_post_photos",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    // "user:<id>" or "admin:<id>".
+    uploaderKey: text("uploader_key").notNull(),
+    postId: integer("post_id"),
+    mime: text("mime", {
+      enum: ["image/webp", "image/jpeg", "image/png"],
+    }).notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    data: blob("data", { mode: "buffer" }).notNull(),
+    size: integer("size").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("social_post_photos_post").on(table.postId)],
+);

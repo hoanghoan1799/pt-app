@@ -33,6 +33,7 @@ import {
 import { userOwnerKey } from "@/features/chat/utils/push-rules";
 import { deleteDays } from "@/features/meal-plans/services/meal-plan-store";
 import { createMemberWithLogin } from "@/features/members/services/create-member-with-login";
+import { deleteSocialContentOfUser } from "@/features/social/services/post-cleanup";
 import {
   withFormErrorHandling,
   withResultErrorHandling,
@@ -158,6 +159,7 @@ export const deleteMemberAction = withResultErrorHandling(
         await tx.delete(exercises).where(inArray(exercises.dayId, dayIds));
         await tx.delete(workoutDays).where(inArray(workoutDays.id, dayIds));
       }
+      await deleteSocialContentOfUser(tx, id);
       await tx.delete(users).where(eq(users.id, id));
     });
 

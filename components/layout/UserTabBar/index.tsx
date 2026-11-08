@@ -6,6 +6,7 @@ import {
   Dumbbell,
   type LucideIcon,
   MessageCircle,
+  Newspaper,
   Utensils,
 } from "lucide-react";
 import Link from "next/link";
@@ -22,6 +23,12 @@ const TABS: {
   // Other pages that belong to the tab, e.g. the food library under nutrition.
   alsoActiveOn?: string;
 }[] = [
+  {
+    href: ROUTES.FEED,
+    label: "Bảng tin",
+    icon: Newspaper,
+    alsoActiveOn: ROUTES.PROFILE,
+  },
   { href: ROUTES.WORKOUTS, label: "Lịch tập", icon: Dumbbell },
   {
     href: ROUTES.NUTRITION,
@@ -57,7 +64,7 @@ export const UserTabBar = () => {
       <ul
         className={clsx(
           "pointer-events-auto mx-auto grid max-w-md gap-1 rounded-[1.75rem] border border-line bg-surface/90 p-1.5 shadow-[0_10px_30px_-8px_rgb(0_0_0/0.35)] backdrop-blur-xl",
-          "grid-cols-4",
+          "grid-cols-5",
         )}
       >
         {TABS.map(({ href, label, icon: Icon, alsoActiveOn }) => {
