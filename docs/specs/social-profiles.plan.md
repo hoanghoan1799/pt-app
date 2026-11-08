@@ -59,3 +59,5 @@ One PR per phase into `stag` (branch from `origin/stag`), self-merged when the `
 ## Deviations
 
 (updated per phase)
+
+- P2: profile route is `/profile/[kind]/[id]` (not `/u/...`), admin side `/admin/social/profile/[kind]/[id]`. A PT sees all posts (any privacy) of their own trainees; staff see each other's non-private admin posts. Deleted posts are soft-deleted (photo bytes dropped); member delete removes posts hard. Post photo cache is `private, max-age=3600` (not immutable) because visibility can change.

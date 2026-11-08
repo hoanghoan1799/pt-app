@@ -1,4 +1,4 @@
-import { MessageCircle, UserCog, Utensils } from "lucide-react";
+import { MessageCircle, Newspaper, UserCog, Utensils } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -139,6 +139,10 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
                 </Link>
               </>
             )}
+            <Link href={ROUTES.ADMIN_SOCIAL} className={TILE}>
+              <Newspaper className="size-6 text-accent" aria-hidden />
+              <span>Mạng xã hội</span>
+            </Link>
             <Link href={ROUTES.ADMIN_MESSAGES} className={`${TILE} relative`}>
               <MessageCircle className="size-6 text-accent" aria-hidden />
               <span>Tin nhắn</span>
