@@ -12,6 +12,10 @@ import {
   traineeCapability,
   traineeClientId,
 } from "@/features/chat/utils/ably-capabilities";
+import {
+  isSuperAdmin,
+  listConversationIdsInScope,
+} from "@/services/admin-scope";
 import { getApiAdmin, getApiUser } from "@/services/auth-guard";
 import { logServerError } from "@/services/logger";
 
@@ -38,7 +42,11 @@ export const GET = async (request: NextRequest) => {
       }
       const tokenRequest = await createChatTokenRequest({
         clientId: adminClientId(admin.id),
-        capability: adminCapability(),
+        capability: adminCapability(
+          isSuperAdmin(admin)
+            ? undefined
+            : await listConversationIdsInScope(admin.id),
+        ),
       });
 
       return tokenRequest

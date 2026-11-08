@@ -13,6 +13,7 @@ import {
   listTraineeNicknames,
 } from "@/features/chat/services/chat-queries";
 import { resolveDisplayName } from "@/features/chat/utils/display-name";
+import { adminScopeFilter } from "@/services/admin-scope";
 import { findAdminSecrets } from "@/services/admins";
 import { isUserHidden } from "@/services/hidden-users";
 import {
@@ -82,7 +83,7 @@ export const hideUsers = async (
       : await db
           .select({ id: users.id })
           .from(users)
-          .where(inArray(users.id, ids));
+          .where(and(inArray(users.id, ids), adminScopeFilter(adminId)));
 
   if (existing.length > 0) {
     await db

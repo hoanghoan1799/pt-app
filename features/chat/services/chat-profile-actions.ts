@@ -19,6 +19,7 @@ import {
   USER_READER_KEY,
 } from "@/features/chat/utils/chat-rules";
 import { withResultErrorHandling } from "@/services/action-errors";
+import { requireAdminForUser } from "@/services/admin-access";
 import { requireAdmin, requireUser } from "@/services/auth-guard";
 import { findUserById } from "@/services/users";
 
@@ -63,6 +64,7 @@ const withAdminConversation = async <T>(
   if (!conversation || !trainee) {
     return fail(CHAT_MESSAGES.CONVERSATION_NOT_FOUND);
   }
+  await requireAdminForUser(trainee.id);
   if (!isChatEnabled(trainee)) {
     return fail(CHAT_MESSAGES.CHAT_LOCKED);
   }

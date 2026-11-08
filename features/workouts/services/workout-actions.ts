@@ -26,6 +26,7 @@ import {
   withFormErrorHandling,
   withResultErrorHandling,
 } from "@/services/action-errors";
+import { requireAdminForUser } from "@/services/admin-access";
 import { requireAdmin } from "@/services/auth-guard";
 import type { DeleteExerciseResult } from "@/types/error";
 import type { FormState } from "@/types/form";
@@ -108,6 +109,8 @@ export const saveDayAction = withFormErrorHandling(
 
     const { userId, date, title, note } = parsed.data;
 
+    await requireAdminForUser(userId);
+
     await db
       .insert(workoutDays)
       .values({ userId, date, title, note })
@@ -142,6 +145,9 @@ export const saveExerciseAction = withFormErrorHandling(
       confirmResetSets,
       ...fields
     } = parsed.data;
+
+    await requireAdminForUser(userId);
+
     const values = { ...fields, youtubeId: youtubeUrl };
 
     if (exerciseId) {
@@ -234,6 +240,8 @@ export const deleteExerciseAction = withResultErrorHandling(
       userId,
       confirmDeleteSets: options.confirmDeleteSets,
     });
+
+    await requireAdminForUser(ref.userId);
     const existing = await findExerciseForUser(ref.exerciseId, ref.userId);
 
     if (existing) {
@@ -278,6 +286,8 @@ export const moveExerciseAction = withResultErrorHandling(
     await requireAdmin();
 
     const ref = exerciseRefSchema.parse({ exerciseId, userId });
+
+    await requireAdminForUser(ref.userId);
     const existing = await findExerciseForUser(ref.exerciseId, ref.userId);
 
     if (!existing) {
@@ -326,6 +336,9 @@ export const copyWeekAction = withFormErrorHandling(
     }
 
     const { userId, fromWeek, targetUserId, targetDate } = parsed.data;
+
+    await requireAdminForUser(userId);
+    await requireAdminForUser(targetUserId);
     const sourceWeek = getWeekStart(fromWeek);
     const targetWeek = getWeekStart(targetDate);
 

@@ -45,6 +45,16 @@ export const outOfScopeConversationIdsOf = (adminId: number) =>
     .from(chatConversations)
     .where(inArray(chatConversations.userId, outOfScopeUserIdsOf(adminId)));
 
+// Ids of the conversations this admin may follow (a PT: own trainees).
+export const listConversationIdsInScope = async (adminId: number) => {
+  const rows = await db
+    .select({ id: chatConversations.id })
+    .from(chatConversations)
+    .where(adminScopeFilter(adminId, chatConversations.userId));
+
+  return rows.map((row) => row.id);
+};
+
 // Condition: `column` (a user id) belongs to a trainee this admin may see.
 export const adminScopeFilter = (
   adminId: number,

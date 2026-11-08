@@ -48,6 +48,14 @@ describe("capabilities", () => {
     });
   });
 
+  it("limits a PT to the listed conversations plus the inbox", () => {
+    expect(adminCapability([4, 9])).toEqual({
+      "chat:conversation:4": ["subscribe"],
+      "chat:conversation:9": ["subscribe"],
+      "chat:inbox": ["subscribe"],
+    });
+  });
+
   it("never grants publish, presence or history; all names start with chat:", () => {
     for (const capability of [traineeCapability(3, 5), adminCapability()]) {
       const json = JSON.stringify(capability);
