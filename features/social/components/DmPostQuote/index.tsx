@@ -4,13 +4,18 @@ import Link from "next/link";
 import { Avatar } from "@/components/common/Avatar";
 import { DM_MESSAGES } from "@/features/social/constants/dm";
 import type { DmReplyPostView } from "@/features/social/types/dm";
-import { postPath } from "@/features/social/utils/engagement-rules";
+import {
+  adminPostPath,
+  postPath,
+} from "@/features/social/utils/engagement-rules";
 
 interface DmPostQuoteProps {
   post: DmReplyPostView;
   // "bubble": an embedded mini post (full caption and photo) linking to the
   // post. "bar": the compact preview above the composer.
   variant?: "bubble" | "bar";
+  // Whose route the bubble opens: the post page of the trainee or admin app.
+  mode?: "user" | "admin";
   className?: string;
 }
 
@@ -19,6 +24,7 @@ interface DmPostQuoteProps {
 export const DmPostQuote = ({
   post,
   variant = "bubble",
+  mode = "user",
   className,
 }: DmPostQuoteProps) => {
   if (!post.available) {
@@ -64,7 +70,7 @@ export const DmPostQuote = ({
   }
   return (
     <Link
-      href={postPath(post.id)}
+      href={(mode === "admin" ? adminPostPath : postPath)(post.id)}
       aria-label={`Bài viết của ${post.authorName}`}
       className={clsx(
         "block space-y-2 overflow-hidden rounded-xl border border-line bg-surface p-2 text-left text-fg",

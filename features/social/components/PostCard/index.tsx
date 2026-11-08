@@ -25,6 +25,7 @@ import {
   TEXTAREA,
 } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
+import { replyPostHref } from "@/features/chat/utils/chat-links";
 import {
   PRIVACY_ICONS,
   PrivacySelect,
@@ -81,10 +82,17 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
   );
   // Everyone can report a post that is not their own.
   const canReport = !post.canEdit;
-  // Trainees reply to another trainee's post in their chat; the friendship is
-  // checked when the chat opens and the error is shown.
-  const canReplyInChat =
+  // Trainees reply to another trainee's post in their chat (the friendship is
+  // checked when the chat opens and the error is shown) and to a PT's post in
+  // the coach chat; a PT replies to a trainee's post in that trainee's chat.
+  // The chat page itself drops the post when it cannot be quoted (locked chat,
+  // post not visible).
+  const isFriendReply =
     mode === "user" && post.authorKind === "user" && !post.canEdit;
+  const canReplyInChat =
+    isFriendReply ||
+    (mode === "user" && post.authorKind === "admin" && !post.canEdit) ||
+    (mode === "admin" && post.authorKind === "user");
   const hasMenu = post.canEdit || post.canDelete || canReport;
 
   const report = (result: {
@@ -117,6 +125,14 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
   };
 
   const handleReplyInChat = () => {
+    if (!isFriendReply) {
+      router.push(
+        mode === "admin"
+          ? replyPostHref("admin", post.authorId, post.id)
+          : replyPostHref("user", 0, post.id),
+      );
+      return;
+    }
     startTransition(async () => {
       const result = await openDmAction(post.authorId);
 

@@ -11,11 +11,15 @@ import {
   getOrCreateConversation,
   listMessagesAround,
 } from "@/features/chat/services/chat-queries";
+import { loadCoachReplyPostFor } from "@/features/chat/services/chat-reply-post";
 import { loadTraineeThread } from "@/features/chat/services/chat-thread";
 import { parseJumpId } from "@/features/chat/utils/chat-links";
 import { serializeMessage } from "@/features/chat/utils/chat-thread-rules";
+import { actorOfUser } from "@/features/social/services/post-context";
+import { parseDmId } from "@/features/social/utils/dm-rules";
 import { listVerifiedAdminIds } from "@/services/admins";
 import { requireUser } from "@/services/auth-guard";
+import { readSearchParam } from "@/utils/search-params";
 
 export const metadata: Metadata = { title: "Nhắn tin" };
 
@@ -39,10 +43,18 @@ const CoachChatPage = async ({
   }
   const { payload } = result;
   // `?m=<id>`: open at that message (from the gallery or a search result).
-  const jumpId = parseJumpId((await searchParams).m);
+  const query = await searchParams;
+  const jumpId = parseJumpId(query.m);
+  // `?replyPost=<id>`: a PT's post quoted above the composer; only when the
+  // chat is open for writing and the viewer may quote that post.
+  const replyPostId = parseDmId(readSearchParam(query.replyPost) ?? "");
+  const replyPost =
+    replyPostId !== null && chatEnabled
+      ? await loadCoachReplyPostFor(actorOfUser(user), replyPostId, user.id)
+      : null;
   const around =
     jumpId !== null && existing
-      ? await listMessagesAround(existing.id, jumpId)
+      ? await listMessagesAround(existing.id, jumpId, actorOfUser(user))
       : null;
   const adminAvatars = await listAdminAvatarUrls();
   const peerName = existing
@@ -58,6 +70,7 @@ const CoachChatPage = async ({
         [...adminAvatars].map(([id, url]) => [`admin:${id}`, url]),
       )}
       conversationId={conversation?.id ?? null}
+      replyPost={replyPost}
       jumpToId={around ? jumpId : null}
       initial={{
         ...payload,

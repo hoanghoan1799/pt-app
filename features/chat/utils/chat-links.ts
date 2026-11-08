@@ -31,3 +31,11 @@ export const parseJumpId = (value: string | string[] | undefined) => {
 
   return raw !== undefined && /^[1-9]\d{0,14}$/.test(raw) ? Number(raw) : null;
 };
+
+// The chat opened with a post quoted above the composer ("Trả lời qua tin
+// nhắn" on a post card). `userId` is the trainee: the viewer for the user side.
+export const replyPostHref = (
+  role: "user" | "admin",
+  userId: number,
+  postId: number,
+) => `${chatPaths(role, userId).chat}?replyPost=${postId}`;

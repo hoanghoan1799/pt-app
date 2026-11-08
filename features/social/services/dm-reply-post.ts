@@ -3,7 +3,7 @@ import "server-only";
 import { inArray } from "drizzle-orm";
 
 import { db } from "@/db";
-import { socialPostPhotos, users } from "@/db/schema";
+import { admins, socialPostPhotos, users } from "@/db/schema";
 import { avatarUrl } from "@/features/avatar/utils/avatar-rules";
 import { loadVisiblePost } from "@/features/social/services/post-access";
 import type { DmReplyPostView } from "@/features/social/types/dm";
@@ -20,17 +20,20 @@ export const loadReplyPostViews = async (
   const result = new Map<number, DmReplyPostView>();
   const ids = [...new Set(postIds)];
   const posts = await Promise.all(ids.map((id) => loadVisiblePost(viewer, id)));
-  const authorIds = [
+  const idsOfKind = (kind: "user" | "admin") => [
     ...new Set(
       posts.flatMap((post) =>
-        post?.authorKind === "user" ? [post.authorId] : [],
+        post?.authorKind === kind ? [post.authorId] : [],
       ),
     ),
   ];
+  const authorIds = idsOfKind("user");
+  // The coach chat quotes posts written by a PT or the super admin.
+  const adminIds = idsOfKind("admin");
   const photoIds = posts.flatMap((post) =>
     post?.photoId == null ? [] : [post.photoId],
   );
-  const [people, photoRows] = await Promise.all([
+  const [people, adminPeople, photoRows] = await Promise.all([
     authorIds.length === 0
       ? []
       : db
@@ -41,6 +44,16 @@ export const loadReplyPostViews = async (
           })
           .from(users)
           .where(inArray(users.id, authorIds)),
+    adminIds.length === 0
+      ? []
+      : db
+          .select({
+            id: admins.id,
+            name: admins.username,
+            avatarUpdatedAt: admins.avatarUpdatedAt,
+          })
+          .from(admins)
+          .where(inArray(admins.id, adminIds)),
     photoIds.length === 0
       ? []
       : db
@@ -53,12 +66,14 @@ export const loadReplyPostViews = async (
           .where(inArray(socialPostPhotos.id, photoIds)),
   ]);
   const names = new Map(people.map((row) => [row.id, row]));
+  const adminNames = new Map(adminPeople.map((row) => [row.id, row]));
   const photos = new Map(photoRows.map((row) => [row.id, row]));
 
   ids.forEach((id, index) => {
     const post = posts[index];
-    const author =
-      post?.authorKind === "user" ? names.get(post.authorId) : undefined;
+    const author = post
+      ? (post.authorKind === "user" ? names : adminNames).get(post.authorId)
+      : undefined;
     const photo = post?.photoId == null ? undefined : photos.get(post.photoId);
 
     result.set(
@@ -69,7 +84,7 @@ export const loadReplyPostViews = async (
             available: true,
             authorName: author.name,
             authorAvatarUrl: avatarUrl(
-              "user",
+              post.authorKind,
               author.id,
               author.avatarUpdatedAt,
             ),

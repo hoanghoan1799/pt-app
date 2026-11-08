@@ -49,6 +49,9 @@ import {
   STICKER_PREVIEW,
   toChatSticker,
 } from "@/features/chat/utils/sticker-rules";
+import { loadReplyPostViews } from "@/features/social/services/dm-reply-post";
+import type { DmReplyPostView } from "@/features/social/types/dm";
+import type { SocialActor } from "@/features/social/types/social";
 import {
   adminScopeFilter,
   outOfScopeConversationIdsOf,
@@ -98,6 +101,10 @@ export interface ChatMessage {
   // Last edit, unsend or reaction; createdAt before any of those.
   updatedAt: Date;
   reactions: ChatReaction[];
+  // The social post this message replies to, checked for the viewer who asked
+  // (`available: false` once they may not see it). Null without one, once
+  // unsent, and when the caller named no viewer.
+  post: DmReplyPostView | null;
 }
 
 // The only columns that ever leave the server (no attachment/moderation data).
@@ -114,6 +121,7 @@ const messageColumns = {
   clientId: chatMessages.clientId,
   createdAt: chatMessages.createdAt,
   replyToMessageId: chatMessages.replyToMessageId,
+  replyPostId: chatMessages.replyPostId,
   editedAt: chatMessages.editedAt,
   deletedAt: chatMessages.deletedAt,
   updatedAt: chatMessages.updatedAt,
@@ -132,6 +140,7 @@ interface MessageRow {
   clientId: string;
   createdAt: Date;
   replyToMessageId: number | null;
+  replyPostId: number | null;
   editedAt: Date | null;
   deletedAt: Date | null;
   updatedAt: Date | null;
@@ -139,8 +148,12 @@ interface MessageRow {
 
 // Adds reply snippets and reactions to raw rows with batched queries. Unsent
 // messages lose their body, quote and reactions here, so every reader of this
-// module gets the same redaction.
-const hydrateMessages = async (rows: MessageRow[]): Promise<ChatMessage[]> => {
+// module gets the same redaction. Quoted posts are checked per `viewer` on
+// every read, so a post made private later never leaks through the chat.
+const hydrateMessages = async (
+  rows: MessageRow[],
+  viewer?: SocialActor,
+): Promise<ChatMessage[]> => {
   if (rows.length === 0) {
     return [];
   }
@@ -162,54 +175,67 @@ const hydrateMessages = async (rows: MessageRow[]): Promise<ChatMessage[]> => {
       ),
     ),
   ];
-  const [targets, reactionRows, traineeRows, photoRows] = await Promise.all([
-    replyIds.length === 0
-      ? []
-      : db
-          .select({
-            id: chatMessages.id,
-            conversationId: chatMessages.conversationId,
-            body: chatMessages.body,
-            stickerRef: chatMessages.stickerRef,
-            photoId: chatMessages.photoId,
-            senderRole: chatMessages.senderRole,
-            deletedAt: chatMessages.deletedAt,
-          })
-          .from(chatMessages)
-          .where(inArray(chatMessages.id, replyIds)),
-    liveIds.length === 0
-      ? []
-      : db
-          .select({
-            messageId: chatReactions.messageId,
-            reactorKey: chatReactions.reactorKey,
-            emoji: chatReactions.emoji,
-            adminName: admins.username,
-          })
-          .from(chatReactions)
-          .leftJoin(
-            admins,
-            sql`${chatReactions.reactorKey} = 'admin:' || ${admins.id}`,
-          )
-          .where(inArray(chatReactions.messageId, liveIds))
-          .orderBy(asc(chatReactions.createdAt)),
-    db
-      .select({ conversationId: chatConversations.id, name: users.name })
-      .from(chatConversations)
-      .innerJoin(users, eq(users.id, chatConversations.userId))
-      .where(inArray(chatConversations.id, conversationIds)),
-    // Size only: the bytes are served by /api/chat/photos/<id>.
-    photoIds.length === 0
-      ? []
-      : db
-          .select({
-            id: chatPhotos.id,
-            width: chatPhotos.width,
-            height: chatPhotos.height,
-          })
-          .from(chatPhotos)
-          .where(inArray(chatPhotos.id, photoIds)),
-  ]);
+  const postIds = [
+    ...new Set(
+      rows.flatMap((row) =>
+        row.replyPostId !== null && row.deletedAt === null && viewer
+          ? [row.replyPostId]
+          : [],
+      ),
+    ),
+  ];
+  const [targets, reactionRows, traineeRows, photoRows, posts] =
+    await Promise.all([
+      replyIds.length === 0
+        ? []
+        : db
+            .select({
+              id: chatMessages.id,
+              conversationId: chatMessages.conversationId,
+              body: chatMessages.body,
+              stickerRef: chatMessages.stickerRef,
+              photoId: chatMessages.photoId,
+              senderRole: chatMessages.senderRole,
+              deletedAt: chatMessages.deletedAt,
+            })
+            .from(chatMessages)
+            .where(inArray(chatMessages.id, replyIds)),
+      liveIds.length === 0
+        ? []
+        : db
+            .select({
+              messageId: chatReactions.messageId,
+              reactorKey: chatReactions.reactorKey,
+              emoji: chatReactions.emoji,
+              adminName: admins.username,
+            })
+            .from(chatReactions)
+            .leftJoin(
+              admins,
+              sql`${chatReactions.reactorKey} = 'admin:' || ${admins.id}`,
+            )
+            .where(inArray(chatReactions.messageId, liveIds))
+            .orderBy(asc(chatReactions.createdAt)),
+      db
+        .select({ conversationId: chatConversations.id, name: users.name })
+        .from(chatConversations)
+        .innerJoin(users, eq(users.id, chatConversations.userId))
+        .where(inArray(chatConversations.id, conversationIds)),
+      // Size only: the bytes are served by /api/chat/photos/<id>.
+      photoIds.length === 0
+        ? []
+        : db
+            .select({
+              id: chatPhotos.id,
+              width: chatPhotos.width,
+              height: chatPhotos.height,
+            })
+            .from(chatPhotos)
+            .where(inArray(chatPhotos.id, photoIds)),
+      viewer && postIds.length > 0
+        ? loadReplyPostViews(viewer, postIds)
+        : new Map<number, DmReplyPostView>(),
+    ]);
   const photoSizeById = new Map(photoRows.map((row) => [row.id, row]));
   const targetById = new Map(targets.map((row) => [row.id, row]));
   const traineeName = new Map(
@@ -272,6 +298,10 @@ const hydrateMessages = async (rows: MessageRow[]): Promise<ChatMessage[]> => {
       deleted,
       updatedAt: row.updatedAt ?? row.createdAt,
       reactions: deleted ? [] : (reactionsByMessage.get(row.id) ?? []),
+      post:
+        deleted || row.replyPostId === null
+          ? null
+          : (posts.get(row.replyPostId) ?? null),
     };
   });
 };
@@ -314,6 +344,7 @@ export const getOrCreateConversation = async (userId: number) => {
 export const findMessageByClientId = async (
   conversationId: number,
   clientId: string,
+  viewer?: SocialActor,
 ): Promise<ChatMessage | null> => {
   const rows = await db
     .select(messageColumns)
@@ -327,7 +358,7 @@ export const findMessageByClientId = async (
     )
     .limit(1);
 
-  return (await hydrateMessages(rows))[0] ?? null;
+  return (await hydrateMessages(rows, viewer))[0] ?? null;
 };
 
 interface NewMessage {
@@ -340,13 +371,17 @@ interface NewMessage {
   photoId?: number | null;
   clientId: string;
   replyToMessageId?: number | null;
+  replyPostId?: number | null;
 }
 
 // Idempotent insert: a retried send (same clientId) stores nothing and returns
 // the message that is already there.
 // `created` is false for that retried send, so callers can skip side effects
 // (push) that must fire once per message.
-export const insertMessageOnce = async (input: NewMessage) => {
+export const insertMessageOnce = async (
+  input: NewMessage,
+  viewer?: SocialActor,
+) => {
   const now = new Date();
   const inserted = await db
     .insert(chatMessages)
@@ -372,6 +407,7 @@ export const insertMessageOnce = async (input: NewMessage) => {
   const message = await findMessageByClientId(
     input.conversationId,
     input.clientId,
+    viewer,
   );
 
   if (!message) {
@@ -380,8 +416,8 @@ export const insertMessageOnce = async (input: NewMessage) => {
   return { message, created: inserted.length > 0 };
 };
 
-export const insertMessage = async (input: NewMessage) =>
-  (await insertMessageOnce(input)).message;
+export const insertMessage = async (input: NewMessage, viewer?: SocialActor) =>
+  (await insertMessageOnce(input, viewer)).message;
 
 export interface ListMessagesOptions {
   after?: number;
@@ -395,6 +431,7 @@ export interface ListMessagesOptions {
 export const listMessages = async (
   conversationId: number,
   { after, before }: ListMessagesOptions = {},
+  viewer?: SocialActor,
 ) => {
   const forward = after !== undefined;
   const cursorFilter =
@@ -414,7 +451,7 @@ export const listMessages = async (
   const page = rows.slice(0, CHAT_PAGE_SIZE);
 
   return {
-    messages: await hydrateMessages(forward ? page : page.reverse()),
+    messages: await hydrateMessages(forward ? page : page.reverse(), viewer),
     hasMore,
   };
 };
@@ -431,6 +468,7 @@ export const JUMP_MAX_NEWER = 500;
 export const listMessagesAround = async (
   conversationId: number,
   messageId: number,
+  viewer?: SocialActor,
 ) => {
   const [target] = await db
     .select({ id: chatMessages.id })
@@ -446,7 +484,7 @@ export const listMessagesAround = async (
     return null;
   }
   const [older, newerRows] = await Promise.all([
-    listMessages(conversationId, { before: messageId + 1 }),
+    listMessages(conversationId, { before: messageId + 1 }, viewer),
     db
       .select(messageColumns)
       .from(chatMessages)
@@ -465,7 +503,10 @@ export const listMessagesAround = async (
     return null;
   }
   return {
-    messages: [...older.messages, ...(await hydrateMessages(newerRows))],
+    messages: [
+      ...older.messages,
+      ...(await hydrateMessages(newerRows, viewer)),
+    ],
     hasMore: older.hasMore,
   };
 };
@@ -477,6 +518,7 @@ export const listChanges = async (
   conversationId: number,
   changedSince: number,
   lastChangeAt: number,
+  viewer?: SocialActor,
 ) => {
   const rows = await db
     .select(messageColumns)
@@ -494,7 +536,7 @@ export const listChanges = async (
   const page = rows.slice(0, CHANGES_PAGE_SIZE);
 
   return {
-    changes: await hydrateMessages(page),
+    changes: await hydrateMessages(page, viewer),
     lastChangeAt: truncated
       ? (page[page.length - 1].updatedAt?.getTime() ?? lastChangeAt)
       : lastChangeAt,
@@ -515,6 +557,7 @@ export const findStoredMessage = async (messageId: number) => {
 
 export const findMessageById = async (
   messageId: number,
+  viewer?: SocialActor,
 ): Promise<ChatMessage | null> => {
   const rows = await db
     .select(messageColumns)
@@ -523,7 +566,7 @@ export const findMessageById = async (
     .where(eq(chatMessages.id, messageId))
     .limit(1);
 
-  return (await hydrateMessages(rows))[0] ?? null;
+  return (await hydrateMessages(rows, viewer))[0] ?? null;
 };
 
 // Moves the change cursor of one conversation (strictly increasing) without
