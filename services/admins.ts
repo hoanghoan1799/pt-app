@@ -1,9 +1,10 @@
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { eq, isNotNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { adminHiddenUsers,admins } from "@/db/schema";
+import { adminHiddenUsers, admins } from "@/db/schema";
+import { toAdminRole } from "@/services/admin-scope";
 import { toUsernameKey } from "@/utils/username";
 
 export const findAdminById = async (id: number) => {
@@ -11,6 +12,8 @@ export const findAdminById = async (id: number) => {
     .select({
       id: admins.id,
       username: admins.username,
+      role: admins.role,
+      verifiedAt: admins.verifiedAt,
       presenceHidden:
         sql<boolean>`coalesce(${admins.presenceHidden}, 0)`.mapWith(Boolean),
       // Never expose the hash itself, only whether a passcode exists.
@@ -22,7 +25,13 @@ export const findAdminById = async (id: number) => {
     .where(eq(admins.id, id))
     .limit(1);
 
-  return admin ?? null;
+  if (!admin) {
+    return null;
+  }
+  const { role, verifiedAt, ...rest } = admin;
+
+  // Null role = super admin (admins created before roles existed).
+  return { ...rest, role: toAdminRole(role), verified: verifiedAt !== null };
 };
 
 export const findAdminByUsername = async (username: string) => {
@@ -87,4 +96,14 @@ export const countHiddenUsers = async (adminId: number) => {
     .where(eq(adminHiddenUsers.adminId, adminId));
 
   return row?.total ?? 0;
+};
+
+// Ids of admins with the blue tick, for trainee-facing chat screens.
+export const listVerifiedAdminIds = async () => {
+  const rows = await db
+    .select({ id: admins.id })
+    .from(admins)
+    .where(isNotNull(admins.verifiedAt));
+
+  return rows.map((row) => row.id);
 };

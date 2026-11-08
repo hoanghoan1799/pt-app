@@ -8,12 +8,12 @@ import { DeleteFoodButton } from "@/features/foods/components/DeleteFoodButton";
 import { FoodDetail } from "@/features/foods/components/FoodDetail";
 import { FoodForm } from "@/features/foods/components/FoodForm";
 import { getFood } from "@/features/foods/services/food-queries";
-import { requireAdmin } from "@/services/auth-guard";
+import { requireSuperAdmin } from "@/services/auth-guard";
 
 export const metadata: Metadata = { title: "Chi tiết món" };
 
 const AdminFoodPage = async ({ params }: PageProps<"/admin/foods/[id]">) => {
-  await requireAdmin();
+  await requireSuperAdmin();
 
   const { id } = await params;
   const food = await getFood(Number(id));

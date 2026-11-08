@@ -1,4 +1,4 @@
-import { MessageCircle, Utensils } from "lucide-react";
+import { MessageCircle, UserCog, Utensils } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -33,6 +33,7 @@ import {
   toMemberRows,
 } from "@/features/dashboard/utils/summary";
 import { AddMemberButton } from "@/features/members/components/AddMemberButton";
+import { isSuperAdmin } from "@/services/admin-scope";
 import { requireAdmin } from "@/services/auth-guard";
 import { getAdminUserPath } from "@/utils/routes";
 import { readSearchParam } from "@/utils/search-params";
@@ -126,10 +127,18 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
           </h2>
           <div className="grid grid-cols-3 gap-2">
             <AddMemberButton className={TILE} />
-            <Link href={ROUTES.ADMIN_FOODS} className={TILE}>
-              <Utensils className="size-6 text-accent" aria-hidden />
-              <span>Thư viện món</span>
-            </Link>
+            {isSuperAdmin(admin) && (
+              <>
+                <Link href={ROUTES.ADMIN_FOODS} className={TILE}>
+                  <Utensils className="size-6 text-accent" aria-hidden />
+                  <span>Thư viện món</span>
+                </Link>
+                <Link href={ROUTES.ADMIN_PTS} className={TILE}>
+                  <UserCog className="size-6 text-accent" aria-hidden />
+                  <span>Quản lý PT</span>
+                </Link>
+              </>
+            )}
             <Link href={ROUTES.ADMIN_MESSAGES} className={`${TILE} relative`}>
               <MessageCircle className="size-6 text-accent" aria-hidden />
               <span>Tin nhắn</span>

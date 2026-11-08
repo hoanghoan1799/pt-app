@@ -1,9 +1,11 @@
 // Prepares the database for the app:
 //   1. creates/updates the tables from db/schema.ts (drizzle-kit push)
-//   2. creates the first admin from ADMIN_USERNAME / ADMIN_PASSWORD when the
+//   2. creates the first admin (super admin) from SUPER_ADMIN_USERNAME /
+//      SUPER_ADMIN_PASSWORD (falls back to ADMIN_*) when the
 //      database has no admin yet (an existing admin is never overwritten)
 //   3. adds the starter food library when the foods table is empty
 //   4. moves legacy hidden conversations to hidden trainees (KAN-163)
+//   5. gives pre-roles admins the super_admin role and the blue tick (P1)
 //
 // Runs automatically before `next build` on Vercel (see "build" in
 // package.json); run `pnpm db:setup` to do the same by hand.
@@ -17,9 +19,13 @@ import {
 } from "@/constants/password";
 import { db } from "@/db";
 import { admins, foods } from "@/db/schema";
+import { verifyExistingSuperAdmins } from "@/features/auth/services/verify-existing-admins";
 import { moveHiddenConversationsToUsers } from "@/features/chat/services/hidden-users-migration";
 import { insertMissingSeedFoods } from "@/features/foods/services/seed-foods-service";
-import { describeDatabaseConfig } from "@/services/env";
+import {
+  describeDatabaseConfig,
+  getSuperAdminCredentials,
+} from "@/services/env";
 import { hashPassword } from "@/services/password";
 import { toUsernameKey } from "@/utils/username";
 
@@ -49,15 +55,14 @@ const createFirstAdmin = async () => {
     return;
   }
 
-  const username = process.env.ADMIN_USERNAME?.trim() ?? "";
-  const password = process.env.ADMIN_PASSWORD ?? "";
+  const { username, password } = getSuperAdminCredentials();
 
   if (
     !ADMIN_USERNAME_PATTERN.test(username) ||
     password.length < MIN_ADMIN_PASSWORD_LENGTH
   ) {
     console.warn(
-      `⚠ Chưa có admin nào và ADMIN_USERNAME/ADMIN_PASSWORD chưa hợp lệ (username 3–32 ký tự a-z 0-9 . _ -, mật khẩu ≥ ${MIN_ADMIN_PASSWORD_LENGTH} ký tự) — chưa tạo admin`,
+      `⚠ Chưa có admin nào và SUPER_ADMIN_USERNAME/SUPER_ADMIN_PASSWORD chưa hợp lệ (username 3–32 ký tự a-z 0-9 . _ -, mật khẩu ≥ ${MIN_ADMIN_PASSWORD_LENGTH} ký tự) — chưa tạo admin`,
     );
     return;
   }
@@ -66,8 +71,10 @@ const createFirstAdmin = async () => {
     username,
     usernameKey: toUsernameKey(username),
     passwordHash: await hashPassword(password),
+    role: "super_admin",
+    verifiedAt: new Date(),
   });
-  console.log(`✔ Đã tạo admin "${username}"`);
+  console.log(`✔ Đã tạo super admin "${username}"`);
 };
 
 // Only into an empty table: once the PT edits or removes foods, the build
@@ -95,6 +102,14 @@ const migrateHiddenConversations = async () => {
   }
 };
 
+const verifyLegacyAdmins = async () => {
+  const changed = await verifyExistingSuperAdmins(db);
+
+  if (changed > 0) {
+    console.log(`✔ Đã gán super admin + tick xanh cho ${changed} admin cũ`);
+  }
+};
+
 const setupDatabase = async () => {
   if (IS_PREBUILD && !process.env.VERCEL) {
     // Local `pnpm build` must not touch the database.
@@ -105,6 +120,7 @@ const setupDatabase = async () => {
   await createFirstAdmin();
   await seedFoodLibrary();
   await migrateHiddenConversations();
+  await verifyLegacyAdmins();
 };
 
 setupDatabase().catch((error) => {

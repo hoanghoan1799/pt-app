@@ -89,3 +89,13 @@ export const getSessionSecret = () => {
   }
   return secret;
 };
+
+// The super admin (P1) created by `pnpm db:setup` / `pnpm admin:create`.
+// SUPER_ADMIN_* win; the older ADMIN_* names are still read when they are
+// missing, so an existing deployment keeps working until it is renamed.
+export const getSuperAdminCredentials = () => ({
+  username: readEnv("SUPER_ADMIN_USERNAME") ?? readEnv("ADMIN_USERNAME") ?? "",
+  // The password is not trimmed: leading/trailing spaces may be intended.
+  password:
+    process.env.SUPER_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || "",
+});

@@ -46,44 +46,56 @@ export const admins = sqliteTable("admins", {
   presenceHidden: integer("presence_hidden", { mode: "boolean" }).default(
     false,
   ),
+  // Social roles (P1): null = super_admin, so every admin that existed before
+  // roles keeps full rights. Nullable on purpose, see passcodeFailedCount.
+  role: text("role", { enum: ["super_admin", "pt"] }),
+  // Blue tick (P1): set by the super admin; null = not verified.
+  verifiedAt: integer("verified_at", { mode: "timestamp" }),
   createdAt: createdAt(),
 });
 
-export const users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  name: text("name").notNull(),
-  // Lower-cased, whitespace-collapsed name used for login lookups.
-  nameKey: text("name_key").notNull().unique(),
-  // The trainee's meal plan request (KAN-69, Q1): meals per day (2-6) and
-  // foods they like or avoid. Null = no request.
-  preferredMealCount: integer("preferred_meal_count"),
-  foodNote: text("food_note"),
-  // Email + password login (KAN-82). All nullable so trainees created before
-  // it stay valid until the admin sets their login.
-  email: text("email"),
-  // Trimmed, lower-cased email used for login lookups; unique when set.
-  emailKey: text("email_key").unique(),
-  // scrypt hash, see services/password.ts.
-  passwordHash: text("password_hash"),
-  // Sessions issued before this moment are rejected (whole seconds).
-  passwordChangedAt: integer("password_changed_at", { mode: "timestamp" }),
-  // Realtime chat permission (KAN-97, S1). Null or false = locked; only the
-  // admin switch sets it. Audit: who changed it and when (admins.id, not
-  // enforced, D10).
-  chatEnabled: integer("chat_enabled", { mode: "boolean" }),
-  chatEnabledChangedAt: integer("chat_enabled_changed_at", {
-    mode: "timestamp",
-  }),
-  chatEnabledByAdminId: integer("chat_enabled_by_admin_id"),
-  // Presence heartbeat (KAN-128), see admins.lastSeenAt.
-  lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
-  // Chat bubble colour (KAN-141), see admins.chatColor.
-  chatColor: text("chat_color"),
-  // Profile photo (KAN-157), see admins.avatar.
-  avatar: text("avatar"),
-  avatarUpdatedAt: integer("avatar_updated_at", { mode: "timestamp" }),
-  createdAt: createdAt(),
-});
+export const users = sqliteTable(
+  "users",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    name: text("name").notNull(),
+    // Lower-cased, whitespace-collapsed name used for login lookups.
+    nameKey: text("name_key").notNull().unique(),
+    // The trainee's meal plan request (KAN-69, Q1): meals per day (2-6) and
+    // foods they like or avoid. Null = no request.
+    preferredMealCount: integer("preferred_meal_count"),
+    foodNote: text("food_note"),
+    // Email + password login (KAN-82). All nullable so trainees created before
+    // it stay valid until the admin sets their login.
+    email: text("email"),
+    // Trimmed, lower-cased email used for login lookups; unique when set.
+    emailKey: text("email_key").unique(),
+    // scrypt hash, see services/password.ts.
+    passwordHash: text("password_hash"),
+    // Sessions issued before this moment are rejected (whole seconds).
+    passwordChangedAt: integer("password_changed_at", { mode: "timestamp" }),
+    // Realtime chat permission (KAN-97, S1). Null or false = locked; only the
+    // admin switch sets it. Audit: who changed it and when (admins.id, not
+    // enforced, D10).
+    chatEnabled: integer("chat_enabled", { mode: "boolean" }),
+    chatEnabledChangedAt: integer("chat_enabled_changed_at", {
+      mode: "timestamp",
+    }),
+    chatEnabledByAdminId: integer("chat_enabled_by_admin_id"),
+    // Presence heartbeat (KAN-128), see admins.lastSeenAt.
+    lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
+    // Chat bubble colour (KAN-141), see admins.chatColor.
+    chatColor: text("chat_color"),
+    // Profile photo (KAN-157), see admins.avatar.
+    avatar: text("avatar"),
+    avatarUpdatedAt: integer("avatar_updated_at", { mode: "timestamp" }),
+    // PT workspace (P1): the PT admin responsible for this trainee (admins.id,
+    // not enforced). Null = only super admins manage the trainee.
+    ptAdminId: integer("pt_admin_id"),
+    createdAt: createdAt(),
+  },
+  (table) => [index("users_pt_admin").on(table.ptAdminId)],
+);
 
 // Failed-login counters shared by all serverless instances (KAN-82, D9).
 // Key: "user:<email_key>" or "admin:<username_key>".
