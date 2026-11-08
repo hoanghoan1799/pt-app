@@ -42,3 +42,24 @@ export const SOCIAL_MESSAGES = {
   COMMENT_NOT_FOUND: "Không tìm thấy bình luận.",
   REACTION_INVALID: "Cảm xúc không hợp lệ.",
 } as const;
+
+// Spec A5: friend requests a trainee may send per day.
+export const FRIEND_REQUESTS_PER_DAY = 20;
+export const FRIEND_REQUEST_WINDOW_MS = 24 * 60 * 60 * 1000;
+export const REPORT_REASON_MAX_LENGTH = 500;
+
+export const FRIEND_MESSAGES = {
+  NOT_FOUND: "Không tìm thấy người dùng.",
+  EMAIL_INVALID: "Hãy nhập đúng địa chỉ email đầy đủ.",
+  SEARCH_EMPTY: "Không tìm thấy ai với email này.",
+  ALREADY_FRIENDS: "Hai bạn đã là bạn bè.",
+  ALREADY_REQUESTED: "Bạn đã gửi lời mời cho người này.",
+  RATE_LIMITED:
+    "Bạn đã gửi quá nhiều lời mời hôm nay. Hãy thử lại vào ngày mai.",
+  REQUEST_NOT_FOUND: "Không tìm thấy lời mời kết bạn.",
+  REASON_TOO_LONG: `Lý do tối đa ${REPORT_REASON_MAX_LENGTH} ký tự.`,
+  REPORT_NOT_FOUND: "Không tìm thấy báo cáo.",
+  REPORT_SENT: "Đã gửi báo cáo. Cảm ơn bạn.",
+  BLOCKED: "Đã chặn người dùng.",
+  UNBLOCKED: "Đã bỏ chặn.",
+} as const;

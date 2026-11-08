@@ -184,3 +184,32 @@ export const buildCommentPush = (
   url: postPathFor(recipientKey, postId),
   tag: `social-comment-${postId}`,
 });
+
+export const FRIENDS_PATH = "/friends";
+export const FRIEND_REQUESTS_PATH = "/friends?tab=requests";
+
+// Where a notification leads: friend events go to /friends, the rest to the
+// post (null when it has none).
+export const notificationHref = (
+  kind: NotificationKind,
+  recipientKey: string,
+  postId: number | null,
+): string | null => {
+  if (kind === "friend_request") {
+    return FRIEND_REQUESTS_PATH;
+  }
+  if (kind === "friend_accepted") {
+    return FRIENDS_PATH;
+  }
+  return postId === null ? null : postPathFor(recipientKey, postId);
+};
+
+export const buildFriendPush = (
+  kind: "friend_request" | "friend_accepted",
+  actorName: string,
+): SocialPushPayload => ({
+  title: "PT App",
+  body: notificationText(kind, actorName),
+  url: kind === "friend_request" ? FRIEND_REQUESTS_PATH : FRIENDS_PATH,
+  tag: `social-${kind}`,
+});

@@ -1,4 +1,10 @@
-import { MessageCircle, Newspaper, UserCog, Utensils } from "lucide-react";
+import {
+  Flag,
+  MessageCircle,
+  Newspaper,
+  UserCog,
+  Utensils,
+} from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -33,6 +39,7 @@ import {
   toMemberRows,
 } from "@/features/dashboard/utils/summary";
 import { AddMemberButton } from "@/features/members/components/AddMemberButton";
+import { countOpenReports } from "@/features/social/services/report-queries";
 import { isSuperAdmin } from "@/services/admin-scope";
 import { requireAdmin } from "@/services/auth-guard";
 import { getAdminUserPath } from "@/utils/routes";
@@ -64,6 +71,7 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     unreadByTrainee,
     avatarUrl,
     accountColor,
+    openReports,
   ] = await Promise.all([
     getMemberProgress(schedule.weekStart, admin.id),
     getRecentActivity({ limit: RECENT_ACTIVITY_LIMIT, adminId: admin.id }),
@@ -71,6 +79,7 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     listUnreadByTraineeForAdmin(admin.id),
     getAvatarUrl("admin", admin.id),
     loadAdminAccountColor(admin.id),
+    isSuperAdmin(admin) ? countOpenReports() : 0,
   ]);
   const displayNames = new Map(
     members.map((member) => [member.id, member.displayName]),
@@ -136,6 +145,15 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
                 <Link href={ROUTES.ADMIN_PTS} className={TILE}>
                   <UserCog className="size-6 text-accent" aria-hidden />
                   <span>Quản lý PT</span>
+                </Link>
+                <Link href={ROUTES.ADMIN_REPORTS} className={`${TILE} relative`}>
+                  <Flag className="size-6 text-accent" aria-hidden />
+                  <span>Báo cáo</span>
+                  {openReports > 0 && (
+                    <span className="absolute top-2 right-2 flex min-w-5 items-center justify-center rounded-full bg-danger px-1 text-xs leading-5 font-bold text-white">
+                      {openReports > 99 ? "99+" : openReports}
+                    </span>
+                  )}
                 </Link>
               </>
             )}

@@ -8,6 +8,11 @@ import { ProfileView } from "@/features/social/components/ProfileView";
 import { actorOfUser } from "@/features/social/services/post-context";
 import { listProfilePosts } from "@/features/social/services/post-queries";
 import { getProfile } from "@/features/social/services/profile-queries";
+import {
+  countFriends,
+  getRelationship,
+  isBlockedBetween,
+} from "@/features/social/services/relationships";
 import { hasAcceptedTerms } from "@/features/social/services/terms";
 import { parseProfileKind } from "@/features/social/utils/post-rules";
 import { requireUser } from "@/services/auth-guard";
@@ -28,10 +33,18 @@ const ProfilePage = async ({ params }: PageProps<"/profile/[kind]/[id]">) => {
   if (!kind || !profile) {
     notFound();
   }
-  const posts = await listProfilePosts(actorOfUser(user), {
-    kind,
-    id: profile.id,
-  });
+  const isTrainee = kind === "user";
+  const isOwn = isTrainee && profile.id === user.id;
+
+  // Blocked either way: the profile does not exist for you (spec M1).
+  if (isTrainee && !isOwn && (await isBlockedBetween(user.id, profile.id))) {
+    notFound();
+  }
+  const [posts, friendCount, relationship] = await Promise.all([
+    listProfilePosts(actorOfUser(user), { kind, id: profile.id }),
+    isTrainee ? countFriends(profile.id) : null,
+    isTrainee && !isOwn ? getRelationship(user.id, profile.id) : null,
+  ]);
 
   return (
     <>
@@ -46,8 +59,14 @@ const ProfilePage = async ({ params }: PageProps<"/profile/[kind]/[id]">) => {
         <ProfileView
           profile={profile}
           mode="user"
-          isOwn={kind === "user" && profile.id === user.id}
+          isOwn={isOwn}
           posts={posts}
+          friendCount={friendCount}
+          relationship={
+            relationship && relationship !== "self" ? relationship : null
+          }
+          canBlock={isTrainee && !isOwn}
+          canReport={isTrainee && !isOwn}
         />
       </main>
     </>

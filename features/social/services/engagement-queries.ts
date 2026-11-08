@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, notInArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { socialComments, socialReactions } from "@/db/schema";
@@ -9,6 +9,7 @@ import {
   loadAccounts,
 } from "@/features/social/services/account-lookup";
 import { loadVisiblePost } from "@/features/social/services/post-access";
+import { listBlockedBetweenIds } from "@/features/social/services/relationships";
 import type {
   CommentView,
   ReactionSummary,
@@ -32,6 +33,13 @@ export interface PostEngagement {
   commentCount: number;
 }
 
+// Comment authors a trainee must not see: blocked either way (spec M1).
+// Admins block nobody.
+const blockedAuthorKeys = async (viewer: SocialActor): Promise<string[]> =>
+  viewer.kind === "user"
+    ? [...(await listBlockedBetweenIds(viewer.id))].map((id) => `user:${id}`)
+    : [];
+
 const EMPTY_SUMMARY: ReactionSummary = { counts: [], total: 0, mine: null };
 
 // Reaction summary and comment count for a page of posts, in two queries.
@@ -44,6 +52,7 @@ export const loadEngagement = async (
   if (postIds.length === 0) {
     return result;
   }
+  const blockedKeys = await blockedAuthorKeys(viewer);
   const [reactionRows, commentRows] = await Promise.all([
     db
       .select({
@@ -63,6 +72,9 @@ export const loadEngagement = async (
         and(
           inArray(socialComments.postId, postIds),
           isNull(socialComments.deletedAt),
+          blockedKeys.length
+            ? notInArray(socialComments.authorKey, blockedKeys)
+            : undefined,
         ),
       )
       .groupBy(socialComments.postId),
@@ -122,11 +134,18 @@ export const listComments = async (
   if (!post) {
     return null;
   }
+  const blockedKeys = await blockedAuthorKeys(actor);
   const rows = await db
     .select()
     .from(socialComments)
     .where(
-      and(eq(socialComments.postId, postId), isNull(socialComments.deletedAt)),
+      and(
+        eq(socialComments.postId, postId),
+        isNull(socialComments.deletedAt),
+        blockedKeys.length
+          ? notInArray(socialComments.authorKey, blockedKeys)
+          : undefined,
+      ),
     )
     .orderBy(asc(socialComments.createdAt), asc(socialComments.id));
   const accounts = await loadAccounts(rows.map((row) => row.authorKey));

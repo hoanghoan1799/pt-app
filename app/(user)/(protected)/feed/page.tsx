@@ -1,3 +1,4 @@
+import { Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -45,6 +46,15 @@ const FeedPage = async () => {
                 href={ROUTES.NOTIFICATIONS}
                 unreadCount={unreadCount}
               />
+            )}
+            {accepted && (
+              <Link
+                href={ROUTES.FRIENDS}
+                aria-label="Bạn bè"
+                className="inline-flex size-11 items-center justify-center"
+              >
+                <Users className="size-6" aria-hidden />
+              </Link>
             )}
             {accepted && (
               <Link

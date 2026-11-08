@@ -808,3 +808,57 @@ export const socialNotifications = sqliteTable(
     ),
   ],
 );
+
+// Friendships between two trainees (P4). One row per pair: user_low < user_high.
+// requested_by is the one who sent the request; accepted_at is null while
+// pending. Declining, cancelling and unfriending delete the row.
+export const socialFriendships = sqliteTable(
+  "social_friendships",
+  {
+    userLow: integer("user_low").notNull(),
+    userHigh: integer("user_high").notNull(),
+    status: text("status", { enum: ["pending", "accepted"] }).notNull(),
+    requestedBy: integer("requested_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    acceptedAt: integer("accepted_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userLow, table.userHigh] }),
+    index("social_friendships_high").on(table.userHigh),
+  ],
+);
+
+// blocker_id blocked blocked_id (trainees, P4).
+export const socialBlocks = sqliteTable(
+  "social_blocks",
+  {
+    blockerId: integer("blocker_id").notNull(),
+    blockedId: integer("blocked_id").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.blockerId, table.blockedId] }),
+    index("social_blocks_blocked").on(table.blockedId),
+  ],
+);
+
+// Reports on a post, comment or user (P4). reporter_key is "user:<id>" or
+// "admin:<id>"; target_id is the id of the post, comment or trainee.
+export const socialReports = sqliteTable(
+  "social_reports",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    reporterKey: text("reporter_key").notNull(),
+    targetKind: text("target_kind", {
+      enum: ["post", "comment", "user"],
+    }).notNull(),
+    targetId: integer("target_id").notNull(),
+    reason: text("reason").notNull().default(""),
+    status: text("status", { enum: ["open", "resolved"] }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    resolvedBy: integer("resolved_by"),
+    resolvedAt: integer("resolved_at", { mode: "timestamp_ms" }),
+    resolution: text("resolution", { enum: ["kept", "deleted"] }),
+  },
+  (table) => [index("social_reports_status").on(table.status, table.createdAt)],
+);

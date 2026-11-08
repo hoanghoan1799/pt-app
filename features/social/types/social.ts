@@ -91,3 +91,18 @@ export type PostSource =
   | { type: "feed" }
   | { type: "profile"; kind: AuthorKind; id: number }
   | { type: "admin-feed" };
+
+export interface ReportView {
+  id: number;
+  targetKind: "post" | "comment" | "user";
+  targetId: number;
+  reporterName: string;
+  reason: string;
+  createdAt: number;
+  // Short text of the reported content; null when it no longer exists.
+  preview: string | null;
+  // Whose content or account it is.
+  targetName: string | null;
+  // Where the super admin can look at it.
+  href: string | null;
+}

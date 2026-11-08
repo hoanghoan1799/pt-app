@@ -8,6 +8,7 @@ import { ProfileView } from "@/features/social/components/ProfileView";
 import { actorOfAdmin } from "@/features/social/services/post-context";
 import { listProfilePosts } from "@/features/social/services/post-queries";
 import { getProfile } from "@/features/social/services/profile-queries";
+import { countFriends } from "@/features/social/services/relationships";
 import { parseProfileKind } from "@/features/social/utils/post-rules";
 import { requireAdminForUser } from "@/services/admin-access";
 import { requireAdmin } from "@/services/auth-guard";
@@ -32,7 +33,10 @@ const AdminProfilePage = async ({
   if (!profile) {
     notFound();
   }
-  const posts = await listProfilePosts(actorOfAdmin(admin), { kind, id });
+  const [posts, friendCount] = await Promise.all([
+    listProfilePosts(actorOfAdmin(admin), { kind, id }),
+    kind === "user" ? countFriends(id) : null,
+  ]);
 
   return (
     <>
@@ -49,6 +53,8 @@ const AdminProfilePage = async ({
           mode="admin"
           isOwn={kind === "admin" && admin.id === id}
           posts={posts}
+          friendCount={friendCount}
+          canReport={kind === "user"}
         />
       </main>
     </>
