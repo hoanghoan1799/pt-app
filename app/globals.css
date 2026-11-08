@@ -8,6 +8,8 @@
   --line: #e4e4e9;
   --accent: #e8590c;
   --accent-fg: #ffffff;
+  --bubble-neutral: #18181b;
+  --bubble-neutral-fg: #ffffff;
   --danger: #dc2626;
   --success: #15803d;
   --success-fg: #ffffff;
@@ -32,6 +34,8 @@
     --line: #2a2a30;
     --accent: #ff7a2e;
     --accent-fg: #1a0a00;
+    --bubble-neutral: #3f3f46;
+    --bubble-neutral-fg: #ffffff;
     --danger: #f87171;
     --success: #4ade80;
     --success-fg: #052e16;
@@ -51,6 +55,8 @@
   --line: #2a2a30;
   --accent: #ff7a2e;
   --accent-fg: #1a0a00;
+  --bubble-neutral: #3f3f46;
+  --bubble-neutral-fg: #ffffff;
   --danger: #f87171;
   --success: #4ade80;
   --success-fg: #052e16;
@@ -69,6 +75,8 @@
   --color-line: var(--line);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
+  --color-bubble-neutral: var(--bubble-neutral);
+  --color-bubble-neutral-fg: var(--bubble-neutral-fg);
   --color-danger: var(--danger);
   --color-success: var(--success);
   --color-success-fg: var(--success-fg);
