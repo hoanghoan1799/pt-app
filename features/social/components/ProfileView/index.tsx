@@ -3,23 +3,36 @@ import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { CARD, SECTION_TITLE } from "@/constants/styles";
 import { BioEditor } from "@/features/social/components/BioEditor";
 import { PostList } from "@/features/social/components/PostList";
+import { ProfileMenu } from "@/features/social/components/ProfileMenu";
+import { RelationshipButton } from "@/features/social/components/RelationshipButton";
 import type { ProfileData } from "@/features/social/services/profile-queries";
 import type { PostPage } from "@/features/social/types/social";
+import type { Relationship } from "@/features/social/utils/friend-rules";
 
 interface ProfileViewProps {
   profile: ProfileData;
   mode: "user" | "admin";
   isOwn: boolean;
   posts: PostPage;
+  // Trainee profiles only (admins are default friends, not rows).
+  friendCount?: number | null;
+  // Viewer is a trainee looking at another trainee: the friend button.
+  relationship?: Exclude<Relationship, "self"> | null;
+  // The "…" menu: block (trainee viewer, trainee profile) and report.
+  canBlock?: boolean;
+  canReport?: boolean;
 }
 
-// Profile card plus the posts the viewer may see. The friend count joins the
-// card in P4.
+// Profile card plus the posts the viewer may see.
 export const ProfileView = ({
   profile,
   mode,
   isOwn,
   posts,
+  friendCount = null,
+  relationship = null,
+  canBlock = false,
+  canReport = false,
 }: ProfileViewProps) => (
   <div className="space-y-6">
     <section
@@ -34,6 +47,9 @@ export const ProfileView = ({
         <span className="break-words">{profile.name}</span>
         {profile.verified && <VerifiedBadge className="size-5" />}
       </h2>
+      {friendCount !== null && (
+        <p className="text-sm font-medium text-muted">{friendCount} bạn bè</p>
+      )}
       {isOwn ? (
         <BioEditor mode={mode} bio={profile.bio} />
       ) : (
@@ -42,6 +58,26 @@ export const ProfileView = ({
             {profile.bio}
           </p>
         )
+      )}
+      {!isOwn && (relationship || canBlock || canReport) && (
+        <div className="flex items-center gap-2">
+          {relationship && (
+            <RelationshipButton
+              userId={profile.id}
+              name={profile.name}
+              relationship={relationship}
+            />
+          )}
+          {profile.kind === "user" && (canBlock || canReport) && (
+            <ProfileMenu
+              mode={mode}
+              userId={profile.id}
+              name={profile.name}
+              canBlock={canBlock}
+              canReport={canReport}
+            />
+          )}
+        </div>
       )}
     </section>
     <section className="space-y-3" aria-labelledby="profile-posts-title">

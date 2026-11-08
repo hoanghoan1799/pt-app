@@ -16,6 +16,7 @@ import {
   TEXTAREA,
 } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
+import { ReportSheet } from "@/features/social/components/ReportSheet";
 import { COMMENT_MAX_LENGTH } from "@/features/social/constants/social";
 import {
   addCommentAction,
@@ -46,6 +47,7 @@ export const CommentSection = ({
   const [body, setBody] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editBody, setEditBody] = useState("");
+  const [reportingId, setReportingId] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // Runs an action; true when it succeeded.
@@ -103,6 +105,20 @@ export const CommentSection = ({
 
   return (
     <section className="space-y-3" aria-label="Bình luận">
+      {reportingId !== null && (
+        <ReportSheet
+          key={reportingId}
+          isOpen
+          onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              setReportingId(null);
+            }
+          }}
+          mode={mode}
+          targetKind="comment"
+          targetId={reportingId}
+        />
+      )}
       {comments.length === 0 ? (
         <p className={`${CARD} p-4 text-center text-muted`}>
           Chưa có bình luận nào.
@@ -164,33 +180,41 @@ export const CommentSection = ({
                     <p className="text-base break-words whitespace-pre-wrap text-fg">
                       {comment.body}
                     </p>
-                    {(comment.canEdit || comment.canDelete) && (
-                      <div className="flex gap-4">
-                        {comment.canEdit && (
-                          <button
-                            type="button"
-                            disabled={isPending}
-                            onClick={() => {
-                              setEditingId(comment.id);
-                              setEditBody(comment.body);
-                            }}
-                            className={LINK_BUTTON}
-                          >
-                            Sửa
-                          </button>
-                        )}
-                        {comment.canDelete && (
-                          <button
-                            type="button"
-                            disabled={isPending}
-                            onClick={() => handleDelete(comment.id)}
-                            className={`${LINK_BUTTON} text-danger`}
-                          >
-                            Xoá
-                          </button>
-                        )}
-                      </div>
-                    )}
+                    <div className="flex gap-4">
+                      {!comment.canEdit && (
+                        <button
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => setReportingId(comment.id)}
+                          className={LINK_BUTTON}
+                        >
+                          Báo cáo
+                        </button>
+                      )}
+                      {comment.canEdit && (
+                        <button
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => {
+                            setEditingId(comment.id);
+                            setEditBody(comment.body);
+                          }}
+                          className={LINK_BUTTON}
+                        >
+                          Sửa
+                        </button>
+                      )}
+                      {comment.canDelete && (
+                        <button
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => handleDelete(comment.id)}
+                          className={`${LINK_BUTTON} text-danger`}
+                        >
+                          Xoá
+                        </button>
+                      )}
+                    </div>
                   </>
                 )}
               </div>

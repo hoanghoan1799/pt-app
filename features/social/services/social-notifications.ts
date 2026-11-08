@@ -1,6 +1,16 @@
 import "server-only";
 
-import { and, desc, eq, isNotNull, isNull, lt, max, sql } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  max,
+  sql,
+} from "drizzle-orm";
 import { after } from "next/server";
 
 import { db } from "@/db";
@@ -25,9 +35,10 @@ import type {
 } from "@/features/social/types/social";
 import {
   buildCommentPush,
+  buildFriendPush,
   buildReactionPush,
+  notificationHref,
   notificationText,
-  postPathFor,
   shouldPushReaction,
 } from "@/features/social/utils/engagement-rules";
 import { logServerError } from "@/services/logger";
@@ -96,7 +107,7 @@ export const listNotifications = async (
       id: row.id,
       kind: row.kind,
       text: notificationText(row.kind, actorName),
-      href: row.postId === null ? null : postPathFor(recipientKey, row.postId),
+      href: notificationHref(row.kind, recipientKey, row.postId),
       actorName,
       actorAvatarUrl: actor?.avatarUrl ?? null,
       createdAt: row.createdAt.getTime(),
@@ -125,6 +136,39 @@ export const createNotification = async (input: {
     .returning({ id: socialNotifications.id });
 
   return row.id;
+};
+
+// Friend request / accepted notifications have no post. A repeated one (the
+// request was declined and sent again) replaces the earlier row.
+export const createFriendNotification = async (input: {
+  recipientKey: string;
+  actorKey: string;
+  kind: "friend_request" | "friend_accepted";
+  now?: Date;
+}) => {
+  await removeFriendNotifications(input.recipientKey, input.actorKey, [
+    input.kind,
+  ]);
+  return createNotification({ ...input, postId: null });
+};
+
+export const removeFriendNotifications = async (
+  recipientKey: string,
+  actorKey: string,
+  kinds: ("friend_request" | "friend_accepted")[] = [
+    "friend_request",
+    "friend_accepted",
+  ],
+) => {
+  await db
+    .delete(socialNotifications)
+    .where(
+      and(
+        eq(socialNotifications.recipientKey, recipientKey),
+        eq(socialNotifications.actorKey, actorKey),
+        inArray(socialNotifications.kind, kinds),
+      ),
+    );
 };
 
 const reactionNotificationWhere = (input: {
@@ -173,6 +217,29 @@ export const removeReactionNotification = async (input: {
   await db.delete(socialNotifications).where(reactionNotificationWhere(input));
 };
 
+const buildPayload = (
+  notification: typeof socialNotifications.$inferSelect,
+  actorName: string,
+  commentBody: string | undefined,
+) => {
+  if (
+    notification.kind === "friend_request" ||
+    notification.kind === "friend_accepted"
+  ) {
+    return buildFriendPush(notification.kind, actorName);
+  }
+  const postId = notification.postId ?? 0;
+
+  return notification.kind === "post_comment"
+    ? buildCommentPush(
+        actorName,
+        notification.recipientKey,
+        postId,
+        commentBody ?? "",
+      )
+    : buildReactionPush(actorName, notification.recipientKey, postId);
+};
+
 export interface SocialPushInput {
   notificationId: number;
   // Only a comment push carries text; it is never stored on the notification.
@@ -194,7 +261,15 @@ export const sendSocialPush = async (
       .where(eq(socialNotifications.id, notificationId))
       .limit(1);
 
-    if (!notification || notification.postId === null) {
+    if (!notification) {
+      return;
+    }
+    const isFriendEvent =
+      notification.kind === "friend_request" ||
+      notification.kind === "friend_accepted";
+
+    // Post events need their post; friend events have none.
+    if (!isFriendEvent && notification.postId === null) {
       return;
     }
     const vapid = getVapid();
@@ -202,7 +277,7 @@ export const sendSocialPush = async (
     if (!vapid) {
       return;
     }
-    if (notification.kind === "post_reaction") {
+    if (notification.kind === "post_reaction" && notification.postId !== null) {
       const [last] = await db
         .select({ at: max(socialNotifications.pushedAt) })
         .from(socialNotifications)
@@ -234,19 +309,7 @@ export const sendSocialPush = async (
       notification.actorKey,
     );
     const actorName = actor?.name ?? DELETED_ACCOUNT_NAME;
-    const payload =
-      notification.kind === "post_comment"
-        ? buildCommentPush(
-            actorName,
-            notification.recipientKey,
-            notification.postId,
-            commentBody ?? "",
-          )
-        : buildReactionPush(
-            actorName,
-            notification.recipientKey,
-            notification.postId,
-          );
+    const payload = buildPayload(notification, actorName, commentBody);
 
     await db
       .update(socialNotifications)

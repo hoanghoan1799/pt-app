@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { admins, users } from "@/db/schema";
+import { loadPairState } from "@/features/social/services/relationships";
 import type {
   PostAuthorRef,
   SocialActor,
@@ -21,8 +22,8 @@ export const actorOfAdmin = (admin: {
   role: "super_admin" | "pt";
 }): SocialActor => ({ kind: "admin", id: admin.id, role: admin.role });
 
-// What canSeePost needs from the database about viewer and author. Friendship
-// and block data join here in P4.
+// What canSeePost needs from the database about viewer and author: workspace
+// data, and for two trainees their friendship and blocks (P4).
 export const loadVisibilityContext = async (
   viewer: SocialActor,
   author: PostAuthorRef,
@@ -45,6 +46,9 @@ export const loadVisibilityContext = async (
       .limit(1);
 
     ctx.authorRole = toAdminRole(row?.role);
+  }
+  if (viewer.kind === "user" && author.kind === "user") {
+    Object.assign(ctx, await loadPairState(viewer.id, author.id));
   }
   if (viewer.kind === "user") {
     const [row] = await db

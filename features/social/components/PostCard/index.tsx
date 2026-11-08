@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Flag, Loader2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -23,6 +23,7 @@ import {
   PrivacySelect,
 } from "@/features/social/components/PrivacySelect";
 import { ReactionBar } from "@/features/social/components/ReactionBar";
+import { ReportSheet } from "@/features/social/components/ReportSheet";
 import {
   CAPTION_MAX_LENGTH,
   PRIVACY_LABELS,
@@ -57,6 +58,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
   const router = useRouter();
   const confirm = useConfirm();
   const [isMenuOpen, setMenuOpen] = useState(false);
+  const [isReportOpen, setReportOpen] = useState(false);
   const [isEditing, setEditing] = useState(false);
   const [caption, setCaption] = useState(post.caption);
   const [privacy, setPrivacy] = useState<PostPrivacy>(post.privacy);
@@ -67,7 +69,9 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
     post.authorKind,
     post.authorId,
   );
-  const hasMenu = post.canEdit || post.canDelete;
+  // Everyone can report a post that is not their own.
+  const canReport = !post.canEdit;
+  const hasMenu = post.canEdit || post.canDelete || canReport;
 
   const report = (result: {
     status: string;
@@ -287,8 +291,30 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
               Xoá
             </button>
           )}
+          {canReport && (
+            <button
+              type="button"
+              className={MENU_ITEM}
+              onClick={() => {
+                setMenuOpen(false);
+                setReportOpen(true);
+              }}
+            >
+              <Flag className="size-5" aria-hidden />
+              Báo cáo
+            </button>
+          )}
         </div>
       </BottomSheet>
+      {canReport && (
+        <ReportSheet
+          isOpen={isReportOpen}
+          onOpenChange={setReportOpen}
+          mode={mode}
+          targetKind="post"
+          targetId={post.id}
+        />
+      )}
     </article>
   );
 };
