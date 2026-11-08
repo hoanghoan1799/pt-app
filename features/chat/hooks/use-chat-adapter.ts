@@ -83,12 +83,13 @@ export const useChatAdapter = (
         viewer: { role, adminId, adminName, peerName },
         uploadPhoto: (blob) =>
           uploadPhotoTo(blob, `?as=admin&userId=${userId}`),
-        sendMessage: (content, clientId, replyToMessageId) =>
+        sendMessage: (content, clientId, replyToMessageId, postId) =>
           adminSendMessageAction({
             userId,
             ...contentInput(content),
             clientId,
             replyToMessageId,
+            postId,
           }),
         reactMessage: (messageId, emoji) =>
           adminReactMessageAction({ conversationId: cid, messageId, emoji }),
@@ -108,11 +109,12 @@ export const useChatAdapter = (
       editsUrl: (messageId) => `${USER_MESSAGES_URL}/${messageId}/edits`,
       viewer: { role: "user" },
       uploadPhoto: (blob) => uploadPhotoTo(blob, ""),
-      sendMessage: (content, clientId, replyToMessageId) =>
+      sendMessage: (content, clientId, replyToMessageId, postId) =>
         sendMessageAction({
           ...contentInput(content),
           clientId,
           replyToMessageId,
+          postId,
         }),
       reactMessage: (messageId, emoji) =>
         reactMessageAction({ messageId, emoji }),

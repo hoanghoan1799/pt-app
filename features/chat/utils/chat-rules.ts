@@ -36,6 +36,8 @@ export const sendMessageShape = z.object({
   photoId: photoIdSchema.optional(),
   clientId: z.uuid(),
   replyToMessageId: messageIdSchema.optional(),
+  // A social post this message replies to (needs a text; checked on send).
+  postId: messageIdSchema.optional(),
 });
 
 export const hasBodyOrSticker = (value: {

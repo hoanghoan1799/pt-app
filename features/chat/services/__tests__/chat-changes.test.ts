@@ -165,7 +165,7 @@ describe("change cursor on GET /api/chat/messages", () => {
     const first = (await fetchThread("changedSince=0")).body;
 
     await mutations.reactToMessage(
-      { role: "admin", adminId: 1, name: "pt1" },
+      { role: "admin", adminId: 1, name: "pt1", adminRole: "super_admin" },
       conversationRef(),
       { messageId: firstId, emoji: "👍" },
     );

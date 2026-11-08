@@ -30,6 +30,7 @@ import {
   publishNewMessage,
   publishRead,
 } from "@/features/chat/services/chat-realtime";
+import { canQuotePost } from "@/features/chat/services/chat-reply-post";
 import {
   ownsSticker,
   type StickerOwner,
@@ -46,8 +47,14 @@ import {
   type StickerInput,
   toStoredSticker,
 } from "@/features/chat/utils/sticker-rules";
+import {
+  actorOfAdmin,
+  actorOfUser,
+} from "@/features/social/services/post-context";
+import type { SocialActor } from "@/features/social/types/social";
 import { withResultErrorHandling } from "@/services/action-errors";
 import { requireAdminForUser } from "@/services/admin-access";
+import { toAdminRole } from "@/services/admin-scope";
 import { requireAdmin, requireUser } from "@/services/auth-guard";
 import { findUserById } from "@/services/users";
 
@@ -72,6 +79,8 @@ interface SendInput {
   photoId?: number;
   clientId: string;
   replyToMessageId?: number;
+  // The social post being replied to; needs a text.
+  postId?: number;
 }
 
 // A personal sticker (KAN-158) may only be sent by its owner; the other kinds
@@ -110,14 +119,36 @@ const resolveContent = (parsed: {
 type Conversation = Awaited<ReturnType<typeof getOrCreateConversation>>;
 
 // A retried send of a photo message (same clientId) finds its photo already
-// attached, so it is answered with the stored message before any check.
-const findPhotoRetry = (
+// attached, and a retried post reply may name a post that has become private
+// since; both are answered with the stored message before any check.
+const findRetry = (
   conversation: Conversation,
-  parsed: { photoId?: number; clientId: string },
+  parsed: { photoId?: number; postId?: number; clientId: string },
+  viewer: SocialActor,
 ) =>
-  parsed.photoId === undefined
+  parsed.photoId === undefined && parsed.postId === undefined
     ? null
-    : findMessageByClientId(conversation.id, parsed.clientId);
+    : findMessageByClientId(conversation.id, parsed.clientId, viewer);
+
+// The error of a send that quotes a post, or null when it is fine: a text is
+// required and the post must be visible to the sender and written by the other
+// side (see canQuotePost).
+const postReplyError = async (
+  sender: SocialActor,
+  postId: number | undefined,
+  body: string,
+  traineeId: number,
+) => {
+  if (postId === undefined) {
+    return null;
+  }
+  if (body === "") {
+    return CHAT_MESSAGES.POST_NEEDS_TEXT;
+  }
+  return (await canQuotePost(sender, postId, traineeId))
+    ? null
+    : CHAT_MESSAGES.POST_NOT_FOUND;
+};
 
 // Trainee send. The conversation always comes from the session user, never
 // from the client. insertMessage is idempotent: a retried clientId returns
@@ -135,7 +166,8 @@ export const sendMessageAction = withResultErrorHandling(
     if (!parsed.success) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
-    const { clientId, replyToMessageId } = parsed.data;
+    const { clientId, replyToMessageId, postId } = parsed.data;
+    const sender = actorOfUser(user);
 
     if (
       !(await ownsStickerInput(
@@ -152,7 +184,7 @@ export const sendMessageAction = withResultErrorHandling(
     }
     const conversation = await getOrCreateConversation(user.id);
 
-    const retried = await findPhotoRetry(conversation, parsed.data);
+    const retried = await findRetry(conversation, parsed.data, sender);
 
     if (retried) {
       return { status: "success", message: retried };
@@ -167,17 +199,31 @@ export const sendMessageAction = withResultErrorHandling(
     ) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
+    const postError = await postReplyError(
+      sender,
+      postId,
+      resolved.content.body,
+      user.id,
+    );
+
+    if (postError) {
+      return fail(postError);
+    }
     if (!(await isReplyTargetValid(conversation, replyToMessageId))) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
-    const { message, created } = await insertMessageOnce({
-      conversationId: conversation.id,
-      senderRole: "user",
-      senderAdminId: null,
-      ...resolved.content,
-      clientId,
-      replyToMessageId,
-    });
+    const { message, created } = await insertMessageOnce(
+      {
+        conversationId: conversation.id,
+        senderRole: "user",
+        senderAdminId: null,
+        ...resolved.content,
+        clientId,
+        replyToMessageId,
+        replyPostId: postId ?? null,
+      },
+      sender,
+    );
 
     if (created && parsed.data.photoId !== undefined) {
       await attachPhotoToMessage(parsed.data.photoId, message.id);
@@ -214,9 +260,13 @@ export const adminSendMessageAction = withResultErrorHandling(
     if (!parsed.success) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
-    const { userId, clientId, replyToMessageId } = parsed.data;
+    const { userId, clientId, replyToMessageId, postId } = parsed.data;
 
     await requireAdminForUser(userId);
+    const sender = actorOfAdmin({
+      id: admin.id,
+      role: toAdminRole(admin.role),
+    });
     const trainee = await findUserById(userId);
 
     if (!trainee) {
@@ -240,7 +290,7 @@ export const adminSendMessageAction = withResultErrorHandling(
     }
     const conversation = await getOrCreateConversation(trainee.id);
 
-    const retried = await findPhotoRetry(conversation, parsed.data);
+    const retried = await findRetry(conversation, parsed.data, sender);
 
     if (retried) {
       return { status: "success", message: retried };
@@ -255,17 +305,31 @@ export const adminSendMessageAction = withResultErrorHandling(
     ) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
+    const postError = await postReplyError(
+      sender,
+      postId,
+      resolved.content.body,
+      trainee.id,
+    );
+
+    if (postError) {
+      return fail(postError);
+    }
     if (!(await isReplyTargetValid(conversation, replyToMessageId))) {
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
-    const { message, created } = await insertMessageOnce({
-      conversationId: conversation.id,
-      senderRole: "admin",
-      senderAdminId: admin.id,
-      ...resolved.content,
-      clientId,
-      replyToMessageId,
-    });
+    const { message, created } = await insertMessageOnce(
+      {
+        conversationId: conversation.id,
+        senderRole: "admin",
+        senderAdminId: admin.id,
+        ...resolved.content,
+        clientId,
+        replyToMessageId,
+        replyPostId: postId ?? null,
+      },
+      sender,
+    );
 
     // After the DB write; publishChatEvent never throws. A retried send
     // republishes the stored message, clients dedupe by id.

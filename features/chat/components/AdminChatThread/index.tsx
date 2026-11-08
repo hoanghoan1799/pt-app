@@ -21,6 +21,7 @@ interface AdminChatThreadProps extends Pick<
   | "emptyText"
   | "ariaLabel"
   | "avatars"
+  | "replyPost"
 > {
   // The trainee's real name; the admin's nickname for them wins in the title.
   userName: string;

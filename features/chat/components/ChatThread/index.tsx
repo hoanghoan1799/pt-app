@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import dynamic from "next/dynamic";
+import { usePathname, useRouter } from "next/navigation";
 import {
   type ReactNode,
   useCallback,
@@ -23,6 +24,7 @@ import { NewMessagesChip } from "@/features/chat/components/NewMessagesChip";
 import { PushOptInCard } from "@/features/chat/components/PushOptInCard";
 import { ReactorsSheet } from "@/features/chat/components/ReactorsSheet";
 import { ReplyBar } from "@/features/chat/components/ReplyBar";
+import { ReplyPostBar } from "@/features/chat/components/ReplyPostBar";
 import { TypingIndicator } from "@/features/chat/components/TypingIndicator";
 import { CHAT_MESSAGES } from "@/features/chat/constants/messages";
 import { useChatAdapter } from "@/features/chat/hooks/use-chat-adapter";
@@ -53,6 +55,7 @@ import {
 import { displayNameFor } from "@/features/chat/utils/display-name";
 import type { PreparedPhoto } from "@/features/chat/utils/encode-photo";
 import type { PresenceView } from "@/features/chat/utils/presence-status";
+import type { DmReplyPostView } from "@/features/social/types/dm";
 
 export interface ChatThreadProps {
   initial: ThreadSnapshot;
@@ -91,6 +94,9 @@ export interface ChatThreadProps {
   // Photos of the people in this thread (versioned /api/avatar URLs), keyed
   // like nicknames: "user" or "admin:<id>". Only people with a photo.
   avatars?: Readonly<Record<string, string>>;
+  // A post to reply to, opened from a post card (`?replyPost=`); sent with the
+  // next text message. Attaching it replaces a message reply and vice versa.
+  replyPost?: (DmReplyPostView & { available: true }) | null;
 }
 
 const NO_VERIFIED: number[] = [];
@@ -189,7 +195,10 @@ export const ChatThread = ({
   emptyText,
   ariaLabel = TRAINEE_ARIA_LABEL,
   avatars = NO_AVATARS,
+  replyPost = null,
 }: ChatThreadProps) => {
+  const router = useRouter();
+  const pathname = usePathname();
   const isAdmin = viewer.role === "admin";
   // Admin-only and per device; trainee views never read the stored value.
   const [neutralColors] = useNeutralChatColors(isAdmin);
@@ -219,6 +228,7 @@ export const ChatThread = ({
   );
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [replyId, setReplyId] = useState<number | null>(null);
+  const [quote, setQuote] = useState(replyPost);
   const [editing, setEditing] = useState<{ id: number; body: string } | null>(
     null,
   );
@@ -370,8 +380,10 @@ export const ChatThread = ({
   // An edit whose message was unsent meanwhile ends by itself.
   const activeEditing =
     editing && findMessage(editing.id)?.deleted === false ? editing : null;
+  const activeQuote = chatEnabled && !activeEditing ? quote : null;
   const hasComposerBar =
-    chatEnabled && (replyMessage !== undefined || activeEditing !== null);
+    chatEnabled &&
+    (replyMessage !== undefined || activeEditing !== null || quote !== null);
 
   // The bar changes the composer height; stay on the latest message.
   useLayoutEffect(() => {
@@ -432,9 +444,20 @@ export const ChatThread = ({
     }
   };
 
+  // Drops "?replyPost=" too, so a refresh does not attach the post again.
+  const clearQuote = () => {
+    setQuote(null);
+    if (replyPost) {
+      router.replace(pathname, { scroll: false });
+    }
+  };
+
   const handleReply = (message: ThreadMessage) => {
     setIsSheetOpen(false);
     setEditing(null);
+    if (quote) {
+      clearQuote();
+    }
     setReplyId(message.id);
   };
 
@@ -509,12 +532,18 @@ export const ChatThread = ({
   }, [jumpToId]);
 
   const handleSend = (body: string, photo?: PreparedPhoto) => {
+    // A post reply needs a text; a photo sent without one leaves it in place.
+    const post = activeQuote && body.trim() !== "" ? activeQuote : null;
+
     if (photo) {
-      chat.sendPhoto(photo, body, replyMessage);
+      chat.sendPhoto(photo, body, replyMessage, post);
     } else {
-      chat.send(body, replyMessage);
+      chat.send(body, replyMessage, post);
     }
     setReplyId(null);
+    if (post) {
+      clearQuote();
+    }
   };
 
   const openStickers = () => {
@@ -724,6 +753,9 @@ export const ChatThread = ({
             closeLabel="Huỷ chỉnh sửa"
             onClose={() => setEditing(null)}
           />
+        )}
+        {activeQuote && (
+          <ReplyPostBar post={activeQuote} onClose={clearQuote} />
         )}
         {chatEnabled && !activeEditing && replyMessage && (
           <ReplyBar

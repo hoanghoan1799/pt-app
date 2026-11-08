@@ -21,9 +21,13 @@ import {
   listMessages,
   listMessagesAround,
 } from "@/features/chat/services/chat-queries";
+import { loadCoachReplyPostFor } from "@/features/chat/services/chat-reply-post";
 import { parseJumpId } from "@/features/chat/utils/chat-links";
 import { serializeMessage } from "@/features/chat/utils/chat-thread-rules";
 import { serializeLastSeen } from "@/features/chat/utils/presence";
+import { actorOfAdmin } from "@/features/social/services/post-context";
+import { parseDmId } from "@/features/social/utils/dm-rules";
+import { toAdminRole } from "@/services/admin-scope";
 import { requireAdmin } from "@/services/auth-guard";
 import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
@@ -87,9 +91,19 @@ const AdminMessagesPage = async ({
       </>
     );
   }
+  const viewer = actorOfAdmin({ id: admin.id, role: toAdminRole(admin.role) });
   const jumpId = parseJumpId(query.m);
+  // `?replyPost=<id>`: this trainee's post quoted above the composer; only when
+  // the chat is open for writing and the admin may see that post.
+  const replyPostId = parseDmId(readSearchParam(query.replyPost) ?? "");
+  const replyPost =
+    replyPostId !== null && chatEnabled
+      ? await loadCoachReplyPostFor(viewer, replyPostId, user.id)
+      : null;
   const around =
-    jumpId === null ? null : await listMessagesAround(conversation.id, jumpId);
+    jumpId === null
+      ? null
+      : await listMessagesAround(conversation.id, jumpId, viewer);
   const [
     { messages, hasMore },
     peerReadUpTo,
@@ -97,7 +111,7 @@ const AdminMessagesPage = async ({
     adminAvatars,
     traineeAvatarUrl,
   ] = await Promise.all([
-    around ?? listMessages(conversation.id),
+    around ?? listMessages(conversation.id, {}, viewer),
     getPeerReadCursor(conversation.id, "admin"),
     loadChatProfile(conversation.id),
     listAdminAvatarUrls(),
@@ -120,6 +134,7 @@ const AdminMessagesPage = async ({
       userName={user.name}
       userId={user.id}
       conversationId={conversation.id}
+      replyPost={replyPost}
       jumpToId={around ? jumpId : null}
       viewer={{
         role: "admin",

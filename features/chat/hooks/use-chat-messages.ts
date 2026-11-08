@@ -31,6 +31,7 @@ import type {
   ChatSticker,
   StickerInput,
 } from "@/features/chat/utils/sticker-rules";
+import type { DmReplyPostView } from "@/features/social/types/dm";
 
 const MARK_READ_DEBOUNCE_MS = 600;
 const SEND_FAILED_TEXT = "Không gửi được tin nhắn. Thử lại nhé.";
@@ -86,6 +87,7 @@ export interface ChatAdapter {
     content: SendContent,
     clientId: string,
     replyToMessageId?: number,
+    postId?: number,
   ) => Promise<Awaited<ReturnType<typeof sendMessageAction>>>;
   reactMessage: (
     messageId: number,
@@ -259,6 +261,7 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
       content: SendContent,
       clientId: string,
       replyToMessageId?: number,
+      postId?: number,
     ) => {
       try {
         const { viewer, sendMessage, uploadPhoto } = adapterRef.current;
@@ -270,7 +273,12 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
           toSend = { ...content, photo: { ...content.photo, photoId } };
           pendingContent.current.set(clientId, toSend);
         }
-        const result = await sendMessage(toSend, clientId, replyToMessageId);
+        const result = await sendMessage(
+          toSend,
+          clientId,
+          replyToMessageId,
+          postId,
+        );
 
         if (result.status === "success" && "message" in result) {
           const stored: SerializedChatMessage = {
@@ -313,6 +321,7 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
       content: SendContent,
       replyTo: ThreadMessage | null | undefined,
       fields: Pick<ThreadMessage, "body" | "sticker" | "photo">,
+      post: DmReplyPostView | null = null,
     ) => {
       const clientId = crypto.randomUUID();
       const { viewer } = adapterRef.current;
@@ -327,6 +336,7 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
         clientId,
         createdAt: now,
         replyTo: quote,
+        post,
         editedAt: null,
         deleted: false,
         updatedAt: now,
@@ -337,13 +347,17 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
       pendingContent.current.set(clientId, content);
       setSendError(null);
       setMessages((current) => [...current, optimistic]);
-      void deliver(content, clientId, quote?.id);
+      void deliver(content, clientId, quote?.id, post?.id);
     },
     [deliver],
   );
 
   const send = useCallback(
-    (rawBody: string, replyTo?: ThreadMessage | null) => {
+    (
+      rawBody: string,
+      replyTo?: ThreadMessage | null,
+      post?: DmReplyPostView | null,
+    ) => {
       const body = rawBody.trim();
       // The server parses again; this only shows the stripped text in the
       // optimistic bubble.
@@ -352,7 +366,7 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
       if (!shown) {
         return;
       }
-      sendContent({ body }, replyTo, { body: shown });
+      sendContent({ body }, replyTo, { body: shown }, post);
     },
     [sendContent],
   );
@@ -372,20 +386,30 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
   // The bubble shows the local image at once; the stored message (same
   // clientId) replaces it with the served one.
   const sendPhoto = useCallback(
-    (photo: PreparedPhoto, rawBody: string, replyTo?: ThreadMessage | null) => {
+    (
+      photo: PreparedPhoto,
+      rawBody: string,
+      replyTo?: ThreadMessage | null,
+      post?: DmReplyPostView | null,
+    ) => {
       const body = rawBody.trim();
       // The server parses the caption again; the bubble shows it stripped.
       const shown = parseChatCommand(body).body;
 
-      sendContent({ photo, ...(body ? { body } : {}) }, replyTo, {
-        body: shown,
-        photo: {
-          url: URL.createObjectURL(photo.blob),
-          width: photo.width,
-          height: photo.height,
-          alt: PHOTO_ALT,
+      sendContent(
+        { photo, ...(body ? { body } : {}) },
+        replyTo,
+        {
+          body: shown,
+          photo: {
+            url: URL.createObjectURL(photo.blob),
+            width: photo.width,
+            height: photo.height,
+            alt: PHOTO_ALT,
+          },
         },
-      });
+        post,
+      );
     },
     [sendContent],
   );
@@ -411,6 +435,7 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
         pendingContent.current.get(clientId) ?? { body: target.body },
         clientId,
         target.replyTo?.id,
+        target.post?.id,
       );
     },
     [deliver],
@@ -510,6 +535,7 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
           body: "",
           deleted: true,
           replyTo: null,
+          post: null,
           reactions: [],
         }),
         (current) => current.unsendMessage(messageId),
