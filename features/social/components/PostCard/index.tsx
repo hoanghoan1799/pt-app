@@ -1,6 +1,13 @@
 "use client";
 
-import { Flag, Loader2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import {
+  Flag,
+  Loader2,
+  MessageCircle,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -24,15 +31,18 @@ import {
 } from "@/features/social/components/PrivacySelect";
 import { ReactionBar } from "@/features/social/components/ReactionBar";
 import { ReportSheet } from "@/features/social/components/ReportSheet";
+import { DM_MESSAGES } from "@/features/social/constants/dm";
 import {
   CAPTION_MAX_LENGTH,
   PRIVACY_LABELS,
 } from "@/features/social/constants/social";
+import { openDmAction } from "@/features/social/services/dm-actions";
 import {
   deletePostAction,
   editPostAction,
 } from "@/features/social/services/social-actions";
 import type { PostPrivacy, PostView } from "@/features/social/types/social";
+import { dmReplyPath } from "@/features/social/utils/dm-rules";
 import {
   adminPostPath,
   postPath,
@@ -71,6 +81,10 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
   );
   // Everyone can report a post that is not their own.
   const canReport = !post.canEdit;
+  // Trainees reply to another trainee's post in their chat; the friendship is
+  // checked when the chat opens and the error is shown.
+  const canReplyInChat =
+    mode === "user" && post.authorKind === "user" && !post.canEdit;
   const hasMenu = post.canEdit || post.canDelete || canReport;
 
   const report = (result: {
@@ -99,6 +113,20 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
         setEditing(false);
         router.refresh();
       }
+    });
+  };
+
+  const handleReplyInChat = () => {
+    startTransition(async () => {
+      const result = await openDmAction(post.authorId);
+
+      if (result.status === "error") {
+        toast.error(result.message, {
+          description: describeErrorReference(result.reference),
+        });
+        return;
+      }
+      router.push(dmReplyPath(result.conversationId, post.id));
     });
   };
 
@@ -261,6 +289,22 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
               : postPath(post.id)
         }
       />
+
+      {canReplyInChat && (
+        <button
+          type="button"
+          onClick={handleReplyInChat}
+          disabled={isPending}
+          className={`${BUTTON_SECONDARY} min-h-11 w-full gap-2`}
+        >
+          {isPending ? (
+            <Loader2 className="size-5 animate-spin" aria-hidden />
+          ) : (
+            <MessageCircle className="size-5" aria-hidden />
+          )}
+          {DM_MESSAGES.REPLY_TO_POST}
+        </button>
+      )}
 
       <BottomSheet
         isOpen={isMenuOpen}

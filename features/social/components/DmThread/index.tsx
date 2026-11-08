@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { ArrowUp, ImagePlus, Loader2, X } from "lucide-react";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -20,12 +21,13 @@ import {
 } from "@/features/chat/utils/encode-photo";
 import { PHOTO_ERRORS } from "@/features/chat/utils/photo-rules";
 import { DmBubbleList } from "@/features/social/components/DmBubbleList";
+import { DmPostQuote } from "@/features/social/components/DmPostQuote";
 import {
   DM_BODY_MAX_LENGTH,
   DM_MESSAGES,
 } from "@/features/social/constants/dm";
 import { useDmThread } from "@/features/social/hooks/use-dm-thread";
-import type { DmThreadPage } from "@/features/social/types/dm";
+import type { DmReplyPostView, DmThreadPage } from "@/features/social/types/dm";
 import { lastSeenOwnId } from "@/features/social/utils/dm-thread-rules";
 import { profilePath } from "@/features/social/utils/post-rules";
 
@@ -33,6 +35,8 @@ interface DmThreadProps {
   conversationId: number;
   meId: number;
   other: { id: number; name: string; avatarUrl: string | null };
+  // A post being replied to (opened from a post card); sent with the next message.
+  replyPost?: (DmReplyPostView & { available: true }) | null;
   initial: DmThreadPage & {
     readOnlyReason: string | null;
     isReadOnly: boolean;
@@ -52,12 +56,16 @@ export const DmThread = ({
   conversationId,
   meId,
   other,
+  replyPost = null,
   initial,
 }: DmThreadProps) => {
+  const router = useRouter();
+  const pathname = usePathname();
   const thread = useDmThread({ conversationId, meId, initial });
   const [text, setText] = useState("");
   const [photo, setPhoto] = useState<PendingPhoto | null>(null);
   const [isUploading, setUploading] = useState(false);
+  const [quote, setQuote] = useState(replyPost);
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const lastCount = thread.items.length;
@@ -107,15 +115,29 @@ export const DmThread = ({
     }
   };
 
-  const canSend = (text.trim() !== "" || photo !== null) && !isUploading;
+  // A post reply needs a text; otherwise a text or a photo.
+  const canSend =
+    (quote ? text.trim() !== "" : text.trim() !== "" || photo !== null) &&
+    !isUploading;
+
+  // Drop "?replyPost=" so a refresh does not attach the post again.
+  const clearQuote = () => {
+    setQuote(null);
+    if (replyPost) {
+      router.replace(pathname, { scroll: false });
+    }
+  };
 
   const handleSend = () => {
     if (!canSend) {
       return;
     }
-    thread.send(text, photo);
+    thread.send(text, photo, quote);
     setText("");
     setPhoto(null);
+    if (quote) {
+      clearQuote();
+    }
   };
 
   return (
@@ -186,6 +208,24 @@ export const DmThread = ({
           </p>
         ) : (
           <div className={clsx(PAGE_CONTAINER, "space-y-2 py-2")}>
+            {quote && (
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="px-1 text-xs font-semibold text-muted">
+                    {DM_MESSAGES.REPLYING_TO_POST}
+                  </p>
+                  <DmPostQuote post={quote} variant="bar" />
+                </div>
+                <button
+                  type="button"
+                  onClick={clearQuote}
+                  aria-label={DM_MESSAGES.CANCEL_REPLY}
+                  className={ICON_BUTTON}
+                >
+                  <X className="size-5" aria-hidden />
+                </button>
+              </div>
+            )}
             {(photo || isUploading) && (
               <div className="flex items-center gap-2">
                 {photo ? (

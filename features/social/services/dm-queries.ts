@@ -22,8 +22,14 @@ import {
 } from "@/db/schema";
 import { avatarUrl } from "@/features/avatar/utils/avatar-rules";
 import { DM_PAGE_SIZE } from "@/features/social/constants/dm";
+import { loadReplyPostViews } from "@/features/social/services/dm-reply-post";
 import { listBlockedBetweenIds } from "@/features/social/services/relationships";
-import type { DmMessageView, DmThreadPage } from "@/features/social/types/dm";
+import type {
+  DmMessageView,
+  DmReplyPostView,
+  DmThreadPage,
+} from "@/features/social/types/dm";
+import type { SocialActor } from "@/features/social/types/social";
 import {
   dmPhotoUrl,
   dmPreview,
@@ -35,6 +41,7 @@ export type { DmMessageView, DmThreadPage };
 const toView = (
   row: typeof dmMessages.$inferSelect,
   photos: Map<number, { width: number; height: number }>,
+  posts: Map<number, DmReplyPostView>,
 ): DmMessageView => {
   const size = row.photoId === null ? undefined : photos.get(row.photoId);
 
@@ -46,6 +53,8 @@ const toView = (
       row.photoId !== null && size
         ? { url: dmPhotoUrl(row.photoId), ...size }
         : null,
+    post:
+      row.replyPostId === null ? null : (posts.get(row.replyPostId) ?? null),
     clientId: row.clientId,
     createdAt: row.createdAt.toISOString(),
   };
@@ -65,24 +74,37 @@ const loadPhotoSizes = async (photoIds: number[]) => {
   );
 };
 
+// Views as `viewer` may see them: the quoted post is checked per viewer.
 export const toMessageViews = async (
   rows: (typeof dmMessages.$inferSelect)[],
+  viewer: SocialActor,
 ) => {
-  const photos = await loadPhotoSizes(
-    rows.flatMap((row) => (row.photoId === null ? [] : [row.photoId])),
-  );
+  const [photos, posts] = await Promise.all([
+    loadPhotoSizes(
+      rows.flatMap((row) => (row.photoId === null ? [] : [row.photoId])),
+    ),
+    loadReplyPostViews(
+      viewer,
+      rows.flatMap((row) =>
+        row.replyPostId === null ? [] : [row.replyPostId],
+      ),
+    ),
+  ]);
 
-  return rows.map((row) => toView(row, photos));
+  return rows.map((row) => toView(row, photos, posts));
 };
 
-export const getDmMessageView = async (messageId: number) => {
+export const getDmMessageView = async (
+  messageId: number,
+  viewer: SocialActor,
+) => {
   const [row] = await db
     .select()
     .from(dmMessages)
     .where(eq(dmMessages.id, messageId))
     .limit(1);
 
-  return row ? (await toMessageViews([row]))[0] : null;
+  return row ? (await toMessageViews([row], viewer))[0] : null;
 };
 
 // Newest page (no cursor), older (`before`) or newer (`after`) messages, in
@@ -90,7 +112,12 @@ export const getDmMessageView = async (messageId: number) => {
 // ride along so a polling client can remove them.
 export const listDmThread = async (
   conversationId: number,
-  options: { after?: number; before?: number; otherId: number | null },
+  options: {
+    after?: number;
+    before?: number;
+    otherId: number | null;
+    viewer: SocialActor;
+  },
 ): Promise<DmThreadPage> => {
   const inConversation = eq(dmMessages.conversationId, conversationId);
   const live = sql`${dmMessages.deletedAt} is null`;
@@ -145,7 +172,7 @@ export const listDmThread = async (
   ]);
 
   return {
-    messages: await toMessageViews(page),
+    messages: await toMessageViews(page, options.viewer),
     deletedIds: deleted.map((row) => row.id),
     hasMore,
     otherReadUpTo: read[0]?.id ?? 0,

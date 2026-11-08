@@ -14,7 +14,11 @@ import {
   sendDmAction,
   unsendDmAction,
 } from "@/features/social/services/dm-actions";
-import type { DmMessageView, DmThreadPage } from "@/features/social/types/dm";
+import type {
+  DmMessageView,
+  DmReplyPostView,
+  DmThreadPage,
+} from "@/features/social/types/dm";
 import {
   type DmThreadItem,
   lastServerId,
@@ -180,11 +184,14 @@ export const useDmThread = ({ conversationId, meId, initial }: Options) => {
 
   const deliver = useCallback(
     async (item: DmThreadItem, photoId: number | null) => {
+      const postId = item.post?.id ?? null;
+
       const result = await sendDmAction({
         conversationId,
         clientId: item.clientId,
         body: item.body ?? "",
         photoId,
+        postId,
       });
 
       if (result.status === "error") {
@@ -209,12 +216,14 @@ export const useDmThread = ({ conversationId, meId, initial }: Options) => {
     (
       body: string,
       photo: { id: number; url: string; width: number; height: number } | null,
+      post: DmReplyPostView | null = null,
     ) => {
       const item: DmThreadItem = {
         id: -Date.now(),
         senderId: meId,
         body: body.trim() === "" ? null : body.trim(),
         photo,
+        post,
         clientId: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
         pending: "sending",

@@ -10,6 +10,7 @@ import {
   dmReads,
   users,
 } from "@/db/schema";
+import { DM_MESSAGES } from "@/features/social/constants/dm";
 import {
   type DmView,
   findDmConversation,
@@ -17,17 +18,24 @@ import {
 } from "@/features/social/services/dm-access";
 import { isDmPhotoAttachable } from "@/features/social/services/dm-photos";
 import { getDmMessageView } from "@/features/social/services/dm-queries";
+import { loadVisiblePost } from "@/features/social/services/post-access";
 import {
   isBlockedBetween,
   loadPairState,
 } from "@/features/social/services/relationships";
 import { hasAcceptedTerms } from "@/features/social/services/terms";
 import type { DmMessageView } from "@/features/social/types/dm";
+import type { SocialActor } from "@/features/social/types/social";
 import { checkDmContent } from "@/features/social/utils/dm-rules";
 import { pairOf } from "@/features/social/utils/friend-rules";
 
 export type DmError =
-  "not_found" | "read_only" | "empty" | "too_long" | "photo_not_found";
+  | "not_found"
+  | "read_only"
+  | "empty"
+  | "too_long"
+  | "photo_not_found"
+  | "post_not_found";
 
 type Result<T> =
   ({ ok: true } & T) | { ok: false; error: DmError; message?: string };
@@ -100,6 +108,8 @@ export interface SendDmInput {
   clientId: string;
   body: string;
   photoId: number | null;
+  // The post this message replies to; needs a text.
+  postId?: number | null;
 }
 
 export type SendDmResult = Result<{
@@ -115,10 +125,8 @@ export const sendDmMessage = async (
   input: SendDmInput,
   now = new Date(),
 ): Promise<SendDmResult> => {
-  const view = await resolveDmView(input.conversationId, {
-    kind: "user",
-    id: input.senderId,
-  });
+  const sender: SocialActor = { kind: "user", id: input.senderId };
+  const view = await resolveDmView(input.conversationId, sender);
 
   if (!view || view.access !== "member" || view.otherId === null) {
     return { ok: false, error: "not_found" };
@@ -131,7 +139,7 @@ export const sendDmMessage = async (
       ok: true,
       created: false,
       recipientId,
-      message: (await getDmMessageView(existing.id)) as DmMessageView,
+      message: (await getDmMessageView(existing.id, sender)) as DmMessageView,
     };
   }
   if (view.readOnlyReason !== null) {
@@ -145,6 +153,23 @@ export const sendDmMessage = async (
       error: input.body.trim() === "" ? "empty" : "too_long",
       message: content.message,
     };
+  }
+  const postId = input.postId ?? null;
+
+  if (postId !== null) {
+    if (content.body === null) {
+      return { ok: false, error: "empty", message: DM_MESSAGES.EMPTY };
+    }
+    // Only a post the sender can see and the other member wrote.
+    const post = await loadVisiblePost(sender, postId);
+
+    if (!post || post.authorKind !== "user" || post.authorId !== recipientId) {
+      return {
+        ok: false,
+        error: "post_not_found",
+        message: DM_MESSAGES.POST_NOT_FOUND,
+      };
+    }
   }
   if (
     input.photoId !== null &&
@@ -163,6 +188,7 @@ export const sendDmMessage = async (
       senderId: input.senderId,
       body: content.body,
       photoId: input.photoId,
+      replyPostId: postId,
       clientId: input.clientId,
       createdAt: now,
     })
@@ -178,7 +204,7 @@ export const sendDmMessage = async (
           ok: true,
           created: false,
           recipientId,
-          message: (await getDmMessageView(winner.id)) as DmMessageView,
+          message: (await getDmMessageView(winner.id, sender)) as DmMessageView,
         }
       : { ok: false, error: "not_found" };
   }
@@ -199,7 +225,7 @@ export const sendDmMessage = async (
     ok: true,
     created: true,
     recipientId,
-    message: (await getDmMessageView(row.id)) as DmMessageView,
+    message: (await getDmMessageView(row.id, sender)) as DmMessageView,
   };
 };
 
@@ -236,7 +262,7 @@ export const unsendDmMessage = async (
   }
   const rows = await db
     .update(dmMessages)
-    .set({ deletedAt: now, body: null, photoId: null })
+    .set({ deletedAt: now, body: null, photoId: null, replyPostId: null })
     .where(
       and(
         eq(dmMessages.id, messageId),
