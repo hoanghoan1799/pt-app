@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Avatar } from "@/components/common/Avatar";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON, PAGE_CONTAINER } from "@/constants/styles";
 import { PresenceStatus } from "@/features/chat/components/PresenceStatus";
@@ -24,6 +25,8 @@ interface ChatHeaderProps {
   // Accessible name of the gear; the link shows an icon only.
   settingsLabel?: string;
   presence: PresenceView | null;
+  // Show the blue tick next to the name (verified PT).
+  verified?: boolean;
   // The chat info page (KAN-160): the avatar, the name and the gear go there.
   infoHref: string;
 }
@@ -38,6 +41,7 @@ export const ChatHeader = ({
   settingsLabel = "Thông tin cuộc trò chuyện",
   presence,
   infoHref,
+  verified = false,
 }: ChatHeaderProps) => {
   const router = useRouter();
 
@@ -89,6 +93,7 @@ export const ChatHeader = ({
         >
           <h1 className="truncate text-base leading-tight font-bold text-fg">
             {title}
+            {verified && <VerifiedBadge className="ml-1" />}
           </h1>
           <PresenceStatus presence={presence} />
         </Link>

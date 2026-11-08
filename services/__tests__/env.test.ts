@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getDatabaseConfig, getSessionSecret } from "@/services/env";
+import {
+  getDatabaseConfig,
+  getSessionSecret,
+  getSuperAdminCredentials,
+} from "@/services/env";
 import { AppError } from "@/utils/errors";
 
 const catchError = (run: () => unknown) => {
@@ -92,5 +96,48 @@ describe("getSessionSecret", () => {
 
     vi.stubEnv("SESSION_SECRET", "short");
     expect(catchError(getSessionSecret).code).toBe("CONFIG_INVALID");
+  });
+});
+
+describe("getSuperAdminCredentials", () => {
+  const clear = () => {
+    for (const name of [
+      "SUPER_ADMIN_USERNAME",
+      "SUPER_ADMIN_PASSWORD",
+      "ADMIN_USERNAME",
+      "ADMIN_PASSWORD",
+    ]) {
+      vi.stubEnv(name, "");
+    }
+  };
+
+  it("reads SUPER_ADMIN_* when set", () => {
+    clear();
+    vi.stubEnv("SUPER_ADMIN_USERNAME", " boss ");
+    vi.stubEnv("SUPER_ADMIN_PASSWORD", "super-secret-1");
+    vi.stubEnv("ADMIN_USERNAME", "old");
+    vi.stubEnv("ADMIN_PASSWORD", "old-password");
+
+    expect(getSuperAdminCredentials()).toEqual({
+      username: "boss",
+      password: "super-secret-1",
+    });
+  });
+
+  it("falls back to the old ADMIN_* names when the new ones are missing", () => {
+    clear();
+    vi.stubEnv("ADMIN_USERNAME", "old");
+    vi.stubEnv("ADMIN_PASSWORD", "old-password");
+
+    expect(getSuperAdminCredentials()).toEqual({
+      username: "old",
+      password: "old-password",
+    });
+  });
+
+  it("returns empty strings when nothing is set", () => {
+    clear();
+
+    expect(getSuperAdminCredentials()).toEqual({ username: "", password: "" });
   });
 });

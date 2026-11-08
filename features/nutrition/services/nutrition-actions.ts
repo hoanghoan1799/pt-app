@@ -24,6 +24,7 @@ import {
   withFormErrorHandling,
   withResultErrorHandling,
 } from "@/services/action-errors";
+import { requireAdminForUser } from "@/services/admin-access";
 import { requireAdmin, requireUser } from "@/services/auth-guard";
 import type { ActionResult } from "@/types/error";
 import type { FormState } from "@/types/form";
@@ -58,6 +59,8 @@ export const saveNutritionTargetAction = withFormErrorHandling(
     }
 
     const { userId, carbs, protein, fat, note } = parsed.data;
+
+    await requireAdminForUser(userId);
     const effectiveFrom = getTodayDate(TIME_ZONE);
 
     await db
@@ -159,6 +162,8 @@ export const saveBodyProfileAction = withFormErrorHandling(
     }
 
     const { userId, applyToTarget, ...measurements } = parsed.data;
+
+    await requireAdminForUser(userId);
     const isApplied = await saveBodyProfile(
       userId,
       measurements,

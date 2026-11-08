@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { adminHiddenUsers, chatConversations } from "@/db/schema";
 import { canSeeHiddenUsers } from "@/services/admin-lock";
+import { isUserInAdminScope } from "@/services/admin-scope";
 
 // Trainees this admin hid (KAN-163). A subquery, so callers can drop it into
 // `notInArray(users.id, hiddenUserIdsOf(adminId))` without a round trip.
@@ -42,7 +43,10 @@ export const isUserHidden = async (adminId: number, userId: number) => {
   return Boolean(row);
 };
 
-// Page / API guard: a hidden trainee is "not found" for the admin who hid it
-// unless that admin revealed hidden trainees with the passcode (R2).
+// Page / API guard: a trainee outside a PT's workspace is "not found" (P1),
+// and a hidden trainee is "not found" for the admin who hid it unless that
+// admin revealed hidden trainees with the passcode (R2).
 export const canAdminAccessUser = async (adminId: number, userId: number) =>
-  !(await isUserHidden(adminId, userId)) || (await canSeeHiddenUsers(adminId));
+  (await isUserInAdminScope(adminId, userId)) &&
+  (!(await isUserHidden(adminId, userId)) ||
+    (await canSeeHiddenUsers(adminId)));

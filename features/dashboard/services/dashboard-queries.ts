@@ -37,6 +37,7 @@ import {
   mergeActivity,
 } from "@/features/dashboard/utils/activity";
 import { groupSetRows } from "@/features/workouts/utils/set-rows";
+import { outOfScopeUserIdsOf } from "@/services/admin-scope";
 import { hiddenUserIdsOf } from "@/services/hidden-users";
 import { getWeekDates } from "@/utils/week";
 
@@ -61,7 +62,12 @@ export const getMemberProgress = async (
           avatarUpdatedAt: users.avatarUpdatedAt,
         })
         .from(users)
-        .where(notInArray(users.id, hiddenUserIdsOf(adminId)))
+        .where(
+          and(
+            notInArray(users.id, hiddenUserIdsOf(adminId)),
+            notInArray(users.id, outOfScopeUserIdsOf(adminId)),
+          ),
+        )
         .orderBy(asc(users.nameKey)),
       db
         .select({
@@ -154,7 +160,13 @@ const getRecentCompletions = async ({
         userId ? eq(exerciseCompletions.userId, userId) : undefined,
         adminId === undefined
           ? undefined
-          : notInArray(exerciseCompletions.userId, hiddenUserIdsOf(adminId)),
+          : and(
+              notInArray(exerciseCompletions.userId, hiddenUserIdsOf(adminId)),
+              notInArray(
+                exerciseCompletions.userId,
+                outOfScopeUserIdsOf(adminId),
+              ),
+            ),
       ),
     )
     .orderBy(desc(exerciseCompletions.completedAt))
@@ -196,7 +208,10 @@ const getRecentPersonalBests = async ({
         userId ? eq(exerciseSets.userId, userId) : undefined,
         adminId === undefined
           ? undefined
-          : notInArray(exerciseSets.userId, hiddenUserIdsOf(adminId)),
+          : and(
+              notInArray(exerciseSets.userId, hiddenUserIdsOf(adminId)),
+              notInArray(exerciseSets.userId, outOfScopeUserIdsOf(adminId)),
+            ),
       ),
     )
     .groupBy(exerciseSets.exerciseId)

@@ -22,7 +22,12 @@ vi.mock("@/services/session", () => ({
   readSession: vi.fn(async () => ({ role: "admin", adminId: 1 })),
 }));
 vi.mock("@/services/admins", () => ({
-  findAdminById: vi.fn(async (id: number) => ({ id, username: "pt" })),
+  findAdminById: vi.fn(async (id: number) => ({
+    id,
+    username: "pt",
+    role: "super_admin",
+    verified: false,
+  })),
 }));
 vi.mock("@/services/users", () => ({ findUserById: vi.fn() }));
 vi.mock("@/db", () => ({

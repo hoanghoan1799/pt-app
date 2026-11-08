@@ -7,12 +7,12 @@ import { ROUTES } from "@/constants/routes";
 import { BUTTON_PRIMARY, PAGE_CONTAINER } from "@/constants/styles";
 import { FoodList } from "@/features/foods/components/FoodList";
 import { listFoods } from "@/features/foods/services/food-queries";
-import { requireAdmin } from "@/services/auth-guard";
+import { requireSuperAdmin } from "@/services/auth-guard";
 
 export const metadata: Metadata = { title: "Thực phẩm" };
 
 const AdminFoodsPage = async () => {
-  await requireAdmin();
+  await requireSuperAdmin();
 
   const foods = await listFoods();
 

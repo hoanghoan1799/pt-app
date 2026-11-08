@@ -8,6 +8,7 @@ import { foods } from "@/db/schema";
 const state = vi.hoisted(() => ({
   db: null as unknown,
   role: "admin",
+  adminRole: "super_admin" as "super_admin" | "pt",
   // Pretend the duplicate check found nothing, as when two saves race.
   skipNameCheck: false,
 }));
@@ -23,7 +24,12 @@ vi.mock("@/services/session", () => ({
   ),
 }));
 vi.mock("@/services/admins", () => ({
-  findAdminById: vi.fn(async (id: number) => ({ id, username: "pt" })),
+  findAdminById: vi.fn(async (id: number) => ({
+    id,
+    username: "pt",
+    role: state.adminRole,
+    verified: false,
+  })),
 }));
 vi.mock("@/services/users", () => ({ findUserById: vi.fn() }));
 vi.mock("@/features/foods/services/food-queries", async (importOriginal) => {
@@ -79,6 +85,7 @@ beforeEach(async () => {
   db = await createTestDb();
   state.db = db;
   state.role = "admin";
+  state.adminRole = "super_admin";
   state.skipNameCheck = false;
 });
 
@@ -418,5 +425,13 @@ describe("F10 non-admin access", () => {
 
     await expectRedirect(archiveFoodAction(chicken.id));
     expect((await db.select().from(foods))[0].archivedAt).toBeNull();
+  });
+
+  it("refuses a PT account: the food library is super admin only", async () => {
+    state.adminRole = "pt";
+    await expectRedirect(
+      createFoodAction(INITIAL_FORM_STATE, toFormData(CHICKEN)),
+    );
+    expect(await rowCount()).toBe(0);
   });
 });

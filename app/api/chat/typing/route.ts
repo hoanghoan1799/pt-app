@@ -12,6 +12,7 @@ import {
   traineeClientId,
 } from "@/features/chat/utils/ably-capabilities";
 import { getApiAdmin, getApiUser } from "@/services/auth-guard";
+import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
 
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -46,6 +47,9 @@ export const POST = async (request: NextRequest) => {
     const conversation = await findConversationById(parsed.data.conversationId);
 
     if (!conversation) {
+      return reply({ error: "not_found" }, 404);
+    }
+    if (!(await canAdminAccessUser(admin.id, conversation.userId))) {
       return reply({ error: "not_found" }, 404);
     }
     const trainee = await findUserById(conversation.userId);

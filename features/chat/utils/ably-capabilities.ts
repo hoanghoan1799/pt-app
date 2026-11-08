@@ -42,8 +42,17 @@ export const traineeCapability = (
   [userChannel(userId)]: ["subscribe"],
 });
 
-export const adminCapability = (): AblyCapability => ({
-  [`${CHAT_CHANNEL_PREFIX}:conversation:*`]: ["subscribe"],
+// A super admin follows every conversation; a PT (conversationIds given) only
+// those of their workspace. The inbox channel carries ids and the sender role
+// only, never text.
+export const adminCapability = (
+  conversationIds?: number[],
+): AblyCapability => ({
+  ...(conversationIds
+    ? Object.fromEntries(
+        conversationIds.map((id) => [conversationChannel(id), ["subscribe"]]),
+      )
+    : { [`${CHAT_CHANNEL_PREFIX}:conversation:*`]: ["subscribe"] }),
   [INBOX_CHANNEL]: ["subscribe"],
 });
 

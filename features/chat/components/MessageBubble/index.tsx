@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
 import { AvatarLightbox } from "@/components/common/AvatarLightbox";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { ChatPhotoImage } from "@/features/chat/components/ChatPhotoImage";
 import { useBubbleGesture } from "@/features/chat/hooks/use-bubble-gesture";
 import {
@@ -71,6 +72,8 @@ interface MessageBubbleProps {
   // Admin's "neutral colours" switch: ignore `color`, and draw my bubbles in
   // the neutral dark style instead of the accent.
   isNeutral?: boolean;
+  // The sender is a verified admin: blue tick after the name.
+  senderVerified?: boolean;
 }
 
 // One chat bubble: mine right in the accent colour, the other side left. Spacing is
@@ -92,6 +95,7 @@ export const MessageBubble = ({
   isNeutral = false,
   nicknames,
   avatarSrc = null,
+  senderVerified = false,
 }: MessageBubbleProps) => {
   const color = isNeutral ? null : pickedColor;
   const {
@@ -150,6 +154,7 @@ export const MessageBubble = ({
           )}
         >
           {senderName}
+          {senderVerified && <VerifiedBadge className="ml-1" />}
         </p>
       )}
       <div

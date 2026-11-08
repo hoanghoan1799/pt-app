@@ -6,6 +6,7 @@ import { z } from "zod";
 import { ROUTES } from "@/constants/routes";
 import { MEMBER_MESSAGES } from "@/features/members/constants/messages";
 import { withResultErrorHandling } from "@/services/action-errors";
+import { requireAdminForUser } from "@/services/admin-access";
 import { requireAdmin } from "@/services/auth-guard";
 import { generatePassword, hashPassword } from "@/services/password";
 import {
@@ -51,6 +52,7 @@ export const changeMemberEmailAction = withResultErrorHandling(
   "changeMemberEmail",
   async (userId: number, email: string) => {
     await requireAdmin();
+    await requireAdminForUser(userId);
 
     const checked = await validateMemberEmail(userId, email);
 
@@ -70,6 +72,8 @@ export const resetMemberPasswordAction = withResultErrorHandling(
     await requireAdmin();
 
     const id = userIdSchema.parse(userId);
+
+    await requireAdminForUser(id);
     const user = await findUserById(id);
 
     if (!user) {

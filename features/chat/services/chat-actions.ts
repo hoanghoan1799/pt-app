@@ -47,6 +47,7 @@ import {
   toStoredSticker,
 } from "@/features/chat/utils/sticker-rules";
 import { withResultErrorHandling } from "@/services/action-errors";
+import { requireAdminForUser } from "@/services/admin-access";
 import { requireAdmin, requireUser } from "@/services/auth-guard";
 import { findUserById } from "@/services/users";
 
@@ -214,6 +215,8 @@ export const adminSendMessageAction = withResultErrorHandling(
       return fail(CHAT_MESSAGES.INVALID_INPUT);
     }
     const { userId, clientId, replyToMessageId } = parsed.data;
+
+    await requireAdminForUser(userId);
     const trainee = await findUserById(userId);
 
     if (!trainee) {
@@ -374,6 +377,7 @@ export const adminMarkReadAction = withResultErrorHandling(
     if (!conversation) {
       return fail(CHAT_MESSAGES.CONVERSATION_NOT_FOUND);
     }
+    await requireAdminForUser(conversation.userId);
     const readerKey = adminReaderKey(admin.id);
     const saved = await saveReadCursor(
       conversation.id,

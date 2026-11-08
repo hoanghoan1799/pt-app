@@ -77,10 +77,14 @@ export interface ChatThreadProps {
           infoHref: string;
           // The other side's photo for the header (versioned URL) or null.
           peerAvatar: string | null;
+          // The newest PT who wrote is verified (blue tick).
+          peerVerified: boolean;
         },
       ) => ReactNode);
   // Real name of the other side before any PT message names them (trainee).
   fallbackPeerName?: string;
+  // Ids of verified admins, for the blue tick next to their names.
+  verifiedAdminIds?: number[];
   viewer?: ThreadViewer;
   emptyText?: string;
   ariaLabel?: string;
@@ -89,6 +93,7 @@ export interface ChatThreadProps {
   avatars?: Readonly<Record<string, string>>;
 }
 
+const NO_VERIFIED: number[] = [];
 const NO_AVATARS: Readonly<Record<string, string>> = {};
 
 const TRAINEE_EMPTY_TEXT = "Gửi tin nhắn đầu tiên cho PT của bạn";
@@ -180,6 +185,7 @@ export const ChatThread = ({
   jumpToId = null,
   viewer = USER_VIEWER,
   fallbackPeerName = "PT",
+  verifiedAdminIds = NO_VERIFIED,
   emptyText,
   ariaLabel = TRAINEE_ARIA_LABEL,
   avatars = NO_AVATARS,
@@ -564,9 +570,15 @@ export const ChatThread = ({
     viewer.role === "admin"
       ? (avatars.user ?? null)
       : (avatars[`admin:${latestAdminId(messages)}`] ?? null);
+  const verifiedIds = new Set(verifiedAdminIds);
   const headerNode =
     typeof header === "function"
-      ? header(latestPeerName, presence, { profile, infoHref, peerAvatar })
+      ? header(latestPeerName, presence, {
+          profile,
+          infoHref,
+          peerAvatar,
+          peerVerified: verifiedIds.has(latestAdminId(messages) ?? -1),
+        })
       : header;
   const peerRealName =
     viewer.role === "admin"
@@ -636,6 +648,10 @@ export const ChatThread = ({
                       viewer={adapter.viewer}
                       onRetry={chat.retry}
                       nicknames={profile.nicknames}
+                      senderVerified={
+                        item.message.senderRole === "admin" &&
+                        verifiedIds.has(item.message.senderAdminId ?? -1)
+                      }
                       avatarSrc={
                         item.mine
                           ? null

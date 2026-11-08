@@ -14,6 +14,7 @@ import {
 import { loadTraineeThread } from "@/features/chat/services/chat-thread";
 import { parseJumpId } from "@/features/chat/utils/chat-links";
 import { serializeMessage } from "@/features/chat/utils/chat-thread-rules";
+import { listVerifiedAdminIds } from "@/services/admins";
 import { requireUser } from "@/services/auth-guard";
 
 export const metadata: Metadata = { title: "Nhắn tin" };
@@ -49,6 +50,7 @@ const MessagesPage = async ({ searchParams }: PageProps<"/messages">) => {
   return (
     <TraineeChatThread
       initialPeerName={peerName}
+      verifiedAdminIds={await listVerifiedAdminIds()}
       userId={user.id}
       avatars={Object.fromEntries(
         [...adminAvatars].map(([id, url]) => [`admin:${id}`, url]),

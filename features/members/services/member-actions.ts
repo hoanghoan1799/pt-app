@@ -37,6 +37,7 @@ import {
   withFormErrorHandling,
   withResultErrorHandling,
 } from "@/services/action-errors";
+import { requireAdminForUser } from "@/services/admin-access";
 import { requireAdmin } from "@/services/auth-guard";
 import type { FormState } from "@/types/form";
 import { createErrorState, createSuccessState } from "@/utils/form";
@@ -76,6 +77,9 @@ export const deleteMemberAction = withResultErrorHandling(
     await requireAdmin();
 
     const id = z.number().int().positive().parse(userId);
+
+    // Scope only: hiding is a view setting, not an access rule, for deletes.
+    await requireAdminForUser(id, { ignoreHidden: true });
     const days = await db
       .select({ id: workoutDays.id })
       .from(workoutDays)
