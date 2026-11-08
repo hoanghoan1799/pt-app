@@ -22,6 +22,7 @@ import {
   PRIVACY_ICONS,
   PrivacySelect,
 } from "@/features/social/components/PrivacySelect";
+import { ReactionBar } from "@/features/social/components/ReactionBar";
 import {
   CAPTION_MAX_LENGTH,
   PRIVACY_LABELS,
@@ -32,6 +33,10 @@ import {
 } from "@/features/social/services/social-actions";
 import type { PostPrivacy, PostView } from "@/features/social/types/social";
 import {
+  adminPostPath,
+  postPath,
+} from "@/features/social/utils/engagement-rules";
+import {
   adminProfilePath,
   profilePath,
 } from "@/features/social/utils/post-rules";
@@ -41,12 +46,14 @@ import { formatRelativeTime } from "@/utils/time";
 interface PostCardProps {
   post: PostView;
   mode: "user" | "admin";
+  // On the post page itself the comment count is not a link.
+  isDetail?: boolean;
 }
 
 const MENU_ITEM =
   "flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-base font-medium active:bg-line/70";
 
-export const PostCard = ({ post, mode }: PostCardProps) => {
+export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
   const router = useRouter();
   const confirm = useConfirm();
   const [isMenuOpen, setMenuOpen] = useState(false);
@@ -236,6 +243,20 @@ export const PostCard = ({ post, mode }: PostCardProps) => {
           }
         />
       )}
+
+      <ReactionBar
+        postId={post.id}
+        mode={mode}
+        reactions={post.reactions}
+        commentCount={post.commentCount}
+        detailHref={
+          isDetail
+            ? null
+            : mode === "admin"
+              ? adminPostPath(post.id)
+              : postPath(post.id)
+        }
+      />
 
       <BottomSheet
         isOpen={isMenuOpen}

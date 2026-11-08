@@ -19,6 +19,47 @@ export interface PostPhotoView {
   height: number;
 }
 
+export interface ReactionSummary {
+  // Emoji with their counts, most used first.
+  counts: { emoji: string; count: number }[];
+  total: number;
+  // The viewer's own reaction.
+  mine: string | null;
+}
+
+export interface CommentView {
+  id: number;
+  authorName: string;
+  authorAvatarUrl: string | null;
+  authorVerified: boolean;
+  authorHref: string;
+  body: string;
+  createdAt: number;
+  edited: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+}
+
+export interface ReactorView {
+  name: string;
+  emoji: string;
+  isMe: boolean;
+}
+
+export type NotificationKind =
+  "friend_request" | "friend_accepted" | "post_reaction" | "post_comment";
+
+export interface NotificationView {
+  id: number;
+  kind: NotificationKind;
+  text: string;
+  href: string | null;
+  actorName: string;
+  actorAvatarUrl: string | null;
+  createdAt: number;
+  isUnread: boolean;
+}
+
 // What the UI needs to draw one post card. Plain data (no Date) so it can
 // cross the server/client boundary.
 export interface PostView {
@@ -35,6 +76,8 @@ export interface PostView {
   edited: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  reactions: ReactionSummary;
+  commentCount: number;
 }
 
 export interface PostPage {

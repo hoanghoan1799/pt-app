@@ -751,3 +751,60 @@ export const socialPostPhotos = sqliteTable(
   },
   (table) => [index("social_post_photos_post").on(table.postId)],
 );
+
+// One reaction per person per post (P3). reactor_key is "user:<id>" or
+// "admin:<id>".
+export const socialReactions = sqliteTable(
+  "social_reactions",
+  {
+    postId: integer("post_id").notNull(),
+    reactorKey: text("reactor_key").notNull(),
+    emoji: text("emoji").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.postId, table.reactorKey] })],
+);
+
+// Flat, text-only comments (P3). Deleting sets deleted_at and empties body.
+export const socialComments = sqliteTable(
+  "social_comments",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    postId: integer("post_id").notNull(),
+    authorKey: text("author_key").notNull(),
+    body: text("body").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [index("social_comments_post").on(table.postId, table.createdAt)],
+);
+
+// What the notifications page lists (P3). pushed_at is when a push for this
+// row went out; it throttles reaction pushes to one per post per hour.
+export const socialNotifications = sqliteTable(
+  "social_notifications",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    recipientKey: text("recipient_key").notNull(),
+    kind: text("kind", {
+      enum: [
+        "friend_request",
+        "friend_accepted",
+        "post_reaction",
+        "post_comment",
+      ],
+    }).notNull(),
+    actorKey: text("actor_key").notNull(),
+    postId: integer("post_id"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    readAt: integer("read_at", { mode: "timestamp_ms" }),
+    pushedAt: integer("pushed_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    index("social_notifications_recipient").on(
+      table.recipientKey,
+      table.createdAt,
+    ),
+  ],
+);

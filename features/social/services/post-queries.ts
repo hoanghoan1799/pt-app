@@ -17,6 +17,11 @@ import { db } from "@/db";
 import { admins, socialPostPhotos, socialPosts, users } from "@/db/schema";
 import { avatarUrl } from "@/features/avatar/utils/avatar-rules";
 import { POSTS_PAGE_SIZE } from "@/features/social/constants/social";
+import {
+  emptyEngagement,
+  loadEngagement,
+} from "@/features/social/services/engagement-queries";
+import { loadVisiblePost } from "@/features/social/services/post-access";
 import { loadVisibilityContext } from "@/features/social/services/post-context";
 import type {
   PostAuthorRef,
@@ -78,6 +83,10 @@ const toPostViews = async (
           .where(inArray(admins.id, adminIds))
       : [],
   ]);
+  const engagement = await loadEngagement(
+    rows.map((row) => row.post.id),
+    viewer,
+  );
   const usersById = new Map(userRows.map((row) => [row.id, row]));
   const adminsById = new Map(adminRows.map((row) => [row.id, row]));
 
@@ -111,6 +120,7 @@ const toPostViews = async (
       edited: post.updatedAt.getTime() > post.createdAt.getTime(),
       canEdit: canEditPost(viewer, ref),
       canDelete: canDeletePost(viewer, ref),
+      ...(engagement.get(post.id) ?? emptyEngagement()),
     };
   });
 };
@@ -261,4 +271,35 @@ export const listAdminFeed = async (
     viewer,
     cursor,
   );
+};
+
+// One post for its detail page; null unless the viewer may see it.
+export const getPostView = async (
+  viewer: SocialActor,
+  postId: number,
+): Promise<PostView | null> => {
+  const visible = await loadVisiblePost(viewer, postId);
+
+  if (!visible) {
+    return null;
+  }
+  const [row] = await db
+    .select({
+      post: socialPosts,
+      photo: { width: socialPostPhotos.width, height: socialPostPhotos.height },
+    })
+    .from(socialPosts)
+    .leftJoin(socialPostPhotos, eq(socialPostPhotos.id, socialPosts.photoId))
+    .where(eq(socialPosts.id, postId))
+    .limit(1);
+
+  if (!row) {
+    return null;
+  }
+  const [view] = await toPostViews(
+    [{ post: row.post, photo: row.photo?.width ? row.photo : null }],
+    viewer,
+  );
+
+  return view ?? null;
 };

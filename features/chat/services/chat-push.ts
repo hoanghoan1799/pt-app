@@ -39,7 +39,7 @@ export type PushSender = (
   vapid: VapidConfig,
 ) => Promise<unknown>;
 
-const sendWithWebPush: PushSender = (subscription, payload, vapid) =>
+export const sendWithWebPush: PushSender = (subscription, payload, vapid) =>
   webpush.sendNotification(
     {
       endpoint: subscription.endpoint,
@@ -65,7 +65,7 @@ export const resetChatPushForTests = () => {
   warned = false;
 };
 
-const getVapid = () => {
+export const getVapid = () => {
   const config = getVapidConfig();
 
   if (!config && !warned) {
@@ -175,7 +175,7 @@ const loadTargets = async (
   );
 };
 
-const deliver = async (
+export const deliver = async (
   targets: StoredSubscription[],
   payload: ChatPushPayload,
   vapid: VapidConfig,

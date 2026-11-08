@@ -5,9 +5,11 @@ import { revalidatePath } from "next/cache";
 import { ROUTES } from "@/constants/routes";
 import { SOCIAL_MESSAGES } from "@/features/social/constants/social";
 import {
-  actorOfAdmin,
-  actorOfUser,
-} from "@/features/social/services/post-context";
+  resolveActor,
+  traineeActor,
+  type Who,
+} from "@/features/social/services/actor-guard";
+import { actorOfAdmin } from "@/features/social/services/post-context";
 import {
   createPost,
   deletePost,
@@ -20,15 +22,8 @@ import {
   listProfilePosts,
   listUserFeed,
 } from "@/features/social/services/post-queries";
-import {
-  acceptTerms,
-  hasAcceptedTerms,
-} from "@/features/social/services/terms";
-import type {
-  PostPage,
-  PostSource,
-  SocialActor,
-} from "@/features/social/types/social";
+import { acceptTerms } from "@/features/social/services/terms";
+import type { PostPage, PostSource } from "@/features/social/types/social";
 import {
   bioSchema,
   createPostSchema,
@@ -60,21 +55,6 @@ const refresh = () => {
   revalidatePath("/profile", "layout");
   revalidatePath("/admin/social", "layout");
 };
-
-// A trainee who has not accepted the terms is turned away.
-const traineeActor = async (): Promise<SocialActor | null> => {
-  const user = await requireUser();
-
-  return hasAcceptedTerms(user) ? actorOfUser(user) : null;
-};
-
-const adminActor = async (): Promise<SocialActor> =>
-  actorOfAdmin(await requireAdmin());
-
-type Who = "user" | "admin";
-
-const resolveActor = (who: Who) =>
-  who === "admin" ? adminActor() : traineeActor();
 
 export const acceptTermsAction = withResultErrorHandling(
   "acceptTerms",
