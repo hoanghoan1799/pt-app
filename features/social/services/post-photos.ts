@@ -11,6 +11,7 @@ import type {
   SocialActor,
 } from "@/features/social/types/social";
 import { canSeePost } from "@/features/social/utils/visibility";
+import { canAdminAccessUser } from "@/services/hidden-users";
 
 // Photos of posts: storage and access. The uploader comes from the session.
 
@@ -89,7 +90,17 @@ export const findPostPhotoForViewer = async (
     privacy: row.privacy,
   };
 
-  return canSeePost(viewer, post, ctx)
-    ? { mime: row.mime, data: row.data }
-    : null;
+  if (!canSeePost(viewer, post, ctx)) {
+    return null;
+  }
+  // Same rule as loadVisiblePost: an admin sees a trainee's photo only when
+  // that trainee is in their scope (PT workspace, hidden trainees).
+  if (
+    viewer.kind === "admin" &&
+    row.authorKind === "user" &&
+    !(await canAdminAccessUser(viewer.id, row.authorId))
+  ) {
+    return null;
+  }
+  return { mime: row.mime, data: row.data };
 };

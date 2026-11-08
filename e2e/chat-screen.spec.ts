@@ -272,7 +272,7 @@ test.describe("trainee conversation screen", () => {
       const fresh = await trainee.context.newPage();
 
       await fresh.goto("/messages/coach");
-      await expect(fresh).toHaveURL(/\/messages$/);
+      await expect(fresh).toHaveURL(/\/messages\/coach$/);
       await expect(getTabBar(fresh)).toHaveCount(0);
       // Nothing of this app behind it: a new tab has no same-origin referrer.
       expect(await fresh.evaluate(() => document.referrer)).toBe("");

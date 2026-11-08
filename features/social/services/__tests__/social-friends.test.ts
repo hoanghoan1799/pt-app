@@ -546,6 +546,43 @@ describe("visibility with friends", () => {
       await photos.findPostPhotoForViewer(photo.id, asUser(alice)),
     ).toBeNull();
   });
+
+  it("the photo route serves a trainee's photo only to admins with that trainee in scope", async () => {
+    const insertPhoto = async (author: number) => {
+      const post = await insertPost("user", author, "everyone");
+      const [photo] = await db
+        .insert(socialPostPhotos)
+        .values({
+          uploaderKey: `user:${author}`,
+          postId: post,
+          mime: "image/webp",
+          width: 1,
+          height: 1,
+          data: Buffer.from("x"),
+          size: 1,
+          createdAt: new Date(),
+        })
+        .returning({ id: socialPostPhotos.id });
+
+      return photo.id;
+    };
+    const bobPhoto = await insertPhoto(bob);
+    const alicePhoto = await insertPhoto(alice);
+
+    // bob is outside PT A's workspace, alice is inside it.
+    expect(
+      await photos.findPostPhotoForViewer(bobPhoto, asAdmin(ptA, "pt")),
+    ).toBeNull();
+    expect(
+      await photos.findPostPhotoForViewer(alicePhoto, asAdmin(ptA, "pt")),
+    ).not.toBeNull();
+    expect(
+      await photos.findPostPhotoForViewer(
+        bobPhoto,
+        asAdmin(superId, "super_admin"),
+      ),
+    ).not.toBeNull();
+  });
 });
 
 describe("block", () => {
