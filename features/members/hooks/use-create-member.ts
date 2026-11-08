@@ -29,6 +29,7 @@ export const useCreateMember = (onDone?: () => void) => {
     errorMessage: state.status === "error" ? state.message : undefined,
     nameError: state.fieldErrors?.name,
     emailError: state.fieldErrors?.email,
+    ptError: state.fieldErrors?.ptAdminId,
     // Keep what was typed after an error; a success resets the form to empty.
     defaultName: state.status === "error" ? state.values?.name : "",
     defaultEmail: state.status === "error" ? state.values?.email : "",

@@ -20,6 +20,8 @@ import type { MemberRow } from "@/features/dashboard/types/dashboard";
 interface MemberProgressListProps {
   members: MemberRow[];
   hasPasscode: boolean;
+  // Show each trainee's PT (super admin view).
+  isPtShown?: boolean;
 }
 
 const UNHIDE_FAILED = "Không bỏ ẩn được. Thử lại nhé.";
@@ -34,6 +36,7 @@ const getStatusText = (member: MemberRow) => {
 export const MemberProgressList = ({
   members,
   hasPasscode,
+  isPtShown = false,
 }: MemberProgressListProps) => {
   const router = useRouter();
   const { query, setQuery, filteredMembers } = useMemberSearch(members);
@@ -120,6 +123,11 @@ export const MemberProgressList = ({
                         {member.displayName}
                       </span>
                       <UnreadBadge count={member.unread} className="shrink-0" />
+                      {isPtShown && (
+                        <span className="shrink-0 rounded-full bg-line/60 px-2 py-0.5 text-xs font-medium text-muted">
+                          {member.ptName ? `PT ${member.ptName}` : "Chưa có PT"}
+                        </span>
+                      )}
                     </span>
                     {member.status !== "no-plan" && (
                       <span

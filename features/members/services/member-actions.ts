@@ -33,6 +33,7 @@ import {
 import { userOwnerKey } from "@/features/chat/utils/push-rules";
 import { deleteDays } from "@/features/meal-plans/services/meal-plan-store";
 import { createMemberWithLogin } from "@/features/members/services/create-member-with-login";
+import { resolveTraineePt } from "@/features/members/services/resolve-trainee-pt";
 import { deleteSocialContentOfUser } from "@/features/social/services/post-cleanup";
 import {
   withFormErrorHandling,
@@ -46,11 +47,23 @@ import { createErrorState, createSuccessState } from "@/utils/form";
 export const createMemberAction = withFormErrorHandling(
   "createMember",
   async (_previousState: FormState, formData: FormData): Promise<FormState> => {
-    await requireAdmin();
+    const admin = await requireAdmin();
 
     const rawName = String(formData.get("name") ?? "");
     const rawEmail = String(formData.get("email") ?? "");
-    const result = await createMemberWithLogin(rawName, rawEmail);
+    const pt = await resolveTraineePt(
+      admin,
+      String(formData.get("ptAdminId") ?? ""),
+    );
+
+    if (pt.status === "error") {
+      return createErrorState(pt.message, {
+        fieldErrors: { ptAdminId: pt.message },
+        values: { name: rawName, email: rawEmail },
+      });
+    }
+
+    const result = await createMemberWithLogin(rawName, rawEmail, pt.ptAdminId);
 
     if (result.status === "error") {
       return createErrorState(result.message, {

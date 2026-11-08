@@ -12,6 +12,8 @@ interface PtAssignSelectProps {
   userId: number;
   currentPtId: number | null;
   options: { id: number; username: string }[];
+  // Visible label; defaults to "PT phụ trách".
+  label?: string;
 }
 
 // "PT phụ trách" on the trainee page (super admin only).
@@ -19,6 +21,7 @@ export const PtAssignSelect = ({
   userId,
   currentPtId,
   options,
+  label = "PT phụ trách",
 }: PtAssignSelectProps) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -42,11 +45,11 @@ export const PtAssignSelect = ({
 
   return (
     <div>
-      <label htmlFor="pt-assign" className={LABEL}>
-        PT phụ trách
+      <label htmlFor={`pt-assign-${userId}`} className={LABEL}>
+        {label}
       </label>
       <select
-        id="pt-assign"
+        id={`pt-assign-${userId}`}
         value={currentPtId ?? ""}
         disabled={isPending}
         onChange={(event) => handleChange(event.target.value)}

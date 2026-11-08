@@ -21,6 +21,7 @@ import {
   listUnreadByTraineeForAdmin,
 } from "@/features/chat/services/chat-queries";
 import { MemberProgressList } from "@/features/dashboard/components/MemberProgressList";
+import { PtFilterSelect } from "@/features/dashboard/components/PtFilterSelect";
 import { RecentActivityList } from "@/features/dashboard/components/RecentActivityList";
 import { WeekSummaryTiles } from "@/features/dashboard/components/WeekSummaryTiles";
 import { RECENT_ACTIVITY_LIMIT } from "@/features/dashboard/constants/dashboard";
@@ -28,11 +29,13 @@ import {
   getMemberProgress,
   getRecentActivity,
 } from "@/features/dashboard/services/dashboard-queries";
+import { parsePtFilter } from "@/features/dashboard/utils/pt-filter";
 import {
   summarizeWeek,
   toMemberRows,
 } from "@/features/dashboard/utils/summary";
 import { AddMemberButton } from "@/features/members/components/AddMemberButton";
+import { listPtOptions } from "@/features/pts/services/pt-queries";
 import { isSuperAdmin } from "@/services/admin-scope";
 import { requireAdmin } from "@/services/auth-guard";
 import { getAdminUserPath } from "@/utils/routes";
@@ -57,7 +60,11 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     { week: readSearchParam(query.week) },
     today,
   );
+  const isSuper = isSuperAdmin(admin);
+  // Only a super admin can filter by PT; a PT is already scoped to their own.
+  const ptFilter = isSuper ? parsePtFilter(readSearchParam(query.pt)) : "all";
   const [
+    ptOptions,
     members,
     activity,
     unreadMessages,
@@ -65,7 +72,8 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     avatarUrl,
     accountColor,
   ] = await Promise.all([
-    getMemberProgress(schedule.weekStart, admin.id),
+    isSuper ? listPtOptions() : Promise.resolve([]),
+    getMemberProgress(schedule.weekStart, admin.id, ptFilter),
     getRecentActivity({ limit: RECENT_ACTIVITY_LIMIT, adminId: admin.id }),
     countUnreadForAdmin(admin.id),
     listUnreadByTraineeForAdmin(admin.id),
@@ -121,13 +129,21 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
       <main
         className={`${PAGE_CONTAINER} space-y-6 pt-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]`}
       >
+        {!isSuper && (
+          <h2 className="text-lg font-bold text-fg">
+            Workspace của {admin.username}
+          </h2>
+        )}
         <section className="space-y-2" aria-labelledby="admin-actions-title">
           <h2 id="admin-actions-title" className={SECTION_TITLE}>
             Thao tác
           </h2>
           <div className="grid grid-cols-3 gap-2">
-            <AddMemberButton className={TILE} />
-            {isSuperAdmin(admin) && (
+            <AddMemberButton
+              className={TILE}
+              ptOptions={isSuper ? ptOptions : undefined}
+            />
+            {isSuper && (
               <>
                 <Link href={ROUTES.ADMIN_FOODS} className={TILE}>
                   <Utensils className="size-6 text-accent" aria-hidden />
@@ -166,7 +182,14 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
         </div>
         <section className="space-y-2">
           <h2 className={SECTION_TITLE}>User · {members.length}</h2>
-          <MemberProgressList members={rows} hasPasscode={admin.hasPasscode} />
+          {isSuper && (
+            <PtFilterSelect value={String(ptFilter)} options={ptOptions} />
+          )}
+          <MemberProgressList
+            members={rows}
+            hasPasscode={admin.hasPasscode}
+            isPtShown={isSuper}
+          />
         </section>
         <section className="space-y-2">
           <h2 className={SECTION_TITLE}>Hoạt động gần đây</h2>

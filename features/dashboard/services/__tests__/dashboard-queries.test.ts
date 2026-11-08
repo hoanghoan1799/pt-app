@@ -62,3 +62,49 @@ describe("getMemberProgress names and avatars", () => {
     expect(members[1].avatarUrl).toContain(`/api/avatar/user/${binh.id}`);
   });
 });
+
+describe("getMemberProgress PT filter", () => {
+  const seed = async () => {
+    const [pt] = await db
+      .insert(admins)
+      .values({
+        username: "coach",
+        usernameKey: "coach",
+        passwordHash: "x",
+        role: "pt",
+      })
+      .returning({ id: admins.id });
+    const [mine, loose] = await db
+      .insert(users)
+      .values([
+        { name: "Mine", nameKey: "mine", ptAdminId: pt.id },
+        { name: "Loose", nameKey: "loose" },
+      ])
+      .returning({ id: users.id });
+
+    return { pt: pt.id, mine: mine.id, loose: loose.id };
+  };
+
+  it("filters by PT, by none, and shows the PT name on each row", async () => {
+    const ids = await seed();
+
+    const all = await getMemberProgress("2026-10-05", 1);
+    const byPt = await getMemberProgress("2026-10-05", 1, ids.pt);
+    const none = await getMemberProgress("2026-10-05", 1, "none");
+
+    expect(all.map((m) => [m.id, m.ptName])).toEqual([
+      [ids.loose, null],
+      [ids.mine, "coach"],
+    ]);
+    expect(byPt.map((m) => m.id)).toEqual([ids.mine]);
+    expect(none.map((m) => m.id)).toEqual([ids.loose]);
+  });
+
+  it("never widens a PT's own scope", async () => {
+    const ids = await seed();
+
+    const asPt = await getMemberProgress("2026-10-05", ids.pt, "none");
+
+    expect(asPt).toEqual([]);
+  });
+});
