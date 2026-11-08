@@ -2,12 +2,10 @@ import { Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { Avatar } from "@/components/common/Avatar";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { UserHeaderActions } from "@/features/auth/components/UserHeaderActions";
-import { getAvatarUrl } from "@/features/avatar/services/avatar";
 import { NotificationBell } from "@/features/social/components/NotificationBell";
 import { PostComposer } from "@/features/social/components/PostComposer";
 import { PostList } from "@/features/social/components/PostList";
@@ -17,7 +15,6 @@ import { listUserFeed } from "@/features/social/services/post-queries";
 import { getPostPrivacyDefault } from "@/features/social/services/profile-queries";
 import { countUnreadNotifications } from "@/features/social/services/social-notifications";
 import { hasAcceptedTerms } from "@/features/social/services/terms";
-import { profilePath } from "@/features/social/utils/post-rules";
 import { requireUser } from "@/services/auth-guard";
 
 export const metadata: Metadata = { title: "Bảng tin" };
@@ -25,14 +22,13 @@ export const metadata: Metadata = { title: "Bảng tin" };
 const FeedPage = async () => {
   const user = await requireUser();
   const accepted = hasAcceptedTerms(user);
-  const [avatarUrl, posts, defaultPrivacy, unreadCount] = accepted
+  const [posts, defaultPrivacy, unreadCount] = accepted
     ? await Promise.all([
-        getAvatarUrl("user", user.id),
         listUserFeed(user.id),
         getPostPrivacyDefault(user.id),
         countUnreadNotifications(`user:${user.id}`),
       ])
-    : [null, null, null, 0];
+    : [null, null, 0];
 
   return (
     <>
@@ -54,19 +50,6 @@ const FeedPage = async () => {
                 className="inline-flex size-11 items-center justify-center"
               >
                 <Users className="size-6" aria-hidden />
-              </Link>
-            )}
-            {accepted && (
-              <Link
-                href={profilePath("user", user.id)}
-                aria-label="Trang cá nhân"
-                className="inline-flex size-11 items-center justify-center"
-              >
-                <Avatar
-                  name={user.name}
-                  src={avatarUrl}
-                  className="size-8 text-xs"
-                />
               </Link>
             )}
             <UserHeaderActions />
