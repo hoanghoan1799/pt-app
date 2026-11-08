@@ -1,7 +1,15 @@
 "use client";
 
 import clsx from "clsx";
-import { ArrowUp, ImagePlus, Loader2, Smile, X } from "lucide-react";
+import {
+  ArrowUp,
+  BellOff,
+  ImagePlus,
+  Loader2,
+  type LucideIcon,
+  Smile,
+  X,
+} from "lucide-react";
 import {
   type ChangeEvent,
   type KeyboardEvent,
@@ -11,6 +19,12 @@ import {
 } from "react";
 import { toast } from "sonner";
 
+import {
+  type ChatCommand,
+  composeCommandMessage,
+  extractLeadingCommand,
+  matchCommandSuggestions,
+} from "@/features/chat/utils/chat-commands";
 import { CHAT_BODY_MAX_LENGTH } from "@/features/chat/utils/chat-rules";
 import {
   encodePhoto,
@@ -40,6 +54,15 @@ interface ComposerProps {
 
 const MAX_HEIGHT_PX = 120;
 
+const COMMAND_ICONS: Record<string, LucideIcon> = { "bell-off": BellOff };
+const SUGGESTIONS_ID = "chat-command-suggestions";
+
+const CommandIcon = ({ command }: { command: ChatCommand }) => {
+  const Icon = (command.icon && COMMAND_ICONS[command.icon]) || BellOff;
+
+  return <Icon className="size-4 shrink-0" aria-hidden />;
+};
+
 // Pill-shaped input. The send arrow only appears with real text. Enter sends
 // on desktop (Shift+Enter = new line); on touch devices Enter is a new line
 // and the button sends.
@@ -64,6 +87,15 @@ export const Composer = ({
     previewUrl: string;
   } | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
+  // The command picked or typed ("/imlang ") lives outside the text as a chip
+  // (Messenger style); it is put back in front of the text on send. Not in
+  // edit mode, where the chip is hidden and ignored.
+  const [chip, setChip] = useState<ChatCommand | null>(null);
+  const [highlight, setHighlight] = useState(0);
+  const activeChip = editing ? null : chip;
+  const suggestions =
+    editing || activeChip ? [] : matchCommandSuggestions(value);
+  const active = Math.min(highlight, Math.max(suggestions.length - 1, 0));
   const canSend =
     !isPreparing && (value.trim().length > 0 || (photo !== null && !editing));
   const editId = editing?.id ?? null;
@@ -161,15 +193,45 @@ export const Composer = ({
       onSaveEdit(value);
       return;
     }
-    onSend(value, photo?.prepared);
+    onSend(
+      activeChip ? composeCommandMessage(activeChip, value) : value,
+      photo?.prepared,
+    );
     clearPhoto();
     setValue("");
+    setChip(null);
     // The textarea shrinks after React clears it.
     requestAnimationFrame(resize);
     inputRef.current?.focus();
   };
 
+  const pickCommand = (command: ChatCommand) => {
+    setChip(command);
+    setValue("");
+    setHighlight(0);
+    inputRef.current?.focus();
+  };
+
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (suggestions.length > 0 && !event.nativeEvent.isComposing) {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const step = event.key === "ArrowDown" ? 1 : -1;
+
+        setHighlight((active + step + suggestions.length) % suggestions.length);
+        return;
+      }
+      if (event.key === "Enter" || event.key === "Tab") {
+        event.preventDefault();
+        pickCommand(suggestions[active]);
+        return;
+      }
+    }
+    if (event.key === "Backspace" && activeChip && value === "") {
+      event.preventDefault();
+      setChip(null);
+      return;
+    }
     if (
       event.key === "Enter" &&
       !event.shiftKey &&
@@ -216,6 +278,41 @@ export const Composer = ({
           )}
         </div>
       )}
+      {suggestions.length > 0 && (
+        <ul
+          id={SUGGESTIONS_ID}
+          role="listbox"
+          aria-label="Lệnh"
+          className="mx-3 mb-1 flex flex-col gap-0.5 rounded-2xl border border-line bg-surface p-1"
+        >
+          {suggestions.map((command, index) => (
+            <li
+              key={command.name}
+              id={`${SUGGESTIONS_ID}-${command.name}`}
+              role="option"
+              aria-selected={index === active}
+            >
+              <button
+                type="button"
+                tabIndex={-1}
+                // Keep focus (and the keyboard) in the textarea.
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => pickCommand(command)}
+                className={clsx(
+                  "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs text-muted active:bg-line",
+                  index === active && "bg-line",
+                )}
+              >
+                <span className="text-accent">
+                  <CommandIcon command={command} />
+                </span>
+                <span className="font-semibold text-fg">/{command.name}</span>
+                <span className="min-w-0 truncate">{command.hint}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -247,17 +344,47 @@ export const Composer = ({
             </button>
           </>
         )}
+        {activeChip && (
+          <span className="inline-flex shrink-0 items-center gap-1 self-center rounded-full bg-accent/15 py-1 pr-1 pl-2 text-xs font-semibold text-accent">
+            <CommandIcon command={activeChip} />/{activeChip.name}
+            <button
+              type="button"
+              aria-label={`Bỏ lệnh /${activeChip.name}`}
+              onClick={() => {
+                setChip(null);
+                inputRef.current?.focus();
+              }}
+              className="inline-flex size-4 items-center justify-center rounded-full active:bg-accent/20"
+            >
+              <X className="size-3" aria-hidden />
+            </button>
+          </span>
+        )}
         <textarea
           ref={inputRef}
           value={value}
           rows={1}
           maxLength={CHAT_BODY_MAX_LENGTH}
-          placeholder={placeholder}
+          placeholder={activeChip ? `${activeChip.hint}…` : placeholder}
           aria-label="Nội dung tin nhắn"
+          aria-controls={suggestions.length > 0 ? SUGGESTIONS_ID : undefined}
+          aria-activedescendant={
+            suggestions.length > 0
+              ? `${SUGGESTIONS_ID}-${suggestions[active].name}`
+              : undefined
+          }
           enterKeyHint="enter"
           onChange={(event) => {
-            setValue(event.target.value);
-            if (event.target.value.trim().length > 0) {
+            const typed = event.target.value;
+            const leading =
+              editing || chip ? null : extractLeadingCommand(typed);
+
+            if (leading) {
+              setChip(leading.command);
+            }
+            setValue(leading ? leading.rest : typed);
+            setHighlight(0);
+            if (typed.trim().length > 0) {
               onTyping?.();
             }
             resize();

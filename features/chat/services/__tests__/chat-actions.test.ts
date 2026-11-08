@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
-import { chatMessages, chatReads, users } from "@/db/schema";
+import { chatMessages, chatPhotos, chatReads, users } from "@/db/schema";
 
 const state = vi.hoisted(() => ({
   db: null as unknown,
@@ -52,6 +52,7 @@ vi.mock("@/db", () => ({
   ),
 }));
 
+const { CHAT_MESSAGES } = await import("@/features/chat/constants/messages");
 const actions = await import("@/features/chat/services/chat-actions");
 const queries = await import("@/features/chat/services/chat-queries");
 const realtime = await import("@/features/chat/services/chat-realtime");
@@ -70,6 +71,26 @@ const addUser = async (name: string, chatEnabled: boolean | null) => {
     .returning({ id: users.id });
 
   return row.id;
+};
+
+// A pending upload as /api/chat/photos leaves it, ready to be attached.
+const addPendingPhoto = async (uploaderKey: string) => {
+  const conversation = await queries.getOrCreateConversation(userId);
+  const [photo] = await db
+    .insert(chatPhotos)
+    .values({
+      conversationId: conversation.id,
+      uploaderKey,
+      mime: "image/png",
+      width: 1,
+      height: 1,
+      data: Buffer.from([0]),
+      size: 1,
+      createdAt: new Date(),
+    })
+    .returning({ id: chatPhotos.id });
+
+  return photo.id;
 };
 
 const rows = () => db.select().from(chatMessages);
@@ -139,6 +160,76 @@ describe("sendMessageAction", () => {
       traineeUserId: userId,
       conversationId: expect.any(Number),
     });
+  });
+
+  it("strips /imlang, stores the rest and sends no push", async () => {
+    const result = await actions.sendMessageAction({
+      body: "/imlang hi",
+      clientId: uuid(1),
+    });
+
+    expect(result.status).toBe("success");
+    expect((await rows()).map((row) => row.body)).toEqual(["hi"]);
+    expect(realtime.publishNewMessage).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.objectContaining({ body: "hi" }),
+    );
+    expect(chatPush.schedulePush).not.toHaveBeenCalled();
+  });
+
+  it("sends a photo with caption /imlang hi as caption hi, no push", async () => {
+    const photoId = await addPendingPhoto("user");
+    const result = await actions.sendMessageAction({
+      photoId,
+      body: "/imlang hi",
+      clientId: uuid(1),
+    });
+
+    expect(result.status).toBe("success");
+    const [stored] = await rows();
+    const [photo] = await db.select().from(chatPhotos);
+
+    expect(stored.body).toBe("hi");
+    expect(stored.photoId).toBe(photoId);
+    expect(photo.messageId).toBe(stored.id);
+    expect(chatPush.schedulePush).not.toHaveBeenCalled();
+  });
+
+  it("sends a photo captioned only /imlang silently with no caption", async () => {
+    const photoId = await addPendingPhoto("user");
+    const result = await actions.sendMessageAction({
+      photoId,
+      body: "/imlang",
+      clientId: uuid(1),
+    });
+
+    expect(result.status).toBe("success");
+    const [stored] = await rows();
+
+    expect(stored.body).toBe("");
+    expect(stored.photoId).toBe(photoId);
+    expect(chatPush.schedulePush).not.toHaveBeenCalled();
+  });
+
+  it("rejects /imlang alone as invalid input", async () => {
+    const result = await actions.sendMessageAction({
+      body: "/imlang",
+      clientId: uuid(1),
+    });
+
+    expect(result).toEqual({
+      status: "error",
+      message: CHAT_MESSAGES.INVALID_INPUT,
+    });
+    expect(await rows()).toHaveLength(0);
+    expect(chatPush.schedulePush).not.toHaveBeenCalled();
+  });
+
+  it("keeps an unknown command as plain text and pushes", async () => {
+    await actions.sendMessageAction({ body: "/abc hi", clientId: uuid(1) });
+
+    expect((await rows()).map((row) => row.body)).toEqual(["/abc hi"]);
+    expect(chatPush.schedulePush).toHaveBeenCalledTimes(1);
   });
 
   it.each([null, false])("rejects chatEnabled %s", async (flag) => {
@@ -222,6 +313,53 @@ describe("adminSendMessageAction", () => {
       senderAdminId: 7,
       body: "Chào An",
     });
+  });
+
+  it("strips /imlang, stores the rest and sends no push", async () => {
+    const result = await actions.adminSendMessageAction({
+      userId,
+      body: "/imlang hi",
+      clientId: uuid(1),
+    });
+
+    expect(result.status).toBe("success");
+    expect((await rows()).map((row) => row.body)).toEqual(["hi"]);
+    expect(realtime.publishNewMessage).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.objectContaining({ body: "hi" }),
+    );
+    expect(chatPush.schedulePush).not.toHaveBeenCalled();
+  });
+
+  it("sends a photo with caption /imlang hi as caption hi, no push", async () => {
+    const photoId = await addPendingPhoto("admin:7");
+    const result = await actions.adminSendMessageAction({
+      userId,
+      photoId,
+      body: "/imlang hi",
+      clientId: uuid(1),
+    });
+
+    expect(result.status).toBe("success");
+    const [stored] = await rows();
+
+    expect(stored.body).toBe("hi");
+    expect(stored.photoId).toBe(photoId);
+    expect(chatPush.schedulePush).not.toHaveBeenCalled();
+  });
+
+  it("rejects /imlang alone as invalid input", async () => {
+    const result = await actions.adminSendMessageAction({
+      userId,
+      body: "/imlang",
+      clientId: uuid(1),
+    });
+
+    expect(result).toEqual({
+      status: "error",
+      message: CHAT_MESSAGES.INVALID_INPUT,
+    });
+    expect(await rows()).toHaveLength(0);
   });
 
   it("is idempotent per clientId", async () => {

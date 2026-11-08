@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import type { sendMessageAction } from "@/features/chat/services/chat-actions";
+import { parseChatCommand } from "@/features/chat/utils/chat-commands";
 import { CHANGES_PAGE_SIZE } from "@/features/chat/utils/chat-rules";
 import {
   type ChatProfileView,
@@ -344,11 +345,14 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
   const send = useCallback(
     (rawBody: string, replyTo?: ThreadMessage | null) => {
       const body = rawBody.trim();
+      // The server parses again; this only shows the stripped text in the
+      // optimistic bubble.
+      const shown = parseChatCommand(body).body;
 
-      if (!body) {
+      if (!shown) {
         return;
       }
-      sendContent({ body }, replyTo, { body });
+      sendContent({ body }, replyTo, { body: shown });
     },
     [sendContent],
   );
@@ -370,9 +374,11 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
   const sendPhoto = useCallback(
     (photo: PreparedPhoto, rawBody: string, replyTo?: ThreadMessage | null) => {
       const body = rawBody.trim();
+      // The server parses the caption again; the bubble shows it stripped.
+      const shown = parseChatCommand(body).body;
 
       sendContent({ photo, ...(body ? { body } : {}) }, replyTo, {
-        body,
+        body: shown,
         photo: {
           url: URL.createObjectURL(photo.blob),
           width: photo.width,
