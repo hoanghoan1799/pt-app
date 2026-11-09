@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
+import { WeekJumpSheet } from "@/components/common/WeekJumpSheet";
 import {
   buildScheduleHref,
   formatWeekTitle,
@@ -43,10 +44,15 @@ export const WeekNavigator = ({
       aria-label="Chọn tuần"
       className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1"
     >
-      <p className="flex min-w-0 items-center gap-2 text-[15px] font-bold text-fg">
+      <WeekJumpSheet
+        basePath={basePath}
+        weekStart={weekStart}
+        selectedDate={selectedDate}
+        today={today}
+      >
         <CalendarDays className="size-5 shrink-0 text-accent" aria-hidden />
         {formatWeekTitle(weekStart)}
-      </p>
+      </WeekJumpSheet>
       <div className="flex items-center">
         <Link
           href={previousHref}
