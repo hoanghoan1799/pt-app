@@ -2,6 +2,7 @@ import { createTranslator } from "next-intl";
 
 import enErrors from "@/messages/en/errors.json";
 import viErrors from "@/messages/vi/errors.json";
+import zhErrors from "@/messages/zh/errors.json";
 import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 // Messages that leave the server (action results, Zod issues, API replies) are
@@ -79,12 +80,14 @@ patterns.sort((a, b) => b.literal - a.literal);
 
 type Translate = (key: string, values?: Record<string, string>) => string;
 
+const ERRORS_MESSAGES = { vi: viErrors, en: enErrors, zh: zhErrors } as const;
+
 const translators: Partial<Record<Locale, Translate>> = {};
 
 const getTranslate = (locale: Locale) =>
   (translators[locale] ??= createTranslator({
     locale,
-    messages: { errors: locale === "en" ? enErrors : viErrors },
+    messages: { errors: ERRORS_MESSAGES[locale] as typeof viErrors },
     namespace: "errors",
   }) as unknown as Translate);
 

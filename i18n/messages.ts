@@ -36,6 +36,25 @@ import viPush from "@/messages/vi/push.json";
 import viPwa from "@/messages/vi/pwa.json";
 import viSocial from "@/messages/vi/social.json";
 import viWorkouts from "@/messages/vi/workouts.json";
+import zhAdminPages from "@/messages/zh/adminPages.json";
+import zhAuth from "@/messages/zh/auth.json";
+import zhAvatar from "@/messages/zh/avatar.json";
+import zhChat from "@/messages/zh/chat.json";
+import zhCommon from "@/messages/zh/common.json";
+import zhDashboard from "@/messages/zh/dashboard.json";
+import zhErrors from "@/messages/zh/errors.json";
+import zhFoods from "@/messages/zh/foods.json";
+import zhFormat from "@/messages/zh/format.json";
+import zhLayout from "@/messages/zh/layout.json";
+import zhMealPlans from "@/messages/zh/mealPlans.json";
+import zhMembers from "@/messages/zh/members.json";
+import zhNutrition from "@/messages/zh/nutrition.json";
+import zhPages from "@/messages/zh/pages.json";
+import zhPts from "@/messages/zh/pts.json";
+import zhPush from "@/messages/zh/push.json";
+import zhPwa from "@/messages/zh/pwa.json";
+import zhSocial from "@/messages/zh/social.json";
+import zhWorkouts from "@/messages/zh/workouts.json";
 import type { Locale } from "@/utils/locale";
 
 // One object per locale, keyed by namespace. Files are imported statically (no
@@ -57,8 +76,8 @@ export const MESSAGES = {
     members: viMembers,
     nutrition: viNutrition,
     pages: viPages,
-    push: viPush,
     pts: viPts,
+    push: viPush,
     pwa: viPwa,
     social: viSocial,
     workouts: viWorkouts,
@@ -78,11 +97,32 @@ export const MESSAGES = {
     members: enMembers,
     nutrition: enNutrition,
     pages: enPages,
-    push: enPush,
     pts: enPts,
+    push: enPush,
     pwa: enPwa,
     social: enSocial,
     workouts: enWorkouts,
+  },
+  zh: {
+    adminPages: zhAdminPages,
+    auth: zhAuth,
+    avatar: zhAvatar,
+    chat: zhChat,
+    common: zhCommon,
+    dashboard: zhDashboard,
+    errors: zhErrors,
+    foods: zhFoods,
+    format: zhFormat,
+    layout: zhLayout,
+    mealPlans: zhMealPlans,
+    members: zhMembers,
+    nutrition: zhNutrition,
+    pages: zhPages,
+    pts: zhPts,
+    push: zhPush,
+    pwa: zhPwa,
+    social: zhSocial,
+    workouts: zhWorkouts,
   },
 } as const satisfies Record<Locale, Record<string, object>>;
 

@@ -1,0 +1,107 @@
+{
+  "weekdayShort": {
+    "mon": "周一",
+    "tue": "周二",
+    "wed": "周三",
+    "thu": "周四",
+    "fri": "周五",
+    "sat": "周六",
+    "sun": "周日"
+  },
+  "weekdayLong": {
+    "mon": "星期一",
+    "tue": "星期二",
+    "wed": "星期三",
+    "thu": "星期四",
+    "fri": "星期五",
+    "sat": "星期六",
+    "sun": "星期日"
+  },
+  "weekTitle": {
+    "sameMonth": "{year}年{month}{startDay}–{endDay}日",
+    "crossMonth": "{year}年{start}–{end}",
+    "crossYear": "{startYear}年{start} – {endYear}年{end}"
+  },
+  "fullDay": "{weekday}，{date}",
+  "monthLabel": "{year}年{month}",
+  "relative": {
+    "justNow": "刚刚",
+    "minutes": "{count, plural, other {# 分钟前}}",
+    "hours": "{count, plural, other {# 小时前}}",
+    "days": "{count, plural, other {# 天前}}"
+  },
+  "inbox": {
+    "you": "你：",
+    "justNow": "刚刚",
+    "minutes": "{count} 分钟",
+    "hours": "{count} 小时",
+    "yesterday": "昨天"
+  },
+  "presence": {
+    "online": "在线",
+    "minutes": "{count, plural, other {# 分钟前在线}}",
+    "hours": "{count, plural, other {# 小时前在线}}",
+    "yesterday": "昨天在线",
+    "onDate": "{date}在线",
+    "prefix": "在线 "
+  },
+  "sticker": {
+    "preview": "发送了一个贴纸"
+  },
+  "weight": {
+    "bodyweight": "自重",
+    "unit": "kg"
+  },
+  "volume": {
+    "sets": "{count, plural, other {# 组}}"
+  },
+  "setRow": {
+    "missingReps": "请输入第 {number} 组的次数",
+    "error": "第 {number} 组：{message}"
+  },
+  "deleteExercise": {
+    "plain": "删除此动作？",
+    "withSets": "学员已记录此动作的组数据。删除动作也会删除这些数据。是否继续？"
+  },
+  "trend": {
+    "first": "首次",
+    "sameMoreReps": "重量相同，次数增加",
+    "sameFewerReps": "重量相同，次数减少",
+    "same": "无变化",
+    "bestBefore": "此前最佳 {set}",
+    "bestWeek": "本周最佳 {set}"
+  },
+  "comparison": {
+    "under": "还差 {amount} {unit}",
+    "over": "超出 {amount} {unit}",
+    "on": "已达标 ✓"
+  },
+  "overwrite": {
+    "question": "覆盖 {dates} 的计划？",
+    "logWarning": "学员在 {dates} 记录了饮食；覆盖将删除该记录。",
+    "deleteWithLogs": "删除这一天的计划？学员在这一天记录了饮食，删除计划将同时删除该记录。",
+    "delete": "删除这一天的计划？"
+  },
+  "planNotice": "计划与新目标相差 {gap} kcal",
+  "kcalGap": "输入的 {entered} kcal 与按蛋白质/碳水/脂肪 (4/4/9) 计算的 {computed} kcal 相差 {percent}%。",
+  "thread": {
+    "today": "今天",
+    "yesterday": "昨天",
+    "seen": "已读",
+    "sent": "已发送",
+    "unsent": "此消息已撤回",
+    "sticker": "贴纸",
+    "photo": "照片",
+    "you": "你",
+    "yourself": "你自己",
+    "youLower": "你",
+    "trainee": "学员",
+    "pt": "教练",
+    "peerDeleted": "教练（已删除）"
+  },
+  "fallback": {
+    "deletedAccount": "已删除的账号",
+    "deletedAccountDm": "已删除的账号",
+    "postImageOnly": "（仅图片的帖子）"
+  }
+}

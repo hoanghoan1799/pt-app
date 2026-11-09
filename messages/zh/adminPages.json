@@ -1,0 +1,87 @@
+{
+  "home": {
+    "metaTitle": "概览",
+    "title": "概览",
+    "eyebrow": "管理员 · {username}",
+    "workspace": "{username} 的工作区",
+    "actions": "操作",
+    "tiles": {
+      "foods": "食物库",
+      "pts": "教练管理",
+      "reports": "举报",
+      "social": "社交",
+      "messages": "私信"
+    },
+    "usersCount": "用户 · {count}",
+    "recentActivity": "最近动态"
+  },
+  "pts": {
+    "metaTitle": "教练管理",
+    "eyebrow": "管理员",
+    "title": "教练管理",
+    "adminAccounts": "管理员账号 · {count}",
+    "superAdmin": "超级管理员",
+    "ptRole": "教练 · {count, plural, other {# 名学员}}",
+    "traineesByPt": "按教练分组的学员",
+    "unassignedGroup": "未分配教练",
+    "groupTitle": "{title} · {count, plural, other {# 名学员}}",
+    "noTrainees": "暂无学员",
+    "addPt": "添加教练"
+  },
+  "reports": {
+    "metaTitle": "举报",
+    "eyebrow": "管理员",
+    "title": "举报",
+    "pending": "待处理 · {count}",
+    "emptyList": "暂无举报。",
+    "kinds": {
+      "post": "动态",
+      "comment": "评论",
+      "user": "用户"
+    },
+    "emptyPreview": "（空）",
+    "deleted": "内容已被删除。",
+    "viewProfile": "查看个人主页",
+    "view": "查看",
+    "reporter": "举报人：{name}",
+    "targetName": " · {name}",
+    "reason": " · “{reason}”"
+  },
+  "userPage": {
+    "metaTitle": "训练计划",
+    "eyebrow": "训练计划：",
+    "preview": "以学员视角查看",
+    "history": "训练历史",
+    "tools": "工具"
+  },
+  "userPreview": {
+    "metaTitle": "以学员视角查看",
+    "eyebrow": "以学员视角查看",
+    "notice": "这是学员看到的界面"
+  },
+  "userSummary": {
+    "metaTitle": "总结",
+    "eyebrow": "总结："
+  },
+  "userNutrition": {
+    "metaTitle": "营养",
+    "eyebrow": "营养："
+  },
+  "messages": {
+    "metaTitle": "私信",
+    "threadTitle": "与 {name} 的私信",
+    "threadAriaLabel": "与 {name} 的会话",
+    "emptyText": "与该学员暂无消息",
+    "lockedEmptyText": "聊天已被锁定且暂无消息。重新开启后即可发送消息。"
+  },
+  "messagesInfo": {
+    "metaTitle": "会话信息"
+  },
+  "messagesPhotos": {
+    "metaTitle": "照片、贴纸和链接",
+    "title": "照片、贴纸和链接"
+  },
+  "messagesSearch": {
+    "metaTitle": "搜索消息"
+  }
+}

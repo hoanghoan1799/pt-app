@@ -13,10 +13,22 @@ describe("isLocale", () => {
   it("accepts exactly the supported locales", () => {
     expect(isLocale("vi")).toBe(true);
     expect(isLocale("en")).toBe(true);
+    expect(isLocale("zh")).toBe(true);
   });
 
   it("rejects everything else", () => {
-    for (const value of ["fr", "EN", "en-US", "", " vi", null, undefined, 1]) {
+    for (const value of [
+      "fr",
+      "EN",
+      "en-US",
+      "zh-CN",
+      "zh-TW",
+      "",
+      " vi",
+      null,
+      undefined,
+      1,
+    ]) {
       expect(isLocale(value)).toBe(false);
     }
   });
@@ -26,6 +38,7 @@ describe("parseLocale", () => {
   it("keeps a supported locale", () => {
     expect(parseLocale("en")).toBe("en");
     expect(parseLocale("vi")).toBe("vi");
+    expect(parseLocale("zh")).toBe("zh");
   });
 
   it("falls back to Vietnamese for a missing or unknown value", () => {
@@ -49,6 +62,6 @@ describe("getLocaleCookieOptions", () => {
 
 describe("LOCALE_FLAGS", () => {
   it("has a flag for every locale", () => {
-    expect(LOCALE_FLAGS).toEqual({ vi: "🇻🇳", en: "🇺🇸" });
+    expect(LOCALE_FLAGS).toEqual({ vi: "🇻🇳", en: "🇺🇸", zh: "🇨🇳" });
   });
 });

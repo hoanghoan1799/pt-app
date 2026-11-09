@@ -1,0 +1,42 @@
+{
+  "memberList": {
+    "searchPlaceholder": "搜索学员",
+    "searchLabel": "搜索学员",
+    "hiddenTitle": "已隐藏的学员",
+    "emptyTitle": "暂无用户",
+    "emptyHint": "在“操作”中选择添加用户，之后他们只需输入准确的姓名即可查看训练。",
+    "noMatch": "没有与“{query}”匹配的用户",
+    "unhideFailed": "取消隐藏失败，请重试。",
+    "noPlan": "本周暂无安排",
+    "statusLine": "{completed}/{assigned} 项 · {activeDays}/{plannedDays} 天",
+    "progressLabel": "{name} 的进度",
+    "ptBadge": "教练 {name}",
+    "noPt": "暂无教练",
+    "nutritionTitle": "本周记录饮食的天数",
+    "nutritionLabel": "饮食记录",
+    "lastActive": "{when}训练",
+    "notTrained": "尚未训练"
+  },
+  "ptFilter": {
+    "label": "按教练筛选",
+    "all": "全部",
+    "none": "暂无教练"
+  },
+  "recentActivity": {
+    "empty": "还没有人标记完成任何训练。",
+    "personalBest": "刷新了纪录",
+    "completed": "完成了训练",
+    "bestPrefix": "新纪录：{best}（之前 {previous}）· ",
+    "schedule": "安排于 {date} · {time}"
+  },
+  "weekSummary": {
+    "users": "用户",
+    "usersHint": "本周有 {planned} 人有安排",
+    "active": "训练中",
+    "activeHint": "至少完成 1 项训练",
+    "done": "完成度",
+    "doneHint": "已完成 / 已分配的训练项",
+    "exercises": "已完成训练项",
+    "exercisesHint": "共分配 {assigned} 项"
+  }
+}

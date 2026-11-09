@@ -69,13 +69,15 @@ export const formatLastSeen = (
   const { year, month, day } = dateParts(lastSeenAt, timeZone);
   const sameYear = year === dateParts(now, timeZone).year;
   const date =
-    locale === "vi"
-      ? sameYear
-        ? `${day}/${month}`
-        : `${day}/${month}/${year}`
-      : sameYear
-        ? formatDayMonth(seenDay, locale)
-        : `${formatDayMonth(seenDay, locale)}, ${year}`;
+    locale === "zh"
+      ? `${sameYear ? "" : `${year}年`}${formatDayMonth(seenDay, locale)}`
+      : locale === "vi"
+        ? sameYear
+          ? `${day}/${month}`
+          : `${day}/${month}/${year}`
+        : sameYear
+          ? formatDayMonth(seenDay, locale)
+          : `${formatDayMonth(seenDay, locale)}, ${year}`;
 
   return t("presence.onDate", { date });
 };

@@ -22,7 +22,7 @@ Weekly PT workout app: admins (PTs) assign daily workouts, users log in by name.
 ## Conventions
 
 - Import via `@/`; ESLint enforces sorted import groups and braces on every `if`/`for` body.
-- UI strings go in messages/{vi,en}/<namespace>.json via next-intl; vi is default; the messages test fails on missing keys.
+- UI strings go in messages/{vi,en,zh}/<namespace>.json via next-intl; vi is default; the messages test fails on missing keys.
 - Components live in `PascalCase/index.tsx`; hooks are `use-kebab-case.ts`.
 - Every admin server action calls `requireAdmin()` first; user actions call `requireUser()`. Validate input with Zod.
 - Errors go through `services/action-errors.ts`: production shows only a generic message plus a reference id.

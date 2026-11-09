@@ -18,7 +18,7 @@ export const formatClockTime = (
     hourCycle: "h23",
   }).format(timestamp);
 
-// "05/10" in the given time zone ("Oct 5" in English). Built from parts
+// "05/10" in the given time zone ("Oct 5" in English, "10月5日" in Chinese). Built from parts
 // because the vi-VN day/month separator differs between ICU versions
 // ("05/10" vs "05-10").
 export const formatShortDate = (
@@ -26,8 +26,8 @@ export const formatShortDate = (
   timeZone: string,
   locale: Locale = DEFAULT_LOCALE,
 ) => {
-  if (locale === "en") {
-    return new Intl.DateTimeFormat("en-US", {
+  if (locale !== "vi") {
+    return new Intl.DateTimeFormat(toIntlLocale(locale), {
       timeZone,
       month: "short",
       day: "numeric",

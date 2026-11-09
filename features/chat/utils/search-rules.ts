@@ -212,7 +212,11 @@ export const formatResultTime = (
   if (year(at) === year(nowMs)) {
     return stamp;
   }
-  // Vietnamese: "05/10/2025 18:32"; English: "Oct 5, 2025 18:32".
+  // Vietnamese: "05/10/2025 18:32"; English: "Oct 5, 2025 18:32";
+  // Chinese: "2025年10月5日 18:32".
+  if (locale === "zh") {
+    return `${year(at)}年${stamp}`;
+  }
   return locale === "vi"
     ? `${stamp.slice(0, 5)}/${year(at)}${stamp.slice(5)}`
     : stamp.replace(/^(\D+\d+)/, `$1, ${year(at)}`);

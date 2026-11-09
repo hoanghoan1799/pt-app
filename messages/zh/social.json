@@ -1,0 +1,227 @@
+{
+  "notifications": {
+    "empty": "暂无通知。",
+    "unread": "未读",
+    "bell": "通知",
+    "bellUnread": "通知，{count} 条未读"
+  },
+  "reportActions": {
+    "deleteTitle": "删除被举报的内容？",
+    "deleteDescription": "内容将被永久删除。",
+    "deleteConfirm": "删除",
+    "keep": "保留",
+    "handled": "已处理",
+    "deleteContent": "删除内容"
+  },
+  "unblock": {
+    "label": "取消屏蔽",
+    "success": "已取消屏蔽。"
+  },
+  "privacy": {
+    "label": "隐私",
+    "everyone": "所有人",
+    "friends": "好友",
+    "only_me": "仅自己"
+  },
+  "terms": {
+    "accept": "同意"
+  },
+  "profileMenu": {
+    "optionsLabel": "选项",
+    "block": "屏蔽",
+    "report": "举报",
+    "blockTitle": "屏蔽 {name}？",
+    "blockDescription": "你们将无法找到对方，也看不到对方的动态和评论。好友关系（如有）将被解除。",
+    "blocked": "已屏蔽该用户。"
+  },
+  "relationship": {
+    "addFriend": "加好友",
+    "accept": "接受",
+    "decline": "拒绝",
+    "friends": "好友",
+    "requested": "已发送请求",
+    "unfriendTitle": "解除与 {name} 的好友关系？",
+    "unfriendDescription": "你们将看不到对方仅好友可见的动态。",
+    "unfriendConfirm": "解除好友",
+    "cancelRequest": "撤销请求"
+  },
+  "friendRequest": {
+    "cancel": "撤销请求",
+    "accept": "接受",
+    "decline": "拒绝"
+  },
+  "friendsTabs": {
+    "navLabel": "好友",
+    "tabs": {
+      "friends": "好友",
+      "requests": "好友请求",
+      "search": "通过邮箱查找好友"
+    }
+  },
+  "friendSearch": {
+    "label": "好友的邮箱",
+    "hint": "请输入完整的邮箱地址进行查找。",
+    "submit": "查找",
+    "empty": "未找到使用该邮箱的用户。"
+  },
+  "bio": {
+    "empty": "暂无简介",
+    "edit": "编辑简介",
+    "label": "简介",
+    "cancel": "取消",
+    "save": "保存"
+  },
+  "profile": {
+    "friendCount": "{count, plural, other {# 位好友}}",
+    "posts": "动态",
+    "noPosts": "暂无动态。"
+  },
+  "reactionPicker": {
+    "title": "回应",
+    "description": "选择你对这条动态的回应"
+  },
+  "reactionBar": {
+    "comments": "{count, plural, other {# 条评论}}",
+    "reactedAs": "你回应了 {emoji}",
+    "heart": "点赞爱心",
+    "reacted": "已回应",
+    "like": "赞",
+    "reactionsList": "{count, plural, other {# 个回应，查看列表}}"
+  },
+  "reactorsSheet": {
+    "title": "回应",
+    "description": "谁对这条动态做出了回应",
+    "loadFailed": "无法加载列表。",
+    "you": "你"
+  },
+  "reportSheet": {
+    "titles": {
+      "post": "举报动态",
+      "comment": "举报评论",
+      "user": "举报用户"
+    },
+    "description": "管理员会审核你的举报。",
+    "reasonLabel": "原因（选填）",
+    "cancel": "取消",
+    "send": "提交举报",
+    "sent": "举报已提交，谢谢。"
+  },
+  "dmPostQuote": {
+    "postUnavailable": "该动态已不可用",
+    "postOf": "{name} 的动态",
+    "photoAlt": "动态中的照片"
+  },
+  "dmBubbleList": {
+    "deleted": "已删除",
+    "retry": "重新发送",
+    "seen": "已读",
+    "unsend": "撤回"
+  },
+  "dmThread": {
+    "back": "返回",
+    "loadOlder": "查看更早的消息",
+    "noMessages": "暂无消息，和好友打个招呼吧。",
+    "replying": "正在回复动态",
+    "cancelReply": "取消回复动态",
+    "photoAlt": "已选照片",
+    "removePhoto": "移除照片",
+    "uploading": "正在上传照片...",
+    "attachPhoto": "发送照片",
+    "messageLabel": "消息",
+    "placeholder": "输入消息...",
+    "send": "发送"
+  },
+  "postList": {
+    "loadFailed": "无法加载更多，请重试。",
+    "loading": "正在加载更多动态...",
+    "retry": "重试",
+    "end": "你已看完所有动态。"
+  },
+  "postComposer": {
+    "emptyPost": "请输入内容或选择一张照片。",
+    "captionLabel": "动态内容",
+    "placeholder": "在想什么？",
+    "photoAlt": "将发布的照片",
+    "removePhoto": "移除照片",
+    "addPhoto": "添加照片",
+    "submit": "发布"
+  },
+  "postCard": {
+    "deleteTitle": "删除这条动态？",
+    "deleteDescription": "动态及其照片将被永久删除。",
+    "deleteConfirm": "删除",
+    "postOf": "{name} 的动态",
+    "edited": " · 已编辑",
+    "optionsLabel": "动态选项",
+    "captionLabel": "动态内容",
+    "cancel": "取消",
+    "save": "保存",
+    "viewPhoto": "查看照片",
+    "photoAlt": "动态中的照片",
+    "photoOf": "{name} 的照片",
+    "replyInChat": "通过私信回复",
+    "edit": "编辑",
+    "delete": "删除",
+    "report": "举报"
+  },
+  "comments": {
+    "label": "评论",
+    "empty": "暂无评论。",
+    "edited": " · 已编辑",
+    "editLabel": "编辑评论",
+    "cancel": "取消",
+    "save": "保存",
+    "report": "举报",
+    "edit": "编辑",
+    "delete": "删除",
+    "placeholder": "写评论...",
+    "send": "发送",
+    "deleteTitle": "删除这条评论？",
+    "deleteDescription": "评论将被永久删除。",
+    "deleteConfirm": "删除"
+  },
+  "pages": {
+    "eyebrow": "社交",
+    "feedTitle": "动态",
+    "feedEmpty": "还没有动态，发布第一条吧！",
+    "feedTerms": "请阅读并同意条款后使用动态。",
+    "friendsLink": "好友",
+    "friendsTitle": "好友",
+    "friendsAria": "好友",
+    "friendsCount": "好友 · {count}",
+    "friendsEmpty": "还没有好友，通过邮箱查找好友吧。",
+    "blockedAria": "已屏蔽",
+    "blockedCount": "已屏蔽 · {count}",
+    "receivedAria": "收到的请求",
+    "receivedCount": "已收到 · {count}",
+    "noRequests": "暂无好友请求。",
+    "sentAria": "已发送的请求",
+    "sentCount": "已发送 · {count}",
+    "noSent": "你还没有发送过请求。",
+    "postTitle": "动态",
+    "notificationsTitle": "通知"
+  },
+  "adminPages": {
+    "socialTitle": "社交",
+    "eyebrow": "社交",
+    "adminEyebrow": "管理员 · {name}",
+    "chatsLink": "学员聊天",
+    "feedEmpty": "暂无动态。",
+    "chatsTitle": "学员聊天",
+    "chatsCount": "会话 · {count}",
+    "chatsEmpty": "暂无会话。",
+    "preview": "暂无消息",
+    "deletedName": "已删除",
+    "readOnly": "仅查看",
+    "seeOlder": "查看更早的消息",
+    "noMessages": "暂无消息。",
+    "postTitle": "动态",
+    "notificationsTitle": "通知",
+    "profileTitle": "个人主页"
+  },
+  "dm": {
+    "inboxTitle": "私信",
+    "coachTitle": "教练",
+    "archivedNote": "与好友的旧消息仅供查看。"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "installPrompt": {
+    "regionLabel": "安装应用",
+    "iosBefore": "安装应用：点击分享按钮",
+    "iosAfter": "然后选择“添加到主屏幕”",
+    "inAppHint": "请用 Safari 或 Chrome 打开此页面以安装应用",
+    "androidHint": "将 PT App 添加到主屏幕，打开更快",
+    "later": "稍后",
+    "install": "安装"
+  },
+  "offlineRetry": {
+    "retry": "重试"
+  }
+}
