@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { ChevronRight, Search, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
@@ -62,6 +63,7 @@ export const ChatInfo = ({
   paths,
   preview,
 }: ChatInfoProps) => {
+  const t = useTranslations("chat.chatInfo");
   const isAdmin = viewer.role === "admin";
   const [profile, setProfile] = useState(initialProfile);
   const [isCustomizing, setIsCustomizing] = useState(false);
@@ -77,20 +79,20 @@ export const ChatInfo = ({
 
   return (
     <>
-      <AppHeader title="Thông tin" backHref={paths.chat} />
+      <AppHeader title={t("title")} backHref={paths.chat} />
       <main
         data-chat-info
         className={clsx(PAGE_CONTAINER, "space-y-8 pt-6 pb-12")}
       >
         <section
-          aria-label="Người trò chuyện"
+          aria-label={t("peerSection")}
           className="flex flex-col items-center gap-2 text-center"
         >
           {peerAvatarUrl ? (
             <button
               type="button"
               onClick={() => setIsPhotoOpen(true)}
-              aria-label={`Xem ảnh của ${shownName}`}
+              aria-label={t("viewPhoto", { name: shownName })}
               className="rounded-full transition active:scale-95"
             >
               <Avatar
@@ -108,15 +110,15 @@ export const ChatInfo = ({
           <PresenceStatus presence={presence} className="justify-center" />
         </section>
 
-        <section aria-label="Công cụ">
+        <section aria-label={t("toolsSection")}>
           <ul className="flex items-start justify-center gap-8">
             <li className="flex w-20 flex-col items-center gap-1.5">
               <Link href={paths.search} className={ROUND_BUTTON}>
                 <Search className="size-5" aria-hidden />
-                <span className="sr-only">Tìm kiếm</span>
+                <span className="sr-only">{t("search")}</span>
               </Link>
               <span aria-hidden className="text-xs font-medium text-fg">
-                Tìm kiếm
+                {t("search")}
               </span>
             </li>
             <li className="flex w-20 flex-col items-center gap-1.5">
@@ -131,10 +133,10 @@ export const ChatInfo = ({
                 )}
               >
                 <SlidersHorizontal className="size-5" aria-hidden />
-                <span className="sr-only">Tuỳ chỉnh</span>
+                <span className="sr-only">{t("customize")}</span>
               </button>
               <span aria-hidden className="text-xs font-medium text-fg">
-                Tuỳ chỉnh
+                {t("customize")}
               </span>
             </li>
           </ul>
@@ -143,7 +145,7 @@ export const ChatInfo = ({
         {isCustomizing && (
           <section
             id="chat-customize"
-            aria-label="Tuỳ chỉnh"
+            aria-label={t("customize")}
             className="rounded-2xl border border-line bg-surface p-4"
           >
             <ChatCustomizePanel
@@ -160,7 +162,7 @@ export const ChatInfo = ({
 
         <section aria-labelledby="chat-info-photos" className="space-y-3">
           <h2 id="chat-info-photos" className={SECTION_TITLE}>
-            Ảnh
+            {t("photos")}
           </h2>
           {preview.length > 0 && (
             <ul
@@ -174,7 +176,7 @@ export const ChatInfo = ({
                 >
                   <Link
                     href={paths.photos}
-                    aria-label={`Ảnh của ${photoLabel(photo)}`}
+                    aria-label={t("photoOf", { label: photoLabel(photo) })}
                     className="absolute inset-0 block"
                   >
                     {/* A plain img: the route is cookie-authenticated. */}
@@ -196,9 +198,9 @@ export const ChatInfo = ({
             href={paths.photos}
             className="flex min-h-12 items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 text-base font-medium text-fg transition active:bg-line"
           >
-            <span>Ảnh, sticker và link</span>
+            <span>{t("galleryLink")}</span>
             <span className="flex items-center gap-1 text-sm text-muted">
-              {preview.length === 0 && "Chưa có ảnh"}
+              {preview.length === 0 && t("noPhotos")}
               <ChevronRight className="size-5" aria-hidden />
             </span>
           </Link>
@@ -207,7 +209,7 @@ export const ChatInfo = ({
         {isAdmin && (
           <section aria-labelledby="chat-info-display" className="space-y-3">
             <h2 id="chat-info-display" className={SECTION_TITLE}>
-              Hiển thị
+              {t("displaySection")}
             </h2>
             <NeutralColorsSwitch />
           </section>
@@ -216,7 +218,7 @@ export const ChatInfo = ({
         {isAdmin && (
           <section aria-labelledby="chat-info-actions" className="space-y-3">
             <h2 id="chat-info-actions" className={SECTION_TITLE}>
-              Thao tác
+              {t("actionsSection")}
             </h2>
             <HideConversationButton conversationId={conversationId} />
           </section>

@@ -2,13 +2,13 @@
 
 import { Ban, Flag, MoreHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { ROUTES } from "@/constants/routes";
 import { ReportSheet } from "@/features/social/components/ReportSheet";
-import { FRIEND_MESSAGES } from "@/features/social/constants/social";
 import { useSocialAction } from "@/features/social/hooks/use-social-action";
 import { blockUserAction } from "@/features/social/services/friend-actions";
 
@@ -33,6 +33,7 @@ export const ProfileMenu = ({
   canBlock,
   canReport,
 }: ProfileMenuProps) => {
+  const t = useTranslations("social.profileMenu");
   const router = useRouter();
   const confirm = useConfirm();
   const [isMenuOpen, setMenuOpen] = useState(false);
@@ -42,16 +43,15 @@ export const ProfileMenu = ({
   const handleBlock = async () => {
     setMenuOpen(false);
     const isConfirmed = await confirm({
-      title: `Chặn ${name}?`,
-      description:
-        "Hai bạn sẽ không tìm thấy, không xem được bài viết và bình luận của nhau. Tình bạn (nếu có) sẽ bị huỷ.",
-      confirmLabel: "Chặn",
+      title: t("blockTitle", { name }),
+      description: t("blockDescription"),
+      confirmLabel: t("block"),
       isDanger: true,
     });
 
     if (isConfirmed) {
       run(() => blockUserAction(userId), {
-        successMessage: FRIEND_MESSAGES.BLOCKED,
+        successMessage: t("blocked"),
         onSuccess: () => router.replace(ROUTES.FRIENDS),
       });
     }
@@ -63,7 +63,7 @@ export const ProfileMenu = ({
         type="button"
         onClick={() => setMenuOpen(true)}
         disabled={isPending}
-        aria-label="Tùy chọn"
+        aria-label={t("optionsLabel")}
         className="inline-flex size-12 shrink-0 items-center justify-center rounded-xl border border-line text-muted active:bg-line disabled:opacity-50"
       >
         <MoreHorizontal className="size-5" aria-hidden />
@@ -77,7 +77,7 @@ export const ProfileMenu = ({
               onClick={handleBlock}
             >
               <Ban className="size-5" aria-hidden />
-              Chặn
+              {t("block")}
             </button>
           )}
           {canReport && (
@@ -90,7 +90,7 @@ export const ProfileMenu = ({
               }}
             >
               <Flag className="size-5" aria-hidden />
-              Báo cáo
+              {t("report")}
             </button>
           )}
         </div>

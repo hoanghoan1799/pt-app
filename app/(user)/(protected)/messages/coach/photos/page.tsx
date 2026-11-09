@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import {
@@ -12,13 +13,18 @@ import { chatPaths } from "@/features/chat/utils/chat-links";
 import { parseGalleryTab } from "@/features/chat/utils/gallery-rules";
 import { requireUser } from "@/services/auth-guard";
 
-export const metadata: Metadata = { title: "Ảnh, sticker và link" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("chat.pages");
+
+  return { title: t("photosTitle") };
+};
 
 // The trainee's gallery (KAN-160): the photos, stickers or links of the
 // conversation by `?tab=`, newest first.
 const MessagesPhotosPage = async ({
   searchParams,
 }: PageProps<"/messages/coach/photos">) => {
+  const t = await getTranslations("chat.pages");
   const user = await requireUser();
   const tab = parseGalleryTab((await searchParams).tab);
   const conversation = await findConversationByUserId(user.id);
@@ -38,7 +44,7 @@ const MessagesPhotosPage = async ({
 
   return (
     <>
-      <AppHeader title="Ảnh, sticker và link" backHref={paths.info} />
+      <AppHeader title={t("photosTitle")} backHref={paths.info} />
       <main className="mx-auto w-full max-w-lg pt-3 pb-12">
         <GalleryView
           tab={tab}

@@ -20,6 +20,3 @@ export const HIDDEN_CHAT_MESSAGES = {
   INVALID_INPUT: "Học viên không hợp lệ",
   NO_MATCH: "Không khớp",
 } as const;
-
-// Shown for the PT side before any PT has written.
-export const FALLBACK_PEER_NAME = "PT của bạn";

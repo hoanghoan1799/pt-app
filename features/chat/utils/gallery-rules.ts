@@ -35,12 +35,6 @@ export type GalleryPage = CursorPage<GalleryPhoto>;
 export const GALLERY_TABS = ["photos", "stickers", "links"] as const;
 export type GalleryTab = (typeof GALLERY_TABS)[number];
 
-export const GALLERY_TAB_LABELS: Record<GalleryTab, string> = {
-  photos: "Ảnh",
-  stickers: "Sticker",
-  links: "Link",
-};
-
 // Anything that is not a known tab is the first one.
 export const parseGalleryTab = (
   value: string | string[] | null | undefined,

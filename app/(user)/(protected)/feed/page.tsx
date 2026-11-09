@@ -1,6 +1,7 @@
 import { Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -17,9 +18,14 @@ import { countUnreadNotifications } from "@/features/social/services/social-noti
 import { hasAcceptedTerms } from "@/features/social/services/terms";
 import { requireUser } from "@/services/auth-guard";
 
-export const metadata: Metadata = { title: "Bảng tin" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("social.pages");
+
+  return { title: t("feedTitle") };
+};
 
 const FeedPage = async () => {
+  const t = await getTranslations("social.pages");
   const user = await requireUser();
   const accepted = hasAcceptedTerms(user);
   const [posts, defaultPrivacy, unreadCount] = accepted
@@ -33,8 +39,8 @@ const FeedPage = async () => {
   return (
     <>
       <AppHeader
-        eyebrow="Mạng xã hội"
-        title="Bảng tin"
+        eyebrow={t("eyebrow")}
+        title={t("feedTitle")}
         actions={
           <>
             {accepted && (
@@ -46,7 +52,7 @@ const FeedPage = async () => {
             {accepted && (
               <Link
                 href={ROUTES.FRIENDS}
-                aria-label="Bạn bè"
+                aria-label={t("friendsLink")}
                 className="inline-flex size-11 items-center justify-center"
               >
                 <Users className="size-6" aria-hidden />
@@ -66,14 +72,12 @@ const FeedPage = async () => {
               mode="user"
               source={{ type: "feed" }}
               initial={posts}
-              emptyText="Chưa có bài viết nào. Hãy đăng bài đầu tiên!"
+              emptyText={t("feedEmpty")}
             />
           </>
         ) : (
           <>
-            <p className="text-sm text-muted">
-              Hãy đọc và đồng ý điều khoản để dùng Bảng tin.
-            </p>
+            <p className="text-sm text-muted">{t("feedTerms")}</p>
             <TermsContent />
             <TermsAcceptButton />
           </>

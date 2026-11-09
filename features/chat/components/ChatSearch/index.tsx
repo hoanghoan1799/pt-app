@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { ChevronLeft, Search } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 import { ICON_BUTTON, INPUT, PAGE_CONTAINER } from "@/constants/styles";
@@ -28,7 +29,6 @@ interface ChatSearchProps {
 }
 
 const DEBOUNCE_MS = 300;
-const FAILED = "Không tìm được. Thử lại nhé.";
 
 const isSearchPage = (value: unknown): value is SearchPage =>
   typeof value === "object" &&
@@ -147,6 +147,7 @@ export const ChatSearch = ({
     }
   };
 
+  const t = useTranslations("chat.chatSearch");
   const query = text.trim();
   const isSearchable = isSearchableQuery(query);
 
@@ -159,7 +160,7 @@ export const ChatSearch = ({
           <Link
             href={paths.info}
             className={clsx(ICON_BUTTON, "-ml-3")}
-            aria-label="Quay lại"
+            aria-label={t("back")}
           >
             <ChevronLeft className="size-6" />
           </Link>
@@ -173,8 +174,8 @@ export const ChatSearch = ({
               value={text}
               onChange={(event) => setText(event.target.value)}
               maxLength={SEARCH_MAX_LENGTH}
-              placeholder="Tìm trong cuộc trò chuyện"
-              aria-label="Tìm tin nhắn"
+              placeholder={t("placeholder")}
+              aria-label={t("inputLabel")}
               autoComplete="off"
               enterKeyHint="search"
 
@@ -187,7 +188,7 @@ export const ChatSearch = ({
       <main data-chat-search className={clsx(PAGE_CONTAINER, "pt-2 pb-12")}>
         {!isSearchable && (
           <p className="px-6 py-16 text-center text-sm text-muted">
-            Nhập ít nhất {SEARCH_MIN_LENGTH} ký tự để tìm tin nhắn
+            {t("minLength", { min: SEARCH_MIN_LENGTH })}
           </p>
         )}
         {isSearchable && state.kind === "loading" && (
@@ -195,7 +196,7 @@ export const ChatSearch = ({
             role="status"
             className="px-6 py-16 text-center text-sm text-muted"
           >
-            Đang tìm…
+            {t("searching")}
           </p>
         )}
         {isSearchable && state.kind === "error" && (
@@ -203,7 +204,7 @@ export const ChatSearch = ({
             role="alert"
             className="px-6 py-16 text-center text-sm text-danger"
           >
-            {FAILED}
+            {t("failed")}
           </p>
         )}
         {isSearchable &&
@@ -211,7 +212,7 @@ export const ChatSearch = ({
           state.query === query &&
           (state.results.length === 0 ? (
             <p className="px-6 py-16 text-center text-sm text-muted">
-              Không tìm thấy tin nhắn nào
+              {t("empty")}
             </p>
           ) : (
             <>
@@ -250,7 +251,7 @@ export const ChatSearch = ({
                     disabled={isLoadingMore}
                     className="rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
                   >
-                    {isLoadingMore ? "Đang tìm…" : "Xem thêm kết quả"}
+                    {isLoadingMore ? t("searching") : t("loadMore")}
                   </button>
                 </div>
               )}

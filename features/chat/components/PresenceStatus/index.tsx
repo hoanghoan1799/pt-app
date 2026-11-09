@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 
 import type { PresenceView } from "@/features/chat/utils/presence-status";
 
@@ -14,6 +15,8 @@ export const PresenceStatus = ({
   presence,
   className,
 }: PresenceStatusProps) => {
+  const t = useTranslations("chat.presenceStatus");
+
   if (!presence?.text) {
     return null;
   }
@@ -22,7 +25,7 @@ export const PresenceStatus = ({
     <p
       role="status"
       aria-live="off"
-      aria-label={`Trạng thái hoạt động: ${presence.text}`}
+      aria-label={t("label", { text: presence.text })}
       data-online={presence.online}
       className={clsx(
         "flex items-center gap-1.5 text-xs",

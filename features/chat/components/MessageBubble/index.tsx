@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
@@ -119,6 +120,7 @@ export const MessageBubble = ({
   const hasPhoto = Boolean(photo) && !isUnsent && !isSticker;
   // Only stored, not unsent messages have actions.
   const isInteractive = message.id !== null && !isUnsent;
+  const t = useTranslations("chat.messageBubble");
   const [isViewerOpen, setViewerOpen] = useState(false);
   const gesture = useBubbleGesture(isInteractive, {
     onDoubleTap: () => onToggleHeart(message),
@@ -219,7 +221,7 @@ export const MessageBubble = ({
             <button
               type="button"
               onClick={() => onJumpToReply(replyTo.id)}
-              aria-label="Xem tin nhắn được trả lời"
+              aria-label={t("viewReply")}
               className={clsx(
                 "mb-1.5 block max-w-full border-l-2 py-0.5 pl-2 text-left text-xs",
                 isColored
@@ -290,7 +292,7 @@ export const MessageBubble = ({
           isOpen={isViewerOpen}
           onClose={() => setViewerOpen(false)}
           src={photo.url}
-          name="tin nhắn"
+          name={t("messageName")}
         />
       )}
       {sticker && isSticker && (
@@ -336,21 +338,21 @@ export const MessageBubble = ({
             sideMargin,
           )}
         >
-          Đã chỉnh sửa
+          {t("edited")}
         </button>
       )}
       {mine && isSending && (
-        <p className="mt-1 mr-1 text-xs text-muted">Đang gửi…</p>
+        <p className="mt-1 mr-1 text-xs text-muted">{t("sending")}</p>
       )}
       {mine && isFailed && (
         <p className="mt-1 mr-1 flex items-center gap-2 text-xs text-danger">
-          Chưa gửi được
+          {t("notSent")}
           <button
             type="button"
             onClick={() => onRetry(message.clientId)}
             className="rounded-full border border-danger/40 px-2.5 py-1 font-semibold active:bg-danger/10"
           >
-            Gửi lại
+            {t("retry")}
           </button>
         </p>
       )}

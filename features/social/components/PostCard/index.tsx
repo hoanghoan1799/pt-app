@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -32,11 +33,7 @@ import {
 } from "@/features/social/components/PrivacySelect";
 import { ReactionBar } from "@/features/social/components/ReactionBar";
 import { ReportSheet } from "@/features/social/components/ReportSheet";
-import { DM_MESSAGES } from "@/features/social/constants/dm";
-import {
-  CAPTION_MAX_LENGTH,
-  PRIVACY_LABELS,
-} from "@/features/social/constants/social";
+import { CAPTION_MAX_LENGTH } from "@/features/social/constants/social";
 import {
   deletePostAction,
   editPostAction,
@@ -64,6 +61,8 @@ const MENU_ITEM =
   "flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-base font-medium active:bg-line/70";
 
 export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
+  const t = useTranslations("social.postCard");
+  const tPrivacy = useTranslations("social.privacy");
   const router = useRouter();
   const confirm = useConfirm();
   const [isMenuOpen, setMenuOpen] = useState(false);
@@ -129,9 +128,9 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
   const handleDelete = async () => {
     setMenuOpen(false);
     const isConfirmed = await confirm({
-      title: "Xóa bài viết này?",
-      description: "Bài viết và ảnh đi kèm sẽ bị xóa vĩnh viễn.",
-      confirmLabel: "Xóa",
+      title: t("deleteTitle"),
+      description: t("deleteDescription"),
+      confirmLabel: t("deleteConfirm"),
       isDanger: true,
     });
 
@@ -148,7 +147,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
   return (
     <article
       className={`${CARD} space-y-3 p-4`}
-      aria-label={`Bài viết của ${post.authorName}`}
+      aria-label={t("postOf", { name: post.authorName })}
     >
       <header className="flex items-center gap-3">
         <Link href={href} className="flex min-w-0 flex-1 items-center gap-3">
@@ -164,10 +163,10 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
             </span>
             <span className="flex items-center gap-1 text-xs text-muted">
               {formatRelativeTime(post.createdAt, TIME_ZONE)}
-              {post.edited && " · Đã chỉnh sửa"}
+              {post.edited && t("edited")}
               <span aria-hidden>·</span>
               <PrivacyIcon className="size-3.5" aria-hidden />
-              <span className="sr-only">{PRIVACY_LABELS[post.privacy]}</span>
+              <span className="sr-only">{tPrivacy(post.privacy)}</span>
             </span>
           </span>
         </Link>
@@ -176,7 +175,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
             type="button"
             onClick={() => setMenuOpen(true)}
             disabled={isPending}
-            aria-label="Tùy chọn bài viết"
+            aria-label={t("optionsLabel")}
             className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-muted active:bg-line disabled:opacity-50"
           >
             {isPending ? (
@@ -194,7 +193,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
             value={caption}
             maxLength={CAPTION_MAX_LENGTH}
             onChange={(event) => setCaption(event.target.value)}
-            aria-label="Nội dung bài viết"
+            aria-label={t("captionLabel")}
             className={TEXTAREA}
           />
           <div className="flex items-center gap-2">
@@ -214,7 +213,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
               disabled={isPending}
               className={`${BUTTON_SECONDARY} ml-auto min-h-11`}
             >
-              Hủy
+              {t("cancel")}
             </button>
             <button
               type="button"
@@ -222,7 +221,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
               disabled={isPending}
               className={`${BUTTON_PRIMARY} min-h-11`}
             >
-              Lưu
+              {t("save")}
             </button>
           </div>
         </div>
@@ -238,14 +237,14 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
         <button
           type="button"
           onClick={() => setViewerIndex(0)}
-          aria-label="Xem ảnh"
+          aria-label={t("viewPhoto")}
           className="block w-full overflow-hidden rounded-xl bg-line"
           style={{ aspectRatio: `${post.photo.width} / ${post.photo.height}` }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={post.photo.url}
-            alt="Ảnh trong bài viết"
+            alt={t("photoAlt")}
             width={post.photo.width}
             height={post.photo.height}
             loading="lazy"
@@ -260,7 +259,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
             {
               id: post.photo.id,
               src: post.photo.url,
-              label: `Ảnh của ${post.authorName}`,
+              label: t("photoOf", { name: post.authorName }),
             },
           ]}
           index={viewerIndex}
@@ -298,14 +297,14 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
           ) : (
             <MessageCircle className="size-5" aria-hidden />
           )}
-          {DM_MESSAGES.REPLY_TO_POST}
+          {t("replyInChat")}
         </button>
       )}
 
       <BottomSheet
         isOpen={isMenuOpen}
         onOpenChange={setMenuOpen}
-        title="Tùy chọn bài viết"
+        title={t("optionsLabel")}
       >
         <div className="space-y-1 pb-2">
           {post.canEdit && (
@@ -318,7 +317,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
               }}
             >
               <Pencil className="size-5" aria-hidden />
-              Sửa
+              {t("edit")}
             </button>
           )}
           {post.canDelete && (
@@ -328,7 +327,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
               onClick={handleDelete}
             >
               <Trash2 className="size-5" aria-hidden />
-              Xoá
+              {t("delete")}
             </button>
           )}
           {canReport && (
@@ -341,7 +340,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
               }}
             >
               <Flag className="size-5" aria-hidden />
-              Báo cáo
+              {t("report")}
             </button>
           )}
         </div>

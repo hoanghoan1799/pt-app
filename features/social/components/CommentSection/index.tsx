@@ -3,6 +3,7 @@
 import { Loader2, Send } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -42,6 +43,7 @@ export const CommentSection = ({
   mode,
   comments,
 }: CommentSectionProps) => {
+  const t = useTranslations("social.comments");
   const router = useRouter();
   const confirm = useConfirm();
   const [body, setBody] = useState("");
@@ -90,9 +92,9 @@ export const CommentSection = ({
 
   const handleDelete = async (commentId: number) => {
     const isConfirmed = await confirm({
-      title: "Xóa bình luận này?",
-      description: "Bình luận sẽ bị xóa vĩnh viễn.",
-      confirmLabel: "Xóa",
+      title: t("deleteTitle"),
+      description: t("deleteDescription"),
+      confirmLabel: t("deleteConfirm"),
       isDanger: true,
     });
 
@@ -104,7 +106,7 @@ export const CommentSection = ({
   };
 
   return (
-    <section className="space-y-3" aria-label="Bình luận">
+    <section className="space-y-3" aria-label={t("label")}>
       {reportingId !== null && (
         <ReportSheet
           key={reportingId}
@@ -120,9 +122,7 @@ export const CommentSection = ({
         />
       )}
       {comments.length === 0 ? (
-        <p className={`${CARD} p-4 text-center text-muted`}>
-          Chưa có bình luận nào.
-        </p>
+        <p className={`${CARD} p-4 text-center text-muted`}>{t("empty")}</p>
       ) : (
         <ul className="space-y-3">
           {comments.map((comment) => (
@@ -144,7 +144,7 @@ export const CommentSection = ({
                   {comment.authorVerified && <VerifiedBadge />}
                   <span className="shrink-0 text-xs font-normal text-muted">
                     {formatRelativeTime(comment.createdAt, TIME_ZONE)}
-                    {comment.edited && " · Đã chỉnh sửa"}
+                    {comment.edited && t("edited")}
                   </span>
                 </p>
                 {editingId === comment.id ? (
@@ -153,7 +153,7 @@ export const CommentSection = ({
                       value={editBody}
                       maxLength={COMMENT_MAX_LENGTH}
                       onChange={(event) => setEditBody(event.target.value)}
-                      aria-label="Sửa bình luận"
+                      aria-label={t("editLabel")}
                       className={TEXTAREA}
                     />
                     <div className="flex justify-end gap-2">
@@ -163,7 +163,7 @@ export const CommentSection = ({
                         disabled={isPending}
                         className={`${BUTTON_SECONDARY} min-h-11`}
                       >
-                        Hủy
+                        {t("cancel")}
                       </button>
                       <button
                         type="button"
@@ -171,7 +171,7 @@ export const CommentSection = ({
                         disabled={isPending || editBody.trim() === ""}
                         className={`${BUTTON_PRIMARY} min-h-11`}
                       >
-                        Lưu
+                        {t("save")}
                       </button>
                     </div>
                   </div>
@@ -188,7 +188,7 @@ export const CommentSection = ({
                           onClick={() => setReportingId(comment.id)}
                           className={LINK_BUTTON}
                         >
-                          Báo cáo
+                          {t("report")}
                         </button>
                       )}
                       {comment.canEdit && (
@@ -201,7 +201,7 @@ export const CommentSection = ({
                           }}
                           className={LINK_BUTTON}
                         >
-                          Sửa
+                          {t("edit")}
                         </button>
                       )}
                       {comment.canDelete && (
@@ -211,7 +211,7 @@ export const CommentSection = ({
                           onClick={() => handleDelete(comment.id)}
                           className={`${LINK_BUTTON} text-danger`}
                         >
-                          Xoá
+                          {t("delete")}
                         </button>
                       )}
                     </div>
@@ -228,8 +228,8 @@ export const CommentSection = ({
           value={body}
           maxLength={COMMENT_MAX_LENGTH}
           onChange={(event) => setBody(event.target.value)}
-          placeholder="Viết bình luận..."
-          aria-label="Viết bình luận"
+          placeholder={t("placeholder")}
+          aria-label={t("placeholder")}
           className={TEXTAREA}
         />
         <div className="flex items-center justify-between gap-2">
@@ -247,7 +247,7 @@ export const CommentSection = ({
             ) : (
               <Send className="size-5" aria-hidden />
             )}
-            Gửi
+            {t("send")}
           </button>
         </div>
       </div>

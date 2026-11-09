@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -11,11 +12,16 @@ import { actorOfAdmin } from "@/features/social/services/post-context";
 import { getPostView } from "@/features/social/services/post-queries";
 import { requireAdmin } from "@/services/auth-guard";
 
-export const metadata: Metadata = { title: "Bài viết" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("social.adminPages");
+
+  return { title: t("postTitle") };
+};
 
 const AdminPostPage = async ({
   params,
 }: PageProps<"/admin/social/post/[id]">) => {
+  const t = await getTranslations("social.adminPages");
   const admin = await requireAdmin();
   const id = Number((await params).id);
   const actor = actorOfAdmin(admin);
@@ -32,8 +38,8 @@ const AdminPostPage = async ({
   return (
     <>
       <AppHeader
-        eyebrow="Mạng xã hội"
-        title="Bài viết"
+        eyebrow={t("eyebrow")}
+        title={t("postTitle")}
         backHref={ROUTES.ADMIN_SOCIAL}
       />
       <main

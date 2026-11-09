@@ -2,6 +2,7 @@
 
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   type FormEvent,
   useEffect,
@@ -59,6 +60,7 @@ const uploadPhoto = async (blob: Blob, mode: "user" | "admin") => {
 // Write a post: caption, at most one photo and the privacy (which starts from
 // the last one the person chose).
 export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
+  const t = useTranslations("social.postComposer");
   const router = useRouter();
   const captionId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -97,7 +99,7 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (caption.trim() === "" && !photo) {
-      toast.error("Hãy viết nội dung hoặc chọn một ảnh.");
+      toast.error(t("emptyPost"));
       return;
     }
     startTransition(async () => {
@@ -129,14 +131,14 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
   return (
     <form onSubmit={handleSubmit} className={`${CARD} space-y-3 p-4`}>
       <label htmlFor={captionId} className="sr-only">
-        Nội dung bài viết
+        {t("captionLabel")}
       </label>
       <textarea
         id={captionId}
         value={caption}
         maxLength={CAPTION_MAX_LENGTH}
         onChange={(event) => setCaption(event.target.value)}
-        placeholder="Bạn đang nghĩ gì?"
+        placeholder={t("placeholder")}
         className={TEXTAREA}
       />
       {photo && (
@@ -144,13 +146,13 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={photo.previewUrl}
-            alt="Ảnh sẽ đăng"
+            alt={t("photoAlt")}
             className="max-h-64 w-full rounded-xl object-cover"
           />
           <button
             type="button"
             onClick={() => setPhoto(null)}
-            aria-label="Bỏ ảnh"
+            aria-label={t("removePhoto")}
             className="absolute top-2 right-2 inline-flex size-9 items-center justify-center rounded-full bg-black/60 text-white"
           >
             <X className="size-5" aria-hidden />
@@ -172,7 +174,7 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={isPending}
-          aria-label="Thêm ảnh"
+          aria-label={t("addPhoto")}
           className="inline-flex size-11 items-center justify-center rounded-xl border border-line text-accent disabled:opacity-50"
         >
           <ImagePlus className="size-5" aria-hidden />
@@ -189,7 +191,7 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
           className={`${BUTTON_PRIMARY} ml-auto min-h-11`}
         >
           {isPending && <Loader2 className="size-5 animate-spin" aria-hidden />}
-          Đăng
+          {t("submit")}
         </button>
       </div>
     </form>

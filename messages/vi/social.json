@@ -1,0 +1,227 @@
+{
+  "notifications": {
+    "empty": "Chưa có thông báo nào.",
+    "unread": "Chưa đọc",
+    "bell": "Thông báo",
+    "bellUnread": "Thông báo, {count} chưa đọc"
+  },
+  "reportActions": {
+    "deleteTitle": "Xóa nội dung bị báo cáo?",
+    "deleteDescription": "Nội dung sẽ bị xóa vĩnh viễn.",
+    "deleteConfirm": "Xóa",
+    "keep": "Giữ",
+    "handled": "Đã xử lý",
+    "deleteContent": "Xoá nội dung"
+  },
+  "unblock": {
+    "label": "Bỏ chặn",
+    "success": "Đã bỏ chặn."
+  },
+  "privacy": {
+    "label": "Quyền riêng tư",
+    "everyone": "Mọi người",
+    "friends": "Bạn bè",
+    "only_me": "Chỉ mình tôi"
+  },
+  "terms": {
+    "accept": "Đồng ý"
+  },
+  "profileMenu": {
+    "optionsLabel": "Tùy chọn",
+    "block": "Chặn",
+    "report": "Báo cáo",
+    "blockTitle": "Chặn {name}?",
+    "blockDescription": "Hai bạn sẽ không tìm thấy, không xem được bài viết và bình luận của nhau. Tình bạn (nếu có) sẽ bị huỷ.",
+    "blocked": "Đã chặn người dùng."
+  },
+  "relationship": {
+    "addFriend": "Kết bạn",
+    "accept": "Chấp nhận",
+    "decline": "Từ chối",
+    "friends": "Bạn bè",
+    "requested": "Đã gửi lời mời",
+    "unfriendTitle": "Huỷ kết bạn với {name}?",
+    "unfriendDescription": "Bạn sẽ không còn thấy bài viết dành cho bạn bè của nhau.",
+    "unfriendConfirm": "Huỷ kết bạn",
+    "cancelRequest": "Huỷ lời mời"
+  },
+  "friendRequest": {
+    "cancel": "Huỷ lời mời",
+    "accept": "Chấp nhận",
+    "decline": "Từ chối"
+  },
+  "friendsTabs": {
+    "navLabel": "Bạn bè",
+    "tabs": {
+      "friends": "Bạn bè",
+      "requests": "Lời mời",
+      "search": "Tìm bạn bằng email"
+    }
+  },
+  "friendSearch": {
+    "label": "Email của bạn bè",
+    "hint": "Nhập đầy đủ địa chỉ email để tìm.",
+    "submit": "Tìm",
+    "empty": "Không tìm thấy ai với email này."
+  },
+  "bio": {
+    "empty": "Chưa có giới thiệu",
+    "edit": "Sửa giới thiệu",
+    "label": "Giới thiệu",
+    "cancel": "Hủy",
+    "save": "Lưu"
+  },
+  "profile": {
+    "friendCount": "{count, plural, other {# bạn bè}}",
+    "posts": "Bài viết",
+    "noPosts": "Chưa có bài viết nào."
+  },
+  "reactionPicker": {
+    "title": "Cảm xúc",
+    "description": "Chọn cảm xúc về bài viết này"
+  },
+  "reactionBar": {
+    "comments": "{count, plural, other {# bình luận}}",
+    "reactedAs": "Bạn đã thả {emoji}",
+    "heart": "Thả tim",
+    "reacted": "Đã thả",
+    "like": "Thích",
+    "reactionsList": "{count, plural, other {# lượt cảm xúc, xem danh sách}}"
+  },
+  "reactorsSheet": {
+    "title": "Cảm xúc",
+    "description": "Ai đã bày tỏ cảm xúc về bài viết này",
+    "loadFailed": "Không tải được danh sách.",
+    "you": "Bạn"
+  },
+  "reportSheet": {
+    "titles": {
+      "post": "Báo cáo bài viết",
+      "comment": "Báo cáo bình luận",
+      "user": "Báo cáo người dùng"
+    },
+    "description": "Quản trị viên sẽ xem xét báo cáo của bạn.",
+    "reasonLabel": "Lý do (không bắt buộc)",
+    "cancel": "Hủy",
+    "send": "Gửi báo cáo",
+    "sent": "Đã gửi báo cáo. Cảm ơn bạn."
+  },
+  "dmPostQuote": {
+    "postUnavailable": "Bài viết không còn khả dụng",
+    "postOf": "Bài viết của {name}",
+    "photoAlt": "Ảnh trong bài viết"
+  },
+  "dmBubbleList": {
+    "deleted": "Đã xoá",
+    "retry": "Gửi lại",
+    "seen": "Đã xem",
+    "unsend": "Thu hồi"
+  },
+  "dmThread": {
+    "back": "Quay lại",
+    "loadOlder": "Xem tin cũ hơn",
+    "noMessages": "Chưa có tin nhắn. Hãy chào bạn mình nhé.",
+    "replying": "Đang trả lời bài viết",
+    "cancelReply": "Bỏ trả lời bài viết",
+    "photoAlt": "Ảnh đã chọn",
+    "removePhoto": "Bỏ ảnh",
+    "uploading": "Đang tải ảnh...",
+    "attachPhoto": "Gửi ảnh",
+    "messageLabel": "Tin nhắn",
+    "placeholder": "Nhập tin nhắn...",
+    "send": "Gửi"
+  },
+  "postList": {
+    "loadFailed": "Không tải thêm được. Thử lại nhé.",
+    "loading": "Đang tải thêm bài viết...",
+    "retry": "Thử lại",
+    "end": "Bạn đã xem hết bài viết."
+  },
+  "postComposer": {
+    "emptyPost": "Hãy viết nội dung hoặc chọn một ảnh.",
+    "captionLabel": "Nội dung bài viết",
+    "placeholder": "Bạn đang nghĩ gì?",
+    "photoAlt": "Ảnh sẽ đăng",
+    "removePhoto": "Bỏ ảnh",
+    "addPhoto": "Thêm ảnh",
+    "submit": "Đăng"
+  },
+  "postCard": {
+    "deleteTitle": "Xóa bài viết này?",
+    "deleteDescription": "Bài viết và ảnh đi kèm sẽ bị xóa vĩnh viễn.",
+    "deleteConfirm": "Xóa",
+    "postOf": "Bài viết của {name}",
+    "edited": " · Đã chỉnh sửa",
+    "optionsLabel": "Tùy chọn bài viết",
+    "captionLabel": "Nội dung bài viết",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "viewPhoto": "Xem ảnh",
+    "photoAlt": "Ảnh trong bài viết",
+    "photoOf": "Ảnh của {name}",
+    "replyInChat": "Trả lời qua tin nhắn",
+    "edit": "Sửa",
+    "delete": "Xoá",
+    "report": "Báo cáo"
+  },
+  "comments": {
+    "label": "Bình luận",
+    "empty": "Chưa có bình luận nào.",
+    "edited": " · Đã chỉnh sửa",
+    "editLabel": "Sửa bình luận",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "report": "Báo cáo",
+    "edit": "Sửa",
+    "delete": "Xoá",
+    "placeholder": "Viết bình luận...",
+    "send": "Gửi",
+    "deleteTitle": "Xóa bình luận này?",
+    "deleteDescription": "Bình luận sẽ bị xóa vĩnh viễn.",
+    "deleteConfirm": "Xóa"
+  },
+  "pages": {
+    "eyebrow": "Mạng xã hội",
+    "feedTitle": "Bảng tin",
+    "feedEmpty": "Chưa có bài viết nào. Hãy đăng bài đầu tiên!",
+    "feedTerms": "Hãy đọc và đồng ý điều khoản để dùng Bảng tin.",
+    "friendsLink": "Bạn bè",
+    "friendsTitle": "Bạn bè",
+    "friendsAria": "Bạn bè",
+    "friendsCount": "Bạn bè · {count}",
+    "friendsEmpty": "Chưa có bạn bè nào. Hãy tìm bạn bằng email.",
+    "blockedAria": "Đã chặn",
+    "blockedCount": "Đã chặn · {count}",
+    "receivedAria": "Lời mời đã nhận",
+    "receivedCount": "Đã nhận · {count}",
+    "noRequests": "Không có lời mời nào.",
+    "sentAria": "Lời mời đã gửi",
+    "sentCount": "Đã gửi · {count}",
+    "noSent": "Bạn chưa gửi lời mời nào.",
+    "postTitle": "Bài viết",
+    "notificationsTitle": "Thông báo"
+  },
+  "adminPages": {
+    "socialTitle": "Mạng xã hội",
+    "eyebrow": "Mạng xã hội",
+    "adminEyebrow": "Admin · {name}",
+    "chatsLink": "Chat học viên",
+    "feedEmpty": "Chưa có bài viết nào.",
+    "chatsTitle": "Chat học viên",
+    "chatsCount": "Cuộc trò chuyện · {count}",
+    "chatsEmpty": "Chưa có cuộc trò chuyện nào.",
+    "preview": "Chưa có tin nhắn",
+    "deletedName": "Đã xoá",
+    "readOnly": "Chỉ xem",
+    "seeOlder": "Xem tin cũ hơn",
+    "noMessages": "Chưa có tin nhắn.",
+    "postTitle": "Bài viết",
+    "notificationsTitle": "Thông báo",
+    "profileTitle": "Trang cá nhân"
+  },
+  "dm": {
+    "inboxTitle": "Nhắn tin",
+    "coachTitle": "Huấn luyện viên",
+    "archivedNote": "Tin nhắn cũ với bạn bè chỉ để xem lại."
+  }
+}

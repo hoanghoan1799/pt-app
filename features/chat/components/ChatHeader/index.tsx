@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { ChevronLeft, Settings } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import { Avatar } from "@/components/common/Avatar";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -38,11 +39,12 @@ export const ChatHeader = ({
   title = name,
   backHref,
   avatarSrc = null,
-  settingsLabel = "Thông tin cuộc trò chuyện",
+  settingsLabel,
   presence,
   infoHref,
   verified = false,
 }: ChatHeaderProps) => {
+  const t = useTranslations("chat.chatHeader");
   const router = useRouter();
 
   const handleBack = () => {
@@ -66,7 +68,7 @@ export const ChatHeader = ({
           <Link
             href={backHref}
             className={clsx(ICON_BUTTON, "-ml-3")}
-            aria-label="Quay lại"
+            aria-label={t("back")}
           >
             <ChevronLeft className="size-6" aria-hidden />
           </Link>
@@ -75,7 +77,7 @@ export const ChatHeader = ({
             type="button"
             onClick={handleBack}
             className={clsx(ICON_BUTTON, "-ml-3")}
-            aria-label="Quay lại"
+            aria-label={t("back")}
           >
             <ChevronLeft className="size-6" aria-hidden />
           </button>
@@ -100,7 +102,7 @@ export const ChatHeader = ({
         <Link
           href={infoHref}
           className={clsx(ICON_BUTTON, "-mr-3")}
-          aria-label={settingsLabel}
+          aria-label={settingsLabel ?? t("settings")}
         >
           <Settings className="size-5" aria-hidden />
         </Link>

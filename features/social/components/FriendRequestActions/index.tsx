@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from "@/constants/styles";
 import { useSocialAction } from "@/features/social/hooks/use-social-action";
 import {
@@ -20,6 +22,7 @@ export const FriendRequestActions = ({
   userId,
   direction,
 }: FriendRequestActionsProps) => {
+  const t = useTranslations("social.friendRequest");
   const { isPending, run } = useSocialAction();
 
   if (direction === "sent") {
@@ -30,7 +33,7 @@ export const FriendRequestActions = ({
         onClick={() => run(() => cancelFriendRequestAction(userId))}
         className={`${BUTTON_SECONDARY} ${SMALL}`}
       >
-        Huỷ lời mời
+        {t("cancel")}
       </button>
     );
   }
@@ -42,7 +45,7 @@ export const FriendRequestActions = ({
         onClick={() => run(() => acceptFriendRequestAction(userId))}
         className={`${BUTTON_PRIMARY} ${SMALL}`}
       >
-        Chấp nhận
+        {t("accept")}
       </button>
       <button
         type="button"
@@ -50,7 +53,7 @@ export const FriendRequestActions = ({
         onClick={() => run(() => declineFriendRequestAction(userId))}
         className={`${BUTTON_SECONDARY} ${SMALL}`}
       >
-        Từ chối
+        {t("decline")}
       </button>
     </div>
   );

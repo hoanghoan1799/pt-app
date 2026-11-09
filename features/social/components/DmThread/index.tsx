@@ -5,6 +5,7 @@ import { ArrowUp, ImagePlus, Loader2, X } from "lucide-react";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -24,10 +25,7 @@ import {
 import { PHOTO_ERRORS } from "@/features/chat/utils/photo-rules";
 import { DmBubbleList } from "@/features/social/components/DmBubbleList";
 import { DmPostQuote } from "@/features/social/components/DmPostQuote";
-import {
-  DM_BODY_MAX_LENGTH,
-  DM_MESSAGES,
-} from "@/features/social/constants/dm";
+import { DM_BODY_MAX_LENGTH } from "@/features/social/constants/dm";
 import { useDmThread } from "@/features/social/hooks/use-dm-thread";
 import type { DmReplyPostView, DmThreadPage } from "@/features/social/types/dm";
 import { lastSeenOwnId } from "@/features/social/utils/dm-thread-rules";
@@ -132,6 +130,8 @@ export const DmThread = ({
     }
   };
 
+  const t = useTranslations("social.dmThread");
+
   const handleSend = () => {
     if (!canSend) {
       return;
@@ -153,7 +153,7 @@ export const DmThread = ({
           <Link
             href={ROUTES.MESSAGES}
             className={clsx(ICON_BUTTON, "-ml-3")}
-            aria-label="Quay lại"
+            aria-label={t("back")}
           >
             <ChevronLeft className="size-6" aria-hidden />
           </Link>
@@ -180,13 +180,11 @@ export const DmThread = ({
               onClick={() => void thread.loadOlder()}
               className={clsx(BUTTON_SECONDARY, "w-full")}
             >
-              Xem tin cũ hơn
+              {t("loadOlder")}
             </button>
           )}
           {thread.items.length === 0 ? (
-            <p className="py-10 text-center text-muted">
-              {DM_MESSAGES.NO_MESSAGES}
-            </p>
+            <p className="py-10 text-center text-muted">{t("noMessages")}</p>
           ) : (
             <DmBubbleList
               items={thread.items}
@@ -216,14 +214,14 @@ export const DmThread = ({
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <p className="px-1 text-xs font-semibold text-muted">
-                    {DM_MESSAGES.REPLYING_TO_POST}
+                    {t("replying")}
                   </p>
                   <DmPostQuote post={quote} variant="bar" />
                 </div>
                 <button
                   type="button"
                   onClick={clearQuote}
-                  aria-label={DM_MESSAGES.CANCEL_REPLY}
+                  aria-label={t("cancelReply")}
                   className={ICON_BUTTON}
                 >
                   <X className="size-5" aria-hidden />
@@ -237,13 +235,13 @@ export const DmThread = ({
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={photo.url}
-                      alt="Ảnh đã chọn"
+                      alt={t("photoAlt")}
                       className="size-16 rounded-xl border border-line object-cover"
                     />
                     <button
                       type="button"
                       onClick={() => setPhoto(null)}
-                      aria-label="Bỏ ảnh"
+                      aria-label={t("removePhoto")}
                       className="absolute -top-2 -right-2 inline-flex size-6 items-center justify-center rounded-full bg-fg text-bg shadow"
                     >
                       <X className="size-4" aria-hidden />
@@ -252,7 +250,7 @@ export const DmThread = ({
                 ) : (
                   <span className="inline-flex items-center gap-2 text-sm text-muted">
                     <Loader2 className="size-4 animate-spin" aria-hidden />
-                    Đang tải ảnh...
+                    {t("uploading")}
                   </span>
                 )}
               </div>
@@ -269,7 +267,7 @@ export const DmThread = ({
                 type="button"
                 disabled={isUploading}
                 onClick={() => fileRef.current?.click()}
-                aria-label="Gửi ảnh"
+                aria-label={t("attachPhoto")}
                 className={ICON_BUTTON}
               >
                 <ImagePlus className="size-6" aria-hidden />
@@ -278,8 +276,8 @@ export const DmThread = ({
                 value={text}
                 maxLength={DM_BODY_MAX_LENGTH}
                 rows={1}
-                placeholder={DM_MESSAGES.PLACEHOLDER}
-                aria-label="Tin nhắn"
+                placeholder={t("placeholder")}
+                aria-label={t("messageLabel")}
                 onChange={(event) => setText(event.target.value)}
                 className="max-h-[120px] min-h-11 min-w-0 flex-1 resize-none rounded-2xl border border-line bg-surface px-4 py-2.5 text-base leading-6 text-fg placeholder:text-muted focus:border-accent focus:outline-none"
               />
@@ -287,7 +285,7 @@ export const DmThread = ({
                 type="button"
                 disabled={!canSend}
                 onClick={handleSend}
-                aria-label="Gửi"
+                aria-label={t("send")}
                 className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-accent text-accent-fg transition active:scale-90 disabled:opacity-40"
               >
                 <ArrowUp className="size-5" strokeWidth={2.5} aria-hidden />

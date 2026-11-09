@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
@@ -22,6 +23,7 @@ export const PostReactorsSheet = ({
   postId,
   mode,
 }: PostReactorsSheetProps) => {
+  const t = useTranslations("social.reactorsSheet");
   const [reactors, setReactors] = useState<ReactorView[] | null>(null);
   const [hasFailed, setFailed] = useState(false);
 
@@ -51,11 +53,11 @@ export const PostReactorsSheet = ({
     <BottomSheet
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      title="Cảm xúc"
-      description="Ai đã bày tỏ cảm xúc về bài viết này"
+      title={t("title")}
+      description={t("description")}
     >
       {hasFailed ? (
-        <p className="py-4 text-center text-muted">Không tải được danh sách.</p>
+        <p className="py-4 text-center text-muted">{t("loadFailed")}</p>
       ) : reactors === null ? (
         <div className="flex justify-center py-6">
           <Loader2 className="size-6 animate-spin text-muted" aria-hidden />
@@ -68,7 +70,7 @@ export const PostReactorsSheet = ({
               className="flex min-h-12 items-center justify-between gap-3 px-1 text-base text-fg"
             >
               <span className="truncate font-medium">
-                {reactor.isMe ? "Bạn" : reactor.name}
+                {reactor.isMe ? t("you") : reactor.name}
               </span>
               <span className="text-2xl" aria-label={reactor.emoji}>
                 {reactor.emoji}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
@@ -33,6 +34,7 @@ export const PhotoGallery = ({
   chatPath,
   avatars,
 }: PhotoGalleryProps) => {
+  const t = useTranslations("chat.photoGallery");
   const router = useRouter();
   const { items, cursor, error, sentinel, loadMore, loadMoreQuietly } =
     useGalleryPager({
@@ -55,9 +57,7 @@ export const PhotoGallery = ({
 
   if (items.length === 0) {
     return (
-      <p className="px-6 py-16 text-center text-sm text-muted">
-        Chưa có ảnh nào trong cuộc trò chuyện này
-      </p>
+      <p className="px-6 py-16 text-center text-sm text-muted">{t("empty")}</p>
     );
   }
 
@@ -69,7 +69,7 @@ export const PhotoGallery = ({
             <button
               type="button"
               data-gallery-tile={item.photoId}
-              aria-label={`Xem ảnh của ${photoLabel(item)}`}
+              aria-label={t("viewPhoto", { label: photoLabel(item) })}
               onClick={() => setOpenIndex(index)}
               className="absolute inset-0 block"
             >

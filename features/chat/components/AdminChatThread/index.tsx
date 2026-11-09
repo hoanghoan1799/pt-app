@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import { ROUTES } from "@/constants/routes";
@@ -29,8 +30,6 @@ interface AdminChatThreadProps extends Pick<
   below: ReactNode;
 }
 
-export const SETTINGS_LABEL = "Thông tin cuộc trò chuyện";
-
 // The admin conversation screen. A client component because the title follows
 // the nickname and the status follows the live presence (a function prop
 // cannot cross from a server page).
@@ -38,27 +37,34 @@ export const AdminChatThread = ({
   userName,
   below,
   ...thread
-}: AdminChatThreadProps) => (
-  <ChatThread
-    {...thread}
-    infoHref={chatPaths("admin", thread.userId).info}
-    header={(_latestPeerName, presence, { profile, infoHref, peerAvatar }) => {
-      const name = displayNameFor(profile.nicknames, "user", userName);
+}: AdminChatThreadProps) => {
+  const t = useTranslations("chat.adminChatThread");
 
-      return (
-        <>
-          <ChatHeader
-            name={name}
-            title={`Nhắn tin với ${name}`}
-            backHref={ROUTES.ADMIN_MESSAGES}
-            settingsLabel={SETTINGS_LABEL}
-            presence={presence}
-            avatarSrc={peerAvatar}
-            infoHref={infoHref}
-          />
-          {below}
-        </>
-      );
-    }}
-  />
-);
+  return (
+    <ChatThread
+      {...thread}
+      infoHref={chatPaths("admin", thread.userId).info}
+      header={(
+        _latestPeerName,
+        presence,
+        { profile, infoHref, peerAvatar },
+      ) => {
+        const name = displayNameFor(profile.nicknames, "user", userName);
+
+        return (
+          <>
+            <ChatHeader
+              name={name}
+              title={t("title", { name })}
+              backHref={ROUTES.ADMIN_MESSAGES}
+              presence={presence}
+              avatarSrc={peerAvatar}
+              infoHref={infoHref}
+            />
+            {below}
+          </>
+        );
+      }}
+    />
+  );
+};

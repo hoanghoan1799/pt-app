@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BUTTON_SECONDARY, CARD } from "@/constants/styles";
@@ -35,6 +36,7 @@ export const PostList = ({
   initial,
   emptyText,
 }: PostListProps) => {
+  const t = useTranslations("social.postList");
   const [seen, setSeen] = useState(initial);
   const [extra, setExtra] = useState<PostView[]>([]);
   const [cursor, setCursor] = useState(initial.nextCursor);
@@ -93,12 +95,12 @@ export const PostList = ({
       });
       setCursor(result.page.nextCursor);
     } catch {
-      setError({ message: "Không tải thêm được. Thử lại nhé." });
+      setError({ message: t("loadFailed") });
     } finally {
       loading.current = false;
       setIsLoading(false);
     }
-  }, [cursor, initial.posts, mode, source]);
+  }, [cursor, initial.posts, mode, source, t]);
 
   useEffect(() => {
     const node = trigger.current;
@@ -136,7 +138,7 @@ export const PostList = ({
           className="flex items-center justify-center gap-2 py-2 text-sm text-muted"
         >
           <Loader2 className="size-5 animate-spin" aria-hidden />
-          Đang tải thêm bài viết...
+          {t("loading")}
         </p>
       )}
       {error && !isLoading && (
@@ -150,14 +152,12 @@ export const PostList = ({
             onClick={() => void loadMore()}
             className={`${BUTTON_SECONDARY} w-full`}
           >
-            Thử lại
+            {t("retry")}
           </button>
         </div>
       )}
       {cursor === null && initial.nextCursor !== null && (
-        <p className="py-2 text-center text-sm text-muted">
-          Bạn đã xem hết bài viết.
-        </p>
+        <p className="py-2 text-center text-sm text-muted">{t("end")}</p>
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 import { Avatar } from "@/components/common/Avatar";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -8,21 +9,24 @@ import { CARD, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
 import { countUnreadForUser } from "@/features/chat/services/chat-queries";
 import { DmInboxRefresh } from "@/features/social/components/DmInboxRefresh";
-import { DM_COACH_TITLE, DM_MESSAGES } from "@/features/social/constants/dm";
 import { listDmInbox } from "@/features/social/services/dm-queries";
 import { hasAcceptedTerms } from "@/features/social/services/terms";
 import { dmPath } from "@/features/social/utils/dm-rules";
 import { requireUser } from "@/services/auth-guard";
 import { formatRelativeTime } from "@/utils/time";
 
-export const metadata: Metadata = { title: "Nhắn tin" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("chat.pages");
+
+  return { title: t("messagesTitle") };
+};
 
 const ROW = `${CARD} flex items-center gap-3 p-3 active:bg-line/60`;
 
-const UnreadDot = () => (
+const UnreadDot = ({ label }: { label: string }) => (
   <span
     role="status"
-    aria-label="Có tin nhắn chưa đọc"
+    aria-label={label}
     className="size-3 shrink-0 rounded-full bg-danger"
   />
 );
@@ -30,6 +34,8 @@ const UnreadDot = () => (
 // The Messages tab: the coach chat first (unchanged, under /messages/coach),
 // then the old read-only chats with friends (shown only when any exist).
 const MessagesInboxPage = async () => {
+  const t = await getTranslations("chat.pages");
+  const dm = await getTranslations("social.dm");
   const user = await requireUser();
   const [coachUnread, chats] = await Promise.all([
     countUnreadForUser(user.id),
@@ -38,7 +44,7 @@ const MessagesInboxPage = async () => {
 
   return (
     <>
-      <AppHeader title={DM_MESSAGES.INBOX_TITLE} />
+      <AppHeader title={dm("inboxTitle")} />
       <DmInboxRefresh />
       <main
         className={`${PAGE_CONTAINER} space-y-3 pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]`}
@@ -49,20 +55,20 @@ const MessagesInboxPage = async () => {
               <Avatar name="PT" className="size-12 shrink-0 text-base" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-semibold text-fg">
-                  {DM_COACH_TITLE}
+                  {dm("coachTitle")}
                 </span>
                 <span className="block truncate text-sm text-muted">
-                  Trao đổi với PT của bạn
+                  {t("coachSubtitle")}
                 </span>
               </span>
-              {coachUnread > 0 && <UnreadDot />}
+              {coachUnread > 0 && <UnreadDot label={t("unreadDot")} />}
             </Link>
           </li>
         </ul>
         {chats.length > 0 && (
           <>
-            <h2 className={SECTION_TITLE}>Bạn bè</h2>
-            <p className="text-sm text-muted">{DM_MESSAGES.ARCHIVED_NOTE}</p>
+            <h2 className={SECTION_TITLE}>{t("friendsSection")}</h2>
+            <p className="text-sm text-muted">{dm("archivedNote")}</p>
             <ul className="space-y-2">
               {chats.map((chat) => (
                 <li key={chat.conversationId}>
@@ -94,7 +100,7 @@ const MessagesInboxPage = async () => {
                         {chat.preview}
                       </span>
                     </span>
-                    {chat.unread > 0 && <UnreadDot />}
+                    {chat.unread > 0 && <UnreadDot label={t("unreadDot")} />}
                   </Link>
                 </li>
               ))}

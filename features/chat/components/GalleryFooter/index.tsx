@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import type { RefObject } from "react";
 
 interface GalleryFooterProps {
@@ -14,8 +15,10 @@ export const GalleryFooter = ({
   cursor,
   error,
   onRetry,
-}: GalleryFooterProps) =>
-  cursor === null ? null : (
+}: GalleryFooterProps) => {
+  const t = useTranslations("chat.galleryFooter");
+
+  return cursor === null ? null : (
     <div ref={sentinel} className="flex justify-center px-4 py-6">
       {error ? (
         <button
@@ -27,8 +30,9 @@ export const GalleryFooter = ({
         </button>
       ) : (
         <p className="text-sm text-muted" role="status">
-          Đang tải…
+          {t("loading")}
         </p>
       )}
     </div>
   );
+};

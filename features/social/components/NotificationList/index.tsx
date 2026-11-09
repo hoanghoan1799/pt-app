@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 import { Avatar } from "@/components/common/Avatar";
 import { CARD } from "@/constants/styles";
@@ -16,12 +17,10 @@ const ROW = "flex items-center gap-3 p-3";
 // "Thông báo": newest first; unread rows are tinted. A row with a post links
 // to it.
 export const NotificationList = ({ notifications }: NotificationListProps) => {
+  const t = useTranslations("social.notifications");
+
   if (notifications.length === 0) {
-    return (
-      <p className={`${CARD} p-6 text-center text-muted`}>
-        Chưa có thông báo nào.
-      </p>
-    );
+    return <p className={`${CARD} p-6 text-center text-muted`}>{t("empty")}</p>;
   }
   return (
     <ul className="space-y-2">
@@ -45,7 +44,7 @@ export const NotificationList = ({ notifications }: NotificationListProps) => {
               <span
                 className="size-2.5 shrink-0 rounded-full bg-accent"
                 role="img"
-                aria-label="Chưa đọc"
+                aria-label={t("unread")}
               />
             )}
           </>

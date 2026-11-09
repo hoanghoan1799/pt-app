@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { Search } from "lucide-react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
@@ -66,6 +67,7 @@ export const StickerPanel = ({
   onPick,
   role,
 }: StickerPanelProps) => {
+  const t = useTranslations("chat.stickerPanel");
   // Read once when the panel mounts (it only mounts on the client, on demand).
   const [recent, setRecent] = useState<RecentSticker[]>(loadRecentStickers);
   const [tab, setTab] = useState<string>(() =>
@@ -113,11 +115,11 @@ export const StickerPanel = ({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title="Sticker"
-      description="Chọn một sticker để gửi ngay"
+      description={t("description")}
     >
       <div
         role="tablist"
-        aria-label="Nhóm sticker"
+        aria-label={t("groupsLabel")}
         className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-3"
       >
         {showRecent && (
@@ -135,7 +137,7 @@ export const StickerPanel = ({
                 : "border-line bg-surface text-fg",
             )}
           >
-            Gần đây
+            {t("recent")}
           </button>
         )}
         <button
@@ -152,7 +154,7 @@ export const StickerPanel = ({
               : "border-line bg-surface text-fg",
           )}
         >
-          Của tôi
+          {t("mine")}
         </button>
         {STICKER_GROUPS.map((item) => (
           <button
@@ -170,7 +172,7 @@ export const StickerPanel = ({
                 : "border-line bg-surface text-fg",
             )}
           >
-            {item.label}
+            {t(`groups.${item.key}`)}
           </button>
         ))}
         {showGiphy && (
@@ -203,8 +205,8 @@ export const StickerPanel = ({
             value={query}
             maxLength={50}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Tìm sticker trên GIPHY"
-            aria-label="Tìm sticker trên GIPHY"
+            placeholder={t("giphySearch")}
+            aria-label={t("giphySearch")}
             className={clsx(INPUT, "pl-11")}
           />
         </div>
@@ -301,20 +303,20 @@ export const StickerPanel = ({
           );
         })}
         {activeTab === GIPHY_TAB && isLoading && (
-          <StateText>Đang tải sticker…</StateText>
+          <StateText>{t("loading")}</StateText>
         )}
         {activeTab === GIPHY_TAB && !isLoading && giphy.status === "error" && (
           <StateText>
             {giphy.error === "rate_limited"
-              ? "Bạn tìm hơi nhanh. Chờ một chút rồi thử lại nhé."
-              : "Không tải được sticker GIPHY. Thử lại nhé."}
+              ? t("rateLimited")
+              : t("giphyError")}
           </StateText>
         )}
         {activeTab === GIPHY_TAB &&
           !isLoading &&
           giphy.status === "ready" &&
           giphy.stickers.length === 0 && (
-            <StateText>Không tìm thấy sticker nào.</StateText>
+            <StateText>{t("giphyEmpty")}</StateText>
           )}
         {activeTab === GIPHY_TAB &&
           !isLoading &&
