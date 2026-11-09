@@ -4,6 +4,7 @@ import {
   DEFAULT_LOCALE,
   getLocaleCookieOptions,
   isLocale,
+  LOCALE_FLAGS,
   LOCALE_MAX_AGE,
   parseLocale,
 } from "@/utils/locale";
@@ -43,5 +44,11 @@ describe("getLocaleCookieOptions", () => {
       httpOnly: true,
     });
     expect(LOCALE_MAX_AGE).toBe(31_536_000);
+  });
+});
+
+describe("LOCALE_FLAGS", () => {
+  it("has a flag for every locale", () => {
+    expect(LOCALE_FLAGS).toEqual({ vi: "🇻🇳", en: "🇺🇸" });
   });
 });

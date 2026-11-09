@@ -12,6 +12,12 @@ export const LOCALE_NAMES: Record<Locale, string> = {
   en: "English",
 };
 
+// Flag emoji shown after the language name in the switcher (decorative).
+export const LOCALE_FLAGS: Record<Locale, string> = {
+  vi: "🇻🇳",
+  en: "🇺🇸",
+};
+
 // One year: a language is a stable personal choice, not a session.
 export const LOCALE_MAX_AGE = 60 * 60 * 24 * 365;
 
