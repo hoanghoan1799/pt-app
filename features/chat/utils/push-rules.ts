@@ -1,8 +1,7 @@
 import { z } from "zod";
 
 import { ROUTES } from "@/constants/routes";
-import { PHOTO_PREVIEW } from "@/features/chat/utils/photo-rules";
-import { STICKER_PREVIEW } from "@/features/chat/utils/sticker-rules";
+import { extractUrls, tokenizeLinks } from "@/features/chat/utils/link-rules";
 import { getAdminMessagesPath } from "@/utils/routes";
 
 export type PushRecipientRole = "user" | "admin";
@@ -71,41 +70,82 @@ export interface ChatPushPayload {
 }
 
 export const PUSH_TITLE = "PT App";
-export const PUSH_BODY_TO_TRAINEE = "Bạn có tin nhắn mới từ PT";
-export const PUSH_BODY_STICKER_TO_TRAINEE = "PT đã gửi một sticker";
+export const PUSH_PREVIEW_MAX_LENGTH = 500;
+export const PUSH_PREVIEW_PHOTO = "Đã gửi ảnh";
+export const PUSH_PREVIEW_STICKER = "Đã gửi sticker";
+export const PUSH_PREVIEW_LINK = "Đã gửi liên kết";
+export const PUSH_PREVIEW_FALLBACK = "Đã gửi tin nhắn";
 
-// Lock-screen privacy (spec section 7): the payload never carries the message
-// body, and this function deliberately cannot accept one.
+// The notification text: a kind label for a photo, sticker or link-only
+// message, otherwise the message itself (line breaks kept, runs of spaces
+// collapsed, 3+ line breaks become 2), cut at 500 characters (counted by code
+// points so an emoji is never split). The OS shortens the collapsed view and
+// shows the full text on long-press.
+export const buildPushPreview = ({
+  body,
+  sticker = false,
+  photo = false,
+}: {
+  body?: string | null;
+  sticker?: boolean;
+  photo?: boolean;
+}): string => {
+  if (photo) {
+    return PUSH_PREVIEW_PHOTO;
+  }
+  if (sticker) {
+    return PUSH_PREVIEW_STICKER;
+  }
+  const text = (body ?? "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/[^\S\n]+/g, " ")
+    .replace(/ ?\n ?/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  if (text === "") {
+    return PUSH_PREVIEW_FALLBACK;
+  }
+  if (
+    extractUrls(text).length > 0 &&
+    tokenizeLinks(text).every(
+      (token) => token.kind === "link" || token.text.trim() === "",
+    )
+  ) {
+    return PUSH_PREVIEW_LINK;
+  }
+  const chars = Array.from(text);
+
+  return chars.length > PUSH_PREVIEW_MAX_LENGTH
+    ? `${chars
+        .slice(0, PUSH_PREVIEW_MAX_LENGTH - 1)
+        .join("")
+        .trimEnd()}…`
+    : text;
+};
+
+// Owner request (Hoan, 2026-11-09): the push shows the sender's name and a
+// preview of the message, replacing the earlier lock-screen-private text. The
+// body is only ever put in the payload; it is never logged.
 export const buildChatPushPayload = ({
   recipientRole,
-  traineeName,
+  senderName,
   traineeUserId,
   conversationId,
+  body,
   sticker = false,
   photo = false,
 }: {
   recipientRole: PushRecipientRole;
-  traineeName: string;
+  senderName: string;
   traineeUserId: number;
   conversationId: number;
-  // A sticker is a kind, not text: the payload still carries no body.
+  body?: string | null;
   sticker?: boolean;
-  // A photo (KAN-160) is a kind too: "📷 Ảnh", never the caption.
   photo?: boolean;
 }): ChatPushPayload => ({
-  title: PUSH_TITLE,
-  body:
-    recipientRole === "user"
-      ? photo
-        ? PHOTO_PREVIEW
-        : sticker
-          ? PUSH_BODY_STICKER_TO_TRAINEE
-          : PUSH_BODY_TO_TRAINEE
-      : photo
-        ? `${traineeName}: ${PHOTO_PREVIEW}`
-        : sticker
-          ? `${traineeName} ${STICKER_PREVIEW}`
-          : `${traineeName} vừa nhắn tin`,
+  title: senderName.trim() === "" ? PUSH_TITLE : senderName,
+  body: buildPushPreview({ body, sticker, photo }),
   url:
     recipientRole === "user"
       ? ROUTES.MESSAGES_COACH
