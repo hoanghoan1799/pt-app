@@ -5,6 +5,7 @@ import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
 import {
   adminHiddenUsers,
   admins,
+  chatNicknames,
   pushSubscriptions,
   users,
 } from "@/db/schema";
@@ -162,6 +163,93 @@ describe("sendChatPush", () => {
 
     expect(sender.mock.calls[0][1].title).toBe(admin.username);
     expect(sender.mock.calls[0][1].body).toBe("Mai tập ngực");
+  });
+
+  it("titles pushes with the conversation nicknames when set", async () => {
+    const [admin] = await db
+      .insert(admins)
+      .values({
+        username: "Hoan",
+        usernameKey: "hoan-nick",
+        passwordHash: "x",
+        role: "super_admin",
+      })
+      .returning({ id: admins.id });
+    const nickRow = (targetKey: string, nickname: string) => ({
+      conversationId: 3,
+      targetKey,
+      nickname,
+      setByKey: "user",
+      updatedAt: new Date(),
+    });
+
+    await db
+      .insert(chatNicknames)
+      .values([nickRow("user", "Lan béo"), nickRow("pt", "Thầy")]);
+    await addSub(`user:${traineeId}`, "t");
+    await addSub(`admin:${admin.id}`, "a");
+    const sender = vi.fn<
+      import("@/features/chat/services/chat-push").PushSender
+    >(async () => undefined);
+
+    await push.sendChatPush(
+      {
+        senderRole: "user",
+        traineeUserId: traineeId,
+        conversationId: 3,
+        body: "hi",
+      },
+      sender,
+    );
+    await push.sendChatPush(
+      {
+        senderRole: "admin",
+        senderAdminId: admin.id,
+        traineeUserId: traineeId,
+        conversationId: 3,
+        body: "hi",
+      },
+      sender,
+    );
+    expect(sender.mock.calls.map((call) => call[1].title)).toEqual([
+      "Lan béo",
+      "Thầy",
+    ]);
+
+    await db
+      .insert(chatNicknames)
+      .values(nickRow(`admin:${admin.id}`, "Coach Hoan"));
+    await push.sendChatPush(
+      {
+        senderRole: "admin",
+        senderAdminId: admin.id,
+        traineeUserId: traineeId,
+        conversationId: 3,
+        body: "hi",
+      },
+      sender,
+    );
+    expect(sender.mock.calls[2][1].title).toBe("Coach Hoan");
+  });
+
+  it("ignores nicknames of another conversation", async () => {
+    await db.insert(chatNicknames).values({
+      conversationId: 99,
+      targetKey: "user",
+      nickname: "Other",
+      setByKey: "user",
+      updatedAt: new Date(),
+    });
+    await addSub("admin:1", "a1");
+    const sender = vi.fn<
+      import("@/features/chat/services/chat-push").PushSender
+    >(async () => undefined);
+
+    await push.sendChatPush(
+      { senderRole: "user", traineeUserId: traineeId, conversationId: 3 },
+      sender,
+    );
+    expect(sender.mock.calls[0][1].title).toBe("Lan");
   });
 
   it('titles an admin message "PT" when the sender is unknown', async () => {

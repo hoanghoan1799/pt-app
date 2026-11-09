@@ -8,9 +8,12 @@ import { db } from "@/db";
 import {
   adminHiddenUsers,
   admins as adminsTable,
+  chatNicknames,
   pushSubscriptions,
   users,
 } from "@/db/schema";
+import { adminLabel } from "@/features/chat/utils/chat-settings";
+import { displayNameFor } from "@/features/chat/utils/display-name";
 import {
   ADMIN_OWNER_PREFIX,
   adminOwnerKey,
@@ -179,6 +182,18 @@ const loadTargets = async (
   );
 };
 
+const loadNicknames = async (conversationId: number) => {
+  const rows = await db
+    .select({
+      targetKey: chatNicknames.targetKey,
+      nickname: chatNicknames.nickname,
+    })
+    .from(chatNicknames)
+    .where(eq(chatNicknames.conversationId, conversationId));
+
+  return Object.fromEntries(rows.map((row) => [row.targetKey, row.nickname]));
+};
+
 export const deliver = async (
   targets: StoredSubscription[],
   payload: ChatPushPayload,
@@ -239,6 +254,9 @@ export const sendChatPush = async (
       return;
     }
     const recipientRole = senderRole === "user" ? "admin" : "user";
+    // The title uses the conversation's nickname for the sender when one is
+    // set (Hoan, 2026-11-09), else the real name, as the chat itself does.
+    const nicknames = await loadNicknames(conversationId);
     let senderName = "PT";
 
     if (recipientRole === "admin") {
@@ -247,14 +265,23 @@ export const sendChatPush = async (
         .from(users)
         .where(eq(users.id, traineeUserId));
 
-      senderName = trainee?.name ?? "Học viên";
+      senderName = displayNameFor(
+        nicknames,
+        "user",
+        trainee?.name ?? "Học viên",
+      );
     } else if (senderAdminId != null) {
       const [admin] = await db
         .select({ username: adminsTable.username })
         .from(adminsTable)
         .where(eq(adminsTable.id, senderAdminId));
 
-      senderName = admin?.username ?? "PT";
+      senderName = adminLabel(
+        nicknames,
+        senderAdminId,
+        admin?.username ?? "PT",
+        "pt",
+      );
     }
     const payload = buildChatPushPayload({
       recipientRole,
