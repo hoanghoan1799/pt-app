@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
-import { ICON_BUTTON, INPUT, PAGE_CONTAINER } from "@/constants/styles";
+import { Input } from "@/components/common/Input";
+import { ICON_BUTTON, PAGE_CONTAINER } from "@/constants/styles";
 import { type ChatPaths, jumpHref } from "@/features/chat/utils/chat-links";
 import {
   formatResultTime,
@@ -166,25 +167,21 @@ export const ChatSearch = ({
           >
             <ChevronLeft className="size-6" />
           </Link>
-          <div className="relative min-w-0 flex-1 py-2">
-            <Search
-              aria-hidden
-              className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted"
-            />
-            <input
-              type="search"
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-              maxLength={SEARCH_MAX_LENGTH}
-              placeholder={t("placeholder")}
-              aria-label={t("inputLabel")}
-              autoComplete="off"
-              enterKeyHint="search"
-
-              autoFocus
-              className={clsx(INPUT, "min-h-11 pl-10")}
-            />
-          </div>
+          <Input
+            type="search"
+            clearable
+            leadingIcon={<Search className="size-5" aria-hidden />}
+            wrapperClassName="min-w-0 flex-1 py-2"
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            maxLength={SEARCH_MAX_LENGTH}
+            placeholder={t("placeholder")}
+            aria-label={t("inputLabel")}
+            autoComplete="off"
+            enterKeyHint="search"
+            autoFocus
+            className="min-h-11"
+          />
         </div>
       </header>
       <main data-chat-search className={clsx(PAGE_CONTAINER, "pt-2 pb-12")}>

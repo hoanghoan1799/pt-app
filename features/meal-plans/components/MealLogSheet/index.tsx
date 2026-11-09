@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import type { FormEvent } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { Input } from "@/components/common/Input";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
@@ -67,21 +68,16 @@ const MealLogSheetBody = ({
         <label htmlFor="log-search" className="sr-only">
           {t("searchLabel")}
         </label>
-        <div className="relative">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted"
-            aria-hidden
-          />
-          <input
-            id="log-search"
-            type="search"
-            value={picker.query}
-            onChange={(event) => picker.setQuery(event.target.value)}
-            placeholder={t("searchPlaceholder")}
-            autoComplete="off"
-            className={`${INPUT} pl-11`}
-          />
-        </div>
+        <Input
+          id="log-search"
+          type="search"
+          clearable
+          leadingIcon={<Search className="size-5" aria-hidden />}
+          value={picker.query}
+          onChange={(event) => picker.setQuery(event.target.value)}
+          placeholder={t("searchPlaceholder")}
+          autoComplete="off"
+        />
         {picker.isSearching &&
           (picker.results.length ? (
             <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line">
