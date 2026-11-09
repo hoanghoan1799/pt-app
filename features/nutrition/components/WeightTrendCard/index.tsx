@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 
 import { CARD } from "@/constants/styles";
 import { WeightChangeStat } from "@/features/nutrition/components/WeightChangeStat";
@@ -24,6 +25,7 @@ export const WeightTrendCard = ({
   canLog,
   todayWeight,
 }: WeightTrendCardProps) => {
+  const t = useTranslations("nutrition.weightTrendCard");
   const changes = getWeightChanges(weeks);
   const hasData = changes.latest !== null;
 
@@ -34,14 +36,11 @@ export const WeightTrendCard = ({
           <span className="block text-lg font-bold text-fg tabular-nums">
             {hasData ? `${formatDecimal(changes.latest ?? 0)} kg` : "–"}
           </span>
-          <span className="text-xs text-muted">TB tuần gần nhất</span>
+          <span className="text-xs text-muted">{t("latestAverage")}</span>
         </p>
+        <WeightChangeStat label={t("vsLastWeek")} change={changes.weekChange} />
         <WeightChangeStat
-          label="so với tuần trước"
-          change={changes.weekChange}
-        />
-        <WeightChangeStat
-          label={`trong ${WEIGHT_CHART_WEEKS} tuần`}
+          label={t("inWeeks", { weeks: WEIGHT_CHART_WEEKS })}
           change={changes.totalChange}
         />
       </div>
@@ -51,8 +50,8 @@ export const WeightTrendCard = ({
           <WeightChart weeks={weeks} selectedWeekStart={selectedWeekStart} />
         ) : (
           <p className="px-1 py-8 text-center text-sm text-muted">
-            Chưa có số cân nào trong {WEIGHT_CHART_WEEKS} tuần qua.
-            {canLog ? " Ghi cân nặng bên dưới để bắt đầu theo dõi." : ""}
+            {t("empty", { weeks: WEIGHT_CHART_WEEKS })}
+            {canLog ? ` ${t("emptyLogHint")}` : ""}
           </p>
         )}
       </div>
@@ -60,7 +59,7 @@ export const WeightTrendCard = ({
       {hasData && (
         <details className="group border-t border-line">
           <summary className="flex min-h-11 cursor-pointer items-center px-4 text-sm font-medium text-muted">
-            Xem dạng bảng
+            {t("viewAsTable")}
           </summary>
           <table className="w-full text-sm tabular-nums">
             <tbody className="divide-y divide-line">

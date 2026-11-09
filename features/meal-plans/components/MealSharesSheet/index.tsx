@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { BottomSheet } from "@/components/common/BottomSheet";
 import {
   BUTTON_PRIMARY,
@@ -31,6 +33,7 @@ const SharesForm = ({
   meals: PlanMeal[];
   onDone: () => void;
 }) => {
+  const t = useTranslations("mealPlans.mealSharesSheet");
   const shares = useMealShares(userId, dayId, meals, onDone);
 
   return (
@@ -65,8 +68,10 @@ const SharesForm = ({
         }
         role="status"
       >
-        Tổng: {String(shares.total).replace(".", ",")}% (cần{" "}
-        {SHARE_TOTAL_PERCENT}%)
+        {t("total", {
+          total: String(shares.total).replace(".", ","),
+          target: SHARE_TOTAL_PERCENT,
+        })}
       </p>
       <button
         type="button"
@@ -74,7 +79,7 @@ const SharesForm = ({
         disabled={!shares.isValid || shares.isPending}
         className={`${BUTTON_PRIMARY} w-full`}
       >
-        Lưu phần trăm
+        {t("save")}
       </button>
       <button
         type="button"
@@ -82,7 +87,7 @@ const SharesForm = ({
         disabled={shares.isPending}
         className={`${BUTTON_SECONDARY} w-full`}
       >
-        Chia đều
+        {t("equal")}
       </button>
     </div>
   );
@@ -94,22 +99,26 @@ export const MealSharesSheet = ({
   meals,
   isOpen,
   onOpenChange,
-}: MealSharesSheetProps) => (
-  <BottomSheet
-    isOpen={isOpen}
-    onOpenChange={onOpenChange}
-    title="Chia theo %"
-    description="Phần trăm mục tiêu cả ngày cho mỗi bữa"
-  >
-    {isOpen && (
-      <SharesForm
-        // Remount so the fields start from the saved shares.
-        key={meals.map((meal) => `${meal.id}:${meal.sharePercent}`).join("|")}
-        userId={userId}
-        dayId={dayId}
-        meals={meals}
-        onDone={() => onOpenChange(false)}
-      />
-    )}
-  </BottomSheet>
-);
+}: MealSharesSheetProps) => {
+  const t = useTranslations("mealPlans.mealSharesSheet");
+
+  return (
+    <BottomSheet
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      title={t("title")}
+      description={t("description")}
+    >
+      {isOpen && (
+        <SharesForm
+          // Remount so the fields start from the saved shares.
+          key={meals.map((meal) => `${meal.id}:${meal.sharePercent}`).join("|")}
+          userId={userId}
+          dayId={dayId}
+          meals={meals}
+          onDone={() => onOpenChange(false)}
+        />
+      )}
+    </BottomSheet>
+  );
+};

@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { Search, UtensilsCrossed } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { CARD, INPUT } from "@/constants/styles";
 import { FoodCard } from "@/features/foods/components/FoodCard";
@@ -23,6 +24,8 @@ const CHIP_SELECTED = "border-accent bg-accent text-accent-fg shadow-sm";
 const CHIP_IDLE = "border-line bg-surface text-fg";
 
 export const FoodList = ({ foods, basePath, emptyHint }: FoodListProps) => {
+  const t = useTranslations("foods.foodList");
+  const tLabels = useTranslations("foods.labels");
   const { query, setQuery, group, setGroup, groupsInUse, filteredFoods } =
     useFoodFilter(foods);
 
@@ -32,7 +35,7 @@ export const FoodList = ({ foods, basePath, emptyHint }: FoodListProps) => {
         className={`${CARD} flex flex-col items-center px-6 py-10 text-center`}
       >
         <UtensilsCrossed className="size-10 text-muted" aria-hidden />
-        <p className="mt-3 font-semibold text-fg">Chưa có món nào</p>
+        <p className="mt-3 font-semibold text-fg">{t("empty")}</p>
         {emptyHint && <p className="mt-1 text-sm text-muted">{emptyHint}</p>}
       </div>
     );
@@ -49,8 +52,8 @@ export const FoodList = ({ foods, basePath, emptyHint }: FoodListProps) => {
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Tìm món, ví dụ: uc ga"
-          aria-label="Tìm món"
+          placeholder={t("searchPlaceholder")}
+          aria-label={t("searchLabel")}
           autoCapitalize="none"
           autoCorrect="off"
           className={`${INPUT} pl-11`}
@@ -59,7 +62,7 @@ export const FoodList = ({ foods, basePath, emptyHint }: FoodListProps) => {
       <div className="relative -mx-4">
         <div
           role="group"
-          aria-label="Lọc theo nhóm"
+          aria-label={t("filterLabel")}
           className="flex snap-x snap-proximity scroll-px-4 gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]"
         >
           <button
@@ -68,7 +71,7 @@ export const FoodList = ({ foods, basePath, emptyHint }: FoodListProps) => {
             onClick={() => setGroup("all")}
             className={clsx(CHIP, group === "all" ? CHIP_SELECTED : CHIP_IDLE)}
           >
-            Tất cả
+            {t("all")}
           </button>
           {groupsInUse.map((item) => (
             <button
@@ -78,7 +81,7 @@ export const FoodList = ({ foods, basePath, emptyHint }: FoodListProps) => {
               onClick={() => setGroup(item)}
               className={clsx(CHIP, group === item ? CHIP_SELECTED : CHIP_IDLE)}
             >
-              {FOOD_GROUPS[item].label}
+              {tLabels(FOOD_GROUPS[item].labelKey)}
             </button>
           ))}
         </div>
@@ -89,7 +92,7 @@ export const FoodList = ({ foods, basePath, emptyHint }: FoodListProps) => {
         />
       </div>
       <p className="text-xs text-muted" aria-live="polite">
-        {filteredFoods.length} món
+        {t("count", { count: filteredFoods.length })}
       </p>
       {filteredFoods.length ? (
         <ul className="space-y-2">
@@ -103,10 +106,8 @@ export const FoodList = ({ foods, basePath, emptyHint }: FoodListProps) => {
         </ul>
       ) : (
         <div className={`${CARD} px-6 py-8 text-center`}>
-          <p className="font-semibold text-fg">Không tìm thấy món nào</p>
-          <p className="mt-1 text-sm text-muted">
-            Thử gõ ít chữ hơn hoặc chọn nhóm khác.
-          </p>
+          <p className="font-semibold text-fg">{t("noResults")}</p>
+          <p className="mt-1 text-sm text-muted">{t("noResultsHint")}</p>
         </div>
       )}
     </div>

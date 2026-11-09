@@ -1,0 +1,81 @@
+{
+  "labels": {
+    "groups": {
+      "meat": "Thịt",
+      "seafood": "Cá & hải sản",
+      "egg_dairy": "Trứng & sữa",
+      "starch": "Tinh bột",
+      "vegetable": "Rau",
+      "fruit": "Trái cây",
+      "legume_nut": "Đậu & hạt",
+      "fat_oil": "Dầu & chất béo",
+      "dish": "Món chế biến",
+      "other": "Khác"
+    },
+    "state": {
+      "raw": "Sống",
+      "cooked": "Chín"
+    }
+  },
+  "foodDetail": {
+    "macroShare": "{name} · {percent}% calo",
+    "fiber": "Chất xơ: {grams} g",
+    "serving": "Khẩu phần: {label} = {grams} g",
+    "source": "Nguồn: {source}"
+  },
+  "macroSplitBar": {
+    "label": "Tỉ lệ calo: {description}"
+  },
+  "foodLibraryLink": {
+    "title": "Thư viện thực phẩm",
+    "description": "Xem calo, protein, carb, fat của từng món"
+  },
+  "deleteFoodButton": {
+    "deleteConfirm": "Xóa món này?",
+    "confirmDelete": "Xóa",
+    "deleted": "Đã xóa món"
+  },
+  "foodFormView": {
+    "name": "Tên món",
+    "namePlaceholder": "VD: Ức gà (chín)",
+    "group": "Nhóm",
+    "state": "Trạng thái",
+    "notApplicable": "Không áp dụng",
+    "valuesLegend": "Giá trị trên 100 g",
+    "kcal": "Calo",
+    "fiber": "Chất xơ (không bắt buộc)",
+    "kcalMatches": "Tính từ protein/carb/fat: {kcal} kcal, khớp với calo đã nhập.",
+    "confirmLabel": "Tôi đã kiểm tra số liệu",
+    "serving": "Khẩu phần (không bắt buộc)",
+    "servingName": "Tên khẩu phần",
+    "servingNamePlaceholder": "VD: 1 tô",
+    "servingWeight": "Khối lượng khẩu phần",
+    "servingWeightPlaceholder": "VD: 500",
+    "source": "Nguồn số liệu (không bắt buộc)",
+    "sourcePlaceholder": "VD: USDA FDC 171477, nhãn sản phẩm",
+    "saveChanges": "Lưu thay đổi",
+    "addFood": "Thêm món"
+  },
+  "foodList": {
+    "empty": "Chưa có món nào",
+    "searchPlaceholder": "Tìm món, ví dụ: uc ga",
+    "searchLabel": "Tìm món",
+    "filterLabel": "Lọc theo nhóm",
+    "all": "Tất cả",
+    "count": "{count, plural, other {# món}}",
+    "noResults": "Không tìm thấy món nào",
+    "noResultsHint": "Thử gõ ít chữ hơn hoặc chọn nhóm khác."
+  },
+  "foodAmountCalculator": {
+    "title": "Tính theo khối lượng",
+    "grams": "Gram",
+    "servingButton": "Khẩu phần ({label})",
+    "servingsCount": "Số khẩu phần",
+    "amountGrams": "Khối lượng (gram)",
+    "gram": "gram",
+    "equals": "= {grams} g",
+    "invalidServings": "Nhập số từ 0 đến {max} khẩu phần",
+    "invalidGrams": "Nhập số từ 0 đến {max} g",
+    "kcal": "Calo"
+  }
+}

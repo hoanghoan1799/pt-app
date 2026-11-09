@@ -1,0 +1,42 @@
+{
+  "memberList": {
+    "searchPlaceholder": "Search trainees",
+    "searchLabel": "Search trainees",
+    "hiddenTitle": "Hidden trainees",
+    "emptyTitle": "No users yet",
+    "emptyHint": "Choose Add user under Actions. Then they only need to enter their exact name to see their workouts.",
+    "noMatch": "No users match “{query}”",
+    "unhideFailed": "Couldn't unhide. Please try again.",
+    "noPlan": "No schedule this week",
+    "statusLine": "{completed}/{assigned} exercises · {activeDays}/{plannedDays} days",
+    "progressLabel": "Progress of {name}",
+    "ptBadge": "PT {name}",
+    "noPt": "No PT",
+    "nutritionTitle": "Days with a food log this week",
+    "nutritionLabel": "Food log",
+    "lastActive": "Trained {when}",
+    "notTrained": "Not trained yet"
+  },
+  "ptFilter": {
+    "label": "Filter by PT",
+    "all": "All",
+    "none": "No PT"
+  },
+  "recentActivity": {
+    "empty": "Nobody has marked a workout as done yet.",
+    "personalBest": "set a record",
+    "completed": "trained",
+    "bestPrefix": "New record: {best} (previously {previous}) · ",
+    "schedule": "Scheduled {date} · at {time}"
+  },
+  "weekSummary": {
+    "users": "Users",
+    "usersHint": "{planned} people with a schedule this week",
+    "active": "Active",
+    "activeHint": "trained at least 1 exercise",
+    "done": "Completed",
+    "doneHint": "exercises done / assigned",
+    "exercises": "Exercises done",
+    "exercisesHint": "out of {assigned} assigned exercises"
+  }
+}

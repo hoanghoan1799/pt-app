@@ -1,8 +1,8 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
-import { MEAL_LOG_MESSAGES } from "@/features/meal-plans/constants/meal-plans";
 import { useMealPlanAction } from "@/features/meal-plans/hooks/use-meal-plan-action";
 import { setMealMarkAction } from "@/features/meal-plans/services/meal-log-actions";
 import type { MealMark } from "@/features/meal-plans/types/meal-log";
@@ -11,6 +11,7 @@ import type { MealMark } from "@/features/meal-plans/types/meal-log";
 // "Đạt" saves at once with the saved note, so a half-typed note stays a
 // draft in the box (KAN-91).
 export const useMealMark = (mealId: number, mark: MealMark | null) => {
+  const t = useTranslations("mealPlans.useMealMark");
   const { isPending, run } = useMealPlanAction();
   const [note, setNote] = useState(mark?.note ?? "");
   const achieved = mark?.achieved ?? false;
@@ -23,7 +24,7 @@ export const useMealMark = (mealId: number, mark: MealMark | null) => {
           achieved: nextAchieved,
           note: nextNote,
         }),
-      { successMessage: MEAL_LOG_MESSAGES.MARK_SAVED },
+      { successMessage: t("saved") },
     );
 
   return {

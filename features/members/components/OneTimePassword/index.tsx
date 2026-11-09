@@ -1,10 +1,10 @@
 "use client";
 
 import { Check, Copy } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, CARD } from "@/constants/styles";
-import { MEMBER_MESSAGES } from "@/features/members/constants/messages";
 
 interface OneTimePasswordProps {
   name: string;
@@ -21,6 +21,7 @@ export const OneTimePassword = ({
   password,
   onDone,
 }: OneTimePasswordProps) => {
+  const t = useTranslations("members.oneTimePassword");
   const [isCopied, setIsCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -60,16 +61,14 @@ export const OneTimePassword = ({
         ) : (
           <Copy className="size-5" aria-hidden />
         )}
-        {isCopied ? "Đã sao chép" : "Sao chép"}
+        {isCopied ? t("copied") : t("copy")}
       </button>
       {copyFailed && (
         <p role="alert" className="text-sm text-danger">
-          {MEMBER_MESSAGES.COPY_FAILED}
+          {t("copyFailed")}
         </p>
       )}
-      <p className="text-sm font-medium text-danger">
-        {MEMBER_MESSAGES.PASSWORD_ONCE}
-      </p>
+      <p className="text-sm font-medium text-danger">{t("passwordOnce")}</p>
       <div className="min-w-0">
         <p className="truncate font-semibold text-fg">{name}</p>
         <p className="truncate text-sm text-muted">{email}</p>
@@ -79,7 +78,7 @@ export const OneTimePassword = ({
         onClick={onDone}
         className={`${BUTTON_PRIMARY} w-full px-3`}
       >
-        Xong
+        {t("done")}
       </button>
     </div>
   );

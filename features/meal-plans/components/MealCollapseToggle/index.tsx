@@ -1,4 +1,5 @@
 import { ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { ICON_BUTTON } from "@/constants/styles";
 
@@ -16,18 +17,26 @@ export const MealCollapseToggle = ({
   isCollapsed,
   controlsId,
   onToggle,
-}: MealCollapseToggleProps) => (
-  <button
-    type="button"
-    onClick={onToggle}
-    className={ICON_BUTTON}
-    aria-expanded={!isCollapsed}
-    aria-controls={controlsId}
-    aria-label={isCollapsed ? `Mở ${mealName}` : `Thu gọn ${mealName}`}
-  >
-    <ChevronRight
-      className={`size-5 transition-transform ${isCollapsed ? "" : "rotate-90"}`}
-      aria-hidden
-    />
-  </button>
-);
+}: MealCollapseToggleProps) => {
+  const t = useTranslations("mealPlans.mealCollapseToggle");
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={ICON_BUTTON}
+      aria-expanded={!isCollapsed}
+      aria-controls={controlsId}
+      aria-label={
+        isCollapsed
+          ? t("expand", { name: mealName })
+          : t("collapse", { name: mealName })
+      }
+    >
+      <ChevronRight
+        className={`size-5 transition-transform ${isCollapsed ? "" : "rotate-90"}`}
+        aria-hidden
+      />
+    </button>
+  );
+};

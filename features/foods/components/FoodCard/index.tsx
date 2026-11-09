@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 import { CARD } from "@/constants/styles";
 import { MacroSplitBar } from "@/features/foods/components/MacroSplitBar";
@@ -22,6 +23,7 @@ interface FoodCardProps {
 }
 
 export const FoodCard = ({ food, href }: FoodCardProps) => {
+  const tLabels = useTranslations("foods.labels");
   const group = FOOD_GROUPS[food.group];
   const Icon = group.icon;
 
@@ -52,8 +54,8 @@ export const FoodCard = ({ food, href }: FoodCardProps) => {
           <MacroSplitBar split={macroSplit(food)} />
           <span className="flex items-center justify-between gap-2 text-xs text-muted">
             <span className="truncate">
-              {group.label}
-              {food.state && ` · ${FOOD_STATE_LABELS[food.state]}`}
+              {tLabels(group.labelKey)}
+              {food.state && ` · ${tLabels(FOOD_STATE_LABELS[food.state])}`}
             </span>
             <span className="shrink-0 tabular-nums">
               <span className={MACRO_COLORS.protein.text}>

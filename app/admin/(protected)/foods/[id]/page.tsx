@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -10,10 +11,15 @@ import { FoodForm } from "@/features/foods/components/FoodForm";
 import { getFood } from "@/features/foods/services/food-queries";
 import { requireSuperAdmin } from "@/services/auth-guard";
 
-export const metadata: Metadata = { title: "Chi tiết món" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("pages.adminFoodDetail");
+
+  return { title: t("metaTitle") };
+};
 
 const AdminFoodPage = async ({ params }: PageProps<"/admin/foods/[id]">) => {
   await requireSuperAdmin();
+  const t = await getTranslations("pages.adminFoodDetail");
 
   const { id } = await params;
   const food = await getFood(Number(id));
@@ -25,7 +31,7 @@ const AdminFoodPage = async ({ params }: PageProps<"/admin/foods/[id]">) => {
   return (
     <>
       <AppHeader
-        eyebrow="Thực phẩm"
+        eyebrow={t("eyebrow")}
         title={food.name}
         backHref={ROUTES.ADMIN_FOODS}
       />
@@ -34,7 +40,7 @@ const AdminFoodPage = async ({ params }: PageProps<"/admin/foods/[id]">) => {
       >
         <FoodDetail food={food} />
         <section className="space-y-3">
-          <h2 className={SECTION_TITLE}>Chỉnh sửa</h2>
+          <h2 className={SECTION_TITLE}>{t("edit")}</h2>
           <FoodForm food={food} />
         </section>
         <DeleteFoodButton foodId={food.id} />

@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { CircleCheck } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { BUTTON_SECONDARY, TEXTAREA } from "@/constants/styles";
 import { MEAL_LOG_LIMITS } from "@/features/meal-plans/constants/meal-plans";
@@ -20,6 +21,7 @@ export const MealMarkPanel = ({
   mealName,
   mark,
 }: MealMarkPanelProps) => {
+  const t = useTranslations("mealPlans.mealMarkPanel");
   const state = useMealMark(mealId, mark);
 
   return (
@@ -29,7 +31,7 @@ export const MealMarkPanel = ({
         onClick={state.toggleAchieved}
         disabled={state.isPending}
         aria-pressed={state.achieved}
-        aria-label={`Đạt ${mealName}`}
+        aria-label={t("achieveLabel", { name: mealName })}
         className={clsx(
           BUTTON_SECONDARY,
           "w-full",
@@ -37,10 +39,10 @@ export const MealMarkPanel = ({
         )}
       >
         <CircleCheck className="size-5" aria-hidden />
-        {state.achieved ? "Đã đạt" : "Đạt"}
+        {state.achieved ? t("achieved") : t("achieve")}
       </button>
       <label htmlFor={`note-${mealId}`} className="sr-only">
-        Ghi chú {mealName}
+        {t("noteLabel", { name: mealName })}
       </label>
       <textarea
         id={`note-${mealId}`}
@@ -48,7 +50,7 @@ export const MealMarkPanel = ({
         onChange={(event) => state.setNote(event.target.value)}
         maxLength={MEAL_LOG_LIMITS.MARK_NOTE}
         rows={2}
-        placeholder="Món nào thiếu hoặc dư? VD: cơm dư khoảng 50 g"
+        placeholder={t("notePlaceholder")}
         className={TEXTAREA}
       />
       {state.isNoteChanged && (
@@ -58,7 +60,7 @@ export const MealMarkPanel = ({
           disabled={state.isPending}
           className={`${BUTTON_SECONDARY} w-full`}
         >
-          Lưu ghi chú
+          {t("saveNote")}
         </button>
       )}
     </div>

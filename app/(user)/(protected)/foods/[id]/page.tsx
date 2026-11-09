@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -8,10 +9,15 @@ import { FoodDetail } from "@/features/foods/components/FoodDetail";
 import { getFood } from "@/features/foods/services/food-queries";
 import { requireUser } from "@/services/auth-guard";
 
-export const metadata: Metadata = { title: "Chi tiết món" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("pages.foodDetail");
+
+  return { title: t("metaTitle") };
+};
 
 const FoodPage = async ({ params }: PageProps<"/foods/[id]">) => {
   await requireUser();
+  const t = await getTranslations("pages.foodDetail");
 
   const { id } = await params;
   const food = await getFood(Number(id));
@@ -23,7 +29,7 @@ const FoodPage = async ({ params }: PageProps<"/foods/[id]">) => {
   return (
     <>
       <AppHeader
-        eyebrow="Thư viện thực phẩm"
+        eyebrow={t("eyebrow")}
         title={food.name}
         backHref={ROUTES.FOODS}
       />

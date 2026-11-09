@@ -1,6 +1,7 @@
 "use client";
 
 import { UserPlus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
 import { SubmitButton } from "@/components/common/SubmitButton";
@@ -10,6 +11,7 @@ import { createPtAction } from "@/features/pts/services/pt-actions";
 import { useFormFeedback } from "@/hooks/use-form-feedback";
 
 export const CreatePtForm = () => {
+  const t = useTranslations("pts.createPt");
   const [state, formAction] = useActionState(
     createPtAction,
     INITIAL_FORM_STATE,
@@ -28,7 +30,7 @@ export const CreatePtForm = () => {
     >
       <div>
         <label htmlFor="pt-username" className={LABEL}>
-          Tên đăng nhập PT
+          {t("usernameLabel")}
         </label>
         <input
           id="pt-username"
@@ -49,7 +51,7 @@ export const CreatePtForm = () => {
       </div>
       <div>
         <label htmlFor="pt-password" className={LABEL}>
-          Mật khẩu (ít nhất 8 ký tự)
+          {t("passwordLabel")}
         </label>
         <input
           id="pt-password"
@@ -68,7 +70,7 @@ export const CreatePtForm = () => {
       </div>
       <SubmitButton className={`${BUTTON_PRIMARY} w-full`}>
         <UserPlus className="size-5" aria-hidden />
-        Tạo PT
+        {t("submit")}
       </SubmitButton>
     </form>
   );

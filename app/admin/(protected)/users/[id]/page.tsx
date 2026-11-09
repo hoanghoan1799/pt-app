@@ -2,6 +2,7 @@ import { Eye } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { MemberSectionTabs } from "@/components/layout/MemberSectionTabs";
@@ -35,13 +36,18 @@ import {
   resolveSchedule,
 } from "@/utils/week";
 
-export const metadata: Metadata = { title: "Lịch tập" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("adminPages.userPage");
+
+  return { title: t("metaTitle") };
+};
 
 const AdminUserPage = async ({
   params,
   searchParams,
 }: PageProps<"/admin/users/[id]">) => {
   const admin = await requireAdmin();
+  const t = await getTranslations("adminPages.userPage");
 
   const { id } = await params;
   const user = await findUserById(Number(id));
@@ -68,14 +74,14 @@ const AdminUserPage = async ({
   return (
     <>
       <AppHeader
-        eyebrow="Lịch tập của"
+        eyebrow={t("eyebrow")}
         title={displayName}
         backHref={`${ROUTES.ADMIN}?${new URLSearchParams({ week: schedule.weekStart })}`}
         actions={
           <Link
             href={buildScheduleHref(getAdminPreviewPath(user.id), schedule)}
             className={`${ICON_BUTTON} text-fg`}
-            aria-label="Xem như user"
+            aria-label={t("preview")}
           >
             <Eye className="size-5" />
           </Link>
@@ -99,7 +105,7 @@ const AdminUserPage = async ({
           today={today}
         />
         <section className="space-y-2 border-t border-line pt-6">
-          <h2 className={SECTION_TITLE}>Lịch sử tập</h2>
+          <h2 className={SECTION_TITLE}>{t("history")}</h2>
           <RecentActivityList
             items={activity}
             isUserShown={false}
@@ -108,7 +114,7 @@ const AdminUserPage = async ({
         </section>
         <MemberLoginCard userId={user.id} name={user.name} email={user.email} />
         <section className="space-y-3">
-          <h2 className={SECTION_TITLE}>Công cụ</h2>
+          <h2 className={SECTION_TITLE}>{t("tools")}</h2>
           <CopyWeekButton
             userId={user.id}
             weekStart={schedule.weekStart}

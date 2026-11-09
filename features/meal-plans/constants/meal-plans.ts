@@ -65,20 +65,18 @@ export const MEAL_PLAN_MESSAGES = {
   PREFERENCES_SAVED: "Đã lưu yêu cầu của bạn",
 } as const;
 
-export const formatDeleteMealQuestion = (mealName: string) =>
-  `Xóa ${mealName} và các món trong bữa?`;
-
-export const MACRO_GAP_LABELS = {
-  protein: "protein",
-  carbs: "carb",
-  fat: "fat",
+// Display labels are keys under the mealPlans.labels namespace (translated at render).
+export const MACRO_GAP_LABEL_KEYS = {
+  protein: "gap.protein",
+  carbs: "gap.carbs",
+  fat: "gap.fat",
 } as const;
 
 export const COMPARED_METRIC_LABELS = {
-  kcal: { name: "Calo", unit: "kcal" },
-  protein: { name: "Protein", unit: "g" },
-  carbs: { name: "Carb", unit: "g" },
-  fat: { name: "Fat", unit: "g" },
+  kcal: { nameKey: "metric.kcal", unit: "kcal" },
+  protein: { nameKey: "metric.protein", unit: "g" },
+  carbs: { nameKey: "metric.carbs", unit: "g" },
+  fat: { nameKey: "metric.fat", unit: "g" },
 } as const;
 
 // Trainee meal log (KAN-71).
@@ -105,9 +103,4 @@ export const MEAL_LOG_MESSAGES = {
   TOO_MANY_LOGS: "Một bữa tối đa 30 món",
   NAME_REQUIRED: "Nhập tên món",
   GRAMS_REQUIRED: "Nhập số gram lớn hơn 0",
-  ADDED: "Đã ghi món ăn",
-  UPDATED: "Đã sửa món ăn",
-  REMOVED: "Đã xóa món ăn",
-  MARK_SAVED: "Đã lưu",
-  REMOVE_CONFIRM: "Xóa món này khỏi nhật ký?",
 } as const;

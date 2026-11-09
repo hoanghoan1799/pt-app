@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -9,16 +10,25 @@ import { FoodList } from "@/features/foods/components/FoodList";
 import { listFoods } from "@/features/foods/services/food-queries";
 import { requireSuperAdmin } from "@/services/auth-guard";
 
-export const metadata: Metadata = { title: "Thực phẩm" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("pages.adminFoods");
+
+  return { title: t("metaTitle") };
+};
 
 const AdminFoodsPage = async () => {
   await requireSuperAdmin();
+  const t = await getTranslations("pages.adminFoods");
 
   const foods = await listFoods();
 
   return (
     <>
-      <AppHeader eyebrow="Admin" title="Thực phẩm" backHref={ROUTES.ADMIN} />
+      <AppHeader
+        eyebrow={t("eyebrow")}
+        title={t("title")}
+        backHref={ROUTES.ADMIN}
+      />
       <main
         className={`${PAGE_CONTAINER} space-y-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]`}
       >
@@ -27,12 +37,12 @@ const AdminFoodsPage = async () => {
           className={`${BUTTON_PRIMARY} w-full`}
         >
           <Plus className="size-5" aria-hidden />
-          Thêm món
+          {t("addFood")}
         </Link>
         <FoodList
           foods={foods}
           basePath={ROUTES.ADMIN_FOODS}
-          emptyHint="Bấm Thêm món để nhập món đầu tiên."
+          emptyHint={t("emptyHint")}
         />
       </main>
     </>

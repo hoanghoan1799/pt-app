@@ -1,0 +1,18 @@
+{
+  "createPt": {
+    "usernameLabel": "PT username",
+    "passwordLabel": "Password (at least 8 characters)",
+    "submit": "Create PT"
+  },
+  "ptAssign": {
+    "label": "Assigned PT",
+    "unassigned": "Unassigned (super admin only)",
+    "assigned": "Assigned PT updated"
+  },
+  "verifiedToggle": {
+    "grant": "Verify",
+    "revoke": "Unverify",
+    "granted": "Verified badge granted",
+    "revoked": "Verified badge removed"
+  }
+}

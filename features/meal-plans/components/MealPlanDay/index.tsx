@@ -1,6 +1,7 @@
 "use client";
 
 import { Copy, Percent, Plus, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { BUTTON_SECONDARY } from "@/constants/styles";
@@ -60,13 +61,14 @@ export const MealPlanDay = ({
   datesWithPlan,
   datesWithLogs,
 }: MealPlanDayProps) => {
+  const t = useTranslations("mealPlans.mealPlanDay");
   const confirm = useConfirm();
   const day = useMealPlanDay(userId, plan);
   const collapse = useMealCollapse(plan?.meals.map((meal) => meal.id) ?? []);
 
   if (!plan) {
     return (
-      <section className="space-y-3" aria-label="Plan bữa ăn">
+      <section className="space-y-3" aria-label={t("sectionLabel")}>
         <MealPlanTitle />
         <MemberMealRequest
           preferredMealCount={preferredMealCount}
@@ -94,7 +96,7 @@ export const MealPlanDay = ({
   const hasItems = plan.meals.some((meal) => meal.items.length > 0);
 
   return (
-    <section className="space-y-3" aria-label="Plan bữa ăn">
+    <section className="space-y-3" aria-label={t("sectionLabel")}>
       <MealPlanTitle
         isAllCollapsed={collapse.isAllCollapsed}
         onToggleAll={
@@ -137,7 +139,7 @@ export const MealPlanDay = ({
         className={`${BUTTON_SECONDARY} w-full border-dashed`}
       >
         <Plus className="size-5" aria-hidden />
-        Thêm bữa
+        {t("addMeal")}
       </button>
 
       <DayPlanSummary
@@ -153,7 +155,7 @@ export const MealPlanDay = ({
           className={BUTTON_SECONDARY}
         >
           <Copy className="size-5" aria-hidden />
-          Sao chép sang ngày khác
+          {t("copyToDay")}
         </button>
         <button
           type="button"
@@ -162,7 +164,7 @@ export const MealPlanDay = ({
           className={BUTTON_SECONDARY}
         >
           <Percent className="size-5" aria-hidden />
-          Chia theo %
+          {t("splitByPercent")}
         </button>
       </div>
       <button
@@ -172,7 +174,7 @@ export const MealPlanDay = ({
             title: formatDeletePlanQuestion(
               logs.length > 0 || marks.length > 0,
             ),
-            confirmLabel: "Xóa",
+            confirmLabel: t("confirmDelete"),
             isDanger: true,
           });
 
@@ -184,7 +186,7 @@ export const MealPlanDay = ({
         className="inline-flex min-h-11 w-full items-center justify-center gap-2 text-sm font-medium text-danger"
       >
         <Trash2 className="size-4" aria-hidden />
-        Xóa plan của ngày này
+        {t("deletePlan")}
       </button>
 
       <CopyDaySheet

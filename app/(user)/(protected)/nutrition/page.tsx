@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -22,10 +23,15 @@ import { requireUser } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
 import { getTodayDate, resolveSchedule } from "@/utils/week";
 
-export const metadata: Metadata = { title: "Dinh dưỡng" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("pages.nutrition");
+
+  return { title: t("metaTitle") };
+};
 
 const NutritionPage = async ({ searchParams }: PageProps<"/nutrition">) => {
   const user = await requireUser();
+  const t = await getTranslations("pages.nutrition");
   const params = await searchParams;
   const today = getTodayDate(TIME_ZONE);
   const { weekStart, selectedDate } = resolveSchedule(
@@ -47,7 +53,7 @@ const NutritionPage = async ({ searchParams }: PageProps<"/nutrition">) => {
   return (
     <>
       <AppHeader
-        eyebrow="Xin chào"
+        eyebrow={t("eyebrow")}
         title={user.name}
         actions={<UserHeaderActions />}
       />

@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus, Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useId } from "react";
 
 import { INPUT } from "@/constants/styles";
@@ -26,6 +27,8 @@ export const FoodPicker = ({
   isDisabled,
   onPick,
 }: FoodPickerProps) => {
+  const t = useTranslations("mealPlans.foodPicker");
+  const tFoods = useTranslations("foods.labels");
   const picker = useFoodPicker(library, takenFoodIds);
   const inputId = useId();
 
@@ -37,7 +40,7 @@ export const FoodPicker = ({
   return (
     <div className="space-y-2">
       <label htmlFor={inputId} className="sr-only">
-        Thêm món vào {mealName}
+        {t("addTo", { meal: mealName })}
       </label>
       <div className="relative">
         <Search
@@ -49,7 +52,7 @@ export const FoodPicker = ({
           type="search"
           value={picker.query}
           onChange={(event) => picker.setQuery(event.target.value)}
-          placeholder="Tìm món để thêm (VD: uc ga)"
+          placeholder={t("searchPlaceholder")}
           autoComplete="off"
           className={`${INPUT} pl-11`}
         />
@@ -70,25 +73,29 @@ export const FoodPicker = ({
                       {food.name}
                     </span>
                     <span className="block text-xs text-muted">
-                      {FOOD_GROUPS[food.group].label}
-                      {food.state ? ` · ${FOOD_STATE_LABELS[food.state]}` : ""}
+                      {tFoods(FOOD_GROUPS[food.group].labelKey)}
+                      {food.state
+                        ? ` · ${tFoods(FOOD_STATE_LABELS[food.state])}`
+                        : ""}
                       {" · "}
                       {food.kcal} kcal/100 g
                     </span>
                   </span>
                   <Plus className="size-5 shrink-0 text-accent" aria-hidden />
-                  <span className="sr-only">Thêm {food.name}</span>
+                  <span className="sr-only">
+                    {t("pickFood", { name: food.name })}
+                  </span>
                 </button>
               </li>
             ))}
             {picker.hasMore && (
               <li className="px-3 py-2 text-xs text-muted">
-                Còn nhiều món nữa, gõ thêm để thu hẹp.
+                {t("moreResults")}
               </li>
             )}
           </ul>
         ) : (
-          <p className="px-1 text-sm text-muted">Không tìm thấy món nào</p>
+          <p className="px-1 text-sm text-muted">{t("noResults")}</p>
         ))}
     </div>
   );
