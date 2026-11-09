@@ -31,6 +31,7 @@ import { useChatAdapter } from "@/features/chat/hooks/use-chat-adapter";
 import type { ThreadSnapshot } from "@/features/chat/hooks/use-chat-messages";
 import { useChatMessages } from "@/features/chat/hooks/use-chat-messages";
 import { useChatTransport } from "@/features/chat/hooks/use-chat-transport";
+import { useClearNotifications } from "@/features/chat/hooks/use-clear-notifications";
 import { useNeutralChatColors } from "@/features/chat/hooks/use-neutral-chat-colors";
 import { usePeerPresence } from "@/features/chat/hooks/use-peer-presence";
 import {
@@ -52,6 +53,7 @@ import {
   type ThreadViewer,
   USER_VIEWER,
 } from "@/features/chat/utils/chat-thread-rules";
+import { chatNotificationTags } from "@/features/chat/utils/clear-notifications";
 import { displayNameFor } from "@/features/chat/utils/display-name";
 import type { PreparedPhoto } from "@/features/chat/utils/encode-photo";
 import type { PresenceView } from "@/features/chat/utils/presence-status";
@@ -206,6 +208,11 @@ export const ChatThread = ({
   const adapter = useChatAdapter(viewer, userId, conversationId);
   const chat = useChatMessages({ adapter, initial, isViewing: isVisible });
   const { messages, hasMore, chatEnabled, peerReadUpTo, sync } = chat;
+
+  useClearNotifications(
+    conversationId === null ? null : chatNotificationTags(conversationId),
+    messages.at(-1)?.id,
+  );
   const presence = usePeerPresence({
     role: viewer.role,
     userId,
