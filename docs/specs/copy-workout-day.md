@@ -21,10 +21,10 @@ None. Hoan can ask for merge mode later if PTs want it.
 
 ## Test matrix
 
-| Case | Expected | Covered by |
-| --- | --- | --- |
-| Duplicate dates and the source date in the request | deduped, source dropped | `features/workouts/utils/__tests__/copy-day.test.ts` |
-| A past date in the request | whole request rejected | same unit test plus the server check |
-| Copy to an empty future day | day created with the same exercises, nothing completed | browser check on local DB |
-| Copy to a day that has a workout | overwrite confirm, then the day is replaced | browser check on local DB |
-| Target day with logged sets | locked in the grid; the server refuses | server transaction check |
+| Case                                               | Expected                                               | Covered by                                           |
+| -------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------- |
+| Duplicate dates and the source date in the request | deduped, source dropped                                | `features/workouts/utils/__tests__/copy-day.test.ts` |
+| A past date in the request                         | whole request rejected                                 | same unit test plus the server check                 |
+| Copy to an empty future day                        | day created with the same exercises, nothing completed | browser check on local DB                            |
+| Copy to a day that has a workout                   | overwrite confirm, then the day is replaced            | browser check on local DB                            |
+| Target day with logged sets                        | locked in the grid; the server refuses                 | server transaction check                             |
