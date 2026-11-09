@@ -58,6 +58,7 @@ export const ExerciseFormView = ({
         </label>
         <div className="flex gap-2">
           <Input
+            wrapperClassName="min-w-0 flex-1"
             clearable
             id="youtubeUrl"
             name="youtubeUrl"
