@@ -75,7 +75,8 @@
     "addExercise": "Add exercise · {date}",
     "editExerciseTitle": "Edit exercise",
     "addExerciseTitle": "Add exercise",
-    "dayInfoTitle": "Day details"
+    "dayInfoTitle": "Day details",
+    "copyDay": "Copy this day to other days"
   },
   "dayInfoForm": {
     "titleLabel": "Day title",
@@ -128,5 +129,25 @@
   },
   "exerciseCompletion": {
     "done": "Marked as done 💪"
+  },
+  "copyDaySheet": {
+    "sourceDay": "source day",
+    "past": "past",
+    "hasWorkout": "has a workout",
+    "hasSets": "workout logged",
+    "title": "Copy to other days",
+    "description": "From {date}",
+    "confirmLabel": "Confirm overwrite",
+    "overwriteQuestion": "Overwrite the workout on {dates}?",
+    "replaceNotice": "The existing workouts on these days will be replaced by the workout of {date}.",
+    "cancel": "Cancel",
+    "overwrite": "Overwrite",
+    "overwriteLegend": "Has a workout, will be overwritten",
+    "lockedLegend": "Workout logged, cannot be picked",
+    "copy": "Copy",
+    "copyCount": " ({count, plural, one {# day} other {# days}})"
+  },
+  "useCopyWorkoutDay": {
+    "copied": "Copied to {copied, plural, one {# day} other {# days}}"
   }
 }

@@ -9,6 +9,11 @@ export const WORKOUT_MESSAGES = {
   COPY_EMPTY: "Tuần này chưa có nội dung để sao chép",
   COPY_SAME_WEEK: "Hãy chọn một tuần khác hoặc user khác",
   COPY_TARGET_HAS_SETS: "Tuần đích đã có buổi tập được ghi, không thể ghi đè",
+  NO_TARGET_DAYS: "Chọn ít nhất một ngày",
+  PAST_TARGET_DAYS: "Không thể sao chép sang ngày đã qua",
+  COPY_DAY_EMPTY: "Ngày này chưa có bài tập để sao chép",
+  COPY_DAY_TARGET_HAS_SETS:
+    "Có ngày đích đã được ghi buổi tập, không thể ghi đè",
   COMPLETION_TOO_EARLY: "Chưa tới ngày tập bài này",
   SET_WEIGHT_RANGE: "Mức tạ từ 0,5 đến 500 kg",
   SET_WEIGHT_STEP: "Mức tạ phải chia hết cho 0,5 kg",
