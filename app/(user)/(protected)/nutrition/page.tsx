@@ -16,13 +16,8 @@ import {
   getMealPlanWeek,
   listPlanFoods,
 } from "@/features/meal-plans/services/meal-plan-queries";
-import { BodyProfileCard } from "@/features/nutrition/components/BodyProfileCard";
 import { NutritionWeek } from "@/features/nutrition/components/NutritionWeek";
-import { getBodyProfile } from "@/features/nutrition/services/body-profile-queries";
-import {
-  getLatestTarget,
-  getNutritionWeek,
-} from "@/features/nutrition/services/nutrition-queries";
+import { getNutritionWeek } from "@/features/nutrition/services/nutrition-queries";
 import { requireUser } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
 import { getTodayDate, resolveSchedule } from "@/utils/week";
@@ -37,27 +32,16 @@ const NutritionPage = async ({ searchParams }: PageProps<"/nutrition">) => {
     { week: readSearchParam(params.week), day: readSearchParam(params.day) },
     today,
   );
-  const [days, bodyProfile, latestTarget, planDays, library, completion] =
-    await Promise.all([
-      getNutritionWeek(user.id, weekStart),
-      getBodyProfile(user.id),
-      getLatestTarget(user.id),
-      getMealPlanWeek(user.id, weekStart),
-      listPlanFoods(),
-      getWeekCompletion(user.id, weekStart),
-    ]);
+  const [days, planDays, library, completion] = await Promise.all([
+    getNutritionWeek(user.id, weekStart),
+    getMealPlanWeek(user.id, weekStart),
+    listPlanFoods(),
+    getWeekCompletion(user.id, weekStart),
+  ]);
   const selectedPlan =
     planDays.find((day) => day.date === selectedDate) ?? null;
   const { logs, marks } = await getMealLogData(
     selectedPlan?.meals.map((meal) => meal.id) ?? [],
-  );
-  const profileCard = (
-    <BodyProfileCard
-      editor="user"
-      profile={bodyProfile}
-      isTargetManual={latestTarget?.source === "manual"}
-      today={today}
-    />
   );
 
   return (
@@ -70,7 +54,6 @@ const NutritionPage = async ({ searchParams }: PageProps<"/nutrition">) => {
       <main
         className={`${PAGE_CONTAINER} space-y-6 pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]`}
       >
-        {!bodyProfile && profileCard}
         <NutritionWeek
           basePath={ROUTES.NUTRITION}
           days={days}
@@ -94,7 +77,6 @@ const NutritionPage = async ({ searchParams }: PageProps<"/nutrition">) => {
             isLoggable={selectedDate <= today}
           />
         </NutritionWeek>
-        {bodyProfile && profileCard}
         <MealPreferencesForm
           preferredMealCount={user.preferredMealCount}
           foodNote={user.foodNote}

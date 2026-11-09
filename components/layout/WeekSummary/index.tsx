@@ -27,6 +27,8 @@ interface WeekSummaryProps {
   // Admin-only "Tiến bộ" section, placed between the weight chart and the
   // workouts; the user app passes nothing.
   progress?: ReactNode;
+  // Trainee only: the body stats & TDEE card, shown under the weight chart.
+  bodyProfile?: ReactNode;
 }
 
 // The "Tổng kết" tab: a week of training and eating side by side, shared by
@@ -44,6 +46,7 @@ export const WeekSummary = ({
   canLogWeight,
   todayWeight,
   progress,
+  bodyProfile,
 }: WeekSummaryProps) => (
   <div className="space-y-6">
     <div className={`${CARD} p-4`}>
@@ -63,6 +66,7 @@ export const WeekSummary = ({
         todayWeight={todayWeight}
       />
     </section>
+    {bodyProfile}
     {progress != null && (
       <section className="space-y-2">
         <h2 className={SECTION_TITLE}>Tiến bộ</h2>

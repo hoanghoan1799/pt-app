@@ -1,6 +1,7 @@
 "use client";
 
-import { Utensils } from "lucide-react";
+import { ChevronDown, Utensils } from "lucide-react";
+import { useId, useState } from "react";
 
 import { SubmitButton } from "@/components/common/SubmitButton";
 import {
@@ -16,6 +17,7 @@ import {
   MEAL_PLAN_LIMITS,
 } from "@/features/meal-plans/constants/meal-plans";
 import { useMealPreferencesForm } from "@/features/meal-plans/hooks/use-meal-preferences-form";
+import { hasMealPreferences } from "@/features/meal-plans/utils/meal-preferences";
 
 interface MealPreferencesFormProps {
   preferredMealCount: number | null;
@@ -28,67 +30,88 @@ const COUNTS = Array.from(
 );
 
 // Q1: the trainee tells the PT how many meals they want and what they like
-// or avoid.
+// or avoid. The card starts open while nothing is saved yet and collapsed
+// once the trainee has entered a request; later saves keep it as it is.
 export const MealPreferencesForm = ({
   preferredMealCount,
   foodNote,
 }: MealPreferencesFormProps) => {
   const { formAction, fieldErrors, values } = useMealPreferencesForm();
+  const [isOpen, setIsOpen] = useState(
+    () => !hasMealPreferences(preferredMealCount, foodNote),
+  );
+  const bodyId = useId();
 
   return (
     <section className={`${CARD} p-4`}>
-      <p className="flex items-center gap-1.5 text-xs font-semibold text-muted">
-        <Utensils className="size-4" aria-hidden />
-        Yêu cầu bữa ăn
-      </p>
-      <form action={formAction} className="mt-3 space-y-4">
-        <div>
-          <label htmlFor="meal-count" className={LABEL}>
-            Số bữa mong muốn
-          </label>
-          <select
-            id="meal-count"
-            name="mealCount"
-            defaultValue={values?.mealCount ?? String(preferredMealCount ?? "")}
-            aria-invalid={Boolean(fieldErrors.mealCount)}
-            className={INPUT}
-          >
-            <option value="">PT quyết định</option>
-            {COUNTS.map((count) => (
-              <option key={count} value={count}>
-                {count} bữa/ngày
-              </option>
-            ))}
-          </select>
-          {fieldErrors.mealCount && (
-            <p className={FIELD_ERROR}>{fieldErrors.mealCount}</p>
-          )}
-        </div>
-        <div>
-          <label htmlFor="food-note" className={LABEL}>
-            Món thích hoặc không ăn được
-          </label>
-          <textarea
-            id="food-note"
-            name="foodNote"
-            defaultValue={values?.foodNote ?? foodNote ?? ""}
-            rows={3}
-            maxLength={MEAL_PLAN_LIMITS.FOOD_NOTE}
-            placeholder="VD: Không ăn hải sản, thích cơm gạo lứt."
-            aria-invalid={Boolean(fieldErrors.foodNote)}
-            className={TEXTAREA}
-          />
-          {fieldErrors.foodNote && (
-            <p className={FIELD_ERROR}>{fieldErrors.foodNote}</p>
-          )}
-        </div>
-        <SubmitButton className={`${BUTTON_PRIMARY} w-full`}>
-          Lưu yêu cầu
-        </SubmitButton>
-      </form>
-      <p className="mt-3 text-xs text-muted">
-        PT sẽ xem yêu cầu này khi xếp bữa ăn cho bạn.
-      </p>
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-expanded={isOpen}
+        aria-controls={bodyId}
+        className="flex w-full items-center justify-between gap-2 text-left"
+      >
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+          <Utensils className="size-4" aria-hidden />
+          Yêu cầu bữa ăn
+        </span>
+        <ChevronDown
+          className={`size-5 text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
+          aria-hidden
+        />
+      </button>
+      <div id={bodyId} hidden={!isOpen}>
+        <form action={formAction} className="mt-3 space-y-4">
+          <div>
+            <label htmlFor="meal-count" className={LABEL}>
+              Số bữa mong muốn
+            </label>
+            <select
+              id="meal-count"
+              name="mealCount"
+              defaultValue={
+                values?.mealCount ?? String(preferredMealCount ?? "")
+              }
+              aria-invalid={Boolean(fieldErrors.mealCount)}
+              className={INPUT}
+            >
+              <option value="">PT quyết định</option>
+              {COUNTS.map((count) => (
+                <option key={count} value={count}>
+                  {count} bữa/ngày
+                </option>
+              ))}
+            </select>
+            {fieldErrors.mealCount && (
+              <p className={FIELD_ERROR}>{fieldErrors.mealCount}</p>
+            )}
+          </div>
+          <div>
+            <label htmlFor="food-note" className={LABEL}>
+              Món thích hoặc không ăn được
+            </label>
+            <textarea
+              id="food-note"
+              name="foodNote"
+              defaultValue={values?.foodNote ?? foodNote ?? ""}
+              rows={3}
+              maxLength={MEAL_PLAN_LIMITS.FOOD_NOTE}
+              placeholder="VD: Không ăn hải sản, thích cơm gạo lứt."
+              aria-invalid={Boolean(fieldErrors.foodNote)}
+              className={TEXTAREA}
+            />
+            {fieldErrors.foodNote && (
+              <p className={FIELD_ERROR}>{fieldErrors.foodNote}</p>
+            )}
+          </div>
+          <SubmitButton className={`${BUTTON_PRIMARY} w-full`}>
+            Lưu yêu cầu
+          </SubmitButton>
+        </form>
+        <p className="mt-3 text-xs text-muted">
+          PT sẽ xem yêu cầu này khi xếp bữa ăn cho bạn.
+        </p>
+      </div>
     </section>
   );
 };
