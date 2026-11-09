@@ -3,6 +3,7 @@ import { DayTabs } from "@/features/workouts/components/DayTabs";
 import { WeekProgress } from "@/features/workouts/components/WeekProgress";
 import type { ScheduleDayWithSets } from "@/features/workouts/types/workout";
 import { getWeekProgress } from "@/features/workouts/utils/progress";
+import { hasDayContent } from "@/features/workouts/utils/schedule";
 
 interface WorkoutWeekEditorProps {
   userId: number;
@@ -23,6 +24,11 @@ export const WorkoutWeekEditor = ({
 }: WorkoutWeekEditorProps) => {
   const selectedDay = days.find((day) => day.date === selectedDate) ?? days[0];
 
+  const datesWithPlan = days.filter(hasDayContent).map((day) => day.date);
+  const datesWithLogs = days
+    .filter((day) => day.exercises.some((item) => item.loggedSets.length > 0))
+    .map((day) => day.date);
+
   return (
     <div className="space-y-5">
       <div className="space-y-3">
@@ -40,6 +46,9 @@ export const WorkoutWeekEditor = ({
         day={selectedDay}
         userId={userId}
         isToday={selectedDay.date === today}
+        today={today}
+        datesWithPlan={datesWithPlan}
+        datesWithLogs={datesWithLogs}
       />
     </div>
   );

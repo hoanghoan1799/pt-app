@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { EXERCISE_LIMITS } from "@/features/workouts/constants/messages";
 import { parseYoutubeId } from "@/features/workouts/utils/youtube";
-import { isValidDate } from "@/utils/week";
+import { addDays, isValidDate } from "@/utils/week";
 
 const idSchema = z.coerce.number().int().positive();
 
@@ -83,6 +83,23 @@ export const copyWeekSchema = z.object({
   targetUserId: idSchema,
   targetDate: dateSchema,
 });
+
+const MAX_COPY_DATES = 14;
+
+// A month grid shows at most 6 weeks.
+const MAX_MONTH_SPAN_DAYS = 42;
+
+export const copyDaySchema = z.object({
+  userId: idSchema,
+  date: dateSchema,
+  dates: z.array(dateSchema).min(1).max(MAX_COPY_DATES),
+});
+
+export const copyMonthInfoSchema = z
+  .object({ userId: idSchema, from: dateSchema, to: dateSchema })
+  .refine(
+    ({ from, to }) => from <= to && to <= addDays(from, MAX_MONTH_SPAN_DAYS),
+  );
 
 export const exerciseRefSchema = z.object({
   exerciseId: idSchema,

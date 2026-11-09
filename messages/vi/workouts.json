@@ -75,7 +75,8 @@
     "addExercise": "Thêm bài tập · {date}",
     "editExerciseTitle": "Sửa bài tập",
     "addExerciseTitle": "Thêm bài tập",
-    "dayInfoTitle": "Thông tin ngày"
+    "dayInfoTitle": "Thông tin ngày",
+    "copyDay": "Sao chép ngày này sang ngày khác"
   },
   "dayInfoForm": {
     "titleLabel": "Tiêu đề ngày",
@@ -128,5 +129,25 @@
   },
   "exerciseCompletion": {
     "done": "Đã đánh dấu tập xong 💪"
+  },
+  "copyDaySheet": {
+    "sourceDay": "ngày nguồn",
+    "past": "đã qua",
+    "hasWorkout": "đã có bài tập",
+    "hasSets": "đã ghi buổi tập",
+    "title": "Sao chép sang ngày khác",
+    "description": "Từ {date}",
+    "confirmLabel": "Xác nhận ghi đè",
+    "overwriteQuestion": "Ghi đè bài tập của {dates}?",
+    "replaceNotice": "Bài tập cũ của các ngày này sẽ bị thay bằng bài tập của {date}.",
+    "cancel": "Hủy",
+    "overwrite": "Ghi đè",
+    "overwriteLegend": "Đã có bài tập, sẽ ghi đè",
+    "lockedLegend": "Đã ghi buổi tập, không thể chọn",
+    "copy": "Sao chép",
+    "copyCount": " ({count, plural, other {# ngày}})"
+  },
+  "useCopyWorkoutDay": {
+    "copied": "Đã sao chép sang {copied, plural, other {# ngày}}"
   }
 }

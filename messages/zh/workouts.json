@@ -75,7 +75,8 @@
     "addExercise": "添加动作 · {date}",
     "editExerciseTitle": "编辑动作",
     "addExerciseTitle": "添加动作",
-    "dayInfoTitle": "当天信息"
+    "dayInfoTitle": "当天信息",
+    "copyDay": "将这一天复制到其他日期"
   },
   "dayInfoForm": {
     "titleLabel": "当天标题",
@@ -128,5 +129,25 @@
   },
   "exerciseCompletion": {
     "done": "已标记为训练完成 💪"
+  },
+  "copyDaySheet": {
+    "sourceDay": "源日期",
+    "past": "已过去",
+    "hasWorkout": "已有训练",
+    "hasSets": "已记录训练",
+    "title": "复制到其他日期",
+    "description": "来自 {date}",
+    "confirmLabel": "确认覆盖",
+    "overwriteQuestion": "覆盖 {dates} 的训练?",
+    "replaceNotice": "这些日期原有的训练将被 {date} 的训练替换。",
+    "cancel": "取消",
+    "overwrite": "覆盖",
+    "overwriteLegend": "已有训练,将被覆盖",
+    "lockedLegend": "已记录训练,无法选择",
+    "copy": "复制",
+    "copyCount": " ({count, plural, other {# 天}})"
+  },
+  "useCopyWorkoutDay": {
+    "copied": "已复制到 {copied, plural, other {# 天}}"
   }
 }

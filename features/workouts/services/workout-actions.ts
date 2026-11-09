@@ -2,7 +2,9 @@
 
 import { and, asc, eq, inArray, max } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import type { z } from "zod";
 
+import { TIME_ZONE } from "@/constants/time";
 import { db } from "@/db";
 import {
   exerciseCompletions,
@@ -12,8 +14,15 @@ import {
   workoutDays,
 } from "@/db/schema";
 import { WORKOUT_MESSAGES } from "@/features/workouts/constants/messages";
-import { getWeekSchedule } from "@/features/workouts/services/workout-queries";
 import {
+  getDaySchedule,
+  getWeekSchedule,
+  listDatesWithContent,
+  listDatesWithSets,
+} from "@/features/workouts/services/workout-queries";
+import {
+  copyDaySchema,
+  copyMonthInfoSchema,
   copyWeekSchema,
   daySchema,
   deleteExerciseSchema,
@@ -21,6 +30,7 @@ import {
   exerciseSchema,
 } from "@/features/workouts/services/workout-schemas";
 import type { MoveDirection } from "@/features/workouts/types/workout";
+import { normalizeCopyTargets } from "@/features/workouts/utils/copy-day";
 import { hasDayContent } from "@/features/workouts/utils/schedule";
 import {
   withFormErrorHandling,
@@ -32,7 +42,7 @@ import {
   getActiveLocale,
   getErrorsTranslator,
 } from "@/services/localize-message";
-import type { DeleteExerciseResult } from "@/types/error";
+import type { ActionErrorResult, DeleteExerciseResult } from "@/types/error";
 import type { FormState } from "@/types/form";
 import {
   createErrorState,
@@ -44,6 +54,7 @@ import { getAdminUserPath } from "@/utils/routes";
 import {
   addDays,
   formatWeekRange,
+  getTodayDate,
   getWeekDates,
   getWeekStart,
 } from "@/utils/week";
@@ -96,6 +107,42 @@ const targetWeekHasSets = async (
     .limit(1);
 
   return Boolean(row);
+};
+
+type WriteClient = Pick<typeof db, "select" | "delete">;
+
+// Removes the workout days of `dates` with everything under them. Children go
+// first: foreign keys are not enforced (D10). Call it inside a transaction.
+const deleteWorkoutDays = async (
+  client: WriteClient,
+  userId: number,
+  dates: string[],
+) => {
+  const existingDays = await client
+    .select({ id: workoutDays.id })
+    .from(workoutDays)
+    .where(
+      and(eq(workoutDays.userId, userId), inArray(workoutDays.date, dates)),
+    );
+  const existingIds = existingDays.map((day) => day.id);
+
+  if (!existingIds.length) {
+    return;
+  }
+
+  const replacedExercises = client
+    .select({ id: exercises.id })
+    .from(exercises)
+    .where(inArray(exercises.dayId, existingIds));
+
+  await client
+    .delete(exerciseSets)
+    .where(inArray(exerciseSets.exerciseId, replacedExercises));
+  await client
+    .delete(exerciseCompletions)
+    .where(inArray(exerciseCompletions.exerciseId, replacedExercises));
+  await client.delete(exercises).where(inArray(exercises.dayId, existingIds));
+  await client.delete(workoutDays).where(inArray(workoutDays.id, existingIds));
 };
 
 export const saveDayAction = withFormErrorHandling(
@@ -378,34 +425,7 @@ export const copyWeekAction = withFormErrorHandling(
       }
 
       // The target week is replaced as a whole so the copy matches the source.
-      const existingDays = await tx
-        .select({ id: workoutDays.id })
-        .from(workoutDays)
-        .where(
-          and(
-            eq(workoutDays.userId, targetUserId),
-            inArray(workoutDays.date, targetDates),
-          ),
-        );
-      const existingIds = existingDays.map((day) => day.id);
-
-      if (existingIds.length) {
-        const replacedExercises = tx
-          .select({ id: exercises.id })
-          .from(exercises)
-          .where(inArray(exercises.dayId, existingIds));
-
-        await tx
-          .delete(exerciseSets)
-          .where(inArray(exerciseSets.exerciseId, replacedExercises));
-        await tx
-          .delete(exerciseCompletions)
-          .where(inArray(exerciseCompletions.exerciseId, replacedExercises));
-        await tx.delete(exercises).where(inArray(exercises.dayId, existingIds));
-        await tx
-          .delete(workoutDays)
-          .where(inArray(workoutDays.id, existingIds));
-      }
+      await deleteWorkoutDays(tx, targetUserId, targetDates);
 
       for (const day of sourceDays) {
         const offset = getWeekDates(sourceWeek).indexOf(day.date);
@@ -455,5 +475,129 @@ export const copyWeekAction = withFormErrorHandling(
         ? t("toasts.weekCopied", values)
         : t("toasts.weekCopiedTo", { ...values, name: targetUser.name }),
     );
+  },
+);
+
+export type CopyDayResult =
+  { status: "success"; copied: number } | ActionErrorResult;
+
+export type WorkoutCopyMonthInfoResult =
+  | { status: "success"; planDates: string[]; logDates: string[] }
+  | ActionErrorResult;
+
+const fail = (message: string): ActionErrorResult => ({
+  status: "error",
+  message,
+});
+
+// Copies one day (title, note, exercises in order) to the chosen dates of the
+// same trainee. A target day that already has a workout is replaced; a target
+// with logged sets refuses the whole request. Completions and sets are not
+// copied.
+export const copyDayToDatesAction = withResultErrorHandling(
+  "copyDayToDates",
+  async (input: z.input<typeof copyDaySchema>): Promise<CopyDayResult> => {
+    await requireAdmin();
+
+    const parsed = copyDaySchema.safeParse(input);
+
+    if (!parsed.success) {
+      return fail(WORKOUT_MESSAGES.INVALID_INPUT);
+    }
+
+    const { userId, date: sourceDate } = parsed.data;
+
+    await requireAdminForUser(userId);
+
+    const { dates, hasPast } = normalizeCopyTargets({
+      sourceDate,
+      dates: parsed.data.dates,
+      today: getTodayDate(TIME_ZONE),
+    });
+
+    if (!dates.length) {
+      return fail(WORKOUT_MESSAGES.NO_TARGET_DAYS);
+    }
+    // One past date rejects the whole request, so nothing is written.
+    if (hasPast) {
+      return fail(WORKOUT_MESSAGES.PAST_TARGET_DAYS);
+    }
+
+    const outcome = await db.transaction(async (tx) => {
+      // The source is read inside the write transaction too, so the copy is
+      // of what is stored now, not of what the PT's page showed.
+      const source = await getDaySchedule(userId, sourceDate, tx);
+
+      if (!hasDayContent(source)) {
+        return "empty" as const;
+      }
+      if (await targetWeekHasSets(tx, userId, dates)) {
+        return "has-sets" as const;
+      }
+
+      await deleteWorkoutDays(tx, userId, dates);
+
+      for (const date of dates) {
+        const [created] = await tx
+          .insert(workoutDays)
+          .values({ userId, date, title: source.title, note: source.note })
+          .returning({ id: workoutDays.id });
+
+        if (source.exercises.length) {
+          await tx.insert(exercises).values(
+            source.exercises.map((exercise, position) => ({
+              dayId: created.id,
+              title: exercise.title,
+              description: exercise.description,
+              sets: exercise.sets,
+              reps: exercise.reps,
+              youtubeId: exercise.youtubeId,
+              position,
+            })),
+          );
+        }
+      }
+      return "copied" as const;
+    });
+
+    if (outcome === "empty") {
+      return fail(WORKOUT_MESSAGES.COPY_DAY_EMPTY);
+    }
+    if (outcome === "has-sets") {
+      // The page was stale: refresh it so the locked days show.
+      revalidateMember(userId);
+      return fail(WORKOUT_MESSAGES.COPY_DAY_TARGET_HAS_SETS);
+    }
+
+    revalidateMember(userId);
+    return { status: "success", copied: dates.length };
+  },
+);
+
+// The copy sheet's month picker marks days that already have a workout and
+// locks the ones with logged sets, beyond the weeks the page loaded.
+export const getWorkoutCopyMonthInfoAction = withResultErrorHandling(
+  "getWorkoutCopyMonthInfo",
+  async (
+    input: z.input<typeof copyMonthInfoSchema>,
+  ): Promise<WorkoutCopyMonthInfoResult> => {
+    await requireAdmin();
+
+    const parsed = copyMonthInfoSchema.safeParse(input);
+
+    if (!parsed.success) {
+      return fail(WORKOUT_MESSAGES.INVALID_INPUT);
+    }
+
+    const { userId, from, to } = parsed.data;
+
+    await requireAdminForUser(userId);
+
+    const [planDates, logDates] = await Promise.all([
+      listDatesWithContent(userId, from, to),
+      listDatesWithSets(userId, from, to),
+    ]);
+
+    return { status: "success", planDates, logDates };
   },
 );
