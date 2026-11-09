@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { Spinner } from "@/components/common/Spinner";
 import { formatSentAt } from "@/features/chat/utils/chat-thread-rules";
 
 interface EditHistorySheetProps {
@@ -83,7 +84,8 @@ export const EditHistorySheet = ({
         </p>
       )}
       {(current === null || current.status === "loading") && (
-        <p role="status" className="text-sm text-muted">
+        <p role="status" className="flex items-center gap-2 text-sm text-muted">
+          <Spinner size="sm" />
           {t("loading")}
         </p>
       )}
