@@ -2,12 +2,12 @@ import { ClipboardPaste } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { FormEvent } from "react";
 
+import { Input } from "@/components/common/Input";
 import { SubmitButton } from "@/components/common/SubmitButton";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
   FIELD_ERROR,
-  INPUT,
   LABEL,
   TEXTAREA,
 } from "@/constants/styles";
@@ -57,7 +57,8 @@ export const ExerciseFormView = ({
           {t("youtubeLabel")} <span className="text-danger">*</span>
         </label>
         <div className="flex gap-2">
-          <input
+          <Input
+            clearable
             id="youtubeUrl"
             name="youtubeUrl"
             type="url"
@@ -68,7 +69,6 @@ export const ExerciseFormView = ({
             autoCapitalize="off"
             autoCorrect="off"
             aria-invalid={Boolean(youtubeError)}
-            className={INPUT}
           />
           <button
             type="button"
@@ -89,7 +89,8 @@ export const ExerciseFormView = ({
         <label htmlFor="title" className={LABEL}>
           {t("titleLabel")} <span className="text-danger">*</span>
         </label>
-        <input
+        <Input
+          clearable
           id="title"
           name="title"
           defaultValue={exercise?.title}
@@ -97,7 +98,6 @@ export const ExerciseFormView = ({
           maxLength={EXERCISE_LIMITS.TITLE}
           autoCapitalize="sentences"
           aria-invalid={Boolean(fieldErrors.title)}
-          className={INPUT}
         />
         {fieldErrors.title && (
           <p className={FIELD_ERROR}>{fieldErrors.title}</p>
@@ -109,7 +109,7 @@ export const ExerciseFormView = ({
           <label htmlFor="sets" className={LABEL}>
             {t("setsLabel")}
           </label>
-          <input
+          <Input
             id="sets"
             name="sets"
             defaultValue={exercise?.sets ?? ""}
@@ -117,20 +117,19 @@ export const ExerciseFormView = ({
             pattern="[0-9]*"
             placeholder="4"
             aria-invalid={Boolean(fieldErrors.sets)}
-            className={INPUT}
           />
         </div>
         <div>
           <label htmlFor="reps" className={LABEL}>
             {t("repsLabel")}
           </label>
-          <input
+          <Input
+            clearable
             id="reps"
             name="reps"
             defaultValue={exercise?.reps}
             placeholder={t("repsPlaceholder")}
             maxLength={EXERCISE_LIMITS.REPS}
-            className={INPUT}
           />
         </div>
       </div>

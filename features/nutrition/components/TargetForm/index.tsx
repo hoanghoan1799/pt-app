@@ -3,11 +3,11 @@
 import clsx from "clsx";
 import { useTranslations } from "next-intl";
 
+import { Input } from "@/components/common/Input";
 import { SubmitButton } from "@/components/common/SubmitButton";
 import {
   BUTTON_PRIMARY,
   FIELD_ERROR,
-  INPUT,
   LABEL,
   TEXTAREA,
 } from "@/constants/styles";
@@ -45,7 +45,7 @@ export const TargetForm = ({ userId, target, onSaved }: TargetFormProps) => {
             </span>
           </label>
           <div className="relative">
-            <input
+            <Input
               id={`target-${macro}`}
               name={macro}
               defaultValue={target?.[macro] ?? ""}
@@ -54,7 +54,7 @@ export const TargetForm = ({ userId, target, onSaved }: TargetFormProps) => {
               required
               placeholder="0"
               aria-invalid={Boolean(fieldErrors[macro])}
-              className={`${INPUT} pr-24`}
+              className="pr-24"
             />
             <span className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-sm text-muted">
               {t("gramsPerDay")}

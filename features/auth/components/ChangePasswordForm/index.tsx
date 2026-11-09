@@ -6,10 +6,11 @@ import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { Input } from "@/components/common/Input";
 import { SubmitButton } from "@/components/common/SubmitButton";
 import { INITIAL_FORM_STATE } from "@/constants/form";
 import { ROUTES } from "@/constants/routes";
-import { BUTTON_PRIMARY, FIELD_ERROR, INPUT, LABEL } from "@/constants/styles";
+import { BUTTON_PRIMARY, FIELD_ERROR, LABEL } from "@/constants/styles";
 import { changePasswordAction } from "@/features/auth/services/password-actions";
 import { describeErrorReference } from "@/utils/errors";
 
@@ -75,7 +76,7 @@ export const ChangePasswordForm = () => {
               {t(field.labelKey)}
             </label>
             <div className="relative">
-              <input
+              <Input
                 id={field.name}
                 name={field.name}
                 type={isVisible ? "text" : "password"}
@@ -83,7 +84,7 @@ export const ChangePasswordForm = () => {
                 required
                 aria-invalid={Boolean(error)}
                 aria-describedby={error ? `${field.name}-error` : undefined}
-                className={`${INPUT} pr-12`}
+                className="pr-12"
               />
               <button
                 type="button"

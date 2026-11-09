@@ -3,8 +3,9 @@ import { Calculator } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { FormEvent } from "react";
 
+import { Input } from "@/components/common/Input";
 import { SubmitButton } from "@/components/common/SubmitButton";
-import { BUTTON_PRIMARY, FIELD_ERROR, INPUT, LABEL } from "@/constants/styles";
+import { BUTTON_PRIMARY, FIELD_ERROR, LABEL } from "@/constants/styles";
 import { EnergyPlanSummary } from "@/features/nutrition/components/EnergyPlanSummary";
 import {
   ACTIVITY_LEVEL_ORDER,
@@ -133,7 +134,7 @@ export const BodyProfileFormView = ({
               {t(field.labelKey)}
             </label>
             <div className="relative">
-              <input
+              <Input
                 id={field.key}
                 name={field.key}
                 value={draft[field.key]}
@@ -141,7 +142,7 @@ export const BodyProfileFormView = ({
                 inputMode={field.inputMode}
                 placeholder={field.placeholder}
                 aria-invalid={Boolean(fieldErrors[field.key])}
-                className={`${INPUT} px-3 pr-10`}
+                className="pl-3 pr-10"
               />
               <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted">
                 {t(field.unitKey)}
@@ -204,7 +205,7 @@ export const BodyProfileFormView = ({
                 {t(field.labelKey)}
               </label>
               <div className="relative">
-                <input
+                <Input
                   id={field.key}
                   name={field.key}
                   value={draft[field.key]}
@@ -212,7 +213,7 @@ export const BodyProfileFormView = ({
                   inputMode={field.inputMode}
                   placeholder={field.placeholder}
                   aria-invalid={Boolean(fieldErrors[field.key])}
-                  className={`${INPUT} px-3 pr-16`}
+                  className="pl-3 pr-16"
                 />
                 <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted">
                   {t(field.unitKey)}

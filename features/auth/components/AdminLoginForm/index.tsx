@@ -2,8 +2,9 @@
 
 import { useTranslations } from "next-intl";
 
+import { Input } from "@/components/common/Input";
 import { SubmitButton } from "@/components/common/SubmitButton";
-import { BUTTON_PRIMARY, FIELD_ERROR, INPUT, LABEL } from "@/constants/styles";
+import { BUTTON_PRIMARY, FIELD_ERROR, LABEL } from "@/constants/styles";
 import { useLoginForm } from "@/features/auth/hooks/use-login-form";
 import { loginAdminAction } from "@/features/auth/services/auth-actions";
 import { describeErrorReference } from "@/utils/errors";
@@ -19,7 +20,8 @@ export const AdminLoginForm = () => {
         <label htmlFor="username" className={LABEL}>
           {t("usernameLabel")}
         </label>
-        <input
+        <Input
+          clearable
           key={values.username}
           id="username"
           name="username"
@@ -31,14 +33,13 @@ export const AdminLoginForm = () => {
           enterKeyHint="next"
           required
           aria-invalid={Boolean(errorMessage)}
-          className={INPUT}
         />
       </div>
       <div>
         <label htmlFor="password" className={LABEL}>
           {t("passwordLabel")}
         </label>
-        <input
+        <Input
           id="password"
           name="password"
           type="password"
@@ -47,7 +48,6 @@ export const AdminLoginForm = () => {
           required
           aria-invalid={Boolean(errorMessage)}
           aria-describedby={errorMessage ? "login-error" : undefined}
-          className={INPUT}
         />
         {errorMessage && (
           <p id="login-error" role="alert" className={FIELD_ERROR}>

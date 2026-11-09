@@ -3,6 +3,7 @@ import { TriangleAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { ChangeEvent, FormEvent } from "react";
 
+import { Input } from "@/components/common/Input";
 import { SubmitButton } from "@/components/common/SubmitButton";
 import { BUTTON_PRIMARY, FIELD_ERROR, INPUT, LABEL } from "@/constants/styles";
 import { FOOD_GROUP_VALUES } from "@/features/foods/constants/food-groups";
@@ -60,7 +61,7 @@ const NumberField = ({
       {label}
     </label>
     <div className="relative">
-      <input
+      <Input
         id={`food-${name}`}
         name={name}
         {...(value === undefined ? { defaultValue } : { value })}
@@ -73,7 +74,7 @@ const NumberField = ({
         inputMode="decimal"
         autoComplete="off"
         aria-invalid={Boolean(error)}
-        className={`${INPUT} pr-14`}
+        className="pr-14"
       />
       <span className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-sm text-muted">
         {unit}
@@ -111,7 +112,8 @@ export const FoodFormView = ({
         <label htmlFor="food-name" className={LABEL}>
           {t("name")}
         </label>
-        <input
+        <Input
+          clearable
           id="food-name"
           name="name"
           defaultValue={food?.name}
@@ -119,7 +121,6 @@ export const FoodFormView = ({
           placeholder={t("namePlaceholder")}
           autoComplete="off"
           aria-invalid={Boolean(fieldErrors.name)}
-          className={INPUT}
         />
         {fieldErrors.name && <p className={FIELD_ERROR}>{fieldErrors.name}</p>}
       </div>
@@ -263,7 +264,8 @@ export const FoodFormView = ({
             <label htmlFor="food-servingLabel" className="sr-only">
               {t("servingName")}
             </label>
-            <input
+            <Input
+              clearable
               id="food-servingLabel"
               name="servingLabel"
               defaultValue={food?.servingLabel ?? ""}
@@ -271,7 +273,6 @@ export const FoodFormView = ({
               placeholder={t("servingNamePlaceholder")}
               autoComplete="off"
               aria-invalid={Boolean(fieldErrors.servingLabel)}
-              className={INPUT}
             />
             {fieldErrors.servingLabel && (
               <p className={FIELD_ERROR}>{fieldErrors.servingLabel}</p>
@@ -282,7 +283,7 @@ export const FoodFormView = ({
               {t("servingWeight")}
             </label>
             <div className="relative">
-              <input
+              <Input
                 id="food-servingGrams"
                 name="servingGrams"
                 defaultValue={
@@ -294,7 +295,7 @@ export const FoodFormView = ({
                 placeholder={t("servingWeightPlaceholder")}
                 autoComplete="off"
                 aria-invalid={Boolean(fieldErrors.servingGrams)}
-                className={`${INPUT} pr-10`}
+                className="pr-10"
               />
               <span className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-sm text-muted">
                 g
@@ -311,7 +312,8 @@ export const FoodFormView = ({
         <label htmlFor="food-source" className={LABEL}>
           {t("source")}
         </label>
-        <input
+        <Input
+          clearable
           id="food-source"
           name="source"
           defaultValue={food?.source ?? ""}
@@ -319,7 +321,6 @@ export const FoodFormView = ({
           placeholder={t("sourcePlaceholder")}
           autoComplete="off"
           aria-invalid={Boolean(fieldErrors.source)}
-          className={INPUT}
         />
         {fieldErrors.source && (
           <p className={FIELD_ERROR}>{fieldErrors.source}</p>
