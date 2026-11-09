@@ -13,13 +13,18 @@ import {
   socialPosts,
   users,
 } from "@/db/schema";
+import { DM_MESSAGES } from "@/features/social/constants/dm";
 import { TERMS_VERSION } from "@/features/social/constants/social";
 import type { SocialActor } from "@/features/social/types/social";
+import { pairOf } from "@/features/social/utils/friend-rules";
 
 const state = vi.hoisted(() => ({
   db: null as unknown,
   user: null as null | { id: number; termsVersion: number | null },
   admin: null as null | { id: number; role: "super_admin" | "pt" },
+  // Sending is off for everyone since 2026-11-09. The tests that cover the
+  // dormant send mechanics (old data, unsend, post quotes) turn it on here.
+  sendOpen: true,
   publish: vi.fn(),
   push: vi.fn(),
 }));
@@ -32,6 +37,16 @@ vi.mock("@/features/social/services/dm-notify", () => ({
   publishDmEvent: state.publish,
   scheduleDmPush: state.push,
 }));
+vi.mock("@/features/social/utils/dm-rules", async (importOriginal) => {
+  const original =
+    await importOriginal<typeof import("@/features/social/utils/dm-rules")>();
+
+  return {
+    ...original,
+    sendBlockReason: () =>
+      state.sendOpen ? (null as unknown as string) : original.sendBlockReason(),
+  };
+});
 vi.mock("@/services/auth-guard", () => ({
   getApiUser: vi.fn(async () => state.user),
   getApiAdmin: vi.fn(async () => state.admin),
@@ -135,13 +150,20 @@ const png = (size = 64) => {
   return bytes;
 };
 
+// Conversations can no longer be created through the app, so the tests seed an
+// old one directly, as it exists in production data.
 const openChat = async (a: number, b: number) => {
-  const result = await mutations.getOrCreateDmConversation(a, b);
+  const { low, high } = pairOf(a, b);
+  const [row] = await db
+    .insert(dmConversations)
+    .values({ userLow: low, userHigh: high, createdAt: new Date() })
+    .onConflictDoUpdate({
+      target: [dmConversations.userLow, dmConversations.userHigh],
+      set: { userLow: low },
+    })
+    .returning({ id: dmConversations.id });
 
-  if (!result.ok) {
-    throw new Error("could not open chat");
-  }
-  return result.conversationId;
+  return row.id;
 };
 
 const send = (
@@ -170,6 +192,7 @@ const uploadPhoto = (conversationId: number, uploaderId: number) =>
 
 beforeEach(async () => {
   vi.clearAllMocks();
+  state.sendOpen = true;
   db = await createTestDb();
   state.db = db;
   superId = await addAdmin("root", null);
@@ -181,41 +204,50 @@ beforeEach(async () => {
 });
 
 describe("opening a conversation", () => {
-  it("needs an accepted friendship", async () => {
+  it("never creates one, even between friends", async () => {
+    await befriend(alice, bob);
+    expect(await mutations.getOrCreateDmConversation(alice, bob)).toEqual({
+      ok: false,
+      error: "disabled",
+      message: DM_MESSAGES.DISABLED,
+    });
+    expect(await db.select().from(dmConversations)).toHaveLength(0);
+  });
+
+  it("returns an existing conversation for either member", async () => {
+    const first = await openChat(alice, bob);
+
+    expect(await mutations.getOrCreateDmConversation(alice, bob)).toEqual({
+      ok: true,
+      conversationId: first,
+    });
+    expect(await mutations.getOrCreateDmConversation(bob, alice)).toEqual({
+      ok: true,
+      conversationId: first,
+    });
+    expect(await db.select().from(dmConversations)).toHaveLength(1);
+  });
+
+  it("refuses yourself, a blocked trainee and a member without terms", async () => {
+    await befriend(alice, bob);
+    await openChat(alice, bob);
+    expect(await mutations.getOrCreateDmConversation(alice, alice)).toEqual({
+      ok: false,
+      error: "not_found",
+    });
+    await friends.blockUser(alice, bob);
     expect(await mutations.getOrCreateDmConversation(alice, bob)).toEqual({
       ok: false,
       error: "not_found",
     });
-    await befriend(alice, bob);
-    const first = await openChat(alice, bob);
-
-    expect(await openChat(bob, alice)).toBe(first);
-    expect(await db.select().from(dmConversations)).toHaveLength(1);
-  });
-
-  it("refuses yourself, a blocked trainee and a trainee without terms", async () => {
-    await befriend(alice, bob);
-    expect((await mutations.getOrCreateDmConversation(alice, alice)).ok).toBe(
-      false,
-    );
-    await friends.blockUser(alice, bob);
-    expect((await mutations.getOrCreateDmConversation(alice, bob)).ok).toBe(
-      false,
-    );
-    const dave = await addUser("dave", false);
-
-    await db
-      .update(users)
-      .set({ termsVersion: TERMS_VERSION })
-      .where(eq(users.id, dave));
-    await befriend(alice, dave);
     await db
       .update(users)
       .set({ termsVersion: null })
-      .where(eq(users.id, dave));
-    expect((await mutations.getOrCreateDmConversation(alice, dave)).ok).toBe(
-      false,
-    );
+      .where(eq(users.id, carol));
+    expect(await mutations.getOrCreateDmConversation(carol, alice)).toEqual({
+      ok: false,
+      error: "not_found",
+    });
   });
 });
 
@@ -227,7 +259,27 @@ describe("who may open a conversation", () => {
     id = await openChat(alice, bob);
   });
 
-  it("lets both members in, writable", async () => {
+  it("lets both members in, read-only now that trainee chat is off", async () => {
+    state.sendOpen = false;
+    for (const [viewer, other] of [
+      [alice, bob],
+      [bob, alice],
+    ]) {
+      const view = await access.resolveDmView(id, member(viewer));
+
+      expect(view?.access).toBe("member");
+      expect(view?.otherId).toBe(other);
+      expect(view?.readOnlyReason).toBe(DM_MESSAGES.DISABLED);
+    }
+    expect(await send(id, alice, "hi")).toEqual({
+      ok: false,
+      error: "read_only",
+      message: DM_MESSAGES.DISABLED,
+    });
+    expect(await db.select().from(dmMessages)).toHaveLength(0);
+  });
+
+  it("lets both members in, writable while the dormant send path is open", async () => {
     for (const [viewer, other] of [
       [alice, bob],
       [bob, alice],
@@ -259,10 +311,11 @@ describe("who may open a conversation", () => {
 
   it("turns read-only after an unfriend but keeps the history", async () => {
     await send(id, alice, "hello");
+    state.sendOpen = false;
     await friends.unfriend(alice, bob);
     const view = await access.resolveDmView(id, member(bob));
 
-    expect(view?.readOnlyReason).not.toBeNull();
+    expect(view?.readOnlyReason).toBe(DM_MESSAGES.DISABLED);
     expect((await send(id, bob, "still there?")).ok).toBe(false);
     expect(
       (
@@ -292,10 +345,11 @@ describe("who may open a conversation", () => {
   });
 
   it("is read-only while the other side has not accepted the terms", async () => {
+    state.sendOpen = false;
     await db.update(users).set({ termsVersion: null }).where(eq(users.id, bob));
     const view = await access.resolveDmView(id, member(alice));
 
-    expect(view?.readOnlyReason).toBeTruthy();
+    expect(view?.readOnlyReason).toBe(DM_MESSAGES.DISABLED);
     const result = await send(id, alice, "hi");
 
     expect(result.ok).toBe(false);
@@ -523,11 +577,12 @@ describe("GET /api/dm/[conversationId]/messages", () => {
   });
 
   it("reports read-only after an unfriend", async () => {
+    state.sendOpen = false;
     await friends.unfriend(alice, bob);
     const body = await (await get(id)).json();
 
     expect(body.isReadOnly).toBe(true);
-    expect(body.readOnlyReason).toBeTruthy();
+    expect(body.readOnlyReason).toBe(DM_MESSAGES.DISABLED);
   });
 
   it("serves a super admin on ?as=admin, never a PT", async () => {
@@ -622,7 +677,7 @@ describe("photo routes", () => {
       expect((await upload(id, new Uint8Array([1, 2, 3, 4]))).status).toBe(400);
       expect((await upload(id, new Uint8Array(401 * 1024))).status).toBe(413);
       expect((await upload("x")).status).toBe(404);
-      await friends.unfriend(alice, bob);
+      state.sendOpen = false;
       expect((await upload(id)).status).toBe(403);
     });
 
@@ -684,11 +739,17 @@ describe("actions", () => {
     expect((await actions.openDmAction(bob)).status).toBe("error");
   });
 
-  it("opens a conversation for a friend only", async () => {
-    expect((await actions.openDmAction(bob)).status).toBe("error");
+  it("opens an existing conversation but never creates one", async () => {
     await befriend(alice, bob);
-    expect(await actions.openDmAction(bob)).toMatchObject({
+    expect(await actions.openDmAction(bob)).toEqual({
+      status: "error",
+      message: DM_MESSAGES.DISABLED,
+    });
+    const id = await openChat(alice, bob);
+
+    expect(await actions.openDmAction(bob)).toEqual({
       status: "success",
+      conversationId: id,
     });
   });
 

@@ -28,7 +28,7 @@ const UnreadDot = () => (
 );
 
 // The Messages tab: the coach chat first (unchanged, under /messages/coach),
-// then the chats with friends, newest first.
+// then the old read-only chats with friends (shown only when any exist).
 const MessagesInboxPage = async () => {
   const user = await requireUser();
   const [coachUnread, chats] = await Promise.all([
@@ -59,48 +59,47 @@ const MessagesInboxPage = async () => {
             </Link>
           </li>
         </ul>
-        <h2 className={SECTION_TITLE}>Bạn bè</h2>
-        {chats.length === 0 ? (
-          <p className={`${CARD} p-6 text-center text-muted`}>
-            {DM_MESSAGES.EMPTY_INBOX}
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {chats.map((chat) => (
-              <li key={chat.conversationId}>
-                <Link href={dmPath(chat.conversationId)} className={ROW}>
-                  <Avatar
-                    name={chat.name}
-                    src={chat.avatarUrl}
-                    className="size-12 shrink-0 text-base"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-baseline justify-between gap-2">
-                      <span
-                        className={`truncate ${chat.unread > 0 ? "font-bold" : "font-semibold"} text-fg`}
-                      >
-                        {chat.name}
-                      </span>
-                      {chat.lastMessageAt && (
-                        <span className="shrink-0 text-xs text-muted">
-                          {formatRelativeTime(
-                            new Date(chat.lastMessageAt).getTime(),
-                            TIME_ZONE,
-                          )}
+        {chats.length > 0 && (
+          <>
+            <h2 className={SECTION_TITLE}>Bạn bè</h2>
+            <p className="text-sm text-muted">{DM_MESSAGES.ARCHIVED_NOTE}</p>
+            <ul className="space-y-2">
+              {chats.map((chat) => (
+                <li key={chat.conversationId}>
+                  <Link href={dmPath(chat.conversationId)} className={ROW}>
+                    <Avatar
+                      name={chat.name}
+                      src={chat.avatarUrl}
+                      className="size-12 shrink-0 text-base"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-baseline justify-between gap-2">
+                        <span
+                          className={`truncate ${chat.unread > 0 ? "font-bold" : "font-semibold"} text-fg`}
+                        >
+                          {chat.name}
                         </span>
-                      )}
+                        {chat.lastMessageAt && (
+                          <span className="shrink-0 text-xs text-muted">
+                            {formatRelativeTime(
+                              new Date(chat.lastMessageAt).getTime(),
+                              TIME_ZONE,
+                            )}
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        className={`block truncate text-sm ${chat.unread > 0 ? "font-semibold text-fg" : "text-muted"}`}
+                      >
+                        {chat.preview}
+                      </span>
                     </span>
-                    <span
-                      className={`block truncate text-sm ${chat.unread > 0 ? "font-semibold text-fg" : "text-muted"}`}
-                    >
-                      {chat.preview}
-                    </span>
-                  </span>
-                  {chat.unread > 0 && <UnreadDot />}
-                </Link>
-              </li>
-            ))}
-          </ul>
+                    {chat.unread > 0 && <UnreadDot />}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </main>
     </>

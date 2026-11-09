@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { DM_MESSAGES } from "@/features/social/constants/dm";
 import { TERMS_VERSION } from "@/features/social/constants/social";
 import {
   buildDmPushPayload,
@@ -12,13 +13,6 @@ import {
 } from "@/features/social/utils/dm-rules";
 
 const members = { low: 3, high: 8 };
-const okState = {
-  areFriends: true,
-  isBlocked: false,
-  viewerAcceptedTerms: true,
-  otherAcceptedTerms: true,
-};
-
 describe("dmAccessOf", () => {
   it("lets the two members in, unless a block hides the chat", () => {
     expect(dmAccessOf({ kind: "user", id: 3 }, members, false)).toBe("member");
@@ -38,24 +32,14 @@ describe("dmAccessOf", () => {
 });
 
 describe("sendBlockReason", () => {
-  it("allows friends who both accepted the terms", () => {
-    expect(sendBlockReason(okState)).toBeNull();
+  // Owner decision 2026-11-09: trainees no longer chat with each other.
+  it("always says sending is disabled", () => {
+    expect(sendBlockReason()).toBe(DM_MESSAGES.DISABLED);
   });
+});
 
-  it.each([
-    { areFriends: false },
-    { isBlocked: true },
-    { viewerAcceptedTerms: false },
-    { otherAcceptedTerms: false },
-  ])("is read-only for %o", (change) => {
-    expect(sendBlockReason({ ...okState, ...change })).toEqual(
-      expect.any(String),
-    );
-  });
-
-  it("uses the current terms version constant", () => {
-    expect(TERMS_VERSION).toBeGreaterThan(0);
-  });
+it("uses the current terms version constant", () => {
+  expect(TERMS_VERSION).toBeGreaterThan(0);
 });
 
 describe("checkDmContent", () => {

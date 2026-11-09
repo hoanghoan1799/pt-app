@@ -32,7 +32,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
   {
     title: "3. Quyền của quản trị viên",
     items: [
-      'Quản trị viên cấp cao (super admin) có thể xem mọi bài viết, kể cả bài ở chế độ "Chỉ mình tôi", và tin nhắn giữa các học viên, nhằm đảm bảo an toàn và kiểm duyệt.',
+      'Quản trị viên cấp cao (super admin) có thể xem mọi bài viết, kể cả bài ở chế độ "Chỉ mình tôi", và các tin nhắn cũ giữa các học viên được giữ lại từ trước (học viên không còn nhắn tin với nhau), nhằm đảm bảo an toàn và kiểm duyệt.',
       "PT xem được bài viết của các học viên thuộc nhóm do PT phụ trách.",
       "Quản trị viên chỉ dùng quyền này để xử lý báo cáo, bảo vệ người dùng và duy trì ứng dụng.",
     ],

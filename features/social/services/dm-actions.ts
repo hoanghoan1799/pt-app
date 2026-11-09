@@ -34,6 +34,7 @@ const fail = (message: string): ActionErrorResult => ({
 const MESSAGES: Record<DmError, string> = {
   not_found: DM_MESSAGES.NOT_FOUND,
   read_only: DM_MESSAGES.READ_ONLY,
+  disabled: DM_MESSAGES.DISABLED,
   empty: DM_MESSAGES.EMPTY,
   too_long: DM_MESSAGES.TOO_LONG,
   photo_not_found: DM_MESSAGES.PHOTO_NOT_FOUND,
@@ -43,7 +44,7 @@ const MESSAGES: Record<DmError, string> = {
 export type OpenDmResult =
   { status: "success"; conversationId: number } | ActionErrorResult;
 
-// "Nhắn tin" on a friend: get or create the conversation.
+// Opens an existing (read-only) conversation; new ones are never created.
 export const openDmAction = withResultErrorHandling(
   "openDm",
   async (otherId: unknown): Promise<OpenDmResult> => {

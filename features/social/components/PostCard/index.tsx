@@ -37,13 +37,11 @@ import {
   CAPTION_MAX_LENGTH,
   PRIVACY_LABELS,
 } from "@/features/social/constants/social";
-import { openDmAction } from "@/features/social/services/dm-actions";
 import {
   deletePostAction,
   editPostAction,
 } from "@/features/social/services/social-actions";
 import type { PostPrivacy, PostView } from "@/features/social/types/social";
-import { dmReplyPath } from "@/features/social/utils/dm-rules";
 import {
   adminPostPath,
   postPath,
@@ -82,15 +80,11 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
   );
   // Everyone can report a post that is not their own.
   const canReport = !post.canEdit;
-  // Trainees reply to another trainee's post in their chat (the friendship is
-  // checked when the chat opens and the error is shown) and to a PT's post in
-  // the coach chat; a PT replies to a trainee's post in that trainee's chat.
-  // The chat page itself drops the post when it cannot be quoted (locked chat,
-  // post not visible).
-  const isFriendReply =
-    mode === "user" && post.authorKind === "user" && !post.canEdit;
+  // Trainees reply to a PT's post in the coach chat; a PT replies to a trainee's
+  // post in that trainee's chat. Trainee-to-trainee chat is off (owner
+  // decision 2026-11-09). The chat page itself drops the post when it cannot
+  // be quoted (locked chat, post not visible).
   const canReplyInChat =
-    isFriendReply ||
     (mode === "user" && post.authorKind === "admin" && !post.canEdit) ||
     (mode === "admin" && post.authorKind === "user");
   const hasMenu = post.canEdit || post.canDelete || canReport;
@@ -125,25 +119,11 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
   };
 
   const handleReplyInChat = () => {
-    if (!isFriendReply) {
-      router.push(
-        mode === "admin"
-          ? replyPostHref("admin", post.authorId, post.id)
-          : replyPostHref("user", 0, post.id),
-      );
-      return;
-    }
-    startTransition(async () => {
-      const result = await openDmAction(post.authorId);
-
-      if (result.status === "error") {
-        toast.error(result.message, {
-          description: describeErrorReference(result.reference),
-        });
-        return;
-      }
-      router.push(dmReplyPath(result.conversationId, post.id));
-    });
+    router.push(
+      mode === "admin"
+        ? replyPostHref("admin", post.authorId, post.id)
+        : replyPostHref("user", 0, post.id),
+    );
   };
 
   const handleDelete = async () => {
