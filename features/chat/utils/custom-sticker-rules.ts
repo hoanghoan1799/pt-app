@@ -4,7 +4,7 @@ import { z } from "zod";
 // validation and the browser; nothing here touches the database.
 
 export const CUSTOM_STICKER_MAX_BYTES = 150 * 1024;
-export const CUSTOM_STICKER_MAX_PER_OWNER = 30;
+export const CUSTOM_STICKER_MAX_PER_OWNER = 100;
 export const CUSTOM_STICKER_MAX_SIDE = 512;
 export const STICKER_ALT_CUSTOM = "Sticker của tôi";
 
@@ -12,7 +12,7 @@ export const CUSTOM_STICKER_ERRORS = {
   UNAUTHORIZED: "Bạn cần đăng nhập lại.",
   TOO_LARGE: "Ảnh sau khi xử lý vẫn quá lớn. Hãy chọn ảnh khác.",
   BAD_IMAGE: "Chỉ nhận ảnh WebP hoặc PNG đã xử lý. Hãy chọn lại ảnh.",
-  LIMIT: "Bạn đã có tối đa 30 sticker. Hãy xoá bớt rồi thêm ảnh mới.",
+  LIMIT: `Bạn đã có tối đa ${CUSTOM_STICKER_MAX_PER_OWNER} sticker. Hãy xoá bớt rồi thêm ảnh mới.`,
   NOT_FOUND: "Không tìm thấy sticker.",
   DECODE_FAILED:
     "Không đọc được ảnh này (ví dụ HEIC). Hãy chọn ảnh JPEG hoặc PNG.",

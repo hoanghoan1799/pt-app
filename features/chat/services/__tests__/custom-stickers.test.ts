@@ -199,14 +199,14 @@ describe("POST /api/chat/stickers/custom", () => {
     expect(await db.select().from(chatCustomStickers)).toHaveLength(0);
   });
 
-  it("allows 30 per owner and rejects the 31st with a Vietnamese message", async () => {
-    for (let n = 0; n < 30; n += 1) {
+  it("allows 100 per owner and rejects the 101st with a Vietnamese message", async () => {
+    for (let n = 0; n < 100; n += 1) {
       expect((await post(png())).status).toBe(201);
     }
     const response = await post(png());
 
     expect(response.status).toBe(409);
-    expect((await response.json()).message).toContain("tối đa 30 sticker");
+    expect((await response.json()).message).toContain("tối đa 100 sticker");
     // Another person's set is separate.
     asUser(bob);
     expect((await post(png())).status).toBe(201);
