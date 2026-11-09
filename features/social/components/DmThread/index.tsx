@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { ArrowUp, ImagePlus, Loader2, X } from "lucide-react";
+import { ArrowUp, ImagePlus, X } from "lucide-react";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Avatar } from "@/components/common/Avatar";
+import { Spinner } from "@/components/common/Spinner";
 import { ROUTES } from "@/constants/routes";
 import {
   BUTTON_SECONDARY,
@@ -255,7 +256,7 @@ export const DmThread = ({
                   </div>
                 ) : (
                   <span className="inline-flex items-center gap-2 text-sm text-muted">
-                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                    <Spinner size="sm" />
                     {t("uploading")}
                   </span>
                 )}

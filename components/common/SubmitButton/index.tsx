@@ -1,9 +1,9 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_PRIMARY } from "@/constants/styles";
 
 interface SubmitButtonProps {
@@ -23,8 +23,13 @@ export const SubmitButton = ({
   const isBusy = isPending ?? pending;
 
   return (
-    <button type="submit" className={className} disabled={isBusy}>
-      {isBusy && <Loader2 className="size-5 animate-spin" aria-hidden />}
+    <button
+      type="submit"
+      className={className}
+      disabled={isBusy}
+      aria-busy={isBusy}
+    >
+      {isBusy && <Spinner size="md" />}
       {children}
     </button>
   );

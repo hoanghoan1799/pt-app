@@ -1,11 +1,12 @@
 "use client";
 
 import clsx from "clsx";
-import { ImagePlus, Loader2, X } from "lucide-react";
+import { ImagePlus, X } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { type ChangeEvent, useRef, useState } from "react";
 
+import { Spinner } from "@/components/common/Spinner";
 import type {
   CustomStickerItem,
   CustomStickersStatus,
@@ -120,7 +121,7 @@ export const CustomStickerGrid = ({
         )}
       >
         {isBusy ? (
-          <Loader2 className="size-6 animate-spin motion-reduce:animate-none" />
+          <Spinner size="lg" />
         ) : (
           <ImagePlus className="size-6" aria-hidden />
         )}

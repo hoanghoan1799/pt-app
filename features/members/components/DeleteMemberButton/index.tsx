@@ -1,11 +1,12 @@
 "use client";
 
-import { Loader2, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_DANGER } from "@/constants/styles";
 import { deleteMemberAction } from "@/features/members/services/member-actions";
 import { describeErrorReference } from "@/utils/errors";
@@ -49,7 +50,7 @@ export const DeleteMemberButton = ({ userId }: DeleteMemberButtonProps) => {
       className={`${BUTTON_DANGER} w-full`}
     >
       {isPending ? (
-        <Loader2 className="size-5 animate-spin" aria-hidden />
+        <Spinner size="md" />
       ) : (
         <Trash2 className="size-5" aria-hidden />
       )}

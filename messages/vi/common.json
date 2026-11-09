@@ -35,5 +35,6 @@
     "showInChat": "Xem trong tin nhắn"
   },
   "avatarLightbox": { "label": "Ảnh của {name}" },
-  "verified": "Đã xác minh"
+  "verified": "Đã xác minh",
+  "loading": "Đang tải…"
 }

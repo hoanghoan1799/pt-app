@@ -1,11 +1,12 @@
 "use client";
 
-import { Loader2, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useId, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, TEXTAREA } from "@/constants/styles";
 import { BIO_MAX_LENGTH } from "@/features/social/constants/social";
 import { updateBioAction } from "@/features/social/services/social-actions";
@@ -90,7 +91,7 @@ export const BioEditor = ({ mode, bio }: BioEditorProps) => {
           disabled={isPending}
           className={`${BUTTON_PRIMARY} min-h-11`}
         >
-          {isPending && <Loader2 className="size-5 animate-spin" aria-hidden />}
+          {isPending && <Spinner size="md" />}
           {t("save")}
         </button>
       </div>

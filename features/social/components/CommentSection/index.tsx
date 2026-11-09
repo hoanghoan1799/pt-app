@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 import { Avatar } from "@/components/common/Avatar";
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
+import { Spinner } from "@/components/common/Spinner";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import {
   BUTTON_PRIMARY,
@@ -249,7 +250,7 @@ export const CommentSection = ({
             className={`${BUTTON_PRIMARY} min-h-11`}
           >
             {isPending ? (
-              <Loader2 className="size-5 animate-spin" aria-hidden />
+              <Spinner size="md" />
             ) : (
               <Send className="size-5" aria-hidden />
             )}

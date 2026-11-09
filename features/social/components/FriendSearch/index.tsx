@@ -1,12 +1,13 @@
 "use client";
 
-import { Loader2, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Avatar } from "@/components/common/Avatar";
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_PRIMARY, CARD, INPUT, LABEL } from "@/constants/styles";
 import { RelationshipButton } from "@/features/social/components/RelationshipButton";
 import { searchFriendAction } from "@/features/social/services/friend-actions";
@@ -71,7 +72,7 @@ export const FriendSearch = () => {
           className={`${BUTTON_PRIMARY} w-full`}
         >
           {isPending ? (
-            <Loader2 className="size-5 animate-spin" aria-hidden />
+            <Spinner size="md" />
           ) : (
             <Search className="size-5" aria-hidden />
           )}
