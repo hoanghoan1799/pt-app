@@ -4,12 +4,16 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
+import { Skeleton } from "@/components/common/Skeleton";
 import { ICON_BUTTON, PAGE_CONTAINER } from "@/constants/styles";
 
 interface AppHeaderProps {
-  title: string;
-  eyebrow?: string;
+  // ReactNode so loading screens can put a skeleton where data-driven text goes.
+  title: ReactNode;
+  eyebrow?: ReactNode;
   backHref?: string;
+  // Loading screens: the back target depends on data, show a placeholder.
+  isBackLoading?: boolean;
   actions?: ReactNode;
 }
 
@@ -17,6 +21,7 @@ export const AppHeader = ({
   title,
   eyebrow,
   backHref,
+  isBackLoading = false,
   actions,
 }: AppHeaderProps) => {
   const t = useTranslations("layout.header");
@@ -32,6 +37,11 @@ export const AppHeader = ({
           >
             <ChevronLeft className="size-6" />
           </Link>
+        )}
+        {!backHref && isBackLoading && (
+          <div className={clsx(ICON_BUTTON, "-ml-3")} aria-hidden>
+            <Skeleton className="size-6 rounded-full" />
+          </div>
         )}
         <div className="min-w-0 flex-1 py-2">
           {eyebrow && (

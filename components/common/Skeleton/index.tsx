@@ -12,6 +12,15 @@ export const Skeleton = ({ className = "" }: SkeletonProps) => (
   />
 );
 
+// Inline-safe placeholder for text slots (headings, labels); a span so it can
+// sit inside h1 or p without invalid nesting.
+export const InlineSkeleton = ({ className = "" }: SkeletonProps) => (
+  <span
+    className={`block animate-pulse rounded-md bg-line/60 motion-reduce:animate-none ${className}`}
+    aria-hidden
+  />
+);
+
 interface SkeletonTextProps {
   lines?: number;
   className?: string;

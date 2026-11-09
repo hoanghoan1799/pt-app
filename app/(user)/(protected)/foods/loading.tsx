@@ -1,12 +1,24 @@
-import { PageSkeleton } from "@/components/common/PageSkeleton";
-import { Skeleton, SkeletonList } from "@/components/common/Skeleton";
+import { getTranslations } from "next-intl/server";
 
-export default function Loading() {
+import { PageSkeleton } from "@/components/common/PageSkeleton";
+import { AppHeader } from "@/components/layout/AppHeader";
+import { ROUTES } from "@/constants/routes";
+import { FoodListSkeleton } from "@/features/foods/components/FoodListSkeleton";
+
+export default async function Loading() {
+  const t = await getTranslations("pages.foods");
+
   return (
-    <PageSkeleton>
-      <Skeleton className="h-12 w-full" />
-      <Skeleton className="h-9 w-2/3 rounded-full" />
-      <SkeletonList rows={6} />
+    <PageSkeleton
+      header={
+        <AppHeader
+          eyebrow={t("eyebrow")}
+          title={t("title")}
+          backHref={ROUTES.NUTRITION}
+        />
+      }
+    >
+      <FoodListSkeleton />
     </PageSkeleton>
   );
 }
