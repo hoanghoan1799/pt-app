@@ -45,6 +45,7 @@ import { setLocaleAction } from "@/services/locale-actions";
 import { setThemeAction } from "@/services/theme-actions";
 import {
   type Locale,
+  LOCALE_FLAGS,
   LOCALE_NAMES,
   LOCALES,
   parseLocale,
@@ -345,7 +346,8 @@ export const HeaderMenus = ({
                           : "text-muted",
                       )}
                     >
-                      {LOCALE_NAMES[value]}
+                      {LOCALE_NAMES[value]}{" "}
+                      <span aria-hidden="true">{LOCALE_FLAGS[value]}</span>
                     </button>
                   ))}
                 </div>
