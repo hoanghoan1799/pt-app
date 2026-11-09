@@ -176,8 +176,10 @@ export const CommentSection = ({
                         type="button"
                         onClick={() => handleSaveEdit(comment.id)}
                         disabled={isPending || editBody.trim() === ""}
+                        aria-busy={isPending}
                         className={`${BUTTON_PRIMARY} min-h-11`}
                       >
+                        {isPending && <Spinner size="md" />}
                         {t("save")}
                       </button>
                     </div>
@@ -215,9 +217,11 @@ export const CommentSection = ({
                         <button
                           type="button"
                           disabled={isPending}
+                          aria-busy={isPending}
                           onClick={() => handleDelete(comment.id)}
-                          className={`${LINK_BUTTON} text-danger`}
+                          className={`${LINK_BUTTON} inline-flex items-center gap-1 text-danger`}
                         >
+                          {isPending && <Spinner size="sm" />}
                           {t("delete")}
                         </button>
                       )}
@@ -247,6 +251,7 @@ export const CommentSection = ({
             type="button"
             onClick={handleSend}
             disabled={isPending || body.trim() === ""}
+            aria-busy={isPending}
             className={`${BUTTON_PRIMARY} min-h-11`}
           >
             {isPending ? (

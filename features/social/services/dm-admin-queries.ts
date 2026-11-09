@@ -5,6 +5,7 @@ import { desc, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { dmConversations, dmMessages, users } from "@/db/schema";
 import { dmPreview } from "@/features/social/utils/dm-rules";
+import { getFormatTranslator } from "@/i18n/format-translator";
 import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 // Read-only views for the super admin (Q6). Callers must have passed
@@ -47,6 +48,7 @@ export const listAllDmConversations = async (
   ]);
   const names = new Map(people.map((p) => [p.id, p.name]));
   const lastById = new Map(lasts.map((m) => [m.id, m]));
+  const t = getFormatTranslator(locale);
 
   return rows.map((row) => {
     const last =
@@ -54,8 +56,8 @@ export const listAllDmConversations = async (
 
     return {
       id: row.id,
-      lowName: names.get(row.userLow) ?? "Đã xoá",
-      highName: names.get(row.userHigh) ?? "Đã xoá",
+      lowName: names.get(row.userLow) ?? t("fallback.deletedAccountDm"),
+      highName: names.get(row.userHigh) ?? t("fallback.deletedAccountDm"),
       lastMessageAt: row.lastMessageAt,
       preview: last
         ? dmPreview(

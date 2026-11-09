@@ -176,6 +176,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
             type="button"
             onClick={() => setMenuOpen(true)}
             disabled={isPending}
+            aria-busy={isPending}
             aria-label={t("optionsLabel")}
             className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-muted active:bg-line disabled:opacity-50"
           >
@@ -220,8 +221,10 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
               type="button"
               onClick={handleSave}
               disabled={isPending}
+              aria-busy={isPending}
               className={`${BUTTON_PRIMARY} min-h-11`}
             >
+              {isPending && <Spinner size="md" />}
               {t("save")}
             </button>
           </div>
@@ -291,6 +294,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
           type="button"
           onClick={handleReplyInChat}
           disabled={isPending}
+          aria-busy={isPending}
           className={`${BUTTON_SECONDARY} min-h-11 w-full gap-2`}
         >
           {isPending ? (

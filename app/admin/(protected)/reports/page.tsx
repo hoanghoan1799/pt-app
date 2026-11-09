@@ -23,7 +23,7 @@ const AdminReportsPage = async () => {
   const t = await getTranslations("adminPages.reports");
   const locale = await getLocale();
 
-  const reports = await listOpenReports();
+  const reports = await listOpenReports(locale);
 
   return (
     <>

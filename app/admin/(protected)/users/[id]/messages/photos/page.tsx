@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import {
@@ -15,7 +16,11 @@ import { requireAdmin } from "@/services/auth-guard";
 import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
 
-export const metadata: Metadata = { title: "Ảnh, sticker và link" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("adminPages.messagesPhotos");
+
+  return { title: t("metaTitle") };
+};
 
 // The admin's gallery for one trainee (KAN-160), tab by `?tab=`. A hidden
 // trainee is "not found" unless revealed.
@@ -24,6 +29,8 @@ const AdminMessagesPhotosPage = async ({
   searchParams,
 }: PageProps<"/admin/users/[id]/messages/photos">) => {
   const admin = await requireAdmin();
+  const t = await getTranslations("adminPages.messagesPhotos");
+  const locale = await getLocale();
   const { id } = await params;
   const tab = parseGalleryTab((await searchParams).tab);
   const user = await findUserById(Number(id));
@@ -34,7 +41,7 @@ const AdminMessagesPhotosPage = async ({
   const conversation = await findConversationByUserId(user.id);
   const [result, adminAvatars, traineeAvatar] = await Promise.all([
     conversation
-      ? loadGalleryForAdmin(admin.id, conversation.id, undefined, tab)
+      ? loadGalleryForAdmin(admin.id, conversation.id, undefined, tab, locale)
       : { status: "ok" as const, page: { items: [], nextCursor: null } },
     listAdminAvatarUrls(),
     getAvatarUrl("user", user.id),
@@ -53,7 +60,7 @@ const AdminMessagesPhotosPage = async ({
 
   return (
     <>
-      <AppHeader title="Ảnh, sticker và link" backHref={paths.info} />
+      <AppHeader title={t("title")} backHref={paths.info} />
       <main className="mx-auto w-full max-w-lg pt-3 pb-12">
         <GalleryView
           tab={tab}

@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 import { Input } from "@/components/common/Input";
+import { Spinner } from "@/components/common/Spinner";
 import { ICON_BUTTON, PAGE_CONTAINER } from "@/constants/styles";
 import { type ChatPaths, jumpHref } from "@/features/chat/utils/chat-links";
 import {
@@ -193,8 +194,9 @@ export const ChatSearch = ({
         {isSearchable && state.kind === "loading" && (
           <p
             role="status"
-            className="px-6 py-16 text-center text-sm text-muted"
+            className="flex items-center justify-center gap-2 px-6 py-16 text-sm text-muted"
           >
+            <Spinner size="md" />
             {t("searching")}
           </p>
         )}
@@ -248,8 +250,10 @@ export const ChatSearch = ({
                     type="button"
                     onClick={() => void loadMore()}
                     disabled={isLoadingMore}
-                    className="rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
+                    aria-busy={isLoadingMore}
+                    className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
                   >
+                    {isLoadingMore && <Spinner size="sm" />}
                     {isLoadingMore ? t("searching") : t("loadMore")}
                   </button>
                 </div>

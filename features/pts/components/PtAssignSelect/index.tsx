@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
+import { Spinner } from "@/components/common/Spinner";
 import { INPUT, LABEL } from "@/constants/styles";
 import { assignTraineePtAction } from "@/features/pts/services/pt-actions";
 
@@ -46,13 +47,17 @@ export const PtAssignSelect = ({
 
   return (
     <div>
-      <label htmlFor={`pt-assign-${userId}`} className={LABEL}>
-        {label ?? t("label")}
-      </label>
+      <div className="flex items-center gap-2">
+        <label htmlFor={`pt-assign-${userId}`} className={LABEL}>
+          {label ?? t("label")}
+        </label>
+        {isPending && <Spinner size="sm" />}
+      </div>
       <select
         id={`pt-assign-${userId}`}
         value={currentPtId ?? ""}
         disabled={isPending}
+        aria-busy={isPending}
         onChange={(event) => handleChange(event.target.value)}
         className={INPUT}
       >

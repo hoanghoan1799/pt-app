@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { Spinner } from "@/components/common/Spinner";
 import { ROUTES } from "@/constants/routes";
 import { BUTTON_SECONDARY } from "@/constants/styles";
 import {
@@ -78,9 +79,11 @@ export const HideConversationButton = ({
     <button
       type="button"
       disabled={isPending}
+      aria-busy={isPending}
       onClick={toggle}
       className={clsx(BUTTON_SECONDARY, "w-full")}
     >
+      {isPending && <Spinner size="md" />}
       {isHidden ? t("unhide") : t("hide")}
     </button>
   );

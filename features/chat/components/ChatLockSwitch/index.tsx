@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 
+import { Spinner } from "@/components/common/Spinner";
 import { setChatEnabledAction } from "@/features/chat/services/chat-admin-actions";
 
 interface ChatLockSwitchProps {
@@ -62,6 +63,7 @@ export const ChatLockSwitch = ({ userId, enabled }: ChatLockSwitchProps) => {
           aria-checked={checked}
           aria-labelledby={`chat-switch-${userId}`}
           disabled={isPending}
+          aria-busy={isPending}
           onClick={toggle}
           className={clsx(
             "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border border-line transition-colors disabled:opacity-60",
@@ -71,10 +73,12 @@ export const ChatLockSwitch = ({ userId, enabled }: ChatLockSwitchProps) => {
           <span
             aria-hidden
             className={clsx(
-              "inline-block size-5 rounded-full bg-white shadow transition-transform",
+              "inline-flex size-5 items-center justify-center rounded-full bg-white text-muted shadow transition-transform",
               checked ? "translate-x-6" : "translate-x-1",
             )}
-          />
+          >
+            {isPending && <Spinner size="sm" />}
+          </span>
         </button>
       </div>
       {error && (

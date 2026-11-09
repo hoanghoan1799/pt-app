@@ -4,13 +4,12 @@ import { asc, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { socialComments, socialPosts, socialReports, users } from "@/db/schema";
-import {
-  DELETED_ACCOUNT_NAME,
-  loadAccounts,
-} from "@/features/social/services/account-lookup";
+import { loadAccounts } from "@/features/social/services/account-lookup";
 import type { ReportView } from "@/features/social/types/social";
 import { adminPostPath } from "@/features/social/utils/engagement-rules";
 import { adminProfilePath } from "@/features/social/utils/post-rules";
+import { getFormatTranslator } from "@/i18n/format-translator";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 const PREVIEW_LENGTH = 140;
 
@@ -35,7 +34,10 @@ export const countOpenReports = async () => {
 };
 
 // Open reports, oldest first, each with a preview of what was reported.
-export const listOpenReports = async (): Promise<ReportView[]> => {
+export const listOpenReports = async (
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<ReportView[]> => {
+  const t = getFormatTranslator(locale);
   const reports = await db
     .select()
     .from(socialReports)
@@ -73,7 +75,7 @@ export const listOpenReports = async (): Promise<ReportView[]> => {
     ...comments.map((comment) => comment.authorKey),
   ]);
   const nameOf = (key: string) =>
-    accounts.get(key)?.name ?? DELETED_ACCOUNT_NAME;
+    accounts.get(key)?.name ?? t("fallback.deletedAccount");
   const postById = new Map(posts.map((post) => [post.id, post]));
   const commentById = new Map(comments.map((comment) => [comment.id, comment]));
   const userById = new Map(targetUsers.map((user) => [user.id, user]));
@@ -94,7 +96,7 @@ export const listOpenReports = async (): Promise<ReportView[]> => {
       return post && post.deletedAt === null
         ? {
             ...base,
-            preview: snippet(post.caption, "(Bài viết chỉ có ảnh)"),
+            preview: snippet(post.caption, t("fallback.postImageOnly")),
             targetName: nameOf(`${post.authorKind}:${post.authorId}`),
             href: adminPostPath(post.id),
           }

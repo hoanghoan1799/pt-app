@@ -98,5 +98,10 @@
     "trainee": "Trainee",
     "pt": "PT",
     "peerDeleted": "PT (deleted)"
+  },
+  "fallback": {
+    "deletedAccount": "Deleted account",
+    "deletedAccountDm": "Deleted account",
+    "postImageOnly": "(Photo-only post)"
   }
 }

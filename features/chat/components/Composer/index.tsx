@@ -343,10 +343,15 @@ export const Composer = ({
               type="button"
               aria-label={t("attachPhoto")}
               disabled={isPreparing}
+              aria-busy={isPreparing}
               onClick={() => fileRef.current?.click()}
               className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted transition active:scale-90 active:bg-line disabled:opacity-50"
             >
-              <ImagePlus className="size-6" aria-hidden />
+              {isPreparing ? (
+                <Spinner size="lg" />
+              ) : (
+                <ImagePlus className="size-6" aria-hidden />
+              )}
             </button>
           </>
         )}

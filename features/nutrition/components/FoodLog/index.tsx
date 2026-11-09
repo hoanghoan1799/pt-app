@@ -5,6 +5,7 @@ import { Pencil, Plus, Trash2, UtensilsCrossed } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_SECONDARY, CARD, ICON_BUTTON } from "@/constants/styles";
 import { FoodEntryForm } from "@/features/nutrition/components/FoodEntryForm";
 import {
@@ -101,10 +102,15 @@ export const FoodLog = ({
                           type="button"
                           onClick={() => log.handleDelete(entry)}
                           disabled={log.pendingId === entry.id}
+                          aria-busy={log.pendingId === entry.id}
                           className={`${ICON_BUTTON} text-danger`}
                           aria-label={t("deleteMeal")}
                         >
-                          <Trash2 className="size-4" />
+                          {log.pendingId === entry.id ? (
+                            <Spinner size="sm" />
+                          ) : (
+                            <Trash2 className="size-4" />
+                          )}
                         </button>
                       </div>
                     )}

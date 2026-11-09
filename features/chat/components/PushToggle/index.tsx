@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { BellRing } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Spinner } from "@/components/common/Spinner";
 import {
   type PushRole,
   usePushSubscription,
@@ -44,6 +45,7 @@ export const PushToggle = ({ role, itemClassName }: PushToggleProps) => {
         role="menuitemcheckbox"
         aria-checked={push.isSubscribed}
         aria-disabled={isDisabled || push.busy}
+        aria-busy={push.busy}
         onClick={() => {
           if (isDisabled || push.busy) {
             return;
@@ -59,7 +61,11 @@ export const PushToggle = ({ role, itemClassName }: PushToggleProps) => {
           (isDisabled || push.busy) && "opacity-60",
         )}
       >
-        <BellRing className="size-5 shrink-0 text-muted" aria-hidden />
+        {push.busy ? (
+          <Spinner size="md" className="shrink-0" />
+        ) : (
+          <BellRing className="size-5 shrink-0 text-muted" aria-hidden />
+        )}
         <span className="min-w-0 flex-1">
           <span className="block">{t("label")}</span>
           <span className="block text-xs text-muted">{status}</span>

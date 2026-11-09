@@ -3,6 +3,7 @@
 import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from "@/constants/styles";
 import { SetInputRow } from "@/features/workouts/components/SetInputRow";
 import { useExerciseSets } from "@/features/workouts/hooks/use-exercise-sets";
@@ -71,8 +72,10 @@ export const SetLogger = ({ exercise }: SetLoggerProps) => {
           type="button"
           onClick={handleSave}
           disabled={isPending}
+          aria-busy={isPending}
           className={BUTTON_PRIMARY}
         >
+          {isPending && <Spinner size="md" />}
           {isPending ? t("saving") : t("save")}
         </button>
       </div>

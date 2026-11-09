@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
+import { Spinner } from "@/components/common/Spinner";
 import { ROUTES } from "@/constants/routes";
 import { ReportSheet } from "@/features/social/components/ReportSheet";
 import { useSocialAction } from "@/features/social/hooks/use-social-action";
@@ -63,10 +64,15 @@ export const ProfileMenu = ({
         type="button"
         onClick={() => setMenuOpen(true)}
         disabled={isPending}
+        aria-busy={isPending}
         aria-label={t("optionsLabel")}
         className="inline-flex size-12 shrink-0 items-center justify-center rounded-xl border border-line text-muted active:bg-line disabled:opacity-50"
       >
-        <MoreHorizontal className="size-5" aria-hidden />
+        {isPending ? (
+          <Spinner size="md" />
+        ) : (
+          <MoreHorizontal className="size-5" aria-hidden />
+        )}
       </button>
       <BottomSheet isOpen={isMenuOpen} onOpenChange={setMenuOpen} title={name}>
         <div className="space-y-1 pb-2">

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import {
@@ -26,10 +26,11 @@ const MessagesPhotosPage = async ({
 }: PageProps<"/messages/coach/photos">) => {
   const t = await getTranslations("chat.pages");
   const user = await requireUser();
+  const locale = await getLocale();
   const tab = parseGalleryTab((await searchParams).tab);
   const conversation = await findConversationByUserId(user.id);
   const [result, adminAvatars, ownAvatar] = await Promise.all([
-    loadGalleryForTrainee(conversation?.id ?? null, undefined, tab),
+    loadGalleryForTrainee(conversation?.id ?? null, undefined, tab, locale),
     listAdminAvatarUrls(),
     getAvatarUrl("user", user.id),
   ]);

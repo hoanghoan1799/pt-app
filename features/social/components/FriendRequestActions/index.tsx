@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from "@/constants/styles";
 import { useSocialAction } from "@/features/social/hooks/use-social-action";
 import {
@@ -30,9 +31,11 @@ export const FriendRequestActions = ({
       <button
         type="button"
         disabled={isPending}
+        aria-busy={isPending}
         onClick={() => run(() => cancelFriendRequestAction(userId))}
         className={`${BUTTON_SECONDARY} ${SMALL}`}
       >
+        {isPending && <Spinner size="sm" />}
         {t("cancel")}
       </button>
     );
@@ -42,17 +45,21 @@ export const FriendRequestActions = ({
       <button
         type="button"
         disabled={isPending}
+        aria-busy={isPending}
         onClick={() => run(() => acceptFriendRequestAction(userId))}
         className={`${BUTTON_PRIMARY} ${SMALL}`}
       >
+        {isPending && <Spinner size="sm" />}
         {t("accept")}
       </button>
       <button
         type="button"
         disabled={isPending}
+        aria-busy={isPending}
         onClick={() => run(() => declineFriendRequestAction(userId))}
         className={`${BUTTON_SECONDARY} ${SMALL}`}
       >
+        {isPending && <Spinner size="sm" />}
         {t("decline")}
       </button>
     </div>

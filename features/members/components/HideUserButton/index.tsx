@@ -69,6 +69,7 @@ export const HideUserButton = ({
       type="button"
       onClick={handleClick}
       disabled={isPending}
+      aria-busy={isPending}
       className={`${BUTTON_SECONDARY} w-full`}
     >
       {isPending ? (

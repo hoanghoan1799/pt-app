@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -22,6 +22,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
 const PostPage = async ({ params }: PageProps<"/post/[id]">) => {
   const t = await getTranslations("social.pages");
   const user = await requireUser();
+  const locale = await getLocale();
 
   if (!hasAcceptedTerms(user)) {
     redirect(ROUTES.FEED);
@@ -31,7 +32,7 @@ const PostPage = async ({ params }: PageProps<"/post/[id]">) => {
   // Missing, deleted and invisible posts look the same.
   const [post, comments] = Number.isSafeInteger(id)
     ? await Promise.all([
-        getPostView(actor, id),
+        getPostView(actor, id, locale),
         listComments(actor, id, "user"),
       ])
     : [null, null];

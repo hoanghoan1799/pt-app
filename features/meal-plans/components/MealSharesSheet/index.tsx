@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { Spinner } from "@/components/common/Spinner";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
@@ -77,14 +78,17 @@ const SharesForm = ({
         type="button"
         onClick={shares.save}
         disabled={!shares.isValid || shares.isPending}
+        aria-busy={shares.isPending}
         className={`${BUTTON_PRIMARY} w-full`}
       >
+        {shares.isPending && <Spinner size="md" />}
         {t("save")}
       </button>
       <button
         type="button"
         onClick={shares.resetToEqual}
         disabled={shares.isPending}
+        aria-busy={shares.isPending}
         className={`${BUTTON_SECONDARY} w-full`}
       >
         {t("equal")}
