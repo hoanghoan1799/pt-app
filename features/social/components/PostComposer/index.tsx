@@ -23,6 +23,7 @@ import { PrivacySelect } from "@/features/social/components/PrivacySelect";
 import { CAPTION_MAX_LENGTH } from "@/features/social/constants/social";
 import { createPostAction } from "@/features/social/services/social-actions";
 import type { PostPrivacy } from "@/features/social/types/social";
+import { useLocalizeMessage } from "@/i18n/use-localize-message";
 import { describeErrorReference } from "@/utils/errors";
 
 interface PostComposerProps {
@@ -61,6 +62,7 @@ const uploadPhoto = async (blob: Blob, mode: "user" | "admin") => {
 // the last one the person chose).
 export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
   const t = useTranslations("social.postComposer");
+  const localize = useLocalizeMessage();
   const router = useRouter();
   const captionId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -91,7 +93,11 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
       });
     } catch (error) {
       toast.error(
-        error instanceof PhotoImageError ? error.message : PHOTO_ERRORS.GENERIC,
+        localize(
+          error instanceof PhotoImageError
+            ? error.message
+            : PHOTO_ERRORS.GENERIC,
+        ),
       );
     }
   };
@@ -122,7 +128,9 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
         router.refresh();
       } catch (error) {
         toast.error(
-          error instanceof Error ? error.message : PHOTO_ERRORS.GENERIC,
+          localize(
+            error instanceof Error ? error.message : PHOTO_ERRORS.GENERIC,
+          ),
         );
       }
     });

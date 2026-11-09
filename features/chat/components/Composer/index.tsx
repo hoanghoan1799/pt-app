@@ -33,6 +33,7 @@ import {
   type PreparedPhoto,
 } from "@/features/chat/utils/encode-photo";
 import { PHOTO_ERRORS } from "@/features/chat/utils/photo-rules";
+import { useLocalizeMessage } from "@/i18n/use-localize-message";
 
 interface ComposerProps {
   // `photo` is the resized image picked with the photo button (KAN-160); the
@@ -78,6 +79,7 @@ export const Composer = ({
   onOpenStickers,
 }: ComposerProps) => {
   const t = useTranslations("chat.composer");
+  const localize = useLocalizeMessage();
   const [value, setValue] = useState("");
   const [draft, setDraft] = useState("");
   const [seenEditId, setSeenEditId] = useState<number | null>(null);
@@ -177,9 +179,11 @@ export const Composer = ({
       inputRef.current?.focus();
     } catch (error) {
       toast.error(
-        error instanceof PhotoImageError
-          ? error.message
-          : PHOTO_ERRORS.DECODE_FAILED,
+        localize(
+          error instanceof PhotoImageError
+            ? error.message
+            : PHOTO_ERRORS.DECODE_FAILED,
+        ),
       );
     } finally {
       setIsPreparing(false);

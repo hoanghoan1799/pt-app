@@ -13,6 +13,7 @@ import {
   hideUsersAction,
   unhideUserAction,
 } from "@/features/chat/services/chat-hidden-actions";
+import { useLocalizeMessage } from "@/i18n/use-localize-message";
 
 interface HideUserButtonProps {
   userId: number;
@@ -28,12 +29,13 @@ export const HideUserButton = ({
   hasPasscode,
 }: HideUserButtonProps) => {
   const t = useTranslations("members.hideUser");
+  const localize = useLocalizeMessage();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const handleClick = () => {
     if (!isHidden && !hasPasscode) {
-      toast.info(HIDDEN_CHAT_MESSAGES.PASSCODE_REQUIRED);
+      toast.info(localize(HIDDEN_CHAT_MESSAGES.PASSCODE_REQUIRED));
       return;
     }
     startTransition(async () => {

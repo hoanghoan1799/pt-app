@@ -25,6 +25,7 @@ import {
   mergeThread,
   prependOlder,
 } from "@/features/social/utils/dm-thread-rules";
+import { useLocalizeMessage } from "@/i18n/use-localize-message";
 
 interface PollPayload extends DmThreadPage {
   isReadOnly: boolean;
@@ -47,6 +48,7 @@ const messagesUrl = (conversationId: number, query: string) =>
 // subscribes to the Ably channel when the server hands out a token (an event
 // only triggers a fetch), sends optimistically and retries by clientId.
 export const useDmThread = ({ conversationId, meId, initial }: Options) => {
+  const localize = useLocalizeMessage();
   const [items, setItems] = useState<DmThreadItem[]>(initial.messages);
   const [hasMore, setHasMore] = useState(initial.hasMore);
   const [otherReadUpTo, setOtherReadUpTo] = useState(initial.otherReadUpTo);
@@ -261,12 +263,12 @@ export const useDmThread = ({ conversationId, meId, initial }: Options) => {
       const result = await unsendDmAction(conversationId, messageId);
 
       if (result.status === "error") {
-        toast.error(result.message ?? DM_MESSAGES.SEND_FAILED);
+        toast.error(localize(result.message ?? DM_MESSAGES.SEND_FAILED));
         return;
       }
       setItems((current) => current.filter((entry) => entry.id !== messageId));
     },
-    [conversationId],
+    [conversationId, localize],
   );
 
   return {

@@ -4,6 +4,7 @@ import {
   ERROR_REFERENCE_LENGTH,
   GENERIC_ERROR_MESSAGE,
 } from "@/constants/errors";
+import { localizeResult } from "@/services/localize-message";
 import { logServerError } from "@/services/logger";
 import type { ActionErrorResult, ActionResult } from "@/types/error";
 import type { FormState } from "@/types/form";
@@ -40,6 +41,7 @@ const toPublicError = (context: string, error: unknown) => {
 
 // Wraps a form action so an unexpected failure (database down, missing env
 // var…) comes back as an error message in the form instead of a 500 page.
+// Messages are Vietnamese in the code; the result is localized on the way out.
 export const withFormErrorHandling =
   <Args extends unknown[]>(
     context: string,
@@ -47,18 +49,20 @@ export const withFormErrorHandling =
   ) =>
   async (...args: Args): Promise<FormState> => {
     try {
-      return await action(...args);
+      return await localizeResult(await action(...args));
     } catch (error) {
       const { message, reference } = toPublicError(context, error);
       const formData = args.find(
         (arg): arg is FormData => arg instanceof FormData,
       );
 
-      return createErrorState(message, {
-        errorReference: reference,
-        // Keep what was typed so the user can simply retry.
-        values: formData ? omitSecrets(getFormValues(formData)) : undefined,
-      });
+      return localizeResult(
+        createErrorState(message, {
+          errorReference: reference,
+          // Keep what was typed so the user can simply retry.
+          values: formData ? omitSecrets(getFormValues(formData)) : undefined,
+        }),
+      );
     }
   };
 
@@ -83,8 +87,13 @@ export const withResultErrorHandling =
       const result = await action(...args);
 
       // Only void actions return nothing, and their result is ActionResult.
-      return (result ?? { status: "success" }) as ResolvedResult<Result>;
+      return await localizeResult(
+        (result ?? { status: "success" }) as ResolvedResult<Result>,
+      );
     } catch (error) {
-      return { status: "error", ...toPublicError(context, error) };
+      return localizeResult({
+        status: "error" as const,
+        ...toPublicError(context, error),
+      });
     }
   };

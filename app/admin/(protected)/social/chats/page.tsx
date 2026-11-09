@@ -22,7 +22,7 @@ const AdminDmChatsPage = async () => {
   const locale = await getLocale();
   await requireSuperAdmin();
 
-  const rows = await listAllDmConversations();
+  const rows = await listAllDmConversations(locale);
 
   return (
     <>

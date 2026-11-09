@@ -4,6 +4,7 @@ import enAvatar from "@/messages/en/avatar.json";
 import enChat from "@/messages/en/chat.json";
 import enCommon from "@/messages/en/common.json";
 import enDashboard from "@/messages/en/dashboard.json";
+import enErrors from "@/messages/en/errors.json";
 import enFoods from "@/messages/en/foods.json";
 import enFormat from "@/messages/en/format.json";
 import enLayout from "@/messages/en/layout.json";
@@ -22,6 +23,7 @@ import viAvatar from "@/messages/vi/avatar.json";
 import viChat from "@/messages/vi/chat.json";
 import viCommon from "@/messages/vi/common.json";
 import viDashboard from "@/messages/vi/dashboard.json";
+import viErrors from "@/messages/vi/errors.json";
 import viFoods from "@/messages/vi/foods.json";
 import viFormat from "@/messages/vi/format.json";
 import viLayout from "@/messages/vi/layout.json";
@@ -47,6 +49,7 @@ export const MESSAGES = {
     chat: viChat,
     common: viCommon,
     dashboard: viDashboard,
+    errors: viErrors,
     foods: viFoods,
     format: viFormat,
     layout: viLayout,
@@ -67,6 +70,7 @@ export const MESSAGES = {
     chat: enChat,
     common: enCommon,
     dashboard: enDashboard,
+    errors: enErrors,
     foods: enFoods,
     format: enFormat,
     layout: enLayout,
