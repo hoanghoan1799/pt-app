@@ -1,4 +1,5 @@
 {
+  "clear": "Clear",
   "close": "Close",
   "confirm": { "cancel": "Cancel" },
   "errorFallback": {
