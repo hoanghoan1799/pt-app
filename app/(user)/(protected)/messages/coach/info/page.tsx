@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { listAdminAvatarUrls } from "@/features/avatar/services/avatar";
 import { ChatInfo } from "@/features/chat/components/ChatInfo";
@@ -28,13 +28,17 @@ export const generateMetadata = async (): Promise<Metadata> => {
 const MessagesInfoPage = async () => {
   const t = await getTranslations("chat.shared");
   const user = await requireUser();
+  const locale = await getLocale();
   const conversation = await findConversationByUserId(user.id);
   const [profile, sender, adminAvatars, gallery] = await Promise.all([
     conversation ? loadChatProfile(conversation.id) : EMPTY_CHAT_PROFILE,
     conversation ? findLatestAdminSender(conversation.id) : null,
     listAdminAvatarUrls(),
     conversation
-      ? listGalleryPhotos(conversation.id, { limit: INFO_PREVIEW_COUNT })
+      ? listGalleryPhotos(conversation.id, {
+          limit: INFO_PREVIEW_COUNT,
+          locale,
+        })
       : { items: [], nextCursor: null },
   ]);
 

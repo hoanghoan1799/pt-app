@@ -1,7 +1,7 @@
 import { Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -27,10 +27,11 @@ export const generateMetadata = async (): Promise<Metadata> => {
 const FeedPage = async () => {
   const t = await getTranslations("social.pages");
   const user = await requireUser();
+  const locale = await getLocale();
   const accepted = hasAcceptedTerms(user);
   const [posts, defaultPrivacy, unreadCount] = accepted
     ? await Promise.all([
-        listUserFeed(user.id),
+        listUserFeed(user.id, null, undefined, locale),
         getPostPrivacyDefault(user.id),
         countUnreadNotifications(`user:${user.id}`),
       ])

@@ -1,7 +1,7 @@
 import { MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -23,8 +23,9 @@ export const generateMetadata = async (): Promise<Metadata> => {
 const AdminSocialPage = async () => {
   const t = await getTranslations("social.adminPages");
   const admin = await requireAdmin();
+  const locale = await getLocale();
   const [posts, unreadCount] = await Promise.all([
-    listAdminFeed(admin),
+    listAdminFeed(admin, null, locale),
     countUnreadNotifications(`admin:${admin.id}`),
   ]);
 
