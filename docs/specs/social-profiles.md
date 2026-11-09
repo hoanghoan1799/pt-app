@@ -15,7 +15,7 @@ A small social layer on top of pt-app (profiles, photo posts, reactions, comment
 - Q3 Env renamed to `SUPER_ADMIN_USERNAME` / `SUPER_ADMIN_PASSWORD`; the old `ADMIN_USERNAME` / `ADMIN_PASSWORD` are still read when the new ones are missing.
 - Q4 Admins are default friends: super admin of every trainee, a PT of the trainees in their workspace. Trainees keep their chat with the admin side as today.
 - Q5 Friend request + accept. Search only by the exact full email (trimmed, case-insensitive), never by prefix, so emails cannot be enumerated.
-- Q6 Super admin can read trainee-to-trainee chats (read-only). No in-chat notice; the Terms page states it. PTs cannot read them.
+- Q6 (superseded 2026-11-09: trainee chat is off, old chats stay read-only for the super admin) Super admin can read trainee-to-trainee chats (read-only). No in-chat notice; the Terms page states it. PTs cannot read them.
 - Q7 Post photos stored in the DB like chat photos (browser resize, WebP, long side <= 1600 px), served through a route that checks privacy. **One photo per post** (Hoan).
 
 ### Round 2: posts, feed, notifications
@@ -79,8 +79,8 @@ A2 Post photo max 400 KB after resize, WebP; same checks as chat photos.
 A3 Feed and profile load 20 posts per page with a "Xem thêm" cursor; no realtime, refresh on open.
 A4 Notifications kept 60 days; the page shows the latest 50.
 A5 Friend requests: at most 20 sent per day per trainee (`rate_limits` table). Declining deletes the request, so it can be sent again later.
-A6 Trainee chat (P5) v1: text + one photo per message, unsend, read marks, polling every 5 s (Ably if configured on channel `dm:<id>`); no stickers, edits, replies or reactions yet.
-A7 Trainee chat requires both to be accepted friends and both to have accepted the terms; unfriend or block makes the chat read-only.
+A6 (superseded 2026-11-09, see Change 2026-11-09) Trainee chat (P5) v1: text + one photo per message, unsend, read marks, polling every 5 s (Ably if configured on channel `dm:<id>`); no stickers, edits, replies or reactions yet.
+A7 (superseded 2026-11-09, see Change 2026-11-09) Trainee chat requires both to be accepted friends and both to have accepted the terms; unfriend or block makes the chat read-only.
 A8 Terms content is a Claude draft (version 1) for Hoan to edit; changing it = bump `TERMS_VERSION`.
 A9 A trainee who has not accepted the terms can still use workouts, nutrition and admin chat; the Feed tab shows the terms screen.
 A10 User tab bar becomes 5 tabs: Bảng tin (feed), Tập luyện, Dinh dưỡng, Tin nhắn, Tổng kết; profile and notifications are reached from the feed header.
@@ -89,6 +89,16 @@ A12 Deleting a trainee also deletes their posts, photos, reactions, comments, fr
 A13 Hidden trainees (O1a) stay accessible to a PT only in their workspace; hiding is still per admin.
 A14 Reports: super admin can resolve (keep) or delete the target; no automatic actions.
 A15 Push for social events uses the existing push subscription table and VAPID; silently skipped without VAPID.
+
+## Change 2026-11-09
+
+Owner decision: trainee-to-trainee chat ("DM") is turned off.
+
+- Trainees chat only with their PT / super admins through the coach chat (`features/chat`, per-trainee chat switch, unchanged).
+- Posts stay social: reactions and comments are unchanged.
+- Old DM data is kept. Members can still open old conversations read-only (and unsend their own messages); the super admin read-only view at `/admin/social/chats` stays. No new conversation is created and nobody can send (`sendBlockReason` always returns `DM_MESSAGES.DISABLED`).
+- Removed: the friend "Nhắn tin" buttons (friends list, profile) and the friend reply-to-post-in-chat button on the post card. A trainee can still reply in chat to a PT's post (coach chat).
+- Q6, A6 and A7 above are superseded by this change. The terms version is not bumped; the terms text now says the old messages are kept.
 
 ## Out of scope
 

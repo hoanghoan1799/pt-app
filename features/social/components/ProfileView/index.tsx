@@ -2,7 +2,6 @@ import { Avatar } from "@/components/common/Avatar";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { CARD, SECTION_TITLE } from "@/constants/styles";
 import { BioEditor } from "@/features/social/components/BioEditor";
-import { MessageFriendButton } from "@/features/social/components/MessageFriendButton";
 import { PostList } from "@/features/social/components/PostList";
 import { ProfileMenu } from "@/features/social/components/ProfileMenu";
 import { RelationshipButton } from "@/features/social/components/RelationshipButton";
@@ -68,9 +67,6 @@ export const ProfileView = ({
               name={profile.name}
               relationship={relationship}
             />
-          )}
-          {mode === "user" && relationship === "friends" && (
-            <MessageFriendButton userId={profile.id} />
           )}
           {profile.kind === "user" && (canBlock || canReport) && (
             <ProfileMenu

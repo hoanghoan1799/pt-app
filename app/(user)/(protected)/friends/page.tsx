@@ -11,7 +11,6 @@ import {
   FriendsTabs,
   parseFriendsTab,
 } from "@/features/social/components/FriendsTabs";
-import { MessageFriendButton } from "@/features/social/components/MessageFriendButton";
 import { UnblockButton } from "@/features/social/components/UnblockButton";
 import {
   listBlockedByMe,
@@ -58,9 +57,7 @@ const FriendsPage = async ({ searchParams }: PageProps<"/friends">) => {
               ) : (
                 <ul className="space-y-2">
                   {friends.map((person) => (
-                    <FriendRow key={person.id} person={person}>
-                      <MessageFriendButton userId={person.id} />
-                    </FriendRow>
+                    <FriendRow key={person.id} person={person} />
                   ))}
                 </ul>
               )}
