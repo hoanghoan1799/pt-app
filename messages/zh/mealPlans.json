@@ -1,0 +1,217 @@
+{
+  "mealCard": {
+    "sectionLabel": "第 {index} 餐：{name}",
+    "mealNameLabel": "第 {index} 餐名称",
+    "moveUp": "将 {name} 上移",
+    "moveDown": "将 {name} 下移",
+    "deleteMealQuestion": "删除 {meal} 及其中的食物？",
+    "confirmDelete": "删除",
+    "deleteMeal": "删除 {name}",
+    "collapsedFoods": " · {count, plural, other {# 种食物}}",
+    "mealTarget": "本餐目标{share}：{kcal} kcal · 蛋白质 {protein} · 碳水 {carbs} · 脂肪 {fat}",
+    "noTargetToday": "这一天还没有目标。",
+    "totalLabel": "{name} 合计",
+    "autoSolve": "自动计算",
+    "setTargetFirst": "请先设置营养目标，再使用自动计算。",
+    "allFixed": "所有食物的克数都已固定，解锁一种食物后才能自动计算。"
+  },
+  "traineeMealCard": {
+    "sectionLabel": "第 {index} 餐：{name}",
+    "mealTarget": "本餐目标：{kcal} kcal · 蛋白质 {protein} · 碳水 {carbs} · 脂肪 {fat}",
+    "eatenSummary": "已吃 {eaten} / {planned} kcal",
+    "ptPlan": "教练的计划",
+    "noFoods": "教练还没有为这一餐添加食物。",
+    "extraLogged": "计划外额外食用",
+    "eatenLabel": "已吃 {name}",
+    "planKcal": "/ {kcal} kcal（计划）",
+    "logEatenInto": "在 {name} 中记录所吃食物",
+    "logEaten": "记录所吃食物",
+    "futureDay": "还没到这一天，请之后再来记录。"
+  },
+  "mealLogSheet": {
+    "editTitle": "编辑食物",
+    "addTitle": "记录所吃食物",
+    "searchLabel": "在食物库中搜索",
+    "searchPlaceholder": "搜索食物（例如：鸡胸肉）",
+    "pickFood": "选择 {name}",
+    "moreResults": "还有更多食物，请输入更多内容缩小范围。",
+    "noResults": "未找到食物",
+    "freeFood": "不在食物库中的食物",
+    "grams": "克数",
+    "save": "保存",
+    "addFood": "添加食物",
+    "pickOther": "选择其他食物",
+    "name": "食物名称",
+    "namePlaceholder": "例如：牛肉粉",
+    "gramsOptional": "克数（如果知道）",
+    "nutritionOptional": "营养信息（选填）",
+    "searchLibrary": "在食物库中搜索",
+    "macroInputs": {
+      "kcal": "热量 (kcal)",
+      "protein": "蛋白质 (g)",
+      "carbs": "碳水 (g)",
+      "fat": "脂肪 (g)"
+    }
+  },
+  "copyDaySheet": {
+    "sourceDay": "源日期",
+    "past": "已过去",
+    "hasPlan": "已有计划",
+    "title": "复制到其他日期",
+    "description": "来自 {date}",
+    "confirmLabel": "确认覆盖",
+    "replaceNotice": "这些日期原有的计划将被 {date} 的计划替换。",
+    "cancel": "取消",
+    "overwrite": "覆盖",
+    "overwriteLegend": "已有计划，将被覆盖",
+    "copy": "复制",
+    "copyCount": "（{count, plural, other {# 天}}）"
+  },
+  "useDayPlan": {
+    "planCreated": "计划已创建",
+    "appliedKeptDays": "已应用到 {copied, plural, other {# 天}}，保留已有计划的 {skipped, plural, other {# 天}}",
+    "appliedLastWeek": "已应用上周的 {copied, plural, other {# 天}}",
+    "planRemoved": "已删除这一天的计划"
+  },
+  "useMealCard": {
+    "mealRemoved": "已删除该餐",
+    "gramsSolved": "已自动计算克数"
+  },
+  "useCopyDay": {
+    "copied": "已复制到 {copied, plural, other {# 天}}"
+  },
+  "useMealShares": {
+    "sharesSaved": "已保存各餐百分比",
+    "sharesEqual": "已平均分配各餐"
+  },
+  "useMealMark": {
+    "saved": "已保存"
+  },
+  "useTraineeMealCard": {
+    "removeConfirm": "从记录中删除这种食物？",
+    "confirmDelete": "删除",
+    "removed": "已删除食物"
+  },
+  "useMealLogSheet": {
+    "added": "已记录食物",
+    "updated": "已更新食物"
+  },
+  "mealPlanTitle": {
+    "title": "饮食计划",
+    "expandAll": "全部展开",
+    "collapseAll": "全部收起"
+  },
+  "memberMealRequest": {
+    "title": "学员的要求",
+    "wantsMeals": "学员希望每天 {count} 餐"
+  },
+  "mealLogList": {
+    "noNutrition": "暂无营养数据",
+    "archived": "该食物已从食物库中移除，数据保持不变",
+    "edit": "编辑 {name}",
+    "delete": "删除 {name}"
+  },
+  "mealMarkPanel": {
+    "achieveLabel": "{name} 已达标",
+    "achieve": "达标",
+    "achieved": "已达标",
+    "noteLabel": "{name} 的备注",
+    "notePlaceholder": "哪些食物不足或超量？例如：米饭多了约 50 g",
+    "saveNote": "保存备注"
+  },
+  "emptyDayPlan": {
+    "noPlan": "这一天<strong>还没有计划</strong>。",
+    "create": "创建计划",
+    "newPlanMeals": "新计划有 {count} 餐，之后可以增减。",
+    "applyLastWeek": "沿用上周",
+    "copyLastWeek": "将上周有计划的 {count, plural, other {# 天}}复制到本周的空白日期。",
+    "noLastWeek": "上周还没有任何计划。"
+  },
+  "planKcalNotices": {
+    "sectionLabel": "计划偏离目标",
+    "title": "计划需要按目标调整"
+  },
+  "mealPreferencesForm": {
+    "title": "饮食要求",
+    "mealCount": "期望的餐数",
+    "ptDecides": "由教练决定",
+    "mealsPerDay": "每天 {count} 餐",
+    "foodLabel": "喜欢或不能吃的食物",
+    "notePlaceholder": "例如：不吃海鲜，喜欢糙米饭。",
+    "save": "保存要求",
+    "hint": "教练在为你安排饮食时会参考这些要求。"
+  },
+  "dayPlanSummary": {
+    "sectionLabel": "全天合计",
+    "title": "全天",
+    "onTarget": "已达标",
+    "offTarget": "未达标",
+    "deviation": "{name} {direction} {amount} {unit}",
+    "under": "不足",
+    "over": "超出",
+    "noTarget": "这一天还没有营养目标。",
+    "addFoods": "向各餐添加食物后即可查看合计。"
+  },
+  "mealGapNotice": {
+    "short": "{macro}不足 {grams} g",
+    "over": "{macro}超出 {grams} g",
+    "addFood": "添加 {grams} g {name}"
+  },
+  "labels": {
+    "gap": {
+      "protein": "蛋白质",
+      "carbs": "碳水",
+      "fat": "脂肪"
+    },
+    "metric": {
+      "kcal": "热量",
+      "protein": "蛋白质",
+      "carbs": "碳水",
+      "fat": "脂肪"
+    }
+  },
+  "foodPicker": {
+    "addTo": "向 {meal} 添加食物",
+    "searchPlaceholder": "搜索要添加的食物（例如：鸡胸肉）",
+    "pickFood": "添加 {name}",
+    "moreResults": "还有更多食物，请输入更多内容缩小范围。",
+    "noResults": "未找到食物"
+  },
+  "mealItemRow": {
+    "archived": "该食物已从食物库中移除，数据保持不变",
+    "delete": "删除 {name}",
+    "gramsLabel": "{name} 的克数",
+    "lockLabel": "自动计算时保持 {name} 的克数不变",
+    "fixed": "固定克数",
+    "auto": "自动"
+  },
+  "mealSharesSheet": {
+    "title": "按百分比分配",
+    "description": "每餐占全天目标的百分比",
+    "total": "合计：{total}%（需要 {target}%）",
+    "save": "保存百分比",
+    "equal": "平均分配"
+  },
+  "traineeMealPlan": {
+    "sectionLabel": "饮食计划",
+    "noPlan": "教练还没有为这一天制定饮食计划。"
+  },
+  "mealPlanDay": {
+    "sectionLabel": "饮食计划",
+    "addMeal": "添加一餐",
+    "copyToDay": "复制到其他日期",
+    "splitByPercent": "按百分比分配",
+    "confirmDelete": "删除",
+    "deletePlan": "删除这一天的计划"
+  },
+  "mealCollapseToggle": {
+    "expand": "展开 {name}",
+    "collapse": "收起 {name}"
+  },
+  "mealLogSummary": {
+    "noLogs": "学员还没有为这一餐记录任何内容。",
+    "sectionLabel": "学员的记录",
+    "onPlan": "达标",
+    "eaten": "已吃："
+  }
+}

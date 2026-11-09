@@ -1,6 +1,6 @@
 export const LOCALE_COOKIE = "locale";
 
-export const LOCALES = ["vi", "en"] as const;
+export const LOCALES = ["vi", "en", "zh"] as const;
 
 export type Locale = (typeof LOCALES)[number];
 
@@ -10,12 +10,14 @@ export const DEFAULT_LOCALE: Locale = "vi";
 export const LOCALE_NAMES: Record<Locale, string> = {
   vi: "Tiếng Việt",
   en: "English",
+  zh: "中文",
 };
 
 // Flag emoji shown after the language name in the switcher (decorative).
 export const LOCALE_FLAGS: Record<Locale, string> = {
   vi: "🇻🇳",
   en: "🇺🇸",
+  zh: "🇨🇳",
 };
 
 // One year: a language is a stable personal choice, not a session.
@@ -39,5 +41,10 @@ export const getLocaleCookieOptions = () => ({
 });
 
 // BCP 47 tag for Intl (numbers, dates) per app locale.
-export const toIntlLocale = (locale: Locale) =>
-  locale === "en" ? "en-US" : "vi-VN";
+const INTL_LOCALES: Record<Locale, string> = {
+  vi: "vi-VN",
+  en: "en-US",
+  zh: "zh-CN",
+};
+
+export const toIntlLocale = (locale: Locale) => INTL_LOCALES[locale];

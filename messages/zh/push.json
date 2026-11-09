@@ -1,0 +1,19 @@
+{
+  "title": "PT App",
+  "preview": {
+    "photo": "发送了一张照片",
+    "sticker": "发送了一个贴纸",
+    "link": "发送了一个链接",
+    "fallback": "发送了一条消息"
+  },
+  "reaction": "{name} 对你的消息回应了 {emoji}",
+  "traineeFallback": "学员",
+  "friendFallback": "好友",
+  "social": {
+    "postReaction": "{name} 对你的帖子做出了回应",
+    "postComment": "{name} 评论了你的帖子",
+    "commented": "{name} 评论：{preview}",
+    "friendRequest": "{name} 向你发送了好友请求",
+    "friendAccepted": "{name} 接受了你的好友请求"
+  }
+}

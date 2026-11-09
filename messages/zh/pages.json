@@ -1,0 +1,63 @@
+{
+  "home": {
+    "tagline": "登录查看本周训练计划"
+  },
+  "workouts": {
+    "metaTitle": "训练计划",
+    "eyebrow": "你好"
+  },
+  "summary": {
+    "metaTitle": "总结",
+    "eyebrow": "本周总结"
+  },
+  "changePassword": {
+    "metaTitle": "修改密码",
+    "title": "修改密码",
+    "forgotHint": "忘记当前密码？请联系你的教练重置。"
+  },
+  "terms": {
+    "metaTitle": "使用条款",
+    "eyebrow": "社交",
+    "title": "条款",
+    "accepted": "你已同意条款（版本 {version}）。"
+  },
+  "profile": {
+    "metaTitle": "个人主页",
+    "eyebrow": "个人主页"
+  },
+  "adminLogin": {
+    "title": "教练专区",
+    "tagline": "登录以管理学员和训练"
+  },
+  "nutrition": {
+    "metaTitle": "营养",
+    "eyebrow": "你好"
+  },
+  "foods": {
+    "metaTitle": "食物",
+    "eyebrow": "营养",
+    "title": "食物库",
+    "emptyHint": "教练还没有向食物库添加任何食物。"
+  },
+  "foodDetail": {
+    "metaTitle": "食物详情",
+    "eyebrow": "食物库"
+  },
+  "adminFoods": {
+    "metaTitle": "食物",
+    "eyebrow": "管理员",
+    "title": "食物",
+    "addFood": "添加食物",
+    "emptyHint": "点击“添加食物”录入第一种食物。"
+  },
+  "adminFoodNew": {
+    "metaTitle": "添加食物",
+    "eyebrow": "食物",
+    "title": "添加食物"
+  },
+  "adminFoodDetail": {
+    "metaTitle": "食物详情",
+    "eyebrow": "食物",
+    "edit": "编辑"
+  }
+}

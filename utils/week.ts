@@ -42,7 +42,8 @@ export const getWeekDates = (weekStart: string) =>
     addDays(weekStart, index),
   );
 
-// "Nov" in English; Vietnamese names months by number, so it is "11".
+// "Nov" in English; Vietnamese names months by number, so it is "11", and
+// Chinese is "11月" (Intl's long form would be "十一月").
 export const formatMonthName = (
   month: number,
   locale: Locale = DEFAULT_LOCALE,
@@ -50,18 +51,23 @@ export const formatMonthName = (
 ) =>
   locale === "vi"
     ? String(month)
-    : new Intl.DateTimeFormat(toIntlLocale(locale), {
-        month: width,
-        timeZone: "UTC",
-      }).format(Date.UTC(2000, month - 1, 1));
+    : locale === "zh"
+      ? `${month}月`
+      : new Intl.DateTimeFormat(toIntlLocale(locale), {
+          month: width,
+          timeZone: "UTC",
+        }).format(Date.UTC(2000, month - 1, 1));
 
-// "02/11" in Vietnamese, "Nov 2" in English.
+// "02/11" in Vietnamese, "Nov 2" in English, "11月2日" in Chinese.
 export const formatDayMonth = (
   date: string,
   locale: Locale = DEFAULT_LOCALE,
 ) => {
   const [, month, day] = date.split("-");
 
+  if (locale === "zh") {
+    return `${Number(month)}月${Number(day)}日`;
+  }
   return locale === "vi"
     ? `${day}/${month}`
     : `${formatMonthName(Number(month), locale)} ${Number(day)}`;
@@ -76,10 +82,13 @@ export const formatWeekRange = (
 ) =>
   `${formatDayMonth(weekStart, locale)} – ${formatDayMonth(addDays(weekStart, DAYS_PER_WEEK - 1), locale)}`;
 
-// "2/11" in Vietnamese, "Nov 2" in English.
+// "2/11" in Vietnamese, "Nov 2" in English, "11月2日" in Chinese.
 const formatDayMonthShort = (date: string, locale: Locale) => {
   const [, month, day] = date.split("-");
 
+  if (locale === "zh") {
+    return `${Number(month)}月${Number(day)}日`;
+  }
   return locale === "vi"
     ? `${Number(day)}/${Number(month)}`
     : `${formatMonthName(Number(month), locale)} ${Number(day)}`;

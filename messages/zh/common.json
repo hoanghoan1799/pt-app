@@ -1,0 +1,41 @@
+{
+  "clear": "清除",
+  "close": "关闭",
+  "confirm": { "cancel": "取消" },
+  "errorFallback": {
+    "title": "出错了",
+    "serverError": "服务器加载此页面时出现问题。请几分钟后重试；如果仍然失败，请把下方代码发给你的教练。",
+    "referenceCode": "参考代码：{code}",
+    "retry": "重试",
+    "home": "返回首页"
+  },
+  "dayStatus": {
+    "legendLabel": "日期颜色说明",
+    "complete": "已完成",
+    "partial": "进行中"
+  },
+  "week": {
+    "calendar": "周历",
+    "select": "选择周",
+    "previous": "上一周",
+    "next": "下一周",
+    "today": "今天",
+    "tomorrow": "明天",
+    "backToToday": "回到今天",
+    "openCalendar": "打开日历，{week}",
+    "calendarTitle": "日历",
+    "calendarDescription": "选择日期查看安排",
+    "dayIsToday": "今天",
+    "dayIsSelected": "已选择"
+  },
+  "month": { "previous": "上个月", "next": "下个月" },
+  "photoViewer": {
+    "previous": "上一张",
+    "next": "下一张",
+    "download": "下载",
+    "showInChat": "在聊天中查看"
+  },
+  "avatarLightbox": { "label": "{name} 的头像" },
+  "verified": "已认证",
+  "loading": "加载中…"
+}

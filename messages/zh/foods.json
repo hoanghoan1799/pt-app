@@ -1,0 +1,81 @@
+{
+  "labels": {
+    "groups": {
+      "meat": "肉类",
+      "seafood": "鱼类与海鲜",
+      "egg_dairy": "蛋类与乳制品",
+      "starch": "主食淀粉",
+      "vegetable": "蔬菜",
+      "fruit": "水果",
+      "legume_nut": "豆类与坚果",
+      "fat_oil": "油脂",
+      "dish": "加工菜肴",
+      "other": "其他"
+    },
+    "state": {
+      "raw": "生",
+      "cooked": "熟"
+    }
+  },
+  "foodDetail": {
+    "macroShare": "{name} · 占热量 {percent}%",
+    "fiber": "膳食纤维：{grams} g",
+    "serving": "份量：{label} = {grams} g",
+    "source": "来源：{source}"
+  },
+  "macroSplitBar": {
+    "label": "热量占比：{description}"
+  },
+  "foodLibraryLink": {
+    "title": "食物库",
+    "description": "查看每种食物的热量、蛋白质、碳水、脂肪"
+  },
+  "deleteFoodButton": {
+    "deleteConfirm": "删除这种食物？",
+    "confirmDelete": "删除",
+    "deleted": "已删除食物"
+  },
+  "foodFormView": {
+    "name": "食物名称",
+    "namePlaceholder": "例如：鸡胸肉（熟）",
+    "group": "分类",
+    "state": "状态",
+    "notApplicable": "不适用",
+    "valuesLegend": "每 100 g 含量",
+    "kcal": "热量",
+    "fiber": "膳食纤维（选填）",
+    "kcalMatches": "按蛋白质/碳水/脂肪计算：{kcal} kcal，与输入的热量一致。",
+    "confirmLabel": "我已核对数据",
+    "serving": "份量（选填）",
+    "servingName": "份量名称",
+    "servingNamePlaceholder": "例如：1 碗",
+    "servingWeight": "份量重量",
+    "servingWeightPlaceholder": "例如：500",
+    "source": "数据来源（选填）",
+    "sourcePlaceholder": "例如：USDA FDC 171477、产品标签",
+    "saveChanges": "保存更改",
+    "addFood": "添加食物"
+  },
+  "foodList": {
+    "empty": "暂无食物",
+    "searchPlaceholder": "搜索食物，例如：鸡胸肉",
+    "searchLabel": "搜索食物",
+    "filterLabel": "按分类筛选",
+    "all": "全部",
+    "count": "{count, plural, other {# 种食物}}",
+    "noResults": "未找到任何食物",
+    "noResultsHint": "试试少输几个字，或选择其他分类。"
+  },
+  "foodAmountCalculator": {
+    "title": "按重量计算",
+    "grams": "克",
+    "servingButton": "份量（{label}）",
+    "servingsCount": "份数",
+    "amountGrams": "重量（克）",
+    "gram": "克",
+    "equals": "= {grams} g",
+    "invalidServings": "请输入 0 到 {max} 之间的份数",
+    "invalidGrams": "请输入 0 到 {max} g 之间的数值",
+    "kcal": "热量"
+  }
+}
