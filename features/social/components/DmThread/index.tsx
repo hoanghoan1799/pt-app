@@ -15,6 +15,8 @@ import {
   ICON_BUTTON,
   PAGE_CONTAINER,
 } from "@/constants/styles";
+import { useClearNotifications } from "@/features/chat/hooks/use-clear-notifications";
+import { dmNotificationTags } from "@/features/chat/utils/clear-notifications";
 import {
   encodePhoto,
   PhotoImageError,
@@ -70,6 +72,8 @@ export const DmThread = ({
   const fileRef = useRef<HTMLInputElement>(null);
   const lastCount = thread.items.length;
   const isReadOnly = thread.readOnlyReason !== null;
+
+  useClearNotifications(dmNotificationTags(conversationId), lastCount);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
