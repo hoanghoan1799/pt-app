@@ -113,6 +113,7 @@ const AdminUserPage = async ({
             userId={user.id}
             weekStart={schedule.weekStart}
             defaultTargetDate={addDays(schedule.weekStart, 7)}
+            today={today}
             members={members}
           />
           {isSuperAdmin(admin) && (

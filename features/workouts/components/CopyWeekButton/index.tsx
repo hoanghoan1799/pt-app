@@ -1,8 +1,11 @@
 "use client";
 
+import clsx from "clsx";
 import { ChevronDown, Copy } from "lucide-react";
+import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { MonthGrid } from "@/components/common/MonthGrid";
 import { SubmitButton } from "@/components/common/SubmitButton";
 import {
   BUTTON_PRIMARY,
@@ -12,12 +15,20 @@ import {
 } from "@/constants/styles";
 import { useCopyWeek } from "@/features/workouts/hooks/use-copy-week";
 import type { MemberOption } from "@/features/workouts/types/workout";
-import { formatWeekRange } from "@/utils/week";
+import { getMonthOf, shiftMonth } from "@/utils/month";
+import {
+  addDays,
+  formatFullDay,
+  formatWeekRange,
+  getWeekStart,
+} from "@/utils/week";
 
 interface CopyWeekButtonProps {
   userId: number;
   weekStart: string;
   defaultTargetDate: string;
+  // Today in the app time zone, read on the server.
+  today: string;
   members: MemberOption[];
 }
 
@@ -25,16 +36,30 @@ export const CopyWeekButton = ({
   userId,
   weekStart,
   defaultTargetDate,
+  today,
   members,
 }: CopyWeekButtonProps) => {
   const { isOpen, setIsOpen, formAction, handleSubmit, isPending } =
     useCopyWeek();
+  const [targetDate, setTargetDate] = useState(defaultTargetDate);
+  const [month, setMonth] = useState(getMonthOf(defaultTargetDate));
+
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      setTargetDate(defaultTargetDate);
+      setMonth(getMonthOf(defaultTargetDate));
+    }
+    setIsOpen(open);
+  };
+
+  const targetWeek = getWeekStart(targetDate);
+  const sourceEnd = addDays(weekStart, 6);
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setIsOpen(true)}
+        onClick={() => handleOpenChange(true)}
         className={`${BUTTON_SECONDARY} w-full`}
       >
         <Copy className="size-5" aria-hidden />
@@ -42,7 +67,7 @@ export const CopyWeekButton = ({
       </button>
       <BottomSheet
         isOpen={isOpen}
-        onOpenChange={setIsOpen}
+        onOpenChange={handleOpenChange}
         title="Sao chép tuần"
         description={`Từ tuần ${formatWeekRange(weekStart)}`}
       >
@@ -74,16 +99,53 @@ export const CopyWeekButton = ({
             </div>
           </div>
           <div>
-            <label htmlFor="targetDate" className={LABEL}>
-              Sang tuần có ngày
-            </label>
-            <input
-              id="targetDate"
-              name="targetDate"
-              type="date"
-              defaultValue={defaultTargetDate}
-              required
-              className={`${INPUT} [&::-webkit-date-and-time-value]:text-left`}
+            <p className={LABEL}>Sang tuần có ngày</p>
+            <input type="hidden" name="targetDate" value={targetDate} />
+            <MonthGrid
+              month={month}
+              onPreviousMonth={() => setMonth((value) => shiftMonth(value, -1))}
+              onNextMonth={() => setMonth((value) => shiftMonth(value, 1))}
+              renderDay={(date) => {
+                const isPicked = date === targetDate;
+                const isInTargetWeek =
+                  date >= targetWeek && date <= addDays(targetWeek, 6);
+                const isSource = date >= weekStart && date <= sourceEnd;
+                const isToday = date === today;
+
+                return (
+                  <button
+                    type="button"
+                    aria-label={[
+                      formatFullDay(date),
+                      isToday && "hôm nay",
+                      isSource && "tuần nguồn",
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
+                    aria-pressed={isPicked}
+                    onClick={() => setTargetDate(date)}
+                    className={clsx(
+                      "flex min-h-13 min-w-0 flex-col items-center justify-center gap-px overflow-hidden rounded-xl border py-0.5 transition active:scale-[0.97]",
+                      isPicked
+                        ? "border-accent bg-accent text-accent-fg"
+                        : isInTargetWeek
+                          ? "border-accent/30 bg-accent/15"
+                          : "border-line bg-surface",
+                      isToday &&
+                        (isPicked
+                          ? "border-2"
+                          : "border-2 border-accent text-accent"),
+                    )}
+                  >
+                    <span className="text-[15px] font-bold">
+                      {Number(date.slice(8, 10))}
+                    </span>
+                    <span className="h-2.5 text-[9px] leading-none font-medium tracking-tight whitespace-nowrap">
+                      {isSource ? "nguồn" : ""}
+                    </span>
+                  </button>
+                );
+              }}
             />
             <p className="mt-1.5 text-sm text-muted">
               Chọn ngày bất kỳ trong tuần đích. Lịch tuần đó sẽ được thay thế.

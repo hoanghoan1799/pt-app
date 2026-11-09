@@ -1,4 +1,15 @@
-import { addDays, getWeekdayIndex, isValidDate } from "@/utils/week";
+import {
+  buildMonthCells,
+  formatMonthLabel,
+  getMonthEnd,
+  getMonthOf,
+  getMonthStart,
+  shiftMonth,
+} from "@/utils/month";
+import { addDays } from "@/utils/week";
+
+// The month helpers live in `@/utils/month`; re-exported for existing imports.
+export { formatMonthLabel, getMonthEnd, getMonthOf, getMonthStart, shiftMonth };
 
 export interface CopyCalendarDay {
   date: string;
@@ -21,28 +32,6 @@ interface BuildCopyMonthOptions {
   datesWithPlan: string[];
 }
 
-export const getMonthOf = (date: string) => date.slice(0, 7);
-
-// The month `delta` months from `month` ("YYYY-MM").
-export const shiftMonth = (month: string, delta: number) => {
-  const [year, number] = month.split("-").map(Number);
-  const index = year * 12 + (number - 1) + delta;
-
-  return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}`;
-};
-
-export const getMonthStart = (month: string) => `${month}-01`;
-
-export const getMonthEnd = (month: string) =>
-  addDays(getMonthStart(shiftMonth(month, 1)), -1);
-
-// "Tháng 11, 2026"
-export const formatMonthLabel = (month: string) => {
-  const [year, number] = month.split("-");
-
-  return `Tháng ${Number(number)}, ${year}`;
-};
-
 // The first month that can be shown is the one holding today.
 export const canGoToPreviousMonth = (month: string, today: string) =>
   month > getMonthOf(today);
@@ -55,25 +44,19 @@ export const buildCopyMonth = ({
   sourceDate,
   datesWithPlan,
 }: BuildCopyMonthOptions): (CopyCalendarDay | null)[] => {
-  const first = getMonthStart(month);
-
-  if (!isValidDate(first)) {
-    return [];
-  }
-
   const tomorrow = addDays(today, 1);
-  const length = Number(getMonthEnd(month).slice(8, 10));
-  const blanks = Array.from<null>({ length: getWeekdayIndex(first) }).fill(
-    null,
-  );
-  const days = Array.from({ length }, (_, index): CopyCalendarDay => {
-    const date = `${month}-${String(index + 1).padStart(2, "0")}`;
+
+  return buildMonthCells(month).map((date): CopyCalendarDay | null => {
+    if (!date) {
+      return null;
+    }
+
     const isPast = date < today;
     const isSource = date === sourceDate;
 
     return {
       date,
-      day: index + 1,
+      day: Number(date.slice(8, 10)),
       isPast,
       isToday: date === today,
       isTomorrow: date === tomorrow,
@@ -82,8 +65,6 @@ export const buildCopyMonth = ({
       isDisabled: isPast || isSource,
     };
   });
-
-  return [...blanks, ...days];
 };
 
 export interface MonthInfo {
