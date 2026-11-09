@@ -1,4 +1,4 @@
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, UserRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -11,6 +11,7 @@ import { PostComposer } from "@/features/social/components/PostComposer";
 import { PostList } from "@/features/social/components/PostList";
 import { listAdminFeed } from "@/features/social/services/post-queries";
 import { countUnreadNotifications } from "@/features/social/services/social-notifications";
+import { adminProfilePath } from "@/features/social/utils/post-rules";
 import { isSuperAdmin } from "@/services/admin-scope";
 import { requireAdmin } from "@/services/auth-guard";
 
@@ -46,6 +47,13 @@ const AdminSocialPage = async () => {
                 <MessageCircle className="size-6" aria-hidden />
               </Link>
             )}
+            <Link
+              href={adminProfilePath("admin", admin.id)}
+              className={ICON_BUTTON}
+              aria-label={t("myProfileLink")}
+            >
+              <UserRound className="size-6" aria-hidden />
+            </Link>
             <NotificationBell
               href={ROUTES.ADMIN_SOCIAL_NOTIFICATIONS}
               unreadCount={unreadCount}

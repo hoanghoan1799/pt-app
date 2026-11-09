@@ -8,7 +8,10 @@ import { PAGE_CONTAINER } from "@/constants/styles";
 import { ProfileView } from "@/features/social/components/ProfileView";
 import { actorOfUser } from "@/features/social/services/post-context";
 import { listProfilePosts } from "@/features/social/services/post-queries";
-import { getProfile } from "@/features/social/services/profile-queries";
+import {
+  getPostPrivacyDefault,
+  getProfile,
+} from "@/features/social/services/profile-queries";
 import {
   countFriends,
   getRelationship,
@@ -47,11 +50,19 @@ const ProfilePage = async ({ params }: PageProps<"/profile/[kind]/[id]">) => {
   if (isTrainee && !isOwn && (await isBlockedBetween(user.id, profile.id))) {
     notFound();
   }
-  const [posts, friendCount, relationship] = await Promise.all([
-    listProfilePosts(actorOfUser(user), { kind, id: profile.id }, null, locale),
-    isTrainee ? countFriends(profile.id) : null,
-    isTrainee && !isOwn ? getRelationship(user.id, profile.id) : null,
-  ]);
+  const [posts, friendCount, relationship, composerPrivacy] = await Promise.all(
+    [
+      listProfilePosts(
+        actorOfUser(user),
+        { kind, id: profile.id },
+        null,
+        locale,
+      ),
+      isTrainee ? countFriends(profile.id) : null,
+      isTrainee && !isOwn ? getRelationship(user.id, profile.id) : null,
+      isOwn ? getPostPrivacyDefault(user.id) : null,
+    ],
+  );
 
   return (
     <>
@@ -74,6 +85,7 @@ const ProfilePage = async ({ params }: PageProps<"/profile/[kind]/[id]">) => {
           }
           canBlock={isTrainee && !isOwn}
           canReport={isTrainee && !isOwn}
+          composerPrivacy={composerPrivacy}
         />
       </main>
     </>

@@ -4,11 +4,12 @@ import { Avatar } from "@/components/common/Avatar";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { CARD, SECTION_TITLE } from "@/constants/styles";
 import { BioEditor } from "@/features/social/components/BioEditor";
+import { PostComposer } from "@/features/social/components/PostComposer";
 import { PostList } from "@/features/social/components/PostList";
 import { ProfileMenu } from "@/features/social/components/ProfileMenu";
 import { RelationshipButton } from "@/features/social/components/RelationshipButton";
 import type { ProfileData } from "@/features/social/services/profile-queries";
-import type { PostPage } from "@/features/social/types/social";
+import type { PostPage, PostPrivacy } from "@/features/social/types/social";
 import type { Relationship } from "@/features/social/utils/friend-rules";
 
 interface ProfileViewProps {
@@ -23,6 +24,8 @@ interface ProfileViewProps {
   // The "…" menu: block (trainee viewer, trainee profile) and report.
   canBlock?: boolean;
   canReport?: boolean;
+  // Own profile: show the post composer with this starting privacy.
+  composerPrivacy?: PostPrivacy | null;
 }
 
 // Profile card plus the posts the viewer may see.
@@ -35,6 +38,7 @@ export const ProfileView = ({
   relationship = null,
   canBlock = false,
   canReport = false,
+  composerPrivacy = null,
 }: ProfileViewProps) => {
   const t = useTranslations("social.profile");
 
@@ -91,6 +95,9 @@ export const ProfileView = ({
         <h2 id="profile-posts-title" className={SECTION_TITLE}>
           {t("posts")}
         </h2>
+        {isOwn && composerPrivacy && (
+          <PostComposer mode={mode} defaultPrivacy={composerPrivacy} />
+        )}
         <PostList
           mode={mode}
           source={{ type: "profile", kind: profile.kind, id: profile.id }}

@@ -63,7 +63,7 @@ interface HeaderMenusProps {
   // The signed-in person's name and saved photo (versioned URL or null).
   name: string;
   avatarUrl?: string | null;
-  // Trainees only: link to their social profile, shown first in the avatar menu.
+  // Link to the signed-in account's social profile, first in the avatar menu.
   profileHref?: string;
   // Admins only: the saved account colour (null = never picked) and whether
   // the online status is switched off.

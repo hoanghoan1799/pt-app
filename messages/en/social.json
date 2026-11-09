@@ -206,6 +206,7 @@
     "eyebrow": "Social",
     "adminEyebrow": "Admin · {name}",
     "chatsLink": "Trainee chats",
+    "myProfileLink": "My profile",
     "feedEmpty": "No posts yet.",
     "chatsTitle": "Trainee chats",
     "chatsCount": "Conversations · {count}",

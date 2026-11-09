@@ -206,6 +206,7 @@
     "eyebrow": "社交",
     "adminEyebrow": "管理员 · {name}",
     "chatsLink": "学员聊天",
+    "myProfileLink": "我的主页",
     "feedEmpty": "暂无动态。",
     "chatsTitle": "学员聊天",
     "chatsCount": "会话 · {count}",

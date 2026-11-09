@@ -40,6 +40,7 @@ const AdminProfilePage = async ({
   if (!profile) {
     notFound();
   }
+  const isOwn = kind === "admin" && admin.id === id;
   const [posts, friendCount] = await Promise.all([
     listProfilePosts(actorOfAdmin(admin), { kind, id }, null, locale),
     kind === "user" ? countFriends(id) : null,
@@ -58,10 +59,11 @@ const AdminProfilePage = async ({
         <ProfileView
           profile={profile}
           mode="admin"
-          isOwn={kind === "admin" && admin.id === id}
+          isOwn={isOwn}
           posts={posts}
           friendCount={friendCount}
           canReport={kind === "user"}
+          composerPrivacy={isOwn ? "everyone" : null}
         />
       </main>
     </>
