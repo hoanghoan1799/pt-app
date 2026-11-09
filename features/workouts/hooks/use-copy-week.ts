@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   type FormEvent,
   startTransition,
@@ -9,11 +10,11 @@ import {
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { INITIAL_FORM_STATE } from "@/constants/form";
-import { CONFIRM_MESSAGES } from "@/features/workouts/constants/messages";
 import { copyWeekAction } from "@/features/workouts/services/workout-actions";
 import { useFormFeedback } from "@/hooks/use-form-feedback";
 
 export const useCopyWeek = () => {
+  const t = useTranslations("workouts.copyWeek");
   const confirm = useConfirm();
   const [isOpen, setIsOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(
@@ -30,8 +31,8 @@ export const useCopyWeek = () => {
 
     const formData = new FormData(event.currentTarget);
     const isConfirmed = await confirm({
-      title: CONFIRM_MESSAGES.COPY_WEEK,
-      confirmLabel: "Sao chép",
+      title: t("confirmTitle"),
+      confirmLabel: t("confirmLabel"),
       isDanger: true,
     });
 

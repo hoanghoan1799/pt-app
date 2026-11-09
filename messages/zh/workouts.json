@@ -1,0 +1,132 @@
+{
+  "exerciseEditorItem": {
+    "moveUp": "上移",
+    "moveDown": "下移",
+    "edit": "编辑",
+    "delete": "删除"
+  },
+  "exerciseCard": {
+    "playVideo": "播放视频 {title}",
+    "completed": "已训练 {time} · {date}",
+    "personalBestBadge": "新纪录",
+    "openOnYoutube": "在 YouTube 上打开"
+  },
+  "loggedSets": {
+    "loggedPrefix": "已记录：",
+    "nothingLogged": "尚未记录任何组"
+  },
+  "completionToggle": {
+    "done": "训练完成 · {time}",
+    "undo": "（点击撤销）",
+    "notDue": "还没到训练日",
+    "mark": "标记为已训练"
+  },
+  "copyWeek": {
+    "trigger": "复制本周",
+    "title": "复制训练周",
+    "description": "来自第 {week} 周",
+    "targetUser": "复制给学员",
+    "thisUserSuffix": "（当前学员）",
+    "targetDate": "复制到包含该日期的一周",
+    "sourceWeek": "源周",
+    "sourceBadge": "源",
+    "hint": "选择目标周内的任意一天，该周的计划将被替换。",
+    "submit": "复制",
+    "confirmTitle": "目标周的计划将被本周替换。是否继续？",
+    "confirmLabel": "复制"
+  },
+  "dayHeading": {
+    "progressDone": "{completed}/{total} 已训练",
+    "exerciseCount": "{count, plural, other {# 个动作}}"
+  },
+  "dayView": {
+    "workoutTitle": "今日训练",
+    "restTitle": "休息日",
+    "progressLabel": "今日进度",
+    "complete": "训练完成！好好休息。",
+    "restDayTitle": "休息与恢复",
+    "restDayDescription": "这一天还没有训练安排。睡够觉，多喝水！"
+  },
+  "dayTabs": {
+    "exerciseCount": "{count, plural, other {# 个动作}}",
+    "completedDay": "已完成训练"
+  },
+  "weekProgress": {
+    "label": "本周进度",
+    "summary": "{completed}/{total} 个动作 · {percent}%"
+  },
+  "weekSummary": {
+    "sessionsDone": "已完成 {completed}/{total} 次训练",
+    "exerciseSummary": "{completed}/{total} 个动作 · {percent}%",
+    "progressLabel": "本周训练进度",
+    "exerciseCount": "{count, plural, other {# 个动作}}",
+    "restDay": "休息",
+    "restDayLabel": "休息日"
+  },
+  "youtubePreview": {
+    "defaultTitle": "视频预览",
+    "pasteLink": "粘贴链接以预览视频"
+  },
+  "dayEditor": {
+    "untitledDay": "未设置标题",
+    "editDayInfo": "编辑当天标题和备注",
+    "noExercisesTitle": "暂无动作",
+    "noExercisesDescription": "点击“添加动作”为这一天安排训练。留空则学员会看到这是休息日。",
+    "addExercise": "添加动作 · {date}",
+    "editExerciseTitle": "编辑动作",
+    "addExerciseTitle": "添加动作",
+    "dayInfoTitle": "当天信息"
+  },
+  "dayInfoForm": {
+    "titleLabel": "当天标题",
+    "titlePlaceholder": "例如：推类训练 – 胸、肩、肱三头肌",
+    "noteLabel": "整次训练备注",
+    "notePlaceholder": "例如：热身 10 分钟，组间休息 60–90 秒",
+    "save": "保存"
+  },
+  "exerciseForm": {
+    "invalidYoutubeUrl": "YouTube 链接无效",
+    "youtubeLabel": "YouTube 视频链接",
+    "pasteFromClipboard": "从剪贴板粘贴链接",
+    "titleLabel": "动作名称",
+    "titlePlaceholder": "例如：卧推",
+    "setsLabel": "组数",
+    "repsLabel": "次数 / 时间",
+    "repsPlaceholder": "10-12 或 30 秒",
+    "descriptionLabel": "说明 / 技术要点",
+    "descriptionPlaceholder": "例如：收紧腹部，杠铃缓慢下放 3 秒，组间休息 90 秒",
+    "saveChanges": "保存更改",
+    "add": "添加动作",
+    "changeLinkConfirmTitle": "学员已记录该动作的数据。更换视频链接会同时清除这些数据并开始新的记录。是否继续？",
+    "continue": "继续",
+    "clipboardError": "无法读取剪贴板，请手动粘贴。"
+  },
+  "setLogger": {
+    "sectionLabel": "记录 {title} 的组数",
+    "weightUnit": "kg",
+    "repsUnit": "次",
+    "bodyweightHint": "自重训练时 kg 留空",
+    "addRow": "添加一组",
+    "saving": "正在保存…",
+    "save": "保存",
+    "nothingToSave": "请至少输入一组",
+    "personalBest": "新纪录！🏆",
+    "saved": "已保存各组"
+  },
+  "setInputRow": {
+    "weightPlaceholder": "kg",
+    "repsUnit": "次",
+    "weightLabel": "第 {set} 组重量（kg）",
+    "repsLabel": "第 {set} 组次数",
+    "deleteLabel": "删除第 {set} 组",
+    "hintLabel": "上次 {text}，用于第 {set} 组",
+    "hintPrefix": "上次"
+  },
+  "exerciseItemActions": {
+    "deleteConfirmLabel": "删除",
+    "deleted": "已删除动作"
+  },
+  "exerciseCompletion": {
+    "done": "已标记为训练完成 💪"
+  }
+}

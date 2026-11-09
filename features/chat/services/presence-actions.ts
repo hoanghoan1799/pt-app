@@ -2,11 +2,10 @@
 
 import { z } from "zod";
 
+import { PRESENCE_MESSAGES } from "@/features/chat/constants/messages";
 import { setAdminPresenceHidden } from "@/features/chat/services/presence";
 import { withResultErrorHandling } from "@/services/action-errors";
 import { requireAdmin } from "@/services/auth-guard";
-
-const INVALID_MESSAGE = "Giá trị không hợp lệ";
 
 const inputSchema = z.object({ isHidden: z.boolean() });
 
@@ -19,7 +18,7 @@ export const setPresenceHiddenAction = withResultErrorHandling(
     const parsed = inputSchema.safeParse(input);
 
     if (!parsed.success) {
-      return { status: "error" as const, message: INVALID_MESSAGE };
+      return { status: "error" as const, message: PRESENCE_MESSAGES.INVALID };
     }
     await setAdminPresenceHidden(admin.id, parsed.data.isHidden);
     return { status: "success" as const };

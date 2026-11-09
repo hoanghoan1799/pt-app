@@ -1,9 +1,11 @@
 "use client";
 
 import clsx from "clsx";
+import { useLocale, useTranslations } from "next-intl";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { MonthGrid } from "@/components/common/MonthGrid";
+import { Spinner } from "@/components/common/Spinner";
 import {
   BUTTON_DANGER,
   BUTTON_PRIMARY,
@@ -31,27 +33,6 @@ interface CopyDaySheetProps {
   onOpenChange: (isOpen: boolean) => void;
 }
 
-const getTag = (day: CopyCalendarDay) => {
-  if (day.isToday) {
-    return "Hôm nay";
-  }
-  if (day.isTomorrow) {
-    return "Ngày mai";
-  }
-  return "";
-};
-
-const describeDay = (day: CopyCalendarDay) =>
-  [
-    formatFullDay(day.date),
-    getTag(day),
-    day.isSource && "ngày nguồn",
-    day.isPast && "đã qua",
-    day.hasPlan && "đã có plan",
-  ]
-    .filter(Boolean)
-    .join(", ");
-
 export const CopyDaySheet = ({
   userId,
   dayId,
@@ -62,6 +43,31 @@ export const CopyDaySheet = ({
   isOpen,
   onOpenChange,
 }: CopyDaySheetProps) => {
+  const locale = useLocale();
+  const t = useTranslations("mealPlans.copyDaySheet");
+  const tWeek = useTranslations("common.week");
+
+  const getTag = (day: CopyCalendarDay) => {
+    if (day.isToday) {
+      return tWeek("today");
+    }
+    if (day.isTomorrow) {
+      return tWeek("tomorrow");
+    }
+    return "";
+  };
+
+  const describeDay = (day: CopyCalendarDay) =>
+    [
+      formatFullDay(day.date, locale),
+      getTag(day),
+      day.isSource && t("sourceDay"),
+      day.isPast && t("past"),
+      day.hasPlan && t("hasPlan"),
+    ]
+      .filter(Boolean)
+      .join(", ");
+
   const copy = useCopyDay({
     userId,
     dayId,
@@ -79,6 +85,7 @@ export const CopyDaySheet = ({
   const logWarning = formatOverwriteLogWarning(
     copy.overwriteDates,
     copy.logDates,
+    locale,
   );
 
   return (
@@ -88,24 +95,25 @@ export const CopyDaySheet = ({
         copy.cancel();
         onOpenChange(open);
       }}
-      title="Sao chép sang ngày khác"
-      description={`Từ ${formatFullDay(sourceDate)}`}
+      title={t("title")}
+      description={t("description", {
+        date: formatFullDay(sourceDate, locale),
+      })}
     >
       {copy.isConfirming ? (
         <div
           role="alertdialog"
-          aria-label="Xác nhận ghi đè"
+          aria-label={t("confirmLabel")}
           className="space-y-4"
         >
           <p className="text-[15px] font-medium text-fg">
-            {formatOverwriteQuestion(copy.overwriteDates)}
+            {formatOverwriteQuestion(copy.overwriteDates, locale)}
           </p>
           {logWarning && (
             <p className="text-sm font-medium text-warning">{logWarning}</p>
           )}
           <p className="text-sm text-muted">
-            Plan cũ của các ngày này sẽ bị thay bằng plan của{" "}
-            {formatFullDay(sourceDate)}.
+            {t("replaceNotice", { date: formatFullDay(sourceDate, locale) })}
           </p>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -113,15 +121,17 @@ export const CopyDaySheet = ({
               onClick={copy.cancel}
               className={BUTTON_SECONDARY}
             >
-              Hủy
+              {t("cancel")}
             </button>
             <button
               type="button"
               onClick={copy.confirm}
               disabled={copy.isPending}
+              aria-busy={copy.isPending}
               className={BUTTON_DANGER}
             >
-              Ghi đè
+              {copy.isPending && <Spinner size="md" />}
+              {t("overwrite")}
             </button>
           </div>
         </div>
@@ -193,7 +203,7 @@ export const CopyDaySheet = ({
                 aria-hidden
                 className="size-1.5 shrink-0 rounded-full bg-warning"
               />
-              Đã có plan, sẽ ghi đè
+              {t("overwriteLegend")}
             </p>
             <button
               type="button"
@@ -201,10 +211,13 @@ export const CopyDaySheet = ({
               disabled={
                 copy.isPending || copy.isLoading || copy.selected.length === 0
               }
+              aria-busy={copy.isPending}
               className={`${BUTTON_PRIMARY} w-full`}
             >
-              Sao chép
-              {copy.selected.length > 0 && ` (${copy.selected.length} ngày)`}
+              {copy.isPending && <Spinner size="md" />}
+              {t("copy")}
+              {copy.selected.length > 0 &&
+                t("copyCount", { count: copy.selected.length })}
             </button>
           </div>
         </div>

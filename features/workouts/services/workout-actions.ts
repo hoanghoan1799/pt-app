@@ -28,6 +28,10 @@ import {
 } from "@/services/action-errors";
 import { requireAdminForUser } from "@/services/admin-access";
 import { requireAdmin } from "@/services/auth-guard";
+import {
+  getActiveLocale,
+  getErrorsTranslator,
+} from "@/services/localize-message";
 import type { DeleteExerciseResult } from "@/types/error";
 import type { FormState } from "@/types/form";
 import {
@@ -440,10 +444,16 @@ export const copyWeekAction = withFormErrorHandling(
     revalidateMember(userId);
     revalidateMember(targetUserId);
 
-    const target = targetUserId === userId ? "" : ` của ${targetUser.name}`;
+    const t = await getErrorsTranslator();
+    const values = {
+      count: sourceDays.length,
+      range: formatWeekRange(targetWeek, await getActiveLocale()),
+    };
 
     return createSuccessState(
-      `Đã sao chép ${sourceDays.length} ngày sang tuần ${formatWeekRange(targetWeek)}${target}`,
+      targetUserId === userId
+        ? t("toasts.weekCopied", values)
+        : t("toasts.weekCopiedTo", { ...values, name: targetUser.name }),
     );
   },
 );

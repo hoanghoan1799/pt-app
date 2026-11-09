@@ -1,19 +1,38 @@
+import { getFormatTranslator } from "@/i18n/format-translator";
+import { DEFAULT_LOCALE, type Locale, toIntlLocale } from "@/utils/locale";
+
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
 
 // "18:30" in the given time zone.
-export const formatClockTime = (timestamp: number, timeZone: string) =>
-  new Intl.DateTimeFormat("vi-VN", {
+export const formatClockTime = (
+  timestamp: number,
+  timeZone: string,
+  locale: Locale = DEFAULT_LOCALE,
+) =>
+  new Intl.DateTimeFormat(toIntlLocale(locale), {
     timeZone,
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
   }).format(timestamp);
 
-// "05/10" in the given time zone. Built from parts because the vi-VN
-// day/month separator differs between ICU versions ("05/10" vs "05-10").
-export const formatShortDate = (timestamp: number, timeZone: string) => {
+// "05/10" in the given time zone ("Oct 5" in English, "10月5日" in Chinese). Built from parts
+// because the vi-VN day/month separator differs between ICU versions
+// ("05/10" vs "05-10").
+export const formatShortDate = (
+  timestamp: number,
+  timeZone: string,
+  locale: Locale = DEFAULT_LOCALE,
+) => {
+  if (locale !== "vi") {
+    return new Intl.DateTimeFormat(toIntlLocale(locale), {
+      timeZone,
+      month: "short",
+      day: "numeric",
+    }).format(timestamp);
+  }
   const parts = new Intl.DateTimeFormat("vi-VN", {
     timeZone,
     day: "2-digit",
@@ -26,30 +45,37 @@ export const formatShortDate = (timestamp: number, timeZone: string) => {
 };
 
 // "05/10 18:30" in the given time zone.
-export const formatShortDateTime = (timestamp: number, timeZone: string) =>
-  `${formatShortDate(timestamp, timeZone)} ${formatClockTime(timestamp, timeZone)}`;
+export const formatShortDateTime = (
+  timestamp: number,
+  timeZone: string,
+  locale: Locale = DEFAULT_LOCALE,
+) =>
+  `${formatShortDate(timestamp, timeZone, locale)} ${formatClockTime(timestamp, timeZone, locale)}`;
 
 // "vừa xong", "5 phút trước", "3 giờ trước", "2 ngày trước", then "05/10".
+// English: "just now", "5 minutes ago", ..., "Oct 5".
 export const formatRelativeTime = (
   timestamp: number,
   timeZone: string,
   now = Date.now(),
+  locale: Locale = DEFAULT_LOCALE,
 ) => {
+  const t = getFormatTranslator(locale);
   const elapsed = Math.max(0, now - timestamp);
 
   if (elapsed < MINUTE_MS) {
-    return "vừa xong";
+    return t("relative.justNow");
   }
   if (elapsed < HOUR_MS) {
-    return `${Math.floor(elapsed / MINUTE_MS)} phút trước`;
+    return t("relative.minutes", { count: Math.floor(elapsed / MINUTE_MS) });
   }
   if (elapsed < DAY_MS) {
-    return `${Math.floor(elapsed / HOUR_MS)} giờ trước`;
+    return t("relative.hours", { count: Math.floor(elapsed / HOUR_MS) });
   }
   if (elapsed < 7 * DAY_MS) {
-    return `${Math.floor(elapsed / DAY_MS)} ngày trước`;
+    return t("relative.days", { count: Math.floor(elapsed / DAY_MS) });
   }
-  return formatShortDate(timestamp, timeZone);
+  return formatShortDate(timestamp, timeZone, locale);
 };
 
 export const calculatePercent = (part: number, total: number) =>

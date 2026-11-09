@@ -1,0 +1,285 @@
+{
+  "pushToggle": {
+    "label": "推送通知",
+    "on": "已开启",
+    "off": "已关闭",
+    "unavailable": "此设备暂不支持",
+    "installFirst": "请先将应用添加到主屏幕",
+    "blocked": "已在浏览器设置中被屏蔽"
+  },
+  "presenceStatus": {
+    "label": "活跃状态：{text}"
+  },
+  "pushOptIn": {
+    "sectionLabel": "开启通知",
+    "titleUser": "开启通知，不错过教练的消息",
+    "titleAdmin": "开启通知，不错过学员的消息",
+    "iosInstallHint": "在 iPhone 上，请先将应用添加到主屏幕：点按分享按钮 <share></share>，选择“添加到主屏幕”，然后从主屏幕打开应用以开启通知。",
+    "denied": "通知已被屏蔽。请在浏览器设置（或设备的通知设置）中为此网站重新开启。",
+    "gotIt": "知道了",
+    "later": "稍后",
+    "enable": "开启通知"
+  },
+  "reactorsSheet": {
+    "title": "表情回应",
+    "description": "谁对这条消息做出了回应",
+    "you": "你"
+  },
+  "chatLockSwitch": {
+    "label": "允许发消息",
+    "failed": "无法更改消息设置，请重试。"
+  },
+  "hideConversation": {
+    "hide": "隐藏学员",
+    "unhide": "取消隐藏学员",
+    "hiddenToast": "已隐藏 1 位学员",
+    "unhiddenToast": "已取消隐藏学员",
+    "failed": "保存失败，请重试。"
+  },
+  "neutralColors": {
+    "label": "中性色",
+    "help": "在此设备上以默认颜色显示所有消息。学员仍会看到他们所选的颜色。"
+  },
+  "unreadBadge": {
+    "label": "{count} 条未读消息"
+  },
+  "newMessages": {
+    "label": "新消息"
+  },
+  "typing": {
+    "label": "{name} 正在输入…"
+  },
+  "gallery": {
+    "tabsLabel": "内容类型",
+    "tabs": {
+      "photos": "照片",
+      "stickers": "贴纸",
+      "links": "链接"
+    }
+  },
+  "chatInfo": {
+    "title": "信息",
+    "peerSection": "聊天对象",
+    "viewPhoto": "查看 {name} 的照片",
+    "toolsSection": "工具",
+    "search": "搜索",
+    "customize": "自定义",
+    "photos": "照片",
+    "photoOf": "{label} 的照片",
+    "galleryLink": "照片、贴纸和链接",
+    "noPhotos": "暂无照片",
+    "displaySection": "显示",
+    "actionsSection": "操作"
+  },
+  "chatHeader": {
+    "back": "返回",
+    "settings": "聊天信息"
+  },
+  "chatInbox": {
+    "noMessages": "暂无消息",
+    "selectRow": "选择 {name}",
+    "online": "在线",
+    "locked": "聊天已锁定",
+    "unread": "{count} 条未读消息",
+    "unhide": "取消隐藏"
+  },
+  "accountColor": {
+    "title": "账号颜色",
+    "description": "用于所有未单独设置颜色的对话。",
+    "failed": "保存失败，请重试。"
+  },
+  "editHistory": {
+    "title": "编辑记录",
+    "error": "无法加载编辑记录，请重试。",
+    "loading": "加载中…",
+    "current": "当前",
+    "previous": "旧版本，编辑于 {time}"
+  },
+  "linkGallery": {
+    "empty": "此对话中还没有链接",
+    "showInChat": "在聊天中查看"
+  },
+  "photoGallery": {
+    "empty": "此对话中还没有照片",
+    "viewPhoto": "查看 {label} 的照片"
+  },
+  "galleryFooter": {
+    "loading": "加载中…"
+  },
+  "hiddenUserList": {
+    "unhide": "取消隐藏"
+  },
+  "customize": {
+    "failed": "保存失败，请重试。",
+    "locked": "聊天已锁定，暂时无法更改昵称和颜色。",
+    "lockedAdmin": "聊天已锁定，暂时无法更改此对话的昵称和颜色。",
+    "saving": "保存中…",
+    "save": "保存",
+    "clearNickname": "清除昵称",
+    "nicknameSection": "昵称",
+    "nicknameOf": "{name} 的昵称",
+    "nicknameSelf": "你的昵称",
+    "colorConversation": "此对话的颜色",
+    "colorOwn": "你的消息颜色",
+    "colorAdminHint": "仅适用于此对话，将替代账号颜色。",
+    "colorUserHint": "你的消息在双方界面都会显示此颜色。",
+    "colorLabel": "消息颜色",
+    "useAccountColor": "使用账号颜色"
+  },
+  "chatSearch": {
+    "back": "返回",
+    "placeholder": "在对话中搜索",
+    "inputLabel": "搜索消息",
+    "minLength": "请至少输入 {min} 个字符来搜索消息",
+    "searching": "搜索中…",
+    "failed": "搜索失败，请重试。",
+    "empty": "未找到消息",
+    "loadMore": "查看更多结果"
+  },
+  "messageActions": {
+    "title": "消息选项",
+    "sentAt": "发送于 {time}",
+    "reactions": "表情回应",
+    "reply": "回复",
+    "copy": "复制",
+    "edit": "编辑",
+    "unsend": "撤回"
+  },
+  "messageBubble": {
+    "viewReply": "查看被回复的消息",
+    "messageName": "消息",
+    "edited": "已编辑",
+    "sending": "发送中…",
+    "notSent": "未发送",
+    "retry": "重发"
+  },
+  "replyPost": {
+    "replying": "正在回复动态",
+    "cancel": "取消回复动态"
+  },
+  "composer": {
+    "placeholder": "给教练发消息…",
+    "processingPhoto": "正在处理照片…",
+    "photoPreviewAlt": "待发送的照片",
+    "removePhoto": "移除照片",
+    "commandsLabel": "命令",
+    "attachPhoto": "发送照片",
+    "removeCommand": "移除命令 /{name}",
+    "messageLabel": "消息内容",
+    "openStickers": "打开贴纸",
+    "saveEdit": "保存修改",
+    "send": "发送消息"
+  },
+  "stickerPanel": {
+    "description": "选择一个贴纸即可立即发送",
+    "groupsLabel": "贴纸分组",
+    "groups": {
+      "workout": "训练",
+      "food": "饮食",
+      "mood": "心情"
+    },
+    "recent": "最近",
+    "mine": "我的",
+    "giphySearch": "在 GIPHY 搜索贴纸",
+    "loading": "正在加载贴纸…",
+    "rateLimited": "你搜索得太快了，请稍等片刻再试。",
+    "giphyError": "无法加载 GIPHY 贴纸，请重试。",
+    "giphyEmpty": "未找到贴纸。"
+  },
+  "customStickers": {
+    "done": "完成",
+    "edit": "编辑",
+    "pickPhoto": "选择照片制作贴纸",
+    "processing": "处理中…",
+    "addPhoto": "添加照片",
+    "deleteSticker": "删除此贴纸",
+    "loading": "正在加载贴纸…",
+    "loadFailed": "无法加载你的贴纸，请重试。",
+    "empty": "从相册中选择一张照片，制作你自己的贴纸。"
+  },
+  "stickerGallery": {
+    "empty": "此对话中还没有贴纸",
+    "viewSticker": "查看 {label} 的贴纸"
+  },
+  "colors": {
+    "names": {
+      "orange": "橙色",
+      "red": "红色",
+      "pink": "粉色",
+      "purple": "紫色",
+      "indigo": "靛蓝",
+      "blue": "蓝色",
+      "teal": "青色",
+      "green": "绿色"
+    }
+  },
+  "adminChatThread": {
+    "title": "与 {name} 聊天"
+  },
+  "adminInbox": {
+    "passcodeRequired": "隐藏学员前请先设置密码锁。",
+    "hiddenToast": "已隐藏 {count, plural, other {# 位学员}}",
+    "hideFailed": "隐藏失败，请重试。",
+    "unhideFailed": "取消隐藏失败，请重试。",
+    "searchPlaceholder": "按姓名搜索",
+    "select": "选择",
+    "hiddenSection": "已隐藏的学员",
+    "emptySearch": "未找到学员",
+    "emptyUnread": "没有未读消息",
+    "emptyAll": "暂无对话",
+    "freshSection": "暂无消息",
+    "online": "在线",
+    "selectRow": "选择 {name}",
+    "hideToolbar": "隐藏学员",
+    "cancel": "取消",
+    "hideCount": "隐藏（{count}）"
+  },
+  "chatThread": {
+    "ariaLabel": "与教练的对话",
+    "empty": "给你的教练发第一条消息吧",
+    "emptyLocked": "教练尚未对你开启消息功能",
+    "copied": "已复制",
+    "copyFailed": "复制失败",
+    "unsendTitle": "对所有人撤回这条消息？",
+    "unsendDescription": "双方都只会看到“消息已被撤回”。",
+    "unsend": "撤回",
+    "traineeFallback": "学员",
+    "loadingOlder": "加载中…",
+    "loadOlder": "查看更早的消息",
+    "editing": "正在编辑",
+    "cancelEdit": "取消编辑",
+    "replying": "正在回复 {name}",
+    "cancelReply": "取消回复",
+    "placeholder": "给 {name} 发消息…",
+    "locked": "教练已暂停消息功能",
+    "adminLocked": "聊天已锁定。重新开启后才能发消息。"
+  },
+  "galleryPager": {
+    "loadFailed": "无法加载更多，请重试。"
+  },
+  "pushSubscription": {
+    "error": "无法开启通知，请重试。"
+  },
+  "chatMessages": {
+    "sendFailed": "消息发送失败，请重试。",
+    "actionFailed": "操作失败，请重试。"
+  },
+  "shared": {
+    "fallbackPeer": "你的教练"
+  },
+  "pages": {
+    "messagesTitle": "消息",
+    "searchTitle": "搜索消息",
+    "infoTitle": "聊天信息",
+    "photosTitle": "照片、贴纸和链接",
+    "coachSubtitle": "与你的教练交流",
+    "friendsSection": "好友",
+    "unreadDot": "有未读消息",
+    "adminMessagesTitle": "消息",
+    "filtersLabel": "筛选消息",
+    "filters": {
+      "all": "全部",
+      "unread": "未读"
+    }
+  }
+}

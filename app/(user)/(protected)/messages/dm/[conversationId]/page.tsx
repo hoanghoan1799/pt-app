@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { ROUTES } from "@/constants/routes";
 import { DmThread } from "@/features/social/components/DmThread";
@@ -14,7 +15,11 @@ import { parseDmId } from "@/features/social/utils/dm-rules";
 import { requireUser } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
 
-export const metadata: Metadata = { title: "Nhắn tin" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("chat.pages");
+
+  return { title: t("messagesTitle") };
+};
 
 // A chat with a friend. Anyone who is not one of the two members (or whose
 // chat a block hid) gets a 404, the same as for an unknown id.

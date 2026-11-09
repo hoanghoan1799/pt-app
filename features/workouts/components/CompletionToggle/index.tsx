@@ -1,6 +1,8 @@
 import clsx from "clsx";
 import { CalendarClock, CheckCircle2, Circle } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
+import { Spinner } from "@/components/common/Spinner";
 import { TIME_ZONE } from "@/constants/time";
 import { formatClockTime } from "@/utils/time";
 
@@ -20,21 +22,29 @@ export const CompletionToggle = ({
   isPending,
   onToggle,
 }: CompletionToggleProps) => {
+  const locale = useLocale();
+  const t = useTranslations("workouts.completionToggle");
+
   if (completedAt !== null) {
     return (
       <button
         type="button"
         onClick={onToggle}
         disabled={isPending}
+        aria-busy={isPending}
         aria-pressed
         className={clsx(
           TOGGLE_BASE,
           "border-success/30 bg-success/12 text-success",
         )}
       >
-        <CheckCircle2 className="size-5" aria-hidden />
-        Đã tập xong · {formatClockTime(completedAt, TIME_ZONE)}
-        <span className="text-sm font-normal opacity-70">(bấm để bỏ)</span>
+        {isPending ? (
+          <Spinner size="md" />
+        ) : (
+          <CheckCircle2 className="size-5" aria-hidden />
+        )}
+        {t("done", { time: formatClockTime(completedAt, TIME_ZONE, locale) })}
+        <span className="text-sm font-normal opacity-70">{t("undo")}</span>
       </button>
     );
   }
@@ -48,7 +58,7 @@ export const CompletionToggle = ({
         )}
       >
         <CalendarClock className="size-5" aria-hidden />
-        Chưa tới ngày tập
+        {t("notDue")}
       </p>
     );
   }
@@ -58,11 +68,16 @@ export const CompletionToggle = ({
       type="button"
       onClick={onToggle}
       disabled={isPending}
+      aria-busy={isPending}
       aria-pressed={false}
       className={clsx(TOGGLE_BASE, "border-line text-accent")}
     >
-      <Circle className="size-5" aria-hidden />
-      Đánh dấu đã tập
+      {isPending ? (
+        <Spinner size="md" />
+      ) : (
+        <Circle className="size-5" aria-hidden />
+      )}
+      {t("mark")}
     </button>
   );
 };

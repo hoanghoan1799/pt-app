@@ -1,0 +1,18 @@
+{
+  "createPt": {
+    "usernameLabel": "教练用户名",
+    "passwordLabel": "密码（至少 8 个字符）",
+    "submit": "创建教练"
+  },
+  "ptAssign": {
+    "label": "负责教练",
+    "unassigned": "未分配（仅超级管理员）",
+    "assigned": "已更新负责教练"
+  },
+  "verifiedToggle": {
+    "grant": "授予认证",
+    "revoke": "取消认证",
+    "granted": "已授予认证标识",
+    "revoked": "已移除认证标识"
+  }
+}

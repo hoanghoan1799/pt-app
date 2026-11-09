@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import Image from "next/image";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
@@ -21,7 +22,7 @@ import {
   type ThreadItem,
   type ThreadMessage,
   type ThreadViewer,
-  UNSENT_TEXT,
+  unsentText,
 } from "@/features/chat/utils/chat-thread-rules";
 import { tokenizeLinks } from "@/features/chat/utils/link-rules";
 import { DmPostQuote } from "@/features/social/components/DmPostQuote";
@@ -119,6 +120,8 @@ export const MessageBubble = ({
   const hasPhoto = Boolean(photo) && !isUnsent && !isSticker;
   // Only stored, not unsent messages have actions.
   const isInteractive = message.id !== null && !isUnsent;
+  const locale = useLocale();
+  const t = useTranslations("chat.messageBubble");
   const [isViewerOpen, setViewerOpen] = useState(false);
   const gesture = useBubbleGesture(isInteractive, {
     onDoubleTap: () => onToggleHeart(message),
@@ -219,7 +222,7 @@ export const MessageBubble = ({
             <button
               type="button"
               onClick={() => onJumpToReply(replyTo.id)}
-              aria-label="Xem tin nhắn được trả lời"
+              aria-label={t("viewReply")}
               className={clsx(
                 "mb-1.5 block max-w-full border-l-2 py-0.5 pl-2 text-left text-xs",
                 isColored
@@ -232,7 +235,7 @@ export const MessageBubble = ({
               )}
             >
               <span className="block truncate font-semibold">
-                {quoteLabel(replyTo, viewer, nicknames)}
+                {quoteLabel(replyTo, viewer, nicknames, locale)}
               </span>
               <span
                 className={clsx(
@@ -240,7 +243,7 @@ export const MessageBubble = ({
                   replyTo.deleted && "italic",
                 )}
               >
-                {quoteText(replyTo)}
+                {quoteText(replyTo, locale)}
               </span>
             </button>
           )}
@@ -278,7 +281,11 @@ export const MessageBubble = ({
                     hasPhoto && "px-2.5 pt-1.5 pb-1",
                   )}
                 >
-                  {isUnsent ? UNSENT_TEXT : <LinkedText body={message.body} />}
+                  {isUnsent ? (
+                    unsentText(locale)
+                  ) : (
+                    <LinkedText body={message.body} />
+                  )}
                 </p>
               )}
             </>
@@ -290,7 +297,7 @@ export const MessageBubble = ({
           isOpen={isViewerOpen}
           onClose={() => setViewerOpen(false)}
           src={photo.url}
-          name="tin nhắn"
+          name={t("messageName")}
         />
       )}
       {sticker && isSticker && (
@@ -336,21 +343,21 @@ export const MessageBubble = ({
             sideMargin,
           )}
         >
-          Đã chỉnh sửa
+          {t("edited")}
         </button>
       )}
       {mine && isSending && (
-        <p className="mt-1 mr-1 text-xs text-muted">Đang gửi…</p>
+        <p className="mt-1 mr-1 text-xs text-muted">{t("sending")}</p>
       )}
       {mine && isFailed && (
         <p className="mt-1 mr-1 flex items-center gap-2 text-xs text-danger">
-          Chưa gửi được
+          {t("notSent")}
           <button
             type="button"
             onClick={() => onRetry(message.clientId)}
             className="rounded-full border border-danger/40 px-2.5 py-1 font-semibold active:bg-danger/10"
           >
-            Gửi lại
+            {t("retry")}
           </button>
         </p>
       )}

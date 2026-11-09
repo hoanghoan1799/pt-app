@@ -3,9 +3,12 @@
 import clsx from "clsx";
 import { ChevronLeft, Search } from "lucide-react";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
-import { ICON_BUTTON, INPUT, PAGE_CONTAINER } from "@/constants/styles";
+import { Input } from "@/components/common/Input";
+import { Spinner } from "@/components/common/Spinner";
+import { ICON_BUTTON, PAGE_CONTAINER } from "@/constants/styles";
 import { type ChatPaths, jumpHref } from "@/features/chat/utils/chat-links";
 import {
   formatResultTime,
@@ -28,7 +31,6 @@ interface ChatSearchProps {
 }
 
 const DEBOUNCE_MS = 300;
-const FAILED = "Không tìm được. Thử lại nhé.";
 
 const isSearchPage = (value: unknown): value is SearchPage =>
   typeof value === "object" &&
@@ -147,6 +149,9 @@ export const ChatSearch = ({
     }
   };
 
+  const locale = useLocale();
+
+  const t = useTranslations("chat.chatSearch");
   const query = text.trim();
   const isSearchable = isSearchableQuery(query);
 
@@ -159,43 +164,40 @@ export const ChatSearch = ({
           <Link
             href={paths.info}
             className={clsx(ICON_BUTTON, "-ml-3")}
-            aria-label="Quay lại"
+            aria-label={t("back")}
           >
             <ChevronLeft className="size-6" />
           </Link>
-          <div className="relative min-w-0 flex-1 py-2">
-            <Search
-              aria-hidden
-              className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted"
-            />
-            <input
-              type="search"
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-              maxLength={SEARCH_MAX_LENGTH}
-              placeholder="Tìm trong cuộc trò chuyện"
-              aria-label="Tìm tin nhắn"
-              autoComplete="off"
-              enterKeyHint="search"
-
-              autoFocus
-              className={clsx(INPUT, "min-h-11 pl-10")}
-            />
-          </div>
+          <Input
+            type="search"
+            clearable
+            leadingIcon={<Search className="size-5" aria-hidden />}
+            wrapperClassName="min-w-0 flex-1 py-2"
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            maxLength={SEARCH_MAX_LENGTH}
+            placeholder={t("placeholder")}
+            aria-label={t("inputLabel")}
+            autoComplete="off"
+            enterKeyHint="search"
+            autoFocus
+            className="min-h-11"
+          />
         </div>
       </header>
       <main data-chat-search className={clsx(PAGE_CONTAINER, "pt-2 pb-12")}>
         {!isSearchable && (
           <p className="px-6 py-16 text-center text-sm text-muted">
-            Nhập ít nhất {SEARCH_MIN_LENGTH} ký tự để tìm tin nhắn
+            {t("minLength", { min: SEARCH_MIN_LENGTH })}
           </p>
         )}
         {isSearchable && state.kind === "loading" && (
           <p
             role="status"
-            className="px-6 py-16 text-center text-sm text-muted"
+            className="flex items-center justify-center gap-2 px-6 py-16 text-sm text-muted"
           >
-            Đang tìm…
+            <Spinner size="md" />
+            {t("searching")}
           </p>
         )}
         {isSearchable && state.kind === "error" && (
@@ -203,7 +205,7 @@ export const ChatSearch = ({
             role="alert"
             className="px-6 py-16 text-center text-sm text-danger"
           >
-            {FAILED}
+            {t("failed")}
           </p>
         )}
         {isSearchable &&
@@ -211,7 +213,7 @@ export const ChatSearch = ({
           state.query === query &&
           (state.results.length === 0 ? (
             <p className="px-6 py-16 text-center text-sm text-muted">
-              Không tìm thấy tin nhắn nào
+              {t("empty")}
             </p>
           ) : (
             <>
@@ -225,10 +227,10 @@ export const ChatSearch = ({
                     >
                       <span className="flex items-baseline justify-between gap-3">
                         <span className="truncate text-sm font-semibold text-fg">
-                          {searchSenderLabel(result, viewer, nicknames)}
+                          {searchSenderLabel(result, viewer, nicknames, locale)}
                         </span>
                         <span className="shrink-0 text-xs text-muted">
-                          {formatResultTime(result.createdAt, now)}
+                          {formatResultTime(result.createdAt, now, locale)}
                         </span>
                       </span>
                       <span className="mt-0.5 block text-sm break-words text-muted">
@@ -248,9 +250,11 @@ export const ChatSearch = ({
                     type="button"
                     onClick={() => void loadMore()}
                     disabled={isLoadingMore}
-                    className="rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
+                    aria-busy={isLoadingMore}
+                    className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
                   >
-                    {isLoadingMore ? "Đang tìm…" : "Xem thêm kết quả"}
+                    {isLoadingMore && <Spinner size="sm" />}
+                    {isLoadingMore ? t("searching") : t("loadMore")}
                   </button>
                 </div>
               )}

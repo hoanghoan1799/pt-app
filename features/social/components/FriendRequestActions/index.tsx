@@ -1,5 +1,8 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from "@/constants/styles";
 import { useSocialAction } from "@/features/social/hooks/use-social-action";
 import {
@@ -20,6 +23,7 @@ export const FriendRequestActions = ({
   userId,
   direction,
 }: FriendRequestActionsProps) => {
+  const t = useTranslations("social.friendRequest");
   const { isPending, run } = useSocialAction();
 
   if (direction === "sent") {
@@ -27,10 +31,12 @@ export const FriendRequestActions = ({
       <button
         type="button"
         disabled={isPending}
+        aria-busy={isPending}
         onClick={() => run(() => cancelFriendRequestAction(userId))}
         className={`${BUTTON_SECONDARY} ${SMALL}`}
       >
-        Huỷ lời mời
+        {isPending && <Spinner size="sm" />}
+        {t("cancel")}
       </button>
     );
   }
@@ -39,18 +45,22 @@ export const FriendRequestActions = ({
       <button
         type="button"
         disabled={isPending}
+        aria-busy={isPending}
         onClick={() => run(() => acceptFriendRequestAction(userId))}
         className={`${BUTTON_PRIMARY} ${SMALL}`}
       >
-        Chấp nhận
+        {isPending && <Spinner size="sm" />}
+        {t("accept")}
       </button>
       <button
         type="button"
         disabled={isPending}
+        aria-busy={isPending}
         onClick={() => run(() => declineFriendRequestAction(userId))}
         className={`${BUTTON_SECONDARY} ${SMALL}`}
       >
-        Từ chối
+        {isPending && <Spinner size="sm" />}
+        {t("decline")}
       </button>
     </div>
   );

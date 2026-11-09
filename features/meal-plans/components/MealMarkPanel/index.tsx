@@ -2,7 +2,9 @@
 
 import clsx from "clsx";
 import { CircleCheck } from "lucide-react";
+import { useTranslations } from "next-intl";
 
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_SECONDARY, TEXTAREA } from "@/constants/styles";
 import { MEAL_LOG_LIMITS } from "@/features/meal-plans/constants/meal-plans";
 import { useMealMark } from "@/features/meal-plans/hooks/use-meal-mark";
@@ -20,6 +22,7 @@ export const MealMarkPanel = ({
   mealName,
   mark,
 }: MealMarkPanelProps) => {
+  const t = useTranslations("mealPlans.mealMarkPanel");
   const state = useMealMark(mealId, mark);
 
   return (
@@ -28,19 +31,24 @@ export const MealMarkPanel = ({
         type="button"
         onClick={state.toggleAchieved}
         disabled={state.isPending}
+        aria-busy={state.isPending}
         aria-pressed={state.achieved}
-        aria-label={`Đạt ${mealName}`}
+        aria-label={t("achieveLabel", { name: mealName })}
         className={clsx(
           BUTTON_SECONDARY,
           "w-full",
           state.achieved && "border-success bg-success/10 text-success",
         )}
       >
-        <CircleCheck className="size-5" aria-hidden />
-        {state.achieved ? "Đã đạt" : "Đạt"}
+        {state.isPending ? (
+          <Spinner size="md" />
+        ) : (
+          <CircleCheck className="size-5" aria-hidden />
+        )}
+        {state.achieved ? t("achieved") : t("achieve")}
       </button>
       <label htmlFor={`note-${mealId}`} className="sr-only">
-        Ghi chú {mealName}
+        {t("noteLabel", { name: mealName })}
       </label>
       <textarea
         id={`note-${mealId}`}
@@ -48,7 +56,7 @@ export const MealMarkPanel = ({
         onChange={(event) => state.setNote(event.target.value)}
         maxLength={MEAL_LOG_LIMITS.MARK_NOTE}
         rows={2}
-        placeholder="Món nào thiếu hoặc dư? VD: cơm dư khoảng 50 g"
+        placeholder={t("notePlaceholder")}
         className={TEXTAREA}
       />
       {state.isNoteChanged && (
@@ -56,9 +64,11 @@ export const MealMarkPanel = ({
           type="button"
           onClick={state.saveNote}
           disabled={state.isPending}
+          aria-busy={state.isPending}
           className={`${BUTTON_SECONDARY} w-full`}
         >
-          Lưu ghi chú
+          {state.isPending && <Spinner size="md" />}
+          {t("saveNote")}
         </button>
       )}
     </div>

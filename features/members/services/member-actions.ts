@@ -41,6 +41,7 @@ import {
 } from "@/services/action-errors";
 import { requireAdminForUser } from "@/services/admin-access";
 import { requireAdmin } from "@/services/auth-guard";
+import { getErrorsTranslator } from "@/services/localize-message";
 import type { FormState } from "@/types/form";
 import { createErrorState, createSuccessState } from "@/utils/form";
 
@@ -73,9 +74,12 @@ export const createMemberAction = withFormErrorHandling(
     }
 
     revalidatePath(ROUTES.ADMIN);
+
+    const t = await getErrorsTranslator();
+
     // The password goes back to the caller once and is never logged.
     return {
-      ...createSuccessState(`Đã thêm ${result.name}`),
+      ...createSuccessState(t("toasts.memberAdded", { name: result.name })),
       credentials: {
         name: result.name,
         email: rawEmail.trim(),

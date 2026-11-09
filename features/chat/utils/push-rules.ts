@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import { ROUTES } from "@/constants/routes";
 import { extractUrls, tokenizeLinks } from "@/features/chat/utils/link-rules";
+import { getPushTranslator } from "@/i18n/push-translator";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 import { getAdminMessagesPath } from "@/utils/routes";
 
 export type PushRecipientRole = "user" | "admin";
@@ -85,16 +87,20 @@ export const buildPushPreview = ({
   body,
   sticker = false,
   photo = false,
+  locale = DEFAULT_LOCALE,
 }: {
   body?: string | null;
   sticker?: boolean;
   photo?: boolean;
+  locale?: Locale;
 }): string => {
+  const t = getPushTranslator(locale);
+
   if (photo) {
-    return PUSH_PREVIEW_PHOTO;
+    return t("preview.photo");
   }
   if (sticker) {
-    return PUSH_PREVIEW_STICKER;
+    return t("preview.sticker");
   }
   const text = (body ?? "")
     .replace(/\r\n?/g, "\n")
@@ -104,7 +110,7 @@ export const buildPushPreview = ({
     .trim();
 
   if (text === "") {
-    return PUSH_PREVIEW_FALLBACK;
+    return t("preview.fallback");
   }
   if (
     extractUrls(text).length > 0 &&
@@ -112,7 +118,7 @@ export const buildPushPreview = ({
       (token) => token.kind === "link" || token.text.trim() === "",
     )
   ) {
-    return PUSH_PREVIEW_LINK;
+    return t("preview.link");
   }
   const chars = Array.from(text);
 
@@ -135,6 +141,7 @@ export const buildChatPushPayload = ({
   body,
   sticker = false,
   photo = false,
+  locale = DEFAULT_LOCALE,
 }: {
   recipientRole: PushRecipientRole;
   senderName: string;
@@ -143,9 +150,11 @@ export const buildChatPushPayload = ({
   body?: string | null;
   sticker?: boolean;
   photo?: boolean;
+  // The recipient's language.
+  locale?: Locale;
 }): ChatPushPayload => ({
   title: senderName.trim() === "" ? PUSH_TITLE : senderName,
-  body: buildPushPreview({ body, sticker, photo }),
+  body: buildPushPreview({ body, sticker, photo, locale }),
   url:
     recipientRole === "user"
       ? ROUTES.MESSAGES_COACH
@@ -163,15 +172,17 @@ export const buildReactionPushPayload = ({
   emoji,
   traineeUserId,
   conversationId,
+  locale = DEFAULT_LOCALE,
 }: {
   recipientRole: PushRecipientRole;
   reactorName: string;
   emoji: string;
   traineeUserId: number;
   conversationId: number;
+  locale?: Locale;
 }): ChatPushPayload => ({
   title: PUSH_TITLE,
-  body: `${reactorName} đã thả ${emoji} vào tin nhắn của bạn`,
+  body: getPushTranslator(locale)("reaction", { name: reactorName, emoji }),
   url:
     recipientRole === "user"
       ? ROUTES.MESSAGES_COACH

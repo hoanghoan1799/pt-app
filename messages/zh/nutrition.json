@@ -1,0 +1,194 @@
+{
+  "labels": {
+    "sex": {
+      "male": "男",
+      "female": "女"
+    },
+    "activity": {
+      "sedentary": {
+        "label": "久坐",
+        "description": "久坐为主，不运动"
+      },
+      "light": {
+        "label": "轻度",
+        "description": "每周训练 1–3 次"
+      },
+      "moderate": {
+        "label": "中度",
+        "description": "每周训练 3–5 次"
+      },
+      "active": {
+        "label": "高度",
+        "description": "每周训练 6–7 次"
+      },
+      "veryActive": {
+        "label": "极高",
+        "description": "每天训练 2 次或重体力劳动"
+      }
+    },
+    "goal": {
+      "cut": "减脂",
+      "maintain": "维持体重",
+      "bulk": "增肌"
+    },
+    "macro": {
+      "carbs": "碳水",
+      "protein": "蛋白质",
+      "fat": "脂肪"
+    },
+    "macroFoods": {
+      "carbs": "米饭、米粉、红薯、面包",
+      "protein": "肉、鱼、蛋、豆类",
+      "fat": "食用油、猪油、牛油果、坚果"
+    },
+    "meal": {
+      "breakfast": "早餐",
+      "lunch": "午餐",
+      "dinner": "晚餐",
+      "snack": "加餐"
+    },
+    "mealShort": {
+      "breakfast": "早",
+      "lunch": "午",
+      "dinner": "晚",
+      "snack": "加"
+    },
+    "targetSource": {
+      "tdee": "按 TDEE 自动计算",
+      "manual": "教练手动设置"
+    }
+  },
+  "weightLogForm": {
+    "todayWeight": "今日体重",
+    "todayWeightLogged": "今日体重（已记录，可修改）",
+    "placeholder": "例如：72.5",
+    "save": "保存"
+  },
+  "nutritionWeekSummary": {
+    "loggedDays": "天有记录",
+    "onTargetDays": "天达标",
+    "avgPerDay": "日均",
+    "tableLabel": "每日营养",
+    "dayColumn": "日期",
+    "legend": "已摄入克数 / 目标。<success>绿色</success>：达标（±10%），<danger>红色</danger>：超标。点击日期查看详情。"
+  },
+  "foodLog": {
+    "editMeal": "编辑餐食",
+    "deleteMeal": "删除餐食",
+    "logMeal": "记录餐食"
+  },
+  "foodEntryFormView": {
+    "mealLegend": "餐次",
+    "foodLabel": "吃了什么？",
+    "placeholder": "例如：1 碗米饭、水煮鸡胸肉、清炒空心菜",
+    "estimateLabel": "估算（克，选填）",
+    "foodsHint": "{carbs}：{carbFoods} · {protein}：{proteinFoods} · {fat}：{fatFoods}",
+    "saveChanges": "保存更改",
+    "logMeal": "记录餐食"
+  },
+  "macroRing": {
+    "progressLabel": "{name}：{eaten}/{target} g"
+  },
+  "weightChartView": {
+    "chartLabel": "每周平均体重图表",
+    "weekTooltip": "{range} 当周 · {count, plural, other {称重 # 次}}"
+  },
+  "weightTrendCard": {
+    "latestAverage": "最近一周平均",
+    "vsLastWeek": "较上周",
+    "inWeeks": "近 {weeks} 周",
+    "empty": "过去 {weeks} 周没有体重记录。",
+    "emptyLogHint": "在下方记录体重，开始追踪。",
+    "viewAsTable": "以表格查看"
+  },
+  "nutritionDayView": {
+    "emptyTraineeLog": "学员尚未记录这一天的餐食。",
+    "emptyFuture": "还没到这一天，到时再来记录吧。",
+    "emptyToday": "这一天还没有记录餐食。",
+    "dailyTargets": "每日目标",
+    "nutrition": "营养",
+    "noTarget": "教练尚未设置这一天的营养目标。",
+    "legacyLog": "旧记录",
+    "eaten": "已摄入"
+  },
+  "targetForm": {
+    "gramsPerDay": "克/天",
+    "ptNote": "教练留言",
+    "notePlaceholder": "例如：优先选择瘦肉蛋白，多吃蔬菜。每天喝 2.5 升水。",
+    "hint": "此处为营养素克数（不是食物克数）。从今天起生效，之前的日期保留原目标。若要按 TDEE 自动计算，请使用“身体数据”卡片。",
+    "save": "保存目标"
+  },
+  "caloriesProgressRow": {
+    "energy": "能量"
+  },
+  "energyPlanSummary": {
+    "restHint": "静息",
+    "burnedHint": "消耗/天",
+    "eatenHint": "摄入/天",
+    "target": "目标",
+    "flooredNotice": "目标不能低于 BMR，已采用 {kcal}"
+  },
+  "nutritionWeek": {
+    "completeDescription": "，各餐均已吃完",
+    "partialDescription": "，部分餐次已吃"
+  },
+  "bodyProfileFormView": {
+    "sex": "性别",
+    "activityLegend": "活动水平",
+    "goal": "目标",
+    "result": "计算结果",
+    "enterStats": "输入年龄、身高、体重以查看 TDEE。",
+    "applyToTarget": "按此结果更新营养目标（从今天起）",
+    "targetManual": "教练已为你单独设置目标，因此目标保持不变。教练仍可看到你的新数据。",
+    "targetRecalculated": "你的营养目标将按此结果重新计算，从今天起生效。",
+    "save": "保存数据",
+    "proteinDefault": "新的默认值：{value} g/kg（1 到 3）",
+    "kcalHint": "负数 = 减少，0 = 维持，正数 = 增加（-1500 到 1500）",
+    "fields": {
+      "age": "年龄",
+      "height": "身高",
+      "weight": "体重",
+      "kcalAdjustment": "每日热量缺口 / 盈余 kcal",
+      "proteinPerKg": "蛋白质（g/kg）"
+    },
+    "units": {
+      "years": "岁",
+      "cm": "cm",
+      "kg": "kg",
+      "kcal": "kcal",
+      "gPerKg": "g/kg"
+    }
+  },
+  "bodyProfileCard": {
+    "admin": {
+      "title": "身体数据与 TDEE",
+      "empty": "输入性别、年龄、身高、体重和活动水平，即可计算 TDEE 并自动填写营养目标。学员也可以自己输入。",
+      "action": "输入数据",
+      "sheetTitle": "身体数据"
+    },
+    "user": {
+      "title": "你的数据与 TDEE",
+      "empty": "输入身高、体重和活动水平，了解你每天消耗多少热量，以及应摄入多少碳水、蛋白质和脂肪。",
+      "action": "输入你的数据",
+      "sheetTitle": "你的数据"
+    },
+    "summary": "{sex} · {age} 岁 · {height} cm · {weight} kg",
+    "activityGoal": "活动水平：{activity} · 目标：{goal}",
+    "editStats": "编辑身体数据",
+    "sheetDescription": "按 Mifflin-St Jeor 公式计算 TDEE"
+  },
+  "nutritionTargetCard": {
+    "dailyTarget": "每日目标",
+    "targetSummary": "{calories}/天 · 自 {date} 起生效",
+    "editTarget": "编辑营养目标",
+    "empty": "尚未设置目标。学员将看到每天需要摄入多少克碳水、蛋白质和脂肪。",
+    "setTarget": "设置目标",
+    "sheetTitle": "营养目标",
+    "sheetDescription": "每类营养素的每日克数"
+  },
+  "useFoodLog": {
+    "deleteConfirm": "删除这条餐食？",
+    "confirm": "删除",
+    "entryDeleted": "已删除餐食"
+  }
+}

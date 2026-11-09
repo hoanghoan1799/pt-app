@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -13,9 +14,14 @@ import {
 import { hasAcceptedTerms } from "@/features/social/services/terms";
 import { requireUser } from "@/services/auth-guard";
 
-export const metadata: Metadata = { title: "Thông báo" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("social.pages");
+
+  return { title: t("notificationsTitle") };
+};
 
 const NotificationsPage = async () => {
+  const t = await getTranslations("social.pages");
   const user = await requireUser();
 
   if (!hasAcceptedTerms(user)) {
@@ -25,14 +31,14 @@ const NotificationsPage = async () => {
 
   await purgeOldNotifications();
   // Listed first, so the page still shows which ones were new.
-  const notifications = await listNotifications(key);
+  const notifications = await listNotifications(key, await getLocale());
 
   await markAllNotificationsRead(key);
   return (
     <>
       <AppHeader
-        eyebrow="Mạng xã hội"
-        title="Thông báo"
+        eyebrow={t("eyebrow")}
+        title={t("notificationsTitle")}
         backHref={ROUTES.FEED}
       />
       <main

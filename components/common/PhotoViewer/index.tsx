@@ -7,6 +7,7 @@ import {
   MessageSquare,
   X,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -53,6 +54,7 @@ export const PhotoViewer = ({
   onShowInChat,
   onNearEnd,
 }: PhotoViewerProps) => {
+  const t = useTranslations("common");
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const start = useRef<{ x: number; y: number } | null>(null);
@@ -195,7 +197,7 @@ export const PhotoViewer = ({
         <button
           ref={closeRef}
           type="button"
-          aria-label="Đóng"
+          aria-label={t("close")}
           onClick={(event) => {
             event.stopPropagation();
             onClose();
@@ -220,7 +222,7 @@ export const PhotoViewer = ({
       {hasPrevious && (
         <button
           type="button"
-          aria-label="Ảnh trước"
+          aria-label={t("photoViewer.previous")}
           onClick={(event) => {
             event.stopPropagation();
             go(-1);
@@ -233,7 +235,7 @@ export const PhotoViewer = ({
       {hasNext && (
         <button
           type="button"
-          aria-label="Ảnh sau"
+          aria-label={t("photoViewer.next")}
           onClick={(event) => {
             event.stopPropagation();
             go(1);
@@ -259,7 +261,7 @@ export const PhotoViewer = ({
             className={ACTION_BUTTON}
           >
             <Download className="size-5" aria-hidden />
-            Tải xuống
+            {t("photoViewer.download")}
           </button>
           {onShowInChat && (
             <button
@@ -271,7 +273,7 @@ export const PhotoViewer = ({
               className={ACTION_BUTTON}
             >
               <MessageSquare className="size-5" aria-hidden />
-              Xem trong tin nhắn
+              {t("photoViewer.showInChat")}
             </button>
           )}
         </div>

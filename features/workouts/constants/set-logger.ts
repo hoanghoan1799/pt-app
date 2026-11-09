@@ -1,38 +1,20 @@
-// UI copy for the trainee's set logger (KAN-30). Server messages live in
-// `messages.ts`.
-export const SET_LOGGER_COPY = {
-  TITLE: "Ghi hiệp",
-  ADD_ROW: "Thêm hiệp",
-  SAVE: "Lưu",
-  SAVING: "Đang lưu…",
-  WEIGHT_PLACEHOLDER: "kg",
-  WEIGHT_UNIT: "kg",
-  REPS_UNIT: "lần",
-  BODYWEIGHT: "Tự trọng",
-  BODYWEIGHT_HINT: "Để trống kg nếu tập với trọng lượng cơ thể",
-  PERSONAL_BEST: "Kỷ lục mới! 🏆",
-  PERSONAL_BEST_BADGE: "Kỷ lục mới",
-  HINT_PREFIX: "Lần trước",
-  LOGGED_PREFIX: "Đã ghi:",
-  NOTHING_LOGGED: "Chưa ghi hiệp nào",
-  NOTHING_TO_SAVE: "Nhập ít nhất một hiệp",
-} as const;
+import { getFormatTranslator } from "@/i18n/format-translator";
+import { localizeMessageFor } from "@/i18n/localize-message";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
-export const describeMissingReps = (setNumber: number) =>
-  `Nhập số lần cho hiệp ${setNumber}`;
+// Client-side validation messages for the set rows (utils/set-logger.ts,
+// tested). The wrapped schema message stays Vietnamese (server messages).
+export const describeMissingReps = (
+  setNumber: number,
+  locale: Locale = DEFAULT_LOCALE,
+) => getFormatTranslator(locale)("setRow.missingReps", { number: setNumber });
 
-export const describeRowError = (setNumber: number, message: string) =>
-  `Hiệp ${setNumber}: ${message}`;
-
-export const describeWeightLabel = (setNumber: number) =>
-  `Số kg hiệp ${setNumber}`;
-
-export const describeRepsLabel = (setNumber: number) =>
-  `Số lần hiệp ${setNumber}`;
-
-export const describeDeleteLabel = (setNumber: number) =>
-  `Xóa hiệp ${setNumber}`;
-
-// Starts with the visible text so voice control can match it (WCAG 2.5.3).
-export const describeHintLabel = (setNumber: number, text: string) =>
-  `${SET_LOGGER_COPY.HINT_PREFIX} ${text}, dùng cho hiệp ${setNumber}`;
+export const describeRowError = (
+  setNumber: number,
+  message: string,
+  locale: Locale = DEFAULT_LOCALE,
+) =>
+  getFormatTranslator(locale)("setRow.error", {
+    number: setNumber,
+    message: localizeMessageFor(locale, message),
+  });

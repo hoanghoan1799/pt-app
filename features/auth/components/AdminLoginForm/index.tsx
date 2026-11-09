@@ -1,12 +1,16 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
+import { Input } from "@/components/common/Input";
 import { SubmitButton } from "@/components/common/SubmitButton";
-import { BUTTON_PRIMARY, FIELD_ERROR, INPUT, LABEL } from "@/constants/styles";
+import { BUTTON_PRIMARY, FIELD_ERROR, LABEL } from "@/constants/styles";
 import { useLoginForm } from "@/features/auth/hooks/use-login-form";
 import { loginAdminAction } from "@/features/auth/services/auth-actions";
 import { describeErrorReference } from "@/utils/errors";
 
 export const AdminLoginForm = () => {
+  const t = useTranslations("auth.adminLogin");
   const { formAction, errorMessage, errorReference, values } =
     useLoginForm(loginAdminAction);
 
@@ -14,9 +18,10 @@ export const AdminLoginForm = () => {
     <form action={formAction} className="space-y-4">
       <div>
         <label htmlFor="username" className={LABEL}>
-          Tài khoản
+          {t("usernameLabel")}
         </label>
-        <input
+        <Input
+          clearable
           key={values.username}
           id="username"
           name="username"
@@ -28,14 +33,13 @@ export const AdminLoginForm = () => {
           enterKeyHint="next"
           required
           aria-invalid={Boolean(errorMessage)}
-          className={INPUT}
         />
       </div>
       <div>
         <label htmlFor="password" className={LABEL}>
-          Mật khẩu
+          {t("passwordLabel")}
         </label>
-        <input
+        <Input
           id="password"
           name="password"
           type="password"
@@ -44,7 +48,6 @@ export const AdminLoginForm = () => {
           required
           aria-invalid={Boolean(errorMessage)}
           aria-describedby={errorMessage ? "login-error" : undefined}
-          className={INPUT}
         />
         {errorMessage && (
           <p id="login-error" role="alert" className={FIELD_ERROR}>
@@ -58,7 +61,7 @@ export const AdminLoginForm = () => {
         )}
       </div>
       <SubmitButton className={`${BUTTON_PRIMARY} w-full`}>
-        Đăng nhập
+        {t("submit")}
       </SubmitButton>
     </form>
   );

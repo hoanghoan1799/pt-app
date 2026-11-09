@@ -14,6 +14,7 @@ export const findAdminById = async (id: number) => {
       username: admins.username,
       role: admins.role,
       verifiedAt: admins.verifiedAt,
+      locale: admins.locale,
       presenceHidden:
         sql<boolean>`coalesce(${admins.presenceHidden}, 0)`.mapWith(Boolean),
       // Never expose the hash itself, only whether a passcode exists.
@@ -106,4 +107,8 @@ export const listVerifiedAdminIds = async () => {
     .where(isNotNull(admins.verifiedAt));
 
   return rows.map((row) => row.id);
+};
+
+export const setAdminLocale = async (id: number, locale: string) => {
+  await db.update(admins).set({ locale }).where(eq(admins.id, id));
 };

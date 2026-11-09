@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 import { ProgressBar } from "@/components/common/ProgressBar";
 import type { Progress } from "@/features/workouts/types/workout";
 
@@ -6,6 +8,8 @@ interface WeekProgressProps {
 }
 
 export const WeekProgress = ({ progress }: WeekProgressProps) => {
+  const t = useTranslations("workouts.weekProgress");
+
   if (!progress.total) {
     return null;
   }
@@ -13,12 +17,16 @@ export const WeekProgress = ({ progress }: WeekProgressProps) => {
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between text-sm">
-        <span className="font-medium text-muted">Tiến độ tuần</span>
+        <span className="font-medium text-muted">{t("label")}</span>
         <span className="font-semibold text-fg">
-          {progress.completed}/{progress.total} bài · {progress.percent}%
+          {t("summary", {
+            completed: progress.completed,
+            total: progress.total,
+            percent: progress.percent,
+          })}
         </span>
       </div>
-      <ProgressBar percent={progress.percent} label="Tiến độ tuần" />
+      <ProgressBar percent={progress.percent} label={t("label")} />
     </div>
   );
 };

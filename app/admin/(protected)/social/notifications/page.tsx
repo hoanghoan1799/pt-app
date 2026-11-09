@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -11,21 +12,26 @@ import {
 } from "@/features/social/services/social-notifications";
 import { requireAdmin } from "@/services/auth-guard";
 
-export const metadata: Metadata = { title: "Thông báo" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("social.adminPages");
+
+  return { title: t("notificationsTitle") };
+};
 
 const AdminNotificationsPage = async () => {
+  const t = await getTranslations("social.adminPages");
   const admin = await requireAdmin();
   const key = `admin:${admin.id}`;
 
   await purgeOldNotifications();
-  const notifications = await listNotifications(key);
+  const notifications = await listNotifications(key, await getLocale());
 
   await markAllNotificationsRead(key);
   return (
     <>
       <AppHeader
-        eyebrow="Mạng xã hội"
-        title="Thông báo"
+        eyebrow={t("eyebrow")}
+        title={t("notificationsTitle")}
         backHref={ROUTES.ADMIN_SOCIAL}
       />
       <main

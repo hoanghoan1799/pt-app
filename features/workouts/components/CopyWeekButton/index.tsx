@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { ChevronDown, Copy } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
@@ -39,6 +40,9 @@ export const CopyWeekButton = ({
   today,
   members,
 }: CopyWeekButtonProps) => {
+  const locale = useLocale();
+  const t = useTranslations("workouts.copyWeek");
+  const tWeek = useTranslations("common.week");
   const { isOpen, setIsOpen, formAction, handleSubmit, isPending } =
     useCopyWeek();
   const [targetDate, setTargetDate] = useState(defaultTargetDate);
@@ -63,20 +67,22 @@ export const CopyWeekButton = ({
         className={`${BUTTON_SECONDARY} w-full`}
       >
         <Copy className="size-5" aria-hidden />
-        Sao chép tuần này
+        {t("trigger")}
       </button>
       <BottomSheet
         isOpen={isOpen}
         onOpenChange={handleOpenChange}
-        title="Sao chép tuần"
-        description={`Từ tuần ${formatWeekRange(weekStart)}`}
+        title={t("title")}
+        description={t("description", {
+          week: formatWeekRange(weekStart, locale),
+        })}
       >
         <form action={formAction} onSubmit={handleSubmit} className="space-y-4">
           <input type="hidden" name="userId" value={userId} />
           <input type="hidden" name="fromWeek" value={weekStart} />
           <div>
             <label htmlFor="targetUserId" className={LABEL}>
-              Sang user
+              {t("targetUser")}
             </label>
             <div className="relative">
               <select
@@ -88,7 +94,7 @@ export const CopyWeekButton = ({
                 {members.map((member) => (
                   <option key={member.id} value={member.id}>
                     {member.name}
-                    {member.id === userId ? " (user này)" : ""}
+                    {member.id === userId ? t("thisUserSuffix") : ""}
                   </option>
                 ))}
               </select>
@@ -99,7 +105,7 @@ export const CopyWeekButton = ({
             </div>
           </div>
           <div>
-            <p className={LABEL}>Sang tuần có ngày</p>
+            <p className={LABEL}>{t("targetDate")}</p>
             <input type="hidden" name="targetDate" value={targetDate} />
             <MonthGrid
               month={month}
@@ -116,9 +122,9 @@ export const CopyWeekButton = ({
                   <button
                     type="button"
                     aria-label={[
-                      formatFullDay(date),
-                      isToday && "hôm nay",
-                      isSource && "tuần nguồn",
+                      formatFullDay(date, locale),
+                      isToday && tWeek("dayIsToday"),
+                      isSource && t("sourceWeek"),
                     ]
                       .filter(Boolean)
                       .join(", ")}
@@ -141,21 +147,19 @@ export const CopyWeekButton = ({
                       {Number(date.slice(8, 10))}
                     </span>
                     <span className="h-2.5 text-[9px] leading-none font-medium tracking-tight whitespace-nowrap">
-                      {isSource ? "nguồn" : ""}
+                      {isSource ? t("sourceBadge") : ""}
                     </span>
                   </button>
                 );
               }}
             />
-            <p className="mt-1.5 text-sm text-muted">
-              Chọn ngày bất kỳ trong tuần đích. Lịch tuần đó sẽ được thay thế.
-            </p>
+            <p className="mt-1.5 text-sm text-muted">{t("hint")}</p>
           </div>
           <SubmitButton
             className={`${BUTTON_PRIMARY} w-full`}
             isPending={isPending}
           >
-            Sao chép
+            {t("submit")}
           </SubmitButton>
         </form>
       </BottomSheet>

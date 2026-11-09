@@ -6,7 +6,6 @@ import {
 import {
   describeMissingReps,
   describeRowError,
-  SET_LOGGER_COPY,
 } from "@/features/workouts/constants/set-logger";
 import type { Exercise } from "@/features/workouts/types/workout";
 import { isTimedReps } from "@/features/workouts/utils/exercise";
@@ -15,7 +14,10 @@ import {
   type SetInput,
   setInputSchema,
 } from "@/features/workouts/utils/sets";
+import { getFormatTranslator } from "@/i18n/format-translator";
+import { localizeMessageFor } from "@/i18n/localize-message";
 import { parseDecimal } from "@/utils/decimal";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 // One editable row of the set logger. Inputs stay strings while typing so a
 // half-typed "42," is not lost; `id` is a stable React key.
@@ -88,7 +90,10 @@ const parseReps = (value: string) =>
 // empty weight is bodyweight (Q3). Each row is checked with the server's
 // schema so the toast names the row before any round trip; the action still
 // validates on its own.
-export const rowsToSetInputs = (rows: SetRowDraft[]): RowsParseResult => {
+export const rowsToSetInputs = (
+  rows: SetRowDraft[],
+  locale: Locale = DEFAULT_LOCALE,
+): RowsParseResult => {
   const sets: SetInput[] = [];
 
   for (const [index, row] of rows.entries()) {
@@ -100,7 +105,7 @@ export const rowsToSetInputs = (rows: SetRowDraft[]): RowsParseResult => {
       continue;
     }
     if (reps === "") {
-      return { ok: false, message: describeMissingReps(setNumber) };
+      return { ok: false, message: describeMissingReps(setNumber, locale) };
     }
 
     const weightKg = weight === "" ? null : parseDecimal(weight);
@@ -109,13 +114,21 @@ export const rowsToSetInputs = (rows: SetRowDraft[]): RowsParseResult => {
     if (weightKg !== null && Number.isNaN(weightKg)) {
       return {
         ok: false,
-        message: describeRowError(setNumber, WORKOUT_MESSAGES.SET_WEIGHT_RANGE),
+        message: describeRowError(
+          setNumber,
+          WORKOUT_MESSAGES.SET_WEIGHT_RANGE,
+          locale,
+        ),
       };
     }
     if (Number.isNaN(repsCount)) {
       return {
         ok: false,
-        message: describeRowError(setNumber, WORKOUT_MESSAGES.SET_REPS_RANGE),
+        message: describeRowError(
+          setNumber,
+          WORKOUT_MESSAGES.SET_REPS_RANGE,
+          locale,
+        ),
       };
     }
 
@@ -127,6 +140,7 @@ export const rowsToSetInputs = (rows: SetRowDraft[]): RowsParseResult => {
         message: describeRowError(
           setNumber,
           parsed.error.issues[0]?.message ?? WORKOUT_MESSAGES.INVALID_INPUT,
+          locale,
         ),
       };
     }
@@ -134,13 +148,22 @@ export const rowsToSetInputs = (rows: SetRowDraft[]): RowsParseResult => {
   }
 
   return sets.length > SET_LIMITS.MAX_ROWS
-    ? { ok: false, message: WORKOUT_MESSAGES.SET_TOO_MANY }
+    ? {
+        ok: false,
+        message: localizeMessageFor(locale, WORKOUT_MESSAGES.SET_TOO_MANY),
+      }
     : { ok: true, sets };
 };
 
-// "40 kg × 10", "42,5 kg × 8" or "Tự trọng × 12".
-export const formatSet = ({ weightKg, reps }: LoggedSet) =>
-  `${weightKg === null ? SET_LOGGER_COPY.BODYWEIGHT : `${formatDecimal(weightKg)} ${SET_LOGGER_COPY.WEIGHT_UNIT}`} × ${reps}`;
+// "40 kg × 10", "42,5 kg × 8" or "Tự trọng × 12" ("42.5 kg × 8", "Bodyweight × 12").
+export const formatSet = (
+  { weightKg, reps }: LoggedSet,
+  locale: Locale = DEFAULT_LOCALE,
+) => {
+  const t = getFormatTranslator(locale);
+
+  return `${weightKg === null ? t("weight.bodyweight") : `${formatDecimal(weightKg, locale)} ${t("weight.unit")}`} × ${reps}`;
+};
 
 // Set rows only on today's and past days (Q7) and never for timed exercises
 // such as "30s" (Q3).

@@ -24,12 +24,6 @@ export const POST_PHOTO_MAX_BYTES = 400 * 1024;
 export const POST_PRIVACIES = ["everyone", "friends", "only_me"] as const;
 export const DEFAULT_POST_PRIVACY = "friends";
 
-export const PRIVACY_LABELS: Record<(typeof POST_PRIVACIES)[number], string> = {
-  everyone: "Mọi người",
-  friends: "Bạn bè",
-  only_me: "Chỉ mình tôi",
-};
-
 export const SOCIAL_MESSAGES = {
   TERMS_REQUIRED:
     "Bạn cần đồng ý Điều khoản sử dụng trước khi dùng tính năng này.",
@@ -54,7 +48,6 @@ export const REPORT_REASON_MAX_LENGTH = 500;
 export const FRIEND_MESSAGES = {
   NOT_FOUND: "Không tìm thấy người dùng.",
   EMAIL_INVALID: "Hãy nhập đúng địa chỉ email đầy đủ.",
-  SEARCH_EMPTY: "Không tìm thấy ai với email này.",
   ALREADY_FRIENDS: "Hai bạn đã là bạn bè.",
   ALREADY_REQUESTED: "Bạn đã gửi lời mời cho người này.",
   RATE_LIMITED:
@@ -62,7 +55,4 @@ export const FRIEND_MESSAGES = {
   REQUEST_NOT_FOUND: "Không tìm thấy lời mời kết bạn.",
   REASON_TOO_LONG: `Lý do tối đa ${REPORT_REASON_MAX_LENGTH} ký tự.`,
   REPORT_NOT_FOUND: "Không tìm thấy báo cáo.",
-  REPORT_SENT: "Đã gửi báo cáo. Cảm ơn bạn.",
-  BLOCKED: "Đã chặn người dùng.",
-  UNBLOCKED: "Đã bỏ chặn.",
 } as const;

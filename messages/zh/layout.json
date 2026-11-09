@@ -1,0 +1,55 @@
+{
+  "meta": { "description": "由教练安排的每周训练计划" },
+  "offline": {
+    "title": "无网络连接",
+    "body": "请检查 Wi-Fi 或移动数据后重试。联网后将显示你的训练计划。"
+  },
+  "globalError": { "documentTitle": "错误" },
+  "header": { "back": "返回" },
+  "userTabs": {
+    "label": "切换栏目",
+    "feed": "动态",
+    "workouts": "训练",
+    "nutrition": "营养",
+    "messages": "私信",
+    "summary": "总结"
+  },
+  "memberTabs": {
+    "label": "学员栏目",
+    "workouts": "训练",
+    "nutrition": "营养",
+    "summary": "总结",
+    "messages": "私信"
+  },
+  "weekSummary": {
+    "weight": "每周体重",
+    "progress": "进步",
+    "workouts": "训练",
+    "nutrition": "营养"
+  },
+  "menus": {
+    "settings": "设置",
+    "account": "账号",
+    "appearance": "外观",
+    "theme": { "light": "浅色", "dark": "深色", "system": "跟随系统" },
+    "language": "语言",
+    "accountColor": "账号颜色",
+    "presence": "在线状态",
+    "presenceOn": "已开启在线状态",
+    "presenceOff": "已关闭在线状态",
+    "switchOn": "开",
+    "switchOff": "关",
+    "saveFailed": "保存失败，请重试。",
+    "passcode": "锁屏码",
+    "lockNow": "立即锁定",
+    "lockFailed": "锁定失败，请重试。",
+    "lockNeedsPasscode": "请先设置锁屏码，才能锁定应用。",
+    "profile": "个人主页",
+    "avatar": "头像",
+    "changePassword": "修改密码",
+    "updating": "功能更新中",
+    "logout": "退出登录",
+    "logoutTitle": "退出此设备的登录？",
+    "logoutDescription": "你需要重新登录才能继续使用。"
+  }
+}

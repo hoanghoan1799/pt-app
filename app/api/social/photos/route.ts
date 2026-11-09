@@ -8,12 +8,16 @@ import {
 } from "@/features/social/services/post-photos";
 import { hasAcceptedTerms } from "@/features/social/services/terms";
 import { getApiAdmin, getApiUser } from "@/services/auth-guard";
+import { localizeResult } from "@/services/localize-message";
 import { logServerError } from "@/services/logger";
 
 const NO_STORE = { "Cache-Control": "no-store" };
 
-const reply = (body: unknown, status: number) =>
-  NextResponse.json(body, { status, headers: NO_STORE });
+const reply = async (body: unknown, status: number) =>
+  NextResponse.json(await localizeResult(body), {
+    status,
+    headers: NO_STORE,
+  });
 
 // A cookie-authenticated write must come from this site.
 const isSameOrigin = (request: NextRequest) => {

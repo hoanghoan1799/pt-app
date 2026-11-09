@@ -1,5 +1,7 @@
 import { DB_ERROR_PATTERNS, ERROR_MESSAGES } from "@/constants/errors";
+import { describeReferenceFor } from "@/i18n/localize-message";
 import type { ClassifiedError, ErrorCode } from "@/types/error";
+import { type Locale, parseLocale } from "@/utils/locale";
 
 // An error we raise on purpose, already carrying its code.
 export class AppError extends Error {
@@ -38,9 +40,18 @@ export const classifyError = (error: unknown): ClassifiedError => {
 export const getErrorMessage = ({ code }: ClassifiedError) =>
   ERROR_MESSAGES[code];
 
+// The language the page is in (<html lang>), for code that runs in the browser
+// without a locale at hand; Vietnamese on the server and in tests.
+const getPageLocale = () =>
+  parseLocale(
+    typeof document === "undefined" ? undefined : document.documentElement.lang,
+  );
+
 // Secondary line under an error message, e.g. "Mã tham chiếu: 3f9a1c2e".
-export const describeErrorReference = (reference: string | undefined) =>
-  reference ? `Mã tham chiếu: ${reference}` : undefined;
+export const describeErrorReference = (
+  reference: string | undefined,
+  locale: Locale = getPageLocale(),
+) => (reference ? describeReferenceFor(locale, reference) : undefined);
 
 // True when the database refused a write because of a UNIQUE index or key.
 export const isUniqueViolation = (error: unknown) =>

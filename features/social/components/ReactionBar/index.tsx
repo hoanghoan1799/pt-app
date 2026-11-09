@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { Heart, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useOptimistic, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -39,6 +40,7 @@ export const ReactionBar = ({
   commentCount,
   detailHref,
 }: ReactionBarProps) => {
+  const t = useTranslations("social.reactionBar");
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [summary, setSummary] = useOptimistic(
@@ -76,13 +78,15 @@ export const ReactionBar = ({
     setPickerOpen(true);
   };
 
-  const commentLabel = `${commentCount} bình luận`;
+  const commentLabel = t("comments", { count: commentCount });
 
   return (
     <div className="flex flex-wrap items-center gap-1 border-t border-line pt-2">
       <button
         type="button"
-        aria-label={summary.mine ? `Bạn đã thả ${summary.mine}` : "Thả tim"}
+        aria-label={
+          summary.mine ? t("reactedAs", { emoji: summary.mine }) : t("heart")
+        }
         aria-pressed={summary.mine !== null}
         aria-haspopup="dialog"
         onPointerDown={(event) => {
@@ -122,14 +126,14 @@ export const ReactionBar = ({
         ) : (
           <Heart className="size-5" aria-hidden />
         )}
-        <span>{summary.mine ? "Đã thả" : "Thích"}</span>
+        <span>{summary.mine ? t("reacted") : t("like")}</span>
       </button>
 
       {summary.total > 0 && (
         <button
           type="button"
           onClick={() => setReactorsOpen(true)}
-          aria-label={`${summary.total} lượt cảm xúc, xem danh sách`}
+          aria-label={t("reactionsList", { count: summary.total })}
           className={ACTION}
         >
           <span className="flex" aria-hidden>

@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -12,15 +13,18 @@ import { requireAdmin } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
 import { getRequestTime } from "@/utils/time";
 
-export const metadata: Metadata = { title: "Tin nhắn" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("chat.pages");
+
+  return { title: t("adminMessagesTitle") };
+};
 
 const UNREAD_FILTER = "unread";
 
 const FILTERS = [
-  { key: "all", label: "Tất cả", href: ROUTES.ADMIN_MESSAGES },
+  { key: "all", href: ROUTES.ADMIN_MESSAGES },
   {
     key: UNREAD_FILTER,
-    label: "Chưa đọc",
     href: `${ROUTES.ADMIN_MESSAGES}?filter=${UNREAD_FILTER}`,
   },
 ] as const;
@@ -28,10 +32,14 @@ const FILTERS = [
 const AdminMessagesInboxPage = async ({
   searchParams,
 }: PageProps<"/admin/messages">) => {
+  const t = await getTranslations("chat.pages");
   const admin = await requireAdmin();
   const query = await searchParams;
   const isUnreadOnly = readSearchParam(query.filter) === UNREAD_FILTER;
-  const { conversations, withoutConversation } = await listAdminInbox(admin.id);
+  const { conversations, withoutConversation } = await listAdminInbox(
+    admin.id,
+    await getLocale(),
+  );
   const items = isUnreadOnly
     ? conversations.filter((item) => item.unread > 0)
     : conversations;
@@ -40,7 +48,7 @@ const AdminMessagesInboxPage = async ({
 
   return (
     <>
-      <AppHeader title="Tin nhắn" backHref={ROUTES.ADMIN} />
+      <AppHeader title={t("adminMessagesTitle")} backHref={ROUTES.ADMIN} />
       <InboxLiveRefresh />
       <AdminInbox
         items={items}
@@ -52,7 +60,7 @@ const AdminMessagesInboxPage = async ({
         filters={
           <>
             <PushOptInCard role="admin" />
-            <nav aria-label="Lọc tin nhắn" className="flex gap-2">
+            <nav aria-label={t("filtersLabel")} className="flex gap-2">
               {FILTERS.map((filter) => {
                 const isActive =
                   (filter.key === UNREAD_FILTER) === isUnreadOnly;
@@ -69,7 +77,7 @@ const AdminMessagesInboxPage = async ({
                         : "border-line bg-surface text-muted active:bg-line",
                     )}
                   >
-                    {filter.label}
+                    {t(`filters.${filter.key}`)}
                   </Link>
                 );
               })}

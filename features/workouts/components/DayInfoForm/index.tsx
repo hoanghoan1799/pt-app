@@ -1,10 +1,12 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
+import { Input } from "@/components/common/Input";
 import { SubmitButton } from "@/components/common/SubmitButton";
 import {
   BUTTON_PRIMARY,
   FIELD_ERROR,
-  INPUT,
   LABEL,
   TEXTAREA,
 } from "@/constants/styles";
@@ -19,6 +21,7 @@ interface DayInfoFormProps {
 }
 
 export const DayInfoForm = ({ day, userId, onSaved }: DayInfoFormProps) => {
+  const t = useTranslations("workouts.dayInfoForm");
   const { formAction, fieldErrors } = useDayInfoForm(onSaved);
 
   return (
@@ -27,16 +30,16 @@ export const DayInfoForm = ({ day, userId, onSaved }: DayInfoFormProps) => {
       <input type="hidden" name="date" value={day.date} />
       <div>
         <label htmlFor="day-title" className={LABEL}>
-          Tiêu đề ngày
+          {t("titleLabel")}
         </label>
-        <input
+        <Input
+          clearable
           id="day-title"
           name="title"
           defaultValue={day.title}
-          placeholder="VD: Push – Ngực, vai, tay sau"
+          placeholder={t("titlePlaceholder")}
           maxLength={EXERCISE_LIMITS.DAY_TITLE}
           autoCapitalize="sentences"
-          className={INPUT}
         />
         {fieldErrors.title && (
           <p className={FIELD_ERROR}>{fieldErrors.title}</p>
@@ -44,7 +47,7 @@ export const DayInfoForm = ({ day, userId, onSaved }: DayInfoFormProps) => {
       </div>
       <div>
         <label htmlFor="day-note" className={LABEL}>
-          Ghi chú cho cả buổi
+          {t("noteLabel")}
         </label>
         <textarea
           id="day-note"
@@ -52,12 +55,14 @@ export const DayInfoForm = ({ day, userId, onSaved }: DayInfoFormProps) => {
           defaultValue={day.note}
           rows={4}
           maxLength={EXERCISE_LIMITS.DAY_NOTE}
-          placeholder="VD: Khởi động 10 phút, nghỉ 60–90 giây giữa hiệp"
+          placeholder={t("notePlaceholder")}
           className={TEXTAREA}
         />
         {fieldErrors.note && <p className={FIELD_ERROR}>{fieldErrors.note}</p>}
       </div>
-      <SubmitButton className={`${BUTTON_PRIMARY} w-full`}>Lưu</SubmitButton>
+      <SubmitButton className={`${BUTTON_PRIMARY} w-full`}>
+        {t("save")}
+      </SubmitButton>
     </form>
   );
 };

@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { Copy, Pencil, Reply, Undo2 } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
@@ -67,6 +68,8 @@ export const MessageActionsSheet = ({
   onEdit,
   onUnsend,
 }: MessageActionsSheetProps) => {
+  const locale = useLocale();
+  const t = useTranslations("chat.messageActions");
   const mine = myReactionOf(message, viewer);
   // A sticker has no text: it can be reacted to, replied to and unsent only.
   // A photo without a caption has no text to copy or edit either.
@@ -78,13 +81,15 @@ export const MessageActionsSheet = ({
     <BottomSheet
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      title="Tuỳ chọn tin nhắn"
-      description={`Gửi lúc ${formatSentAt(message.createdAt)}`}
+      title={t("title")}
+      description={t("sentAt", {
+        time: formatSentAt(message.createdAt, locale),
+      })}
     >
       {canWrite && (
         <div
           role="group"
-          aria-label="Cảm xúc"
+          aria-label={t("reactions")}
           className="mb-2 flex justify-between rounded-2xl border border-line bg-surface p-1.5"
         >
           {CHAT_REACTION_EMOJIS.map((emoji) => {
@@ -112,28 +117,28 @@ export const MessageActionsSheet = ({
         {canWrite && (
           <ActionRow
             icon={<Reply className="size-5" aria-hidden />}
-            label="Trả lời"
+            label={t("reply")}
             onClick={onReply}
           />
         )}
         {!isSticker && (
           <ActionRow
             icon={<Copy className="size-5" aria-hidden />}
-            label="Sao chép"
+            label={t("copy")}
             onClick={onCopy}
           />
         )}
         {canModify && !isSticker && (
           <ActionRow
             icon={<Pencil className="size-5" aria-hidden />}
-            label="Chỉnh sửa"
+            label={t("edit")}
             onClick={onEdit}
           />
         )}
         {canModify && (
           <ActionRow
             icon={<Undo2 className="size-5" aria-hidden />}
-            label="Thu hồi"
+            label={t("unsend")}
             onClick={onUnsend}
             isDanger
           />

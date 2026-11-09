@@ -23,6 +23,7 @@ import {
   recordFailure,
 } from "@/services/login-limiter";
 import { verifyPassword } from "@/services/password";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 export interface HiddenUser {
   userId: number;
@@ -170,6 +171,7 @@ const listHiddenUsers = async (adminId: number): Promise<HiddenUser[]> => {
 export const revealHiddenUsers = async (
   adminId: number,
   passcode: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<RevealResult> => {
   const limiterKey = passcodeRevealLimiterKey(adminId);
 
@@ -189,7 +191,7 @@ export const revealHiddenUsers = async (
 
   const [hiddenUsers, inbox] = await Promise.all([
     listHiddenUsers(adminId),
-    listHiddenInboxForAdmin(adminId),
+    listHiddenInboxForAdmin(adminId, locale),
   ]);
 
   return {

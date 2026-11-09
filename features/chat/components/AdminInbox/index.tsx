@@ -4,21 +4,22 @@ import clsx from "clsx";
 import { MessageCircle, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Avatar } from "@/components/common/Avatar";
+import { Input } from "@/components/common/Input";
+import { Spinner } from "@/components/common/Spinner";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
   CARD,
-  INPUT,
   PAGE_CONTAINER,
   SECTION_TITLE,
 } from "@/constants/styles";
 import { ChatInboxList } from "@/features/chat/components/ChatInboxList";
 import { HiddenUserList } from "@/features/chat/components/HiddenUserList";
-import { HIDDEN_CHAT_MESSAGES } from "@/features/chat/constants/messages";
 import { useHiddenReveal } from "@/features/chat/hooks/use-hidden-reveal";
 import {
   hideUsersAction,
@@ -29,7 +30,7 @@ import type {
   InboxWithoutConversation,
 } from "@/features/chat/services/chat-queries";
 import { matchesInboxSearch } from "@/features/chat/utils/inbox-search";
-import { isOnline, ONLINE_LABEL } from "@/features/chat/utils/presence";
+import { isOnline } from "@/features/chat/utils/presence";
 import { shortLastSeen } from "@/features/chat/utils/presence-status";
 import { getAdminMessagesPath } from "@/utils/routes";
 
@@ -44,9 +45,6 @@ interface AdminInboxProps {
   // The filter tabs, rendered between the search box and the list.
   filters: ReactNode;
 }
-
-const HIDE_FAILED = "Không ẩn được. Thử lại nhé.";
-const UNHIDE_FAILED = "Không bỏ ẩn được. Thử lại nhé.";
 
 const EmptyState = ({ text }: { text: string }) => (
   <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
@@ -66,6 +64,8 @@ export const AdminInbox = ({
   isUnreadOnly,
   filters,
 }: AdminInboxProps) => {
+  const locale = useLocale();
+  const t = useTranslations("chat.adminInbox");
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [isSelecting, setIsSelecting] = useState(false);
@@ -101,7 +101,7 @@ export const AdminInbox = ({
 
   const startSelect = () => {
     if (!hasPasscode) {
-      toast.info(HIDDEN_CHAT_MESSAGES.PASSCODE_REQUIRED);
+      toast.info(t("passcodeRequired"));
       return;
     }
     setIsSelecting(true);
@@ -121,7 +121,7 @@ export const AdminInbox = ({
 
   const hideSelected = () => {
     if (!hasPasscode) {
-      toast.info(HIDDEN_CHAT_MESSAGES.PASSCODE_REQUIRED);
+      toast.info(t("passcodeRequired"));
       return;
     }
     const ids = [...selected];
@@ -134,14 +134,14 @@ export const AdminInbox = ({
         const result = await hideUsersAction(ids);
 
         if (result.status === "success") {
-          toast.success(`Đã ẩn ${ids.length} học viên`);
+          toast.success(t("hiddenToast", { count: ids.length }));
           exitSelect();
           router.refresh();
           return;
         }
-        toast.error(result.message ?? HIDE_FAILED);
+        toast.error(result.message ?? t("hideFailed"));
       } catch {
-        toast.error(HIDE_FAILED);
+        toast.error(t("hideFailed"));
       }
     });
   };
@@ -156,9 +156,9 @@ export const AdminInbox = ({
           router.refresh();
           return;
         }
-        toast.error(UNHIDE_FAILED);
+        toast.error(t("unhideFailed"));
       } catch {
-        toast.error(UNHIDE_FAILED);
+        toast.error(t("unhideFailed"));
       }
     });
   };
@@ -174,36 +174,32 @@ export const AdminInbox = ({
       )}
     >
       <div className="flex items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted"
-            aria-hidden
-          />
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Tìm theo tên"
-            aria-label="Tìm theo tên"
-            autoComplete="off"
-            enterKeyHint="search"
-            className={`${INPUT} pl-10`}
-          />
-        </div>
+        <Input
+          type="search"
+          clearable
+          leadingIcon={<Search className="size-4" aria-hidden />}
+          wrapperClassName="min-w-0 flex-1"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t("searchPlaceholder")}
+          aria-label={t("searchPlaceholder")}
+          autoComplete="off"
+          enterKeyHint="search"
+        />
         {!isSelecting && (
           <button
             type="button"
             onClick={startSelect}
             className="inline-flex min-h-12 shrink-0 items-center rounded-xl px-3 text-base font-semibold text-accent transition active:bg-line"
           >
-            Chọn
+            {t("select")}
           </button>
         )}
       </div>
       {filters}
       {isRevealing ? (
-        <section className="space-y-2" aria-label="Học viên đã ẩn">
-          <h2 className={SECTION_TITLE}>Học viên đã ẩn</h2>
+        <section className="space-y-2" aria-label={t("hiddenSection")}>
+          <h2 className={SECTION_TITLE}>{t("hiddenSection")}</h2>
           {hiddenItems.length > 0 && (
             <ChatInboxList
               items={hiddenItems}
@@ -227,10 +223,10 @@ export const AdminInbox = ({
             <EmptyState
               text={
                 isSearching
-                  ? "Không tìm thấy học viên nào"
+                  ? t("emptySearch")
                   : isUnreadOnly
-                    ? "Không có tin nhắn chưa đọc"
-                    : "Chưa có cuộc trò chuyện nào"
+                    ? t("emptyUnread")
+                    : t("emptyAll")
               }
             />
           )}
@@ -246,17 +242,21 @@ export const AdminInbox = ({
           )}
           {!isUnreadOnly && shownFresh.length > 0 && (
             <section className="space-y-2">
-              <h2 className={SECTION_TITLE}>Chưa có tin nhắn</h2>
+              <h2 className={SECTION_TITLE}>{t("freshSection")}</h2>
               <ul className={`${CARD} divide-y divide-line overflow-hidden`}>
                 {shownFresh.map((member) => {
                   const online = isOnline(member.lastSeenAt, now);
-                  const lastSeen = shortLastSeen(member.lastSeenAt, now);
+                  const lastSeen = shortLastSeen(
+                    member.lastSeenAt,
+                    now,
+                    locale,
+                  );
                   const content = (
                     <>
                       {online && (
                         <span
                           role="img"
-                          aria-label={ONLINE_LABEL}
+                          aria-label={t("online")}
                           className="size-2.5 shrink-0 rounded-full bg-success"
                         />
                       )}
@@ -285,7 +285,9 @@ export const AdminInbox = ({
                             type="checkbox"
                             checked={selected.has(member.userId)}
                             onChange={() => toggle(member.userId)}
-                            aria-label={`Chọn ${member.userName}`}
+                            aria-label={t("selectRow", {
+                              name: member.userName,
+                            })}
                             className="size-5 shrink-0 accent-accent"
                           />
                           {content}
@@ -311,22 +313,24 @@ export const AdminInbox = ({
           <div
             className={`${PAGE_CONTAINER} flex items-center gap-3 py-3`}
             role="toolbar"
-            aria-label="Ẩn học viên"
+            aria-label={t("hideToolbar")}
           >
             <button
               type="button"
               onClick={exitSelect}
               className={`${BUTTON_SECONDARY} flex-1`}
             >
-              Huỷ
+              {t("cancel")}
             </button>
             <button
               type="button"
               disabled={selected.size === 0 || isPending}
+              aria-busy={isPending}
               onClick={hideSelected}
               className={`${BUTTON_PRIMARY} flex-1`}
             >
-              Ẩn ({selected.size})
+              {isPending && <Spinner size="md" />}
+              {t("hideCount", { count: selected.size })}
             </button>
           </div>
         </div>

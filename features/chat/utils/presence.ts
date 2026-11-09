@@ -1,4 +1,7 @@
 import { TIME_ZONE } from "@/constants/time";
+import { getFormatTranslator } from "@/i18n/format-translator";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
+import { formatDayMonth } from "@/utils/week";
 
 // Online = a heartbeat landed in the last two minutes. The client beats every
 // minute while the app is visible, so one missed beat still reads as online.
@@ -41,31 +44,42 @@ export const formatLastSeen = (
   lastSeenAt: Date | null,
   now: Date,
   timeZone: string = TIME_ZONE,
+  locale: Locale = DEFAULT_LOCALE,
 ): string | null => {
   if (lastSeenAt === null) {
     return null;
   }
+  const t = getFormatTranslator(locale);
   const elapsed = now.getTime() - lastSeenAt.getTime();
 
   if (elapsed < PRESENCE_ONLINE_MS) {
-    return ONLINE_LABEL;
+    return t("presence.online");
   }
   const today = dayKey(now, timeZone);
   const seenDay = dayKey(lastSeenAt, timeZone);
 
   if (seenDay === today) {
     return elapsed < HOUR_MS
-      ? `Hoạt động ${Math.floor(elapsed / MINUTE_MS)} phút trước`
-      : `Hoạt động ${Math.floor(elapsed / HOUR_MS)} giờ trước`;
+      ? t("presence.minutes", { count: Math.floor(elapsed / MINUTE_MS) })
+      : t("presence.hours", { count: Math.floor(elapsed / HOUR_MS) });
   }
   if (seenDay === dayKey(new Date(now.getTime() - DAY_MS), timeZone)) {
-    return "Hoạt động hôm qua";
+    return t("presence.yesterday");
   }
   const { year, month, day } = dateParts(lastSeenAt, timeZone);
+  const sameYear = year === dateParts(now, timeZone).year;
+  const date =
+    locale === "zh"
+      ? `${sameYear ? "" : `${year}年`}${formatDayMonth(seenDay, locale)}`
+      : locale === "vi"
+        ? sameYear
+          ? `${day}/${month}`
+          : `${day}/${month}/${year}`
+        : sameYear
+          ? formatDayMonth(seenDay, locale)
+          : `${formatDayMonth(seenDay, locale)}, ${year}`;
 
-  return year === dateParts(now, timeZone).year
-    ? `Hoạt động ${day}/${month}`
-    : `Hoạt động ${day}/${month}/${year}`;
+  return t("presence.onDate", { date });
 };
 
 // Trainee side: the PT team is online when ANY admin is, otherwise the most

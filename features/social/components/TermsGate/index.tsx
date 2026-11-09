@@ -1,16 +1,18 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_PRIMARY } from "@/constants/styles";
 import { acceptTermsAction } from "@/features/social/services/social-actions";
 import { describeErrorReference } from "@/utils/errors";
 
 // "Đồng ý" stores the terms version and the time, then reloads the page.
 export const TermsAcceptButton = () => {
+  const t = useTranslations("social.terms");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -33,10 +35,11 @@ export const TermsAcceptButton = () => {
       type="button"
       onClick={handleAccept}
       disabled={isPending}
+      aria-busy={isPending}
       className={`${BUTTON_PRIMARY} w-full`}
     >
-      {isPending && <Loader2 className="size-5 animate-spin" aria-hidden />}
-      Đồng ý
+      {isPending && <Spinner size="md" />}
+      {t("accept")}
     </button>
   );
 };

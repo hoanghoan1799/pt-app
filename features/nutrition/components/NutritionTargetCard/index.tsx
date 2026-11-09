@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { Pencil, Target } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
@@ -11,7 +12,7 @@ import {
   MACRO_COLORS,
   MACRO_LABELS,
   MACROS,
-  TARGET_SOURCE_LABELS,
+  TARGET_SOURCE_LABEL_KEYS,
 } from "@/features/nutrition/constants/nutrition";
 import type { NutritionTarget } from "@/features/nutrition/types/nutrition";
 import { formatCalories } from "@/features/nutrition/utils/energy";
@@ -28,6 +29,9 @@ export const NutritionTargetCard = ({
   userId,
   target,
 }: NutritionTargetCardProps) => {
+  const locale = useLocale();
+  const t = useTranslations("nutrition.nutritionTargetCard");
+  const tLabels = useTranslations("nutrition.labels");
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -36,12 +40,14 @@ export const NutritionTargetCard = ({
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 text-xs font-semibold text-muted">
             <Target className="size-4" aria-hidden />
-            Mục tiêu mỗi ngày
+            {t("dailyTarget")}
           </p>
           {target && (
             <p className="mt-0.5 text-xs text-muted">
-              {formatCalories(calculateCalories(target))}/ngày · áp dụng từ{" "}
-              {formatDayMonth(target.effectiveFrom)}
+              {t("targetSummary", {
+                calories: formatCalories(calculateCalories(target), locale),
+                date: formatDayMonth(target.effectiveFrom, locale),
+              })}
               <span
                 className={clsx(
                   "ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
@@ -50,7 +56,7 @@ export const NutritionTargetCard = ({
                     : "bg-line text-muted",
                 )}
               >
-                {TARGET_SOURCE_LABELS[target.source]}
+                {tLabels(TARGET_SOURCE_LABEL_KEYS[target.source])}
               </span>
             </p>
           )}
@@ -60,7 +66,7 @@ export const NutritionTargetCard = ({
             type="button"
             onClick={() => setIsOpen(true)}
             className={`${ICON_BUTTON} -mt-2 -mr-2 text-fg`}
-            aria-label="Sửa mục tiêu dinh dưỡng"
+            aria-label={t("editTarget")}
           >
             <Pencil className="size-5" />
           </button>
@@ -83,7 +89,7 @@ export const NutritionTargetCard = ({
                   MACRO_COLORS[macro].text,
                 )}
               >
-                {MACRO_LABELS[macro].name}
+                {tLabels(MACRO_LABELS[macro].nameKey)}
               </p>
               <p className="mt-0.5 text-lg leading-tight font-bold text-fg tabular-nums">
                 {target[macro]} g
@@ -93,16 +99,13 @@ export const NutritionTargetCard = ({
         </div>
       ) : (
         <div className="mt-3 space-y-3">
-          <p className="text-sm text-muted">
-            Chưa đặt mục tiêu. User sẽ thấy cần ăn bao nhiêu gram carb, protein,
-            fat mỗi ngày.
-          </p>
+          <p className="text-sm text-muted">{t("empty")}</p>
           <button
             type="button"
             onClick={() => setIsOpen(true)}
             className={`${BUTTON_PRIMARY} w-full`}
           >
-            Đặt mục tiêu
+            {t("setTarget")}
           </button>
         </div>
       )}
@@ -110,8 +113,8 @@ export const NutritionTargetCard = ({
       <BottomSheet
         isOpen={isOpen}
         onOpenChange={setIsOpen}
-        title="Mục tiêu dinh dưỡng"
-        description="Số gram mỗi ngày cho từng nhóm"
+        title={t("sheetTitle")}
+        description={t("sheetDescription")}
       >
         <TargetForm
           userId={userId}

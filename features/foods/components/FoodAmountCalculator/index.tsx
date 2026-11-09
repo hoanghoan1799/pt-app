@@ -1,8 +1,10 @@
 "use client";
 
 import clsx from "clsx";
+import { useLocale, useTranslations } from "next-intl";
 
-import { CARD, INPUT, LABEL } from "@/constants/styles";
+import { Input } from "@/components/common/Input";
+import { CARD, LABEL } from "@/constants/styles";
 import { useFoodAmount } from "@/features/foods/hooks/use-food-amount";
 import type { Food } from "@/features/foods/types/food";
 import { formatGrams, formatKcal } from "@/features/foods/utils/food-math";
@@ -21,16 +23,19 @@ const UNIT_BUTTON = "min-h-10 rounded-lg text-sm font-semibold transition";
 
 // Type grams (or servings) and see the calories and macros for that amount.
 export const FoodAmountCalculator = ({ food }: FoodAmountCalculatorProps) => {
+  const locale = useLocale();
+  const t = useTranslations("foods.foodAmountCalculator");
+  const tNutritionLabels = useTranslations("nutrition.labels");
   const { unit, changeUnit, text, setText, isValid, maxAmount, result } =
     useFoodAmount(food);
   const hasServing = Boolean(food.servingLabel && food.servingGrams);
   const unitLabel =
-    unit === "servings" && food.servingLabel ? food.servingLabel : "gram";
+    unit === "servings" && food.servingLabel ? food.servingLabel : t("gram");
 
   return (
     <section className={`${CARD} space-y-4 p-4`} aria-labelledby="amount-title">
       <h2 id="amount-title" className="text-lg font-bold text-fg">
-        Tính theo khối lượng
+        {t("title")}
       </h2>
 
       {hasServing && (
@@ -46,7 +51,9 @@ export const FoodAmountCalculator = ({ food }: FoodAmountCalculatorProps) => {
                 unit === item ? "bg-surface text-fg shadow-sm" : "text-muted",
               )}
             >
-              {item === "grams" ? "Gram" : `Khẩu phần (${food.servingLabel})`}
+              {item === "grams"
+                ? t("grams")
+                : t("servingButton", { label: food.servingLabel ?? "" })}
             </button>
           ))}
         </div>
@@ -54,10 +61,10 @@ export const FoodAmountCalculator = ({ food }: FoodAmountCalculatorProps) => {
 
       <div>
         <label htmlFor="food-amount" className={LABEL}>
-          {unit === "servings" ? "Số khẩu phần" : "Khối lượng (gram)"}
+          {unit === "servings" ? t("servingsCount") : t("amountGrams")}
         </label>
         <div className="relative">
-          <input
+          <Input
             id="food-amount"
             value={text}
             onChange={(event) => setText(event.target.value)}
@@ -65,7 +72,7 @@ export const FoodAmountCalculator = ({ food }: FoodAmountCalculatorProps) => {
             autoComplete="off"
             aria-invalid={!isValid}
             aria-describedby="amount-hint"
-            className={`${INPUT} pr-24`}
+            className="pr-24"
           />
           <span className="pointer-events-none absolute top-1/2 right-4 max-w-20 -translate-y-1/2 truncate text-sm text-muted">
             {unitLabel}
@@ -79,16 +86,18 @@ export const FoodAmountCalculator = ({ food }: FoodAmountCalculatorProps) => {
           )}
         >
           {isValid
-            ? `= ${formatGrams(result.grams)} g`
-            : `Nhập số từ 0 đến ${maxAmount}${unit === "servings" ? " khẩu phần" : " g"}`}
+            ? t("equals", { grams: formatGrams(result.grams, locale) })
+            : t(unit === "servings" ? "invalidServings" : "invalidGrams", {
+                max: maxAmount,
+              })}
         </p>
       </div>
 
       <dl className="space-y-3" aria-live="polite">
         <div className="flex items-baseline justify-between rounded-xl bg-line/50 px-4 py-3">
-          <dt className="font-semibold text-fg">Calo</dt>
+          <dt className="font-semibold text-fg">{t("kcal")}</dt>
           <dd className="text-2xl font-bold text-fg tabular-nums">
-            {formatKcal(result.kcal)}{" "}
+            {formatKcal(result.kcal, locale)}{" "}
             <span className="text-sm font-medium text-muted">kcal</span>
           </dd>
         </div>
@@ -107,10 +116,10 @@ export const FoodAmountCalculator = ({ food }: FoodAmountCalculatorProps) => {
                   MACRO_COLORS[macro].text,
                 )}
               >
-                {MACRO_LABELS[macro].name}
+                {tNutritionLabels(MACRO_LABELS[macro].nameKey)}
               </dt>
               <dd className="mt-0.5 text-lg font-bold text-fg tabular-nums">
-                {formatGrams(result[macro])}
+                {formatGrams(result[macro], locale)}
                 <span className="text-xs font-medium text-muted"> g</span>
               </dd>
             </div>

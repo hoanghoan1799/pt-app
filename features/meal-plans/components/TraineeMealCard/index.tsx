@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { BUTTON_PRIMARY } from "@/constants/styles";
 import { MacroChips } from "@/features/meal-plans/components/MacroChips";
@@ -48,6 +49,7 @@ export const TraineeMealCard = ({
   isCollapsed,
   onToggleCollapse,
 }: TraineeMealCardProps) => {
+  const t = useTranslations("mealPlans.traineeMealCard");
   const card = useTraineeMealCard();
   const planned = sumItems(meal.items);
   const isAchieved = mark?.achieved ?? false;
@@ -63,7 +65,7 @@ export const TraineeMealCard = ({
           ? "border-success/40 bg-success/10"
           : "border-line bg-surface",
       )}
-      aria-label={`Bữa ${index + 1}: ${meal.name}`}
+      aria-label={t("sectionLabel", { index: index + 1, name: meal.name })}
     >
       <div className="flex items-start gap-1">
         <div className="-ml-2">
@@ -78,8 +80,12 @@ export const TraineeMealCard = ({
           <h3 className="text-lg font-bold text-fg">{meal.name}</h3>
           {target && (
             <p className="mt-0.5 text-xs text-muted tabular-nums">
-              Mục tiêu bữa: {Math.round(target.kcal)} kcal · P {target.protein}{" "}
-              · C {target.carbs} · F {target.fat}
+              {t("mealTarget", {
+                kcal: Math.round(target.kcal),
+                protein: target.protein,
+                carbs: target.carbs,
+                fat: target.fat,
+              })}
             </p>
           )}
         </div>
@@ -87,14 +93,17 @@ export const TraineeMealCard = ({
 
       {isCollapsed && (
         <p className="text-sm text-muted tabular-nums">
-          Đã ăn {Math.round(eaten.kcal)} / {Math.round(kcalOf(planned))} kcal
+          {t("eatenSummary", {
+            eaten: Math.round(eaten.kcal),
+            planned: Math.round(kcalOf(planned)),
+          })}
         </p>
       )}
 
       <div id={bodyId} hidden={isCollapsed} className="space-y-3">
         <div>
           <p className="text-xs font-semibold tracking-wide text-muted uppercase">
-            Plan của PT
+            {t("ptPlan")}
           </p>
           {meal.items.length ? (
             <ul className="mt-1 divide-y divide-line">
@@ -111,16 +120,14 @@ export const TraineeMealCard = ({
               ))}
             </ul>
           ) : (
-            <p className="mt-1 text-sm text-muted">
-              PT chưa thêm món cho bữa này.
-            </p>
+            <p className="mt-1 text-sm text-muted">{t("noFoods")}</p>
           )}
         </div>
 
         {logs.length > 0 && (
           <div>
             <p className="text-xs font-semibold tracking-wide text-muted uppercase">
-              Đã ăn thêm ngoài plan
+              {t("extraLogged")}
             </p>
             <MealLogList
               logs={logs}
@@ -135,12 +142,12 @@ export const TraineeMealCard = ({
           <div className="space-y-2">
             <p
               className="text-sm font-semibold text-fg tabular-nums"
-              aria-label={`Đã ăn ${meal.name}`}
+              aria-label={t("eatenLabel", { name: meal.name })}
             >
               {Math.round(eaten.kcal)} kcal
               <span className="font-normal text-muted">
                 {" "}
-                / {Math.round(kcalOf(planned))} kcal (plan)
+                {t("planKcal", { kcal: Math.round(kcalOf(planned)) })}
               </span>
             </p>
             <MacroChips totals={eaten} target={planned} />
@@ -153,10 +160,10 @@ export const TraineeMealCard = ({
               type="button"
               onClick={card.openAdd}
               className={`${BUTTON_PRIMARY} w-full`}
-              aria-label={`Ghi món đã ăn vào ${meal.name}`}
+              aria-label={t("logEatenInto", { name: meal.name })}
             >
               <Plus className="size-5" aria-hidden />
-              Ghi món đã ăn
+              {t("logEaten")}
             </button>
             <MealMarkPanel mealId={meal.id} mealName={meal.name} mark={mark} />
             <MealLogSheet
@@ -169,9 +176,7 @@ export const TraineeMealCard = ({
             />
           </>
         ) : (
-          <p className="text-sm text-muted">
-            Chưa tới ngày này, quay lại ghi sau nhé.
-          </p>
+          <p className="text-sm text-muted">{t("futureDay")}</p>
         )}
       </div>
     </section>

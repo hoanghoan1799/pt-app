@@ -1,6 +1,7 @@
 import { MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -13,20 +14,26 @@ import { countUnreadNotifications } from "@/features/social/services/social-noti
 import { isSuperAdmin } from "@/services/admin-scope";
 import { requireAdmin } from "@/services/auth-guard";
 
-export const metadata: Metadata = { title: "Mạng xã hội" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("social.adminPages");
+
+  return { title: t("socialTitle") };
+};
 
 const AdminSocialPage = async () => {
+  const t = await getTranslations("social.adminPages");
   const admin = await requireAdmin();
+  const locale = await getLocale();
   const [posts, unreadCount] = await Promise.all([
-    listAdminFeed(admin),
+    listAdminFeed(admin, null, locale),
     countUnreadNotifications(`admin:${admin.id}`),
   ]);
 
   return (
     <>
       <AppHeader
-        eyebrow={`Admin · ${admin.username}`}
-        title="Mạng xã hội"
+        eyebrow={t("adminEyebrow", { name: admin.username })}
+        title={t("socialTitle")}
         backHref={ROUTES.ADMIN}
         actions={
           <>
@@ -34,7 +41,7 @@ const AdminSocialPage = async () => {
               <Link
                 href={ROUTES.ADMIN_SOCIAL_CHATS}
                 className={ICON_BUTTON}
-                aria-label="Chat học viên"
+                aria-label={t("chatsLink")}
               >
                 <MessageCircle className="size-6" aria-hidden />
               </Link>
@@ -54,7 +61,7 @@ const AdminSocialPage = async () => {
           mode="admin"
           source={{ type: "admin-feed" }}
           initial={posts}
-          emptyText="Chưa có bài viết nào."
+          emptyText={t("feedEmpty")}
         />
       </main>
     </>

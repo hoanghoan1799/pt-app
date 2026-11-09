@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -9,17 +10,22 @@ import { TERMS_VERSION } from "@/features/social/constants/social";
 import { hasAcceptedTerms } from "@/features/social/services/terms";
 import { requireUser } from "@/services/auth-guard";
 
-export const metadata: Metadata = { title: "Điều khoản sử dụng" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("pages.terms");
+
+  return { title: t("metaTitle") };
+};
 
 const TermsPage = async () => {
   const user = await requireUser();
   const accepted = hasAcceptedTerms(user);
+  const t = await getTranslations("pages.terms");
 
   return (
     <>
       <AppHeader
-        eyebrow="Mạng xã hội"
-        title="Điều khoản"
+        eyebrow={t("eyebrow")}
+        title={t("title")}
         backHref={ROUTES.FEED}
       />
       <main
@@ -28,7 +34,7 @@ const TermsPage = async () => {
         <TermsContent />
         {accepted ? (
           <p className="text-center text-sm text-muted">
-            Bạn đã đồng ý điều khoản (phiên bản {TERMS_VERSION}).
+            {t("accepted", { version: TERMS_VERSION })}
           </p>
         ) : (
           <TermsAcceptButton />

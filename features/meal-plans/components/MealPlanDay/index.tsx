@@ -1,8 +1,10 @@
 "use client";
 
 import { Copy, Percent, Plus, Trash2 } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_SECONDARY } from "@/constants/styles";
 import { CopyDaySheet } from "@/features/meal-plans/components/CopyDaySheet";
 import { DayPlanSummary } from "@/features/meal-plans/components/DayPlanSummary";
@@ -60,13 +62,15 @@ export const MealPlanDay = ({
   datesWithPlan,
   datesWithLogs,
 }: MealPlanDayProps) => {
+  const locale = useLocale();
+  const t = useTranslations("mealPlans.mealPlanDay");
   const confirm = useConfirm();
   const day = useMealPlanDay(userId, plan);
   const collapse = useMealCollapse(plan?.meals.map((meal) => meal.id) ?? []);
 
   if (!plan) {
     return (
-      <section className="space-y-3" aria-label="Plan bữa ăn">
+      <section className="space-y-3" aria-label={t("sectionLabel")}>
         <MealPlanTitle />
         <MemberMealRequest
           preferredMealCount={preferredMealCount}
@@ -94,7 +98,7 @@ export const MealPlanDay = ({
   const hasItems = plan.meals.some((meal) => meal.items.length > 0);
 
   return (
-    <section className="space-y-3" aria-label="Plan bữa ăn">
+    <section className="space-y-3" aria-label={t("sectionLabel")}>
       <MealPlanTitle
         isAllCollapsed={collapse.isAllCollapsed}
         onToggleAll={
@@ -134,10 +138,15 @@ export const MealPlanDay = ({
           day.dayPlan.isPending ||
           plan.meals.length >= MEAL_PLAN_LIMITS.MAX_MEALS_PER_DAY
         }
+        aria-busy={day.dayPlan.isPending}
         className={`${BUTTON_SECONDARY} w-full border-dashed`}
       >
-        <Plus className="size-5" aria-hidden />
-        Thêm bữa
+        {day.dayPlan.isPending ? (
+          <Spinner size="md" />
+        ) : (
+          <Plus className="size-5" aria-hidden />
+        )}
+        {t("addMeal")}
       </button>
 
       <DayPlanSummary
@@ -153,7 +162,7 @@ export const MealPlanDay = ({
           className={BUTTON_SECONDARY}
         >
           <Copy className="size-5" aria-hidden />
-          Sao chép sang ngày khác
+          {t("copyToDay")}
         </button>
         <button
           type="button"
@@ -162,7 +171,7 @@ export const MealPlanDay = ({
           className={BUTTON_SECONDARY}
         >
           <Percent className="size-5" aria-hidden />
-          Chia theo %
+          {t("splitByPercent")}
         </button>
       </div>
       <button
@@ -171,8 +180,9 @@ export const MealPlanDay = ({
           const isConfirmed = await confirm({
             title: formatDeletePlanQuestion(
               logs.length > 0 || marks.length > 0,
+              locale,
             ),
-            confirmLabel: "Xóa",
+            confirmLabel: t("confirmDelete"),
             isDanger: true,
           });
 
@@ -181,10 +191,15 @@ export const MealPlanDay = ({
           }
         }}
         disabled={day.dayPlan.isPending}
-        className="inline-flex min-h-11 w-full items-center justify-center gap-2 text-sm font-medium text-danger"
+        aria-busy={day.dayPlan.isPending}
+        className="inline-flex min-h-11 w-full items-center justify-center gap-2 text-sm font-medium text-danger disabled:opacity-50"
       >
-        <Trash2 className="size-4" aria-hidden />
-        Xóa plan của ngày này
+        {day.dayPlan.isPending ? (
+          <Spinner size="sm" />
+        ) : (
+          <Trash2 className="size-4" aria-hidden />
+        )}
+        {t("deletePlan")}
       </button>
 
       <CopyDaySheet

@@ -1,3 +1,4 @@
+import { useLocale, useTranslations } from "next-intl";
 import type { PointerEvent } from "react";
 
 import {
@@ -40,6 +41,8 @@ export const WeightChartView = ({
   onPointerMove,
   onPointerLeave,
 }: WeightChartViewProps) => {
+  const locale = useLocale();
+  const t = useTranslations("nutrition.weightChartView");
   const lastPoint = points.at(-1);
   const previousPoint = points.at(-2);
   // Put the end label on the side the line isn't coming from.
@@ -55,7 +58,7 @@ export const WeightChartView = ({
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         className="block w-full touch-pan-y select-none"
         role="img"
-        aria-label="Biểu đồ cân nặng trung bình theo tuần"
+        aria-label={t("chartLabel")}
         onPointerMove={onPointerMove}
         onPointerDown={onPointerMove}
         onPointerLeave={onPointerLeave}
@@ -80,7 +83,7 @@ export const WeightChartView = ({
                 dominantBaseline="middle"
                 className="fill-muted text-[10px] tabular-nums"
               >
-                {formatDecimal(tick)}
+                {formatDecimal(tick, locale)}
               </text>
             </g>
           );
@@ -99,7 +102,7 @@ export const WeightChartView = ({
                   : "fill-muted text-[10px]"
               }
             >
-              {formatDayMonth(week.weekStart)}
+              {formatDayMonth(week.weekStart, locale)}
             </text>
           ) : null,
         )}
@@ -150,7 +153,7 @@ export const WeightChartView = ({
             textAnchor="end"
             className="fill-fg text-[11px] font-semibold tabular-nums"
           >
-            {formatDecimal(lastPoint.value)} kg
+            {formatDecimal(lastPoint.value, locale)} kg
           </text>
         )}
       </svg>
@@ -162,11 +165,13 @@ export const WeightChartView = ({
           style={{ left: `clamp(70px, ${tooltipLeft}, calc(100% - 70px))` }}
         >
           <p className="text-base leading-tight font-bold text-fg tabular-nums">
-            {formatDecimal(activePoint.value)} kg
+            {formatDecimal(activePoint.value, locale)} kg
           </p>
           <p className="text-[11px] whitespace-nowrap text-muted">
-            Tuần {formatWeekRange(activeWeek.weekStart)} · {activeWeek.count}{" "}
-            lần cân
+            {t("weekTooltip", {
+              range: formatWeekRange(activeWeek.weekStart, locale),
+              count: activeWeek.count,
+            })}
           </p>
         </div>
       )}

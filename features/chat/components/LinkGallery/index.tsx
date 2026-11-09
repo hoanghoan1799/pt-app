@@ -2,6 +2,7 @@
 
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Avatar } from "@/components/common/Avatar";
 import { CARD } from "@/constants/styles";
@@ -26,6 +27,8 @@ export const LinkGallery = ({
   chatPath,
   avatars,
 }: LinkGalleryProps) => {
+  const locale = useLocale();
+  const t = useTranslations("chat.linkGallery");
   const { items, cursor, error, sentinel, loadMore } = useGalleryPager({
     initial,
     endpoint,
@@ -35,9 +38,7 @@ export const LinkGallery = ({
 
   if (items.length === 0) {
     return (
-      <p className="px-6 py-16 text-center text-sm text-muted">
-        Chưa có link nào trong cuộc trò chuyện này
-      </p>
+      <p className="px-6 py-16 text-center text-sm text-muted">{t("empty")}</p>
     );
   }
 
@@ -70,7 +71,7 @@ export const LinkGallery = ({
                   {item.text}
                 </span>
                 <span className="block truncate text-xs text-muted">
-                  {photoLabel(item)}
+                  {photoLabel(item, locale)}
                 </span>
               </span>
             </a>
@@ -78,7 +79,7 @@ export const LinkGallery = ({
               href={jumpHref(chatPath, item.messageId)}
               className="shrink-0 rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-fg transition active:bg-line"
             >
-              Xem trong tin nhắn
+              {t("showInChat")}
             </Link>
           </li>
         ))}

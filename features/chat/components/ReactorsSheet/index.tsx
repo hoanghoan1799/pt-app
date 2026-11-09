@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { reactorLabel } from "@/features/chat/utils/chat-settings";
 import type {
@@ -24,14 +26,15 @@ export const ReactorsSheet = ({
   viewer,
   nicknames = {},
 }: ReactorsSheetProps) => {
+  const t = useTranslations("chat.reactorsSheet");
   const myKey = viewerReactorKey(viewer);
 
   return (
     <BottomSheet
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      title="Cảm xúc"
-      description="Ai đã thả cảm xúc vào tin nhắn này"
+      title={t("title")}
+      description={t("description")}
     >
       <ul className="flex flex-col">
         {reactions.map((reaction) => (
@@ -41,7 +44,7 @@ export const ReactorsSheet = ({
           >
             <span className="truncate font-medium">
               {reaction.reactorKey === myKey
-                ? "Bạn"
+                ? t("you")
                 : reactorLabel(
                     nicknames,
                     reaction.reactorKey,

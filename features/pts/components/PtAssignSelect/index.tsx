@@ -1,18 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
+import { Spinner } from "@/components/common/Spinner";
 import { INPUT, LABEL } from "@/constants/styles";
-import { PT_MESSAGES } from "@/features/pts/constants/messages";
 import { assignTraineePtAction } from "@/features/pts/services/pt-actions";
 
 interface PtAssignSelectProps {
   userId: number;
   currentPtId: number | null;
   options: { id: number; username: string }[];
-  // Visible label; defaults to "PT phụ trách".
+  // Visible label; defaults to "PT phụ trách" (translated).
   label?: string;
 }
 
@@ -21,8 +22,9 @@ export const PtAssignSelect = ({
   userId,
   currentPtId,
   options,
-  label = "PT phụ trách",
+  label,
 }: PtAssignSelectProps) => {
+  const t = useTranslations("pts.ptAssign");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -38,24 +40,28 @@ export const PtAssignSelect = ({
         router.refresh();
         return;
       }
-      toast.success(PT_MESSAGES.ASSIGNED);
+      toast.success(t("assigned"));
       router.refresh();
     });
   };
 
   return (
     <div>
-      <label htmlFor={`pt-assign-${userId}`} className={LABEL}>
-        {label}
-      </label>
+      <div className="flex items-center gap-2">
+        <label htmlFor={`pt-assign-${userId}`} className={LABEL}>
+          {label ?? t("label")}
+        </label>
+        {isPending && <Spinner size="sm" />}
+      </div>
       <select
         id={`pt-assign-${userId}`}
         value={currentPtId ?? ""}
         disabled={isPending}
+        aria-busy={isPending}
         onChange={(event) => handleChange(event.target.value)}
         className={INPUT}
       >
-        <option value="">Chưa giao (chỉ super admin)</option>
+        <option value="">{t("unassigned")}</option>
         {options.map((option) => (
           <option key={option.id} value={option.id}>
             {option.username}

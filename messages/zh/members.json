@@ -1,0 +1,51 @@
+{
+  "addMember": {
+    "trigger": "添加用户",
+    "title": "添加用户",
+    "description": "输入邮箱以创建账号。密码将自动生成，且只显示一次。"
+  },
+  "createMember": {
+    "nameLabel": "新用户姓名",
+    "namePlaceholder": "新用户姓名",
+    "emailLabel": "登录邮箱",
+    "emailPlaceholder": "登录邮箱",
+    "ptLabel": "负责教练",
+    "ptUnassigned": "未分配（仅超级管理员）",
+    "submit": "添加"
+  },
+  "deleteMember": {
+    "confirmTitle": "删除此用户及其全部训练计划？此操作无法撤销。",
+    "confirmLabel": "删除",
+    "trigger": "删除用户"
+  },
+  "oneTimePassword": {
+    "copy": "复制",
+    "copied": "已复制",
+    "copyFailed": "复制失败，请手动复制密码。",
+    "passwordOnce": "密码只显示一次，请立即发送给学员。",
+    "done": "完成"
+  },
+  "memberLogin": {
+    "sectionTitle": "登录账号",
+    "emailLabel": "登录邮箱",
+    "noEmail": "暂无邮箱",
+    "changeEmail": "更改邮箱",
+    "cancel": "取消",
+    "save": "保存",
+    "resetPassword": "重置密码",
+    "resetConfirmTitle": "旧密码将失效，学员会被退出登录。是否继续？",
+    "resetConfirmLabel": "重置",
+    "emailChanged": "邮箱已更改"
+  },
+  "hideUser": {
+    "hide": "隐藏学员",
+    "unhide": "取消隐藏学员",
+    "hidden": "已隐藏 1 位学员",
+    "unhidden": "已取消隐藏学员",
+    "failed": "操作失败，请重试。"
+  },
+  "exerciseProgress": {
+    "empty": "本周还没有训练项记录重量。",
+    "emptyHint": "学员记录重量和次数后会显示进步情况。"
+  }
+}

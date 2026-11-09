@@ -20,6 +20,7 @@ import {
   parseDecimal,
   parseSignedDecimal,
 } from "@/utils/decimal";
+import { DEFAULT_LOCALE, type Locale, toIntlLocale } from "@/utils/locale";
 
 const roundTo = (value: number, step: number) =>
   Math.round(value / step) * step;
@@ -106,8 +107,10 @@ export const calculateEnergyPlan = (
   };
 };
 
-export const formatCalories = (calories: number) =>
-  `${Math.round(calories).toLocaleString("vi-VN")} kcal`;
+export const formatCalories = (
+  calories: number,
+  locale: Locale = DEFAULT_LOCALE,
+) => `${Math.round(calories).toLocaleString(toIntlLocale(locale))} kcal`;
 
 export interface BodyProfileDraft {
   sex: BodyProfile["sex"];
@@ -164,8 +167,8 @@ export const toBodyProfile = (
 };
 
 // 72.5 → "72,5" (Vietnamese decimal comma), 175 → "175".
-export const formatDecimal = (value: number) =>
-  value.toLocaleString("vi-VN", {
+export const formatDecimal = (value: number, locale: Locale = DEFAULT_LOCALE) =>
+  value.toLocaleString(toIntlLocale(locale), {
     maximumFractionDigits: 1,
     useGrouping: false,
   });

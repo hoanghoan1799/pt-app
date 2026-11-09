@@ -1,18 +1,17 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { Spinner } from "@/components/common/Spinner";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
   LABEL,
   TEXTAREA,
 } from "@/constants/styles";
-import {
-  FRIEND_MESSAGES,
-  REPORT_REASON_MAX_LENGTH,
-} from "@/features/social/constants/social";
+import { REPORT_REASON_MAX_LENGTH } from "@/features/social/constants/social";
 import { useSocialAction } from "@/features/social/hooks/use-social-action";
 import { reportAction } from "@/features/social/services/friend-actions";
 import type { ReportTargetKind } from "@/features/social/utils/friend-rules";
@@ -25,12 +24,6 @@ interface ReportSheetProps {
   targetId: number;
 }
 
-const TITLES: Record<ReportTargetKind, string> = {
-  post: "Báo cáo bài viết",
-  comment: "Báo cáo bình luận",
-  user: "Báo cáo người dùng",
-};
-
 // "Báo cáo": an optional reason, then it lands on the admin reports page.
 export const ReportSheet = ({
   isOpen,
@@ -39,12 +32,13 @@ export const ReportSheet = ({
   targetKind,
   targetId,
 }: ReportSheetProps) => {
+  const t = useTranslations("social.reportSheet");
   const [reason, setReason] = useState("");
   const { isPending, run } = useSocialAction();
 
   const handleSend = () => {
     run(() => reportAction(mode, { targetKind, targetId, reason }), {
-      successMessage: FRIEND_MESSAGES.REPORT_SENT,
+      successMessage: t("sent"),
       onSuccess: () => {
         setReason("");
         onOpenChange(false);
@@ -56,13 +50,13 @@ export const ReportSheet = ({
     <BottomSheet
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      title={TITLES[targetKind]}
-      description="Quản trị viên sẽ xem xét báo cáo của bạn."
+      title={t(`titles.${targetKind}`)}
+      description={t("description")}
     >
       <div className="space-y-3 pb-2">
         <div>
           <label htmlFor={`report-${targetKind}-${targetId}`} className={LABEL}>
-            Lý do (không bắt buộc)
+            {t("reasonLabel")}
           </label>
           <textarea
             id={`report-${targetKind}-${targetId}`}
@@ -79,15 +73,17 @@ export const ReportSheet = ({
             disabled={isPending}
             className={BUTTON_SECONDARY}
           >
-            Hủy
+            {t("cancel")}
           </button>
           <button
             type="button"
             onClick={handleSend}
             disabled={isPending}
+            aria-busy={isPending}
             className={BUTTON_PRIMARY}
           >
-            Gửi báo cáo
+            {isPending && <Spinner size="sm" />}
+            {t("send")}
           </button>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import type { ScheduleDay } from "@/features/workouts/types/workout";
@@ -17,16 +18,19 @@ export const DayHeading = ({
   fallbackTitle,
   action,
 }: DayHeadingProps) => {
+  const locale = useLocale();
+  const t = useTranslations("workouts.dayHeading");
+  const tWeek = useTranslations("common.week");
   const { completed, total } = getDayProgress(day);
 
   return (
     <div className="flex items-start gap-3">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-muted">
-          {formatFullDay(day.date)}
-          {isToday && <span className="text-accent"> · Hôm nay</span>}
+          {formatFullDay(day.date, locale)}
+          {isToday && <span className="text-accent"> · {tWeek("today")}</span>}
           {total > 0 &&
-            ` · ${completed > 0 ? `${completed}/${total} đã tập` : `${total} bài`}`}
+            ` · ${completed > 0 ? t("progressDone", { completed, total }) : t("exerciseCount", { count: total })}`}
         </p>
         <h2 className="mt-0.5 text-2xl leading-tight font-bold text-balance text-fg">
           {day.title || fallbackTitle}

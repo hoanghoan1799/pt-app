@@ -1,0 +1,132 @@
+{
+  "exerciseEditorItem": {
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "exerciseCard": {
+    "playVideo": "Play video {title}",
+    "completed": "Done {time} · {date}",
+    "personalBestBadge": "New personal best",
+    "openOnYoutube": "Open on YouTube"
+  },
+  "loggedSets": {
+    "loggedPrefix": "Logged:",
+    "nothingLogged": "No sets logged yet"
+  },
+  "completionToggle": {
+    "done": "Completed · {time}",
+    "undo": "(tap to undo)",
+    "notDue": "Not due yet",
+    "mark": "Mark as done"
+  },
+  "copyWeek": {
+    "trigger": "Copy this week",
+    "title": "Copy week",
+    "description": "From week {week}",
+    "targetUser": "To user",
+    "thisUserSuffix": " (this user)",
+    "targetDate": "To the week containing",
+    "sourceWeek": "source week",
+    "sourceBadge": "source",
+    "hint": "Pick any day in the target week. That week's schedule will be replaced.",
+    "submit": "Copy",
+    "confirmTitle": "The target week's schedule will be replaced with this week. Continue?",
+    "confirmLabel": "Copy"
+  },
+  "dayHeading": {
+    "progressDone": "{completed}/{total} done",
+    "exerciseCount": "{count, plural, one {# exercise} other {# exercises}}"
+  },
+  "dayView": {
+    "workoutTitle": "Today's workout",
+    "restTitle": "Rest day",
+    "progressLabel": "Progress today",
+    "complete": "Session complete! Rest well.",
+    "restDayTitle": "Rest & recovery",
+    "restDayDescription": "No exercises for this day yet. Get enough sleep and drink enough water!"
+  },
+  "dayTabs": {
+    "exerciseCount": "{count, plural, one {# exercise} other {# exercises}}",
+    "completedDay": "completed"
+  },
+  "weekProgress": {
+    "label": "Week progress",
+    "summary": "{completed}/{total} exercises · {percent}%"
+  },
+  "weekSummary": {
+    "sessionsDone": "{completed}/{total} sessions completed",
+    "exerciseSummary": "{completed}/{total} exercises · {percent}%",
+    "progressLabel": "Training progress this week",
+    "exerciseCount": "{count, plural, one {# exercise} other {# exercises}}",
+    "restDay": "Rest",
+    "restDayLabel": "Rest day"
+  },
+  "youtubePreview": {
+    "defaultTitle": "Video preview",
+    "pasteLink": "Paste a link to preview the video"
+  },
+  "dayEditor": {
+    "untitledDay": "Untitled day",
+    "editDayInfo": "Edit day title and note",
+    "noExercisesTitle": "No exercises yet",
+    "noExercisesDescription": "Tap “Add exercise” to assign workouts for this day. If you leave it empty, the user will see a rest day.",
+    "addExercise": "Add exercise · {date}",
+    "editExerciseTitle": "Edit exercise",
+    "addExerciseTitle": "Add exercise",
+    "dayInfoTitle": "Day details"
+  },
+  "dayInfoForm": {
+    "titleLabel": "Day title",
+    "titlePlaceholder": "e.g. Push – chest, shoulders, triceps",
+    "noteLabel": "Notes for the whole session",
+    "notePlaceholder": "e.g. 10-minute warm-up, rest 60–90 seconds between sets",
+    "save": "Save"
+  },
+  "exerciseForm": {
+    "invalidYoutubeUrl": "Invalid YouTube link",
+    "youtubeLabel": "YouTube video link",
+    "pasteFromClipboard": "Paste link from clipboard",
+    "titleLabel": "Exercise name",
+    "titlePlaceholder": "e.g. Bench press",
+    "setsLabel": "Sets",
+    "repsLabel": "Reps / time",
+    "repsPlaceholder": "10-12 or 30 seconds",
+    "descriptionLabel": "Description / form notes",
+    "descriptionPlaceholder": "e.g. Brace your core, lower the weight slowly over 3 seconds, rest 90 seconds between sets",
+    "saveChanges": "Save changes",
+    "add": "Add exercise",
+    "changeLinkConfirmTitle": "The trainee has logged sets for this exercise. Changing the video link will delete those sets and start a new history. Continue?",
+    "continue": "Continue",
+    "clipboardError": "Could not read the clipboard. Paste it manually."
+  },
+  "setLogger": {
+    "sectionLabel": "Log sets for {title}",
+    "weightUnit": "kg",
+    "repsUnit": "reps",
+    "bodyweightHint": "Leave kg empty if you train with bodyweight",
+    "addRow": "Add set",
+    "saving": "Saving…",
+    "save": "Save",
+    "nothingToSave": "Enter at least one set",
+    "personalBest": "New personal best! 🏆",
+    "saved": "Sets saved"
+  },
+  "setInputRow": {
+    "weightPlaceholder": "kg",
+    "repsUnit": "reps",
+    "weightLabel": "Weight in kg for set {set}",
+    "repsLabel": "Reps for set {set}",
+    "deleteLabel": "Delete set {set}",
+    "hintLabel": "Last time {text}, for set {set}",
+    "hintPrefix": "Last time"
+  },
+  "exerciseItemActions": {
+    "deleteConfirmLabel": "Delete",
+    "deleted": "Exercise deleted"
+  },
+  "exerciseCompletion": {
+    "done": "Marked as done 💪"
+  }
+}

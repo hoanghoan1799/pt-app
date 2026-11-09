@@ -1,6 +1,7 @@
 "use client";
 
 import { Activity, Pencil } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
@@ -10,7 +11,7 @@ import { EnergyPlanSummary } from "@/features/nutrition/components/EnergyPlanSum
 import {
   ACTIVITY_LEVELS,
   GOALS,
-  SEX_LABELS,
+  SEX_LABEL_KEYS,
 } from "@/features/nutrition/constants/energy";
 import type {
   BodyProfile,
@@ -30,18 +31,19 @@ interface BodyProfileCardProps {
   today: string;
 }
 
+// Copy is keyed under bodyProfileCard (translated at render).
 const COPY = {
   admin: {
-    title: "Chỉ số cơ thể & TDEE",
-    empty:
-      "Nhập giới tính, tuổi, chiều cao, cân nặng và mức vận động để tính TDEE và tự điền mục tiêu dinh dưỡng. User cũng có thể tự nhập.",
-    action: "Nhập chỉ số",
+    title: "admin.title",
+    empty: "admin.empty",
+    action: "admin.action",
+    sheetTitle: "admin.sheetTitle",
   },
   user: {
-    title: "Chỉ số của bạn & TDEE",
-    empty:
-      "Nhập chiều cao, cân nặng và mức vận động để biết mỗi ngày bạn tiêu hao bao nhiêu calo và nên ăn bao nhiêu carb, protein, fat.",
-    action: "Nhập chỉ số của bạn",
+    title: "user.title",
+    empty: "user.empty",
+    action: "user.action",
+    sheetTitle: "user.sheetTitle",
   },
 } as const;
 
@@ -55,6 +57,9 @@ export const BodyProfileCard = ({
 }: BodyProfileCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const plan = profile ? calculateEnergyPlan(profile, today) : null;
+  const locale = useLocale();
+  const t = useTranslations("nutrition.bodyProfileCard");
+  const tLabels = useTranslations("nutrition.labels");
   const copy = COPY[editor];
 
   return (
@@ -63,17 +68,23 @@ export const BodyProfileCard = ({
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 text-xs font-semibold text-muted">
             <Activity className="size-4" aria-hidden />
-            {copy.title}
+            {t(copy.title)}
           </p>
           {profile && plan && (
             <p className="mt-1 text-sm text-fg">
-              {SEX_LABELS[profile.sex]} · {plan.age} tuổi ·{" "}
-              {formatDecimal(profile.heightCm)} cm ·{" "}
-              {formatDecimal(profile.weightKg)} kg
+              {t("summary", {
+                sex: tLabels(SEX_LABEL_KEYS[profile.sex]),
+                age: plan.age,
+                height: formatDecimal(profile.heightCm, locale),
+                weight: formatDecimal(profile.weightKg, locale),
+              })}
               <span className="block text-xs text-muted">
-                Vận động{" "}
-                {ACTIVITY_LEVELS[profile.activityLevel].label.toLowerCase()} ·
-                Mục tiêu {GOALS[getGoal(profile)].label.toLowerCase()}
+                {t("activityGoal", {
+                  activity: tLabels(
+                    ACTIVITY_LEVELS[profile.activityLevel].labelKey,
+                  ).toLowerCase(),
+                  goal: tLabels(GOALS[getGoal(profile)].labelKey).toLowerCase(),
+                })}
               </span>
             </p>
           )}
@@ -83,7 +94,7 @@ export const BodyProfileCard = ({
             type="button"
             onClick={() => setIsOpen(true)}
             className={`${ICON_BUTTON} -mt-2 -mr-2 text-fg`}
-            aria-label="Sửa chỉ số cơ thể"
+            aria-label={t("editStats")}
           >
             <Pencil className="size-5" />
           </button>
@@ -110,8 +121,8 @@ export const BodyProfileCard = ({
       <BottomSheet
         isOpen={isOpen}
         onOpenChange={setIsOpen}
-        title={editor === "admin" ? "Chỉ số cơ thể" : "Chỉ số của bạn"}
-        description="Tính TDEE theo công thức Mifflin-St Jeor"
+        title={t(copy.sheetTitle)}
+        description={t("sheetDescription")}
       >
         <BodyProfileForm
           editor={editor}

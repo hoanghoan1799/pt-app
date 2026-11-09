@@ -1,4 +1,6 @@
 import { ON_TARGET } from "@/features/nutrition/constants/energy";
+import { getFormatTranslator } from "@/i18n/format-translator";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 export interface PlannedDayKcal {
   date: string;
@@ -33,5 +35,10 @@ export const getPlanKcalNotices = (days: PlannedDayKcal[]): PlanKcalNotice[] =>
     .sort((a, b) => a.date.localeCompare(b.date));
 
 // "Plan lệch +120 kcal so với mục tiêu mới"
-export const formatPlanKcalNotice = (gapKcal: number) =>
-  `Plan lệch ${gapKcal > 0 ? "+" : ""}${gapKcal} kcal so với mục tiêu mới`;
+export const formatPlanKcalNotice = (
+  gapKcal: number,
+  locale: Locale = DEFAULT_LOCALE,
+) =>
+  getFormatTranslator(locale)("planNotice", {
+    gap: `${gapKcal > 0 ? "+" : ""}${gapKcal}`,
+  });

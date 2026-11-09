@@ -5,11 +5,11 @@ import {
   ArrowUp,
   BellOff,
   ImagePlus,
-  Loader2,
   type LucideIcon,
   Smile,
   X,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   type ChangeEvent,
   type KeyboardEvent,
@@ -19,6 +19,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 
+import { Spinner } from "@/components/common/Spinner";
 import {
   type ChatCommand,
   composeCommandMessage,
@@ -32,6 +33,7 @@ import {
   type PreparedPhoto,
 } from "@/features/chat/utils/encode-photo";
 import { PHOTO_ERRORS } from "@/features/chat/utils/photo-rules";
+import { useLocalizeMessage } from "@/i18n/use-localize-message";
 
 interface ComposerProps {
   // `photo` is the resized image picked with the photo button (KAN-160); the
@@ -70,12 +72,14 @@ export const Composer = ({
   onSend,
   canAttachPhoto = false,
   onTyping,
-  placeholder = "Nhắn tin cho PT…",
+  placeholder,
   editing = null,
   onSaveEdit,
   replyId = null,
   onOpenStickers,
 }: ComposerProps) => {
+  const t = useTranslations("chat.composer");
+  const localize = useLocalizeMessage();
   const [value, setValue] = useState("");
   const [draft, setDraft] = useState("");
   const [seenEditId, setSeenEditId] = useState<number | null>(null);
@@ -175,9 +179,11 @@ export const Composer = ({
       inputRef.current?.focus();
     } catch (error) {
       toast.error(
-        error instanceof PhotoImageError
-          ? error.message
-          : PHOTO_ERRORS.DECODE_FAILED,
+        localize(
+          error instanceof PhotoImageError
+            ? error.message
+            : PHOTO_ERRORS.DECODE_FAILED,
+        ),
       );
     } finally {
       setIsPreparing(false);
@@ -255,12 +261,12 @@ export const Composer = ({
               {/* eslint-disable-next-line @next/next/no-img-element -- a local blob URL, nothing for next/image to optimise */}
               <img
                 src={photo.previewUrl}
-                alt="Ảnh sẽ gửi"
+                alt={t("photoPreviewAlt")}
                 className="size-16 rounded-xl border border-line object-cover"
               />
               <button
                 type="button"
-                aria-label="Bỏ ảnh"
+                aria-label={t("removePhoto")}
                 onClick={clearPhoto}
                 className="absolute -top-2 -right-2 inline-flex size-6 items-center justify-center rounded-full bg-fg text-bg shadow active:scale-90"
               >
@@ -272,8 +278,8 @@ export const Composer = ({
               role="status"
               className="inline-flex items-center gap-2 text-sm text-muted"
             >
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-              Đang xử lý ảnh…
+              <Spinner size="sm" />
+              {t("processingPhoto")}
             </span>
           )}
         </div>
@@ -282,7 +288,7 @@ export const Composer = ({
         <ul
           id={SUGGESTIONS_ID}
           role="listbox"
-          aria-label="Lệnh"
+          aria-label={t("commandsLabel")}
           className="mx-3 mb-1 flex flex-col gap-0.5 rounded-2xl border border-line bg-surface p-1"
         >
           {suggestions.map((command, index) => (
@@ -335,12 +341,17 @@ export const Composer = ({
             />
             <button
               type="button"
-              aria-label="Gửi ảnh"
+              aria-label={t("attachPhoto")}
               disabled={isPreparing}
+              aria-busy={isPreparing}
               onClick={() => fileRef.current?.click()}
               className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted transition active:scale-90 active:bg-line disabled:opacity-50"
             >
-              <ImagePlus className="size-6" aria-hidden />
+              {isPreparing ? (
+                <Spinner size="lg" />
+              ) : (
+                <ImagePlus className="size-6" aria-hidden />
+              )}
             </button>
           </>
         )}
@@ -349,7 +360,7 @@ export const Composer = ({
             <CommandIcon command={activeChip} />/{activeChip.name}
             <button
               type="button"
-              aria-label={`Bỏ lệnh /${activeChip.name}`}
+              aria-label={t("removeCommand", { name: activeChip.name })}
               onClick={() => {
                 setChip(null);
                 inputRef.current?.focus();
@@ -365,8 +376,12 @@ export const Composer = ({
           value={value}
           rows={1}
           maxLength={CHAT_BODY_MAX_LENGTH}
-          placeholder={activeChip ? `${activeChip.hint}…` : placeholder}
-          aria-label="Nội dung tin nhắn"
+          placeholder={
+            activeChip
+              ? `${activeChip.hint}…`
+              : (placeholder ?? t("placeholder"))
+          }
+          aria-label={t("messageLabel")}
           aria-controls={suggestions.length > 0 ? SUGGESTIONS_ID : undefined}
           aria-activedescendant={
             suggestions.length > 0
@@ -395,7 +410,7 @@ export const Composer = ({
         {onOpenStickers && !editing && (
           <button
             type="button"
-            aria-label="Mở sticker"
+            aria-label={t("openStickers")}
             onClick={() => {
               // Keep the keyboard from fighting the sheet.
               inputRef.current?.blur();
@@ -408,7 +423,7 @@ export const Composer = ({
         )}
         <button
           type="submit"
-          aria-label={editing ? "Lưu chỉnh sửa" : "Gửi tin nhắn"}
+          aria-label={editing ? t("saveEdit") : t("send")}
           tabIndex={canSend ? 0 : -1}
           aria-hidden={!canSend}
           className={clsx(

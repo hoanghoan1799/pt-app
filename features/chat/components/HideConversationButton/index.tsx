@@ -2,9 +2,11 @@
 
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { Spinner } from "@/components/common/Spinner";
 import { ROUTES } from "@/constants/routes";
 import { BUTTON_SECONDARY } from "@/constants/styles";
 import {
@@ -12,8 +14,6 @@ import {
   isConversationHiddenAction,
   unhideConversationAction,
 } from "@/features/chat/services/chat-hidden-actions";
-
-const FAILED_TEXT = "Không lưu được. Thử lại nhé.";
 
 // Admin only: hide this chat from the inbox or bring it back (KAN-164). It
 // was in the conversation settings sheet and is now an action of the chat
@@ -23,6 +23,7 @@ export const HideConversationButton = ({
 }: {
   conversationId: number | null;
 }) => {
+  const t = useTranslations("chat.hideConversation");
   const router = useRouter();
   const [isHidden, setIsHidden] = useState<boolean | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -57,19 +58,19 @@ export const HideConversationButton = ({
           : await hideConversationsAction([conversationId]);
 
         if (result.status !== "success") {
-          toast.error(result.message ?? FAILED_TEXT);
+          toast.error(result.message ?? t("failed"));
           return;
         }
         if (isHidden) {
           setIsHidden(false);
-          toast.success("Đã bỏ ẩn học viên");
+          toast.success(t("unhiddenToast"));
           router.refresh();
           return;
         }
-        toast.success("Đã ẩn 1 học viên");
+        toast.success(t("hiddenToast"));
         router.push(ROUTES.ADMIN_MESSAGES);
       } catch {
-        toast.error(FAILED_TEXT);
+        toast.error(t("failed"));
       }
     });
   };
@@ -78,10 +79,12 @@ export const HideConversationButton = ({
     <button
       type="button"
       disabled={isPending}
+      aria-busy={isPending}
       onClick={toggle}
       className={clsx(BUTTON_SECONDARY, "w-full")}
     >
-      {isHidden ? "Bỏ ẩn học viên" : "Ẩn học viên"}
+      {isPending && <Spinner size="md" />}
+      {isHidden ? t("unhide") : t("hide")}
     </button>
   );
 };

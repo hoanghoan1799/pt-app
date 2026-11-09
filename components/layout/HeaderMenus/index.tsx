@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import {
   type KeyboardEvent,
   type ReactNode,
@@ -26,6 +27,7 @@ import { toast } from "sonner";
 
 import { Avatar } from "@/components/common/Avatar";
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
+import { Spinner } from "@/components/common/Spinner";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON } from "@/constants/styles";
 import { PasscodeSettingsSheet } from "@/features/auth/components/PasscodeSettingsSheet";
@@ -40,7 +42,15 @@ import { AccountColorSheet } from "@/features/chat/components/AccountColorSheet"
 import { PushToggle } from "@/features/chat/components/PushToggle";
 import { setPresenceHiddenAction } from "@/features/chat/services/presence-actions";
 import type { ChatColorKey } from "@/features/chat/utils/chat-palette";
+import { setLocaleAction } from "@/services/locale-actions";
 import { setThemeAction } from "@/services/theme-actions";
+import {
+  type Locale,
+  LOCALE_FLAGS,
+  LOCALE_NAMES,
+  LOCALES,
+  parseLocale,
+} from "@/utils/locale";
 import { parseTheme, type Theme } from "@/utils/theme";
 
 type Role = "user" | "admin";
@@ -64,16 +74,7 @@ interface HeaderMenusProps {
 const ITEM =
   "flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-[15px] text-fg transition active:bg-line";
 
-const THEME_OPTIONS: { value: Theme; label: string }[] = [
-  { value: "light", label: "Sáng" },
-  { value: "dark", label: "Tối" },
-  { value: "system", label: "Hệ thống" },
-];
-
-const PRESENCE_FAILED = "Không lưu được. Thử lại nhé.";
-const UPDATING_MESSAGE = "Tính năng đang cập nhật";
-const LOCK_FAILED = "Không khoá được. Thử lại nhé.";
-const LOCK_NEEDS_PASSCODE = "Đặt mã khoá trước để khoá ứng dụng.";
+const THEME_VALUES: Theme[] = ["light", "dark", "system"];
 
 const readCurrentTheme = () =>
   parseTheme(document.documentElement.dataset.theme);
@@ -101,13 +102,17 @@ export const HeaderMenus = ({
   const [isColorOpen, setIsColorOpen] = useState(false);
   const [isHidden, setIsHidden] = useState(isPresenceHidden);
   const [theme, setTheme] = useState<Theme>("system");
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
+  // Theme paints at once, so its save never blocks the other controls.
+  const [, startThemeTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRefs = useRef<Record<MenuId, HTMLButtonElement | null>>({
     gear: null,
     avatar: null,
   });
+  const t = useTranslations("layout.menus");
+  const locale = parseLocale(useLocale());
   const confirm = useConfirm();
   const router = useRouter();
   const [isLocking, startLocking] = useTransition();
@@ -172,8 +177,20 @@ export const HeaderMenus = ({
     // Paint now; the cookie makes the server render the same value next time.
     paintTheme(next);
     setTheme(next);
-    startTransition(() => {
+    startThemeTransition(() => {
       void setThemeAction(next);
+    });
+  };
+
+  // Cookie (and the account, when signed in) first, then re-render the server
+  // components in the new language.
+  const chooseLocale = (next: Locale) => {
+    if (next === locale) {
+      return;
+    }
+    startTransition(async () => {
+      await setLocaleAction(next);
+      router.refresh();
     });
   };
 
@@ -187,18 +204,14 @@ export const HeaderMenus = ({
         const result = await setPresenceHiddenAction({ isHidden: next });
 
         if (result.status === "success") {
-          toast.success(
-            next
-              ? "Đã tắt trạng thái hoạt động"
-              : "Đã bật trạng thái hoạt động",
-          );
+          toast.success(next ? t("presenceOff") : t("presenceOn"));
           return;
         }
         setIsHidden(!next);
-        toast.error(result.message ?? PRESENCE_FAILED);
+        toast.error(result.message ?? t("saveFailed"));
       } catch {
         setIsHidden(!next);
-        toast.error(PRESENCE_FAILED);
+        toast.error(t("saveFailed"));
       }
     });
   };
@@ -206,9 +219,9 @@ export const HeaderMenus = ({
   const logOut = async () => {
     setOpenMenu(null);
     const isConfirmed = await confirm({
-      title: "Đăng xuất khỏi thiết bị này?",
-      description: "Bạn cần đăng nhập lại để tiếp tục.",
-      confirmLabel: "Đăng xuất",
+      title: t("logoutTitle"),
+      description: t("logoutDescription"),
+      confirmLabel: t("logout"),
       isDanger: true,
     });
 
@@ -224,7 +237,7 @@ export const HeaderMenus = ({
   const lockApp = () => {
     setOpenMenu(null);
     if (!hasPasscode) {
-      toast.info(LOCK_NEEDS_PASSCODE);
+      toast.info(t("lockNeedsPasscode"));
       setIsPasscodeOpen(true);
       return;
     }
@@ -240,9 +253,9 @@ export const HeaderMenus = ({
           );
           return;
         }
-        toast.error(result.message ?? LOCK_FAILED);
+        toast.error(result.message ?? t("lockFailed"));
       } catch {
-        toast.error(LOCK_FAILED);
+        toast.error(t("lockFailed"));
       }
     });
   };
@@ -268,42 +281,82 @@ export const HeaderMenus = ({
 
   return (
     <div ref={rootRef} className="relative flex items-center">
-      {renderTrigger("gear", "Cài đặt", <Settings className="size-5" />)}
+      {renderTrigger("gear", t("settings"), <Settings className="size-5" />)}
       {renderTrigger(
         "avatar",
-        "Tài khoản",
+        t("account"),
         <Avatar name={name} src={avatarUrl} className="size-8 text-xs" />,
       )}
       {openMenu && (
         <div
           ref={panelRef}
           role="menu"
-          aria-label={openMenu === "gear" ? "Cài đặt" : "Tài khoản"}
+          aria-label={openMenu === "gear" ? t("settings") : t("account")}
           onKeyDown={onPanelKeyDown}
           className="absolute top-full right-3 z-40 mt-1 w-[17rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-surface p-1.5 shadow-[0_16px_40px_-12px_rgb(0_0_0/0.35)]"
         >
           {openMenu === "gear" ? (
             <>
-              <div role="group" aria-label="Giao diện" className="px-1.5 py-1">
+              <div
+                role="group"
+                aria-label={t("appearance")}
+                className="px-1.5 py-1"
+              >
                 <p className="px-1.5 pb-1.5 text-xs font-semibold tracking-wide text-muted uppercase">
-                  Giao diện
+                  {t("appearance")}
                 </p>
                 <div className="grid grid-cols-3 gap-1 rounded-xl bg-bg p-1">
-                  {THEME_OPTIONS.map((option) => (
+                  {THEME_VALUES.map((value) => (
                     <button
-                      key={option.value}
+                      key={value}
                       type="button"
                       role="menuitemradio"
-                      aria-checked={theme === option.value}
-                      onClick={() => chooseTheme(option.value)}
+                      aria-checked={theme === value}
+                      onClick={() => chooseTheme(value)}
                       className={clsx(
                         "min-h-11 rounded-lg px-1 text-[13px] font-medium transition",
-                        theme === option.value
+                        theme === value
                           ? "bg-surface text-fg shadow-sm ring-1 ring-line"
                           : "text-muted",
                       )}
                     >
-                      {option.label}
+                      {t(`theme.${value}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div
+                role="group"
+                aria-label={t("language")}
+                className="px-1.5 py-1"
+              >
+                <p className="px-1.5 pb-1.5 text-xs font-semibold tracking-wide text-muted uppercase">
+                  {t("language")}
+                </p>
+                <div className="grid grid-cols-2 gap-1 rounded-xl bg-bg p-1">
+                  {LOCALES.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      role="menuitemradio"
+                      lang={value}
+                      aria-checked={locale === value}
+                      onClick={() => chooseLocale(value)}
+                      disabled={isPending}
+                      aria-busy={isPending && locale !== value}
+                      className={clsx(
+                        "min-h-11 rounded-lg px-1 text-[13px] font-medium transition",
+                        locale === value
+                          ? "bg-surface text-fg shadow-sm ring-1 ring-line"
+                          : "text-muted",
+                      )}
+                    >
+                      {LOCALE_NAMES[value]}{" "}
+                      {isPending && locale !== value ? (
+                        <Spinner size="sm" className="inline-block" />
+                      ) : (
+                        <span aria-hidden="true">{LOCALE_FLAGS[value]}</span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -322,7 +375,7 @@ export const HeaderMenus = ({
                     }}
                   >
                     <Palette className="size-5 text-muted" aria-hidden />
-                    Màu tài khoản
+                    {t("accountColor")}
                   </button>
                   <button
                     type="button"
@@ -330,9 +383,15 @@ export const HeaderMenus = ({
                     aria-checked={!isHidden}
                     className={ITEM}
                     onClick={togglePresence}
+                    disabled={isPending}
+                    aria-busy={isPending}
                   >
-                    <CircleDot className="size-5 text-muted" aria-hidden />
-                    <span className="flex-1">Trạng thái hoạt động</span>
+                    {isPending ? (
+                      <Spinner size="md" />
+                    ) : (
+                      <CircleDot className="size-5 text-muted" aria-hidden />
+                    )}
+                    <span className="flex-1">{t("presence")}</span>
                     <span
                       aria-hidden
                       className={clsx(
@@ -347,7 +406,9 @@ export const HeaderMenus = ({
                         )}
                       />
                     </span>
-                    <span className="sr-only">{isHidden ? "Tắt" : "Bật"}</span>
+                    <span className="sr-only">
+                      {isHidden ? t("switchOff") : t("switchOn")}
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -359,7 +420,7 @@ export const HeaderMenus = ({
                     }}
                   >
                     <LockKeyhole className="size-5 text-muted" aria-hidden />
-                    Mã khoá
+                    {t("passcode")}
                   </button>
                   <button
                     type="button"
@@ -367,9 +428,14 @@ export const HeaderMenus = ({
                     className={ITEM}
                     onClick={lockApp}
                     disabled={isLocking}
+                    aria-busy={isLocking}
                   >
-                    <Lock className="size-5 text-muted" aria-hidden />
-                    Khoá ngay
+                    {isLocking ? (
+                      <Spinner size="md" />
+                    ) : (
+                      <Lock className="size-5 text-muted" aria-hidden />
+                    )}
+                    {t("lockNow")}
                   </button>
                 </>
               )}
@@ -384,7 +450,7 @@ export const HeaderMenus = ({
                   onClick={() => setOpenMenu(null)}
                 >
                   <UserRound className="size-5 text-muted" aria-hidden />
-                  Trang cá nhân
+                  {t("profile")}
                 </Link>
               )}
               <button
@@ -397,7 +463,7 @@ export const HeaderMenus = ({
                 }}
               >
                 <Camera className="size-5 text-muted" aria-hidden />
-                Ảnh đại diện
+                {t("avatar")}
               </button>
               {role === "user" ? (
                 <Link
@@ -407,7 +473,7 @@ export const HeaderMenus = ({
                   onClick={() => setOpenMenu(null)}
                 >
                   <KeyRound className="size-5 text-muted" aria-hidden />
-                  Đổi mật khẩu
+                  {t("changePassword")}
                 </Link>
               ) : (
                 // No admin password page yet (KAN-116 deviation): tell the
@@ -418,11 +484,11 @@ export const HeaderMenus = ({
                   className={ITEM}
                   onClick={() => {
                     setOpenMenu(null);
-                    toast.info(UPDATING_MESSAGE);
+                    toast.info(t("updating"));
                   }}
                 >
                   <KeyRound className="size-5 text-muted" aria-hidden />
-                  Đổi mật khẩu
+                  {t("changePassword")}
                 </button>
               )}
               <hr className="my-1 border-line" />
@@ -431,9 +497,15 @@ export const HeaderMenus = ({
                 role="menuitem"
                 className={clsx(ITEM, "text-danger")}
                 onClick={() => void logOut()}
+                disabled={isPending}
+                aria-busy={isPending}
               >
-                <LogOut className="size-5" aria-hidden />
-                Đăng xuất
+                {isPending ? (
+                  <Spinner size="md" />
+                ) : (
+                  <LogOut className="size-5" aria-hidden />
+                )}
+                {t("logout")}
               </button>
             </>
           )}

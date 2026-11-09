@@ -1,8 +1,10 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { Spinner } from "@/components/common/Spinner";
 import { formatSentAt } from "@/features/chat/utils/chat-thread-rules";
 
 interface EditHistorySheetProps {
@@ -37,6 +39,8 @@ export const EditHistorySheet = ({
   editsUrl,
   currentBody,
 }: EditHistorySheetProps) => {
+  const locale = useLocale();
+  const t = useTranslations("chat.editHistory");
   const [state, setState] = useState<HistoryState | null>(null);
 
   useEffect(() => {
@@ -73,25 +77,22 @@ export const EditHistorySheet = ({
   const current = state?.url === editsUrl ? state : null;
 
   return (
-    <BottomSheet
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      title="Lịch sử chỉnh sửa"
-    >
+    <BottomSheet isOpen={isOpen} onOpenChange={onOpenChange} title={t("title")}>
       {current?.status === "error" && (
         <p role="alert" className="text-sm text-danger">
-          Không tải được lịch sử chỉnh sửa. Thử lại nhé.
+          {t("error")}
         </p>
       )}
       {(current === null || current.status === "loading") && (
-        <p role="status" className="text-sm text-muted">
-          Đang tải…
+        <p role="status" className="flex items-center gap-2 text-sm text-muted">
+          <Spinner size="sm" />
+          {t("loading")}
         </p>
       )}
       {current?.status === "ready" && (
         <ul className="flex flex-col gap-2">
           <li className="rounded-2xl border border-accent bg-surface px-3.5 py-2.5">
-            <p className="text-xs font-semibold text-accent">Hiện tại</p>
+            <p className="text-xs font-semibold text-accent">{t("current")}</p>
             <p className="mt-0.5 text-[15px] break-words whitespace-pre-wrap text-fg">
               {currentBody}
             </p>
@@ -102,7 +103,7 @@ export const EditHistorySheet = ({
               className="rounded-2xl border border-line bg-surface px-3.5 py-2.5"
             >
               <p className="text-xs text-muted">
-                Bản trước, sửa lúc {formatSentAt(edit.editedAt)}
+                {t("previous", { time: formatSentAt(edit.editedAt, locale) })}
               </p>
               <p className="mt-0.5 text-[15px] break-words whitespace-pre-wrap text-fg">
                 {edit.previousBody}

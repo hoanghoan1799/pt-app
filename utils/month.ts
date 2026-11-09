@@ -1,4 +1,11 @@
-import { addDays, getWeekdayIndex, isValidDate } from "@/utils/week";
+import { getFormatTranslator } from "@/i18n/format-translator";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
+import {
+  addDays,
+  formatMonthName,
+  getWeekdayIndex,
+  isValidDate,
+} from "@/utils/week";
 
 // "YYYY-MM" of a "YYYY-MM-DD" date.
 export const getMonthOf = (date: string) => date.slice(0, 7);
@@ -16,11 +23,17 @@ export const getMonthStart = (month: string) => `${month}-01`;
 export const getMonthEnd = (month: string) =>
   addDays(getMonthStart(shiftMonth(month, 1)), -1);
 
-// "Tháng 11, 2026"
-export const formatMonthLabel = (month: string) => {
+// "Tháng 11, 2026" / "November 2026"
+export const formatMonthLabel = (
+  month: string,
+  locale: Locale = DEFAULT_LOCALE,
+) => {
   const [year, number] = month.split("-");
 
-  return `Tháng ${Number(number)}, ${year}`;
+  return getFormatTranslator(locale)("monthLabel", {
+    month: formatMonthName(Number(number), locale, "long"),
+    year,
+  });
 };
 
 // A Monday-first month grid: `null` cells pad the first week so the 1st lands

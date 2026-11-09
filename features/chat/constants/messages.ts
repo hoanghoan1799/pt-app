@@ -21,5 +21,6 @@ export const HIDDEN_CHAT_MESSAGES = {
   NO_MATCH: "Không khớp",
 } as const;
 
-// Shown for the PT side before any PT has written.
-export const FALLBACK_PEER_NAME = "PT của bạn";
+export const PRESENCE_MESSAGES = {
+  INVALID: "Giá trị không hợp lệ",
+} as const;

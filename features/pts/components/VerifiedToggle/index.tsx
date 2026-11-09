@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_SECONDARY } from "@/constants/styles";
-import { PT_MESSAGES } from "@/features/pts/constants/messages";
 import { setAdminVerifiedAction } from "@/features/pts/services/pt-actions";
 
 interface VerifiedToggleProps {
@@ -14,6 +15,7 @@ interface VerifiedToggleProps {
 }
 
 export const VerifiedToggle = ({ adminId, verified }: VerifiedToggleProps) => {
+  const t = useTranslations("pts.verifiedToggle");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -25,7 +27,7 @@ export const VerifiedToggle = ({ adminId, verified }: VerifiedToggleProps) => {
         toast.error(result.message);
         return;
       }
-      toast.success(verified ? PT_MESSAGES.VERIFY_OFF : PT_MESSAGES.VERIFY_ON);
+      toast.success(verified ? t("revoked") : t("granted"));
       router.refresh();
     });
   };
@@ -35,9 +37,11 @@ export const VerifiedToggle = ({ adminId, verified }: VerifiedToggleProps) => {
       type="button"
       onClick={handleClick}
       disabled={isPending}
+      aria-busy={isPending}
       className={`${BUTTON_SECONDARY} min-h-9 px-3 text-sm`}
     >
-      {verified ? "Gỡ tick" : "Cấp tick"}
+      {isPending && <Spinner size="sm" />}
+      {verified ? t("revoke") : t("grant")}
     </button>
   );
 };

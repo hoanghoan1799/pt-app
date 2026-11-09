@@ -1,14 +1,17 @@
 "use client";
 
 import { ArrowRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
+import { Input } from "@/components/common/Input";
 import { SubmitButton } from "@/components/common/SubmitButton";
-import { BUTTON_PRIMARY, FIELD_ERROR, INPUT, LABEL } from "@/constants/styles";
+import { BUTTON_PRIMARY, FIELD_ERROR, LABEL } from "@/constants/styles";
 import { useLoginForm } from "@/features/auth/hooks/use-login-form";
 import { loginWithEmailAction } from "@/features/auth/services/auth-actions";
 import { describeErrorReference } from "@/utils/errors";
 
 export const UserLoginForm = () => {
+  const t = useTranslations("auth.userLogin");
   const { formAction, errorMessage, errorReference, values } =
     useLoginForm(loginWithEmailAction);
 
@@ -18,12 +21,13 @@ export const UserLoginForm = () => {
         <label htmlFor="email" className={LABEL}>
           Email
         </label>
-        <input
+        <Input
+          clearable
           id="email"
           name="email"
           type="email"
           defaultValue={values.email ?? ""}
-          placeholder="VD: an@example.com"
+          placeholder={t("emailPlaceholder")}
           autoComplete="username"
           inputMode="email"
           autoCapitalize="none"
@@ -32,14 +36,13 @@ export const UserLoginForm = () => {
           required
           aria-invalid={Boolean(errorMessage)}
           aria-describedby={errorMessage ? "login-error" : undefined}
-          className={INPUT}
         />
       </div>
       <div>
         <label htmlFor="password" className={LABEL}>
-          Mật khẩu
+          {t("passwordLabel")}
         </label>
-        <input
+        <Input
           id="password"
           name="password"
           type="password"
@@ -48,7 +51,6 @@ export const UserLoginForm = () => {
           required
           aria-invalid={Boolean(errorMessage)}
           aria-describedby={errorMessage ? "login-error" : undefined}
-          className={INPUT}
         />
         {errorMessage && (
           <p id="login-error" role="alert" className={FIELD_ERROR}>
@@ -62,12 +64,10 @@ export const UserLoginForm = () => {
         )}
       </div>
       <SubmitButton className={`${BUTTON_PRIMARY} w-full`}>
-        Vào tập
+        {t("submit")}
         <ArrowRight className="size-5" aria-hidden />
       </SubmitButton>
-      <p className="text-center text-sm text-muted">
-        Quên mật khẩu? Liên hệ PT của bạn để đặt lại.
-      </p>
+      <p className="text-center text-sm text-muted">{t("forgotPassword")}</p>
     </form>
   );
 };

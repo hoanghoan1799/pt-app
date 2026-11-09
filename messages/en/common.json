@@ -1,0 +1,41 @@
+{
+  "clear": "Clear",
+  "close": "Close",
+  "confirm": { "cancel": "Cancel" },
+  "errorFallback": {
+    "title": "Something went wrong",
+    "serverError": "The server ran into a problem loading this page. Try again in a few minutes; if it keeps failing, send the code below to your PT.",
+    "referenceCode": "Reference code: {code}",
+    "retry": "Try again",
+    "home": "Back to start"
+  },
+  "dayStatus": {
+    "legendLabel": "Day color key",
+    "complete": "Completed",
+    "partial": "In progress"
+  },
+  "week": {
+    "calendar": "Week calendar",
+    "select": "Choose week",
+    "previous": "Previous week",
+    "next": "Next week",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "backToToday": "Back to today",
+    "openCalendar": "Open calendar, {week}",
+    "calendarTitle": "Calendar",
+    "calendarDescription": "Pick a day to view its schedule",
+    "dayIsToday": "today",
+    "dayIsSelected": "selected"
+  },
+  "month": { "previous": "Previous month", "next": "Next month" },
+  "photoViewer": {
+    "previous": "Previous photo",
+    "next": "Next photo",
+    "download": "Download",
+    "showInChat": "Show in chat"
+  },
+  "avatarLightbox": { "label": "Photo of {name}" },
+  "verified": "Verified",
+  "loading": "Loading…"
+}

@@ -1,0 +1,19 @@
+{
+  "title": "PT App",
+  "preview": {
+    "photo": "Đã gửi ảnh",
+    "sticker": "Đã gửi sticker",
+    "link": "Đã gửi liên kết",
+    "fallback": "Đã gửi tin nhắn"
+  },
+  "reaction": "{name} đã thả {emoji} vào tin nhắn của bạn",
+  "traineeFallback": "Học viên",
+  "friendFallback": "Bạn bè",
+  "social": {
+    "postReaction": "{name} đã bày tỏ cảm xúc về bài viết của bạn",
+    "postComment": "{name} đã bình luận về bài viết của bạn",
+    "commented": "{name} đã bình luận: {preview}",
+    "friendRequest": "{name} đã gửi lời mời kết bạn",
+    "friendAccepted": "{name} đã chấp nhận lời mời kết bạn"
+  }
+}

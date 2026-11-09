@@ -1,9 +1,10 @@
 "use client";
 
 import { AlertTriangle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import {
-  MACRO_GAP_LABELS,
+  MACRO_GAP_LABEL_KEYS,
   MAX_GAP_SUGGESTIONS,
 } from "@/features/meal-plans/constants/meal-plans";
 import type {
@@ -29,6 +30,9 @@ export const MealGapNotice = ({
   isDisabled,
   onAdd,
 }: MealGapNoticeProps) => {
+  const t = useTranslations("mealPlans.mealGapNotice");
+  const tLabels = useTranslations("mealPlans.labels");
+
   if (!gaps.length) {
     return null;
   }
@@ -54,8 +58,10 @@ export const MealGapNotice = ({
           <div key={gap.macro} className="space-y-1.5">
             <p className="flex items-center gap-1.5 text-sm font-semibold text-warning">
               <AlertTriangle className="size-4 shrink-0" aria-hidden />
-              {gap.kind === "short" ? "Thiếu" : "Dư"} {gap.grams} g{" "}
-              {MACRO_GAP_LABELS[gap.macro]}
+              {t(gap.kind === "short" ? "short" : "over", {
+                grams: gap.grams,
+                macro: tLabels(MACRO_GAP_LABEL_KEYS[gap.macro]),
+              })}
             </p>
             {suggestions.length > 0 && (
               <ul className="flex flex-wrap gap-1.5">
@@ -64,10 +70,11 @@ export const MealGapNotice = ({
                     <button
                       type="button"
                       disabled={isDisabled}
+                      aria-busy={isDisabled}
                       onClick={() => onAdd(food, grams)}
                       className="min-h-9 rounded-full border border-line bg-surface px-3 text-xs font-medium text-fg transition active:bg-line disabled:opacity-50"
                     >
-                      Thêm {grams} g {food.name}
+                      {t("addFood", { grams, name: food.name })}
                     </button>
                   </li>
                 ))}

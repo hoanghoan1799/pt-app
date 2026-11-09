@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 import { WeekCalendarCard } from "@/components/common/WeekCalendarCard";
 import type { WeekDayStatus } from "@/components/common/WeekDayTabs";
 import type { ScheduleDay } from "@/features/workouts/types/workout";
@@ -23,13 +25,17 @@ const getStatus = (day: ScheduleDay): WeekDayStatus => {
 };
 
 // The workout week calendar (header, days, legend).
-export const DayTabs = ({ days, ...props }: DayTabsProps) => (
-  <WeekCalendarCard
-    {...props}
-    items={days.map((day) => ({
-      date: day.date,
-      status: getStatus(day),
-      description: `${day.exercises.length ? `, ${day.exercises.length} bài` : ""}${isDayComplete(day) ? ", đã tập xong" : ""}`,
-    }))}
-  />
-);
+export const DayTabs = ({ days, ...props }: DayTabsProps) => {
+  const t = useTranslations("workouts.dayTabs");
+
+  return (
+    <WeekCalendarCard
+      {...props}
+      items={days.map((day) => ({
+        date: day.date,
+        status: getStatus(day),
+        description: `${day.exercises.length ? `, ${t("exerciseCount", { count: day.exercises.length })}` : ""}${isDayComplete(day) ? `, ${t("completedDay")}` : ""}`,
+      }))}
+    />
+  );
+};

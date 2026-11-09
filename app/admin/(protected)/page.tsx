@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { WeekNavigator } from "@/components/common/WeekNavigator";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -50,7 +51,11 @@ import { readSearchParam } from "@/utils/search-params";
 import { getRequestTime } from "@/utils/time";
 import { getTodayDate, resolveSchedule } from "@/utils/week";
 
-export const metadata: Metadata = { title: "Tổng quan" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("adminPages.home");
+
+  return { title: t("metaTitle") };
+};
 
 const TILE =
   "flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-2 py-3 text-center text-sm font-semibold text-fg transition active:bg-line/60";
@@ -60,6 +65,8 @@ const getMemberHref = (memberId: number, weekStart: string) =>
 
 const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
   const admin = await requireAdmin();
+  const t = await getTranslations("adminPages.home");
+  const locale = await getLocale();
   const query = await searchParams;
   const today = getTodayDate(TIME_ZONE);
   const now = getRequestTime();
@@ -101,6 +108,7 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     timeZone: TIME_ZONE,
     now,
     getHref: getMemberHref,
+    locale,
     unreadByUserId: new Map(
       unreadByTrainee.map((row) => [row.userId, row.unread]),
     ),
@@ -109,14 +117,14 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
   return (
     <>
       <AppHeader
-        eyebrow={`Admin · ${admin.username}`}
-        title="Tổng quan"
+        eyebrow={t("eyebrow", { username: admin.username })}
+        title={t("title")}
         actions={
           <>
             <Link
               href={ROUTES.ADMIN_MESSAGES}
               className={`${ICON_BUTTON} relative text-fg`}
-              aria-label="Tin nhắn"
+              aria-label={t("tiles.messages")}
             >
               <MessageCircle className="size-5" />
               <AdminUnreadBadge
@@ -140,12 +148,12 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
       >
         {!isSuper && (
           <h2 className="text-lg font-bold text-fg">
-            Workspace của {admin.username}
+            {t("workspace", { username: admin.username })}
           </h2>
         )}
         <section className="space-y-2" aria-labelledby="admin-actions-title">
           <h2 id="admin-actions-title" className={SECTION_TITLE}>
-            Thao tác
+            {t("actions")}
           </h2>
           <div className="grid grid-cols-3 gap-2">
             <AddMemberButton
@@ -156,15 +164,18 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
               <>
                 <Link href={ROUTES.ADMIN_FOODS} className={TILE}>
                   <Utensils className="size-6 text-accent" aria-hidden />
-                  <span>Thư viện món</span>
+                  <span>{t("tiles.foods")}</span>
                 </Link>
                 <Link href={ROUTES.ADMIN_PTS} className={TILE}>
                   <UserCog className="size-6 text-accent" aria-hidden />
-                  <span>Quản lý PT</span>
+                  <span>{t("tiles.pts")}</span>
                 </Link>
-                <Link href={ROUTES.ADMIN_REPORTS} className={`${TILE} relative`}>
+                <Link
+                  href={ROUTES.ADMIN_REPORTS}
+                  className={`${TILE} relative`}
+                >
                   <Flag className="size-6 text-accent" aria-hidden />
-                  <span>Báo cáo</span>
+                  <span>{t("tiles.reports")}</span>
                   {openReports > 0 && (
                     <span className="absolute top-2 right-2 flex min-w-5 items-center justify-center rounded-full bg-danger px-1 text-xs leading-5 font-bold text-white">
                       {openReports > 99 ? "99+" : openReports}
@@ -175,11 +186,11 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
             )}
             <Link href={ROUTES.ADMIN_SOCIAL} className={TILE}>
               <Newspaper className="size-6 text-accent" aria-hidden />
-              <span>Mạng xã hội</span>
+              <span>{t("tiles.social")}</span>
             </Link>
             <Link href={ROUTES.ADMIN_MESSAGES} className={`${TILE} relative`}>
               <MessageCircle className="size-6 text-accent" aria-hidden />
-              <span>Tin nhắn</span>
+              <span>{t("tiles.messages")}</span>
               <AdminUnreadBadge
                 initialCount={unreadMessages}
                 className="absolute top-2 right-2"
@@ -199,7 +210,9 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
           <WeekSummaryTiles summary={summarizeWeek(members)} />
         </div>
         <section className="space-y-2">
-          <h2 className={SECTION_TITLE}>User · {members.length}</h2>
+          <h2 className={SECTION_TITLE}>
+            {t("usersCount", { count: members.length })}
+          </h2>
           {isSuper && (
             <PtFilterSelect value={String(ptFilter)} options={ptOptions} />
           )}
@@ -210,7 +223,7 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
           />
         </section>
         <section className="space-y-2">
-          <h2 className={SECTION_TITLE}>Hoạt động gần đây</h2>
+          <h2 className={SECTION_TITLE}>{t("recentActivity")}</h2>
           <RecentActivityList items={namedActivity} isUserShown now={now} />
         </section>
       </main>

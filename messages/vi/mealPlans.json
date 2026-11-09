@@ -1,0 +1,217 @@
+{
+  "mealCard": {
+    "sectionLabel": "Bữa {index}: {name}",
+    "mealNameLabel": "Tên bữa {index}",
+    "moveUp": "Đưa {name} lên trên",
+    "moveDown": "Đưa {name} xuống dưới",
+    "deleteMealQuestion": "Xóa {meal} và các món trong bữa?",
+    "confirmDelete": "Xóa",
+    "deleteMeal": "Xóa {name}",
+    "collapsedFoods": " · {count, plural, other {# món}}",
+    "mealTarget": "Mục tiêu bữa{share}: {kcal} kcal · P {protein} · C {carbs} · F {fat}",
+    "noTargetToday": "Chưa có mục tiêu cho ngày này.",
+    "totalLabel": "Tổng {name}",
+    "autoSolve": "Tính tự động",
+    "setTargetFirst": "Đặt mục tiêu dinh dưỡng trước để tính tự động.",
+    "allFixed": "Mọi món đang giữ gram, bỏ khóa một món để tính tự động."
+  },
+  "traineeMealCard": {
+    "sectionLabel": "Bữa {index}: {name}",
+    "mealTarget": "Mục tiêu bữa: {kcal} kcal · P {protein} · C {carbs} · F {fat}",
+    "eatenSummary": "Đã ăn {eaten} / {planned} kcal",
+    "ptPlan": "Plan của PT",
+    "noFoods": "PT chưa thêm món cho bữa này.",
+    "extraLogged": "Đã ăn thêm ngoài plan",
+    "eatenLabel": "Đã ăn {name}",
+    "planKcal": "/ {kcal} kcal (plan)",
+    "logEatenInto": "Ghi món đã ăn vào {name}",
+    "logEaten": "Ghi món đã ăn",
+    "futureDay": "Chưa tới ngày này, quay lại ghi sau nhé."
+  },
+  "mealLogSheet": {
+    "editTitle": "Sửa món",
+    "addTitle": "Ghi món đã ăn",
+    "searchLabel": "Tìm món trong thư viện",
+    "searchPlaceholder": "Tìm món (VD: uc ga)",
+    "pickFood": "Chọn {name}",
+    "moreResults": "Còn nhiều món nữa, gõ thêm để thu hẹp.",
+    "noResults": "Không tìm thấy món nào",
+    "freeFood": "Món không có trong thư viện",
+    "grams": "Số gram",
+    "save": "Lưu",
+    "addFood": "Thêm món",
+    "pickOther": "Chọn món khác",
+    "name": "Tên món",
+    "namePlaceholder": "VD: Phở bò",
+    "gramsOptional": "Số gram (nếu biết)",
+    "nutritionOptional": "Dinh dưỡng (không bắt buộc)",
+    "searchLibrary": "Tìm trong thư viện",
+    "macroInputs": {
+      "kcal": "Calo (kcal)",
+      "protein": "Protein (g)",
+      "carbs": "Carb (g)",
+      "fat": "Fat (g)"
+    }
+  },
+  "copyDaySheet": {
+    "sourceDay": "ngày nguồn",
+    "past": "đã qua",
+    "hasPlan": "đã có plan",
+    "title": "Sao chép sang ngày khác",
+    "description": "Từ {date}",
+    "confirmLabel": "Xác nhận ghi đè",
+    "replaceNotice": "Plan cũ của các ngày này sẽ bị thay bằng plan của {date}.",
+    "cancel": "Hủy",
+    "overwrite": "Ghi đè",
+    "overwriteLegend": "Đã có plan, sẽ ghi đè",
+    "copy": "Sao chép",
+    "copyCount": " ({count, plural, other {# ngày}})"
+  },
+  "useDayPlan": {
+    "planCreated": "Đã tạo plan",
+    "appliedKeptDays": "Đã áp dụng {copied, plural, other {# ngày}}, giữ {skipped, plural, other {# ngày}} đã có plan",
+    "appliedLastWeek": "Đã áp dụng {copied, plural, other {# ngày}} của tuần trước",
+    "planRemoved": "Đã xóa plan của ngày này"
+  },
+  "useMealCard": {
+    "mealRemoved": "Đã xóa bữa",
+    "gramsSolved": "Đã tính gram tự động"
+  },
+  "useCopyDay": {
+    "copied": "Đã sao chép sang {copied, plural, other {# ngày}}"
+  },
+  "useMealShares": {
+    "sharesSaved": "Đã lưu phần trăm các bữa",
+    "sharesEqual": "Đã chia đều các bữa"
+  },
+  "useMealMark": {
+    "saved": "Đã lưu"
+  },
+  "useTraineeMealCard": {
+    "removeConfirm": "Xóa món này khỏi nhật ký?",
+    "confirmDelete": "Xóa",
+    "removed": "Đã xóa món ăn"
+  },
+  "useMealLogSheet": {
+    "added": "Đã ghi món ăn",
+    "updated": "Đã sửa món ăn"
+  },
+  "mealPlanTitle": {
+    "title": "Plan bữa ăn",
+    "expandAll": "Mở tất cả",
+    "collapseAll": "Thu gọn tất cả"
+  },
+  "memberMealRequest": {
+    "title": "Yêu cầu của học viên",
+    "wantsMeals": "Học viên muốn {count} bữa"
+  },
+  "mealLogList": {
+    "noNutrition": "Chưa có số liệu dinh dưỡng",
+    "archived": "Món đã xóa khỏi thư viện, số liệu giữ nguyên",
+    "edit": "Sửa {name}",
+    "delete": "Xóa {name}"
+  },
+  "mealMarkPanel": {
+    "achieveLabel": "Đạt {name}",
+    "achieve": "Đạt",
+    "achieved": "Đã đạt",
+    "noteLabel": "Ghi chú {name}",
+    "notePlaceholder": "Món nào thiếu hoặc dư? VD: cơm dư khoảng 50 g",
+    "saveNote": "Lưu ghi chú"
+  },
+  "emptyDayPlan": {
+    "noPlan": "<strong>Chưa có plan</strong> cho ngày này.",
+    "create": "Tạo plan",
+    "newPlanMeals": "Plan mới có {count} bữa, thêm hoặc bớt bữa sau.",
+    "applyLastWeek": "Áp dụng tuần trước",
+    "copyLastWeek": "Sao chép {count, plural, other {# ngày}} có plan của tuần trước vào các ngày còn trống của tuần này.",
+    "noLastWeek": "Tuần trước chưa có plan nào."
+  },
+  "planKcalNotices": {
+    "sectionLabel": "Plan lệch mục tiêu",
+    "title": "Plan cần chỉnh theo mục tiêu"
+  },
+  "mealPreferencesForm": {
+    "title": "Yêu cầu bữa ăn",
+    "mealCount": "Số bữa mong muốn",
+    "ptDecides": "PT quyết định",
+    "mealsPerDay": "{count} bữa/ngày",
+    "foodLabel": "Món thích hoặc không ăn được",
+    "notePlaceholder": "VD: Không ăn hải sản, thích cơm gạo lứt.",
+    "save": "Lưu yêu cầu",
+    "hint": "PT sẽ xem yêu cầu này khi xếp bữa ăn cho bạn."
+  },
+  "dayPlanSummary": {
+    "sectionLabel": "Tổng cả ngày",
+    "title": "Cả ngày",
+    "onTarget": "Đạt mục tiêu",
+    "offTarget": "Chưa đạt mục tiêu",
+    "deviation": "{name} {direction} {amount} {unit}",
+    "under": "thiếu",
+    "over": "dư",
+    "noTarget": "Chưa có mục tiêu dinh dưỡng cho ngày này.",
+    "addFoods": "Thêm món vào các bữa để xem tổng."
+  },
+  "mealGapNotice": {
+    "short": "Thiếu {grams} g {macro}",
+    "over": "Dư {grams} g {macro}",
+    "addFood": "Thêm {grams} g {name}"
+  },
+  "labels": {
+    "gap": {
+      "protein": "protein",
+      "carbs": "carb",
+      "fat": "fat"
+    },
+    "metric": {
+      "kcal": "Calo",
+      "protein": "Protein",
+      "carbs": "Carb",
+      "fat": "Fat"
+    }
+  },
+  "foodPicker": {
+    "addTo": "Thêm món vào {meal}",
+    "searchPlaceholder": "Tìm món để thêm (VD: uc ga)",
+    "pickFood": "Thêm {name}",
+    "moreResults": "Còn nhiều món nữa, gõ thêm để thu hẹp.",
+    "noResults": "Không tìm thấy món nào"
+  },
+  "mealItemRow": {
+    "archived": "Món đã xóa khỏi thư viện, số liệu giữ nguyên",
+    "delete": "Xóa {name}",
+    "gramsLabel": "Gram {name}",
+    "lockLabel": "Giữ nguyên gram {name} khi tính tự động",
+    "fixed": "Giữ gram",
+    "auto": "Tự tính"
+  },
+  "mealSharesSheet": {
+    "title": "Chia theo %",
+    "description": "Phần trăm mục tiêu cả ngày cho mỗi bữa",
+    "total": "Tổng: {total}% (cần {target}%)",
+    "save": "Lưu phần trăm",
+    "equal": "Chia đều"
+  },
+  "traineeMealPlan": {
+    "sectionLabel": "Plan bữa ăn",
+    "noPlan": "PT chưa lên plan bữa ăn cho ngày này."
+  },
+  "mealPlanDay": {
+    "sectionLabel": "Plan bữa ăn",
+    "addMeal": "Thêm bữa",
+    "copyToDay": "Sao chép sang ngày khác",
+    "splitByPercent": "Chia theo %",
+    "confirmDelete": "Xóa",
+    "deletePlan": "Xóa plan của ngày này"
+  },
+  "mealCollapseToggle": {
+    "expand": "Mở {name}",
+    "collapse": "Thu gọn {name}"
+  },
+  "mealLogSummary": {
+    "noLogs": "Học viên chưa ghi gì cho bữa này.",
+    "sectionLabel": "Học viên đã ghi",
+    "onPlan": "Đạt",
+    "eaten": "Đã ăn:"
+  }
+}

@@ -2,15 +2,17 @@
 
 import clsx from "clsx";
 import { Pencil, Plus, Trash2, UtensilsCrossed } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_SECONDARY, CARD, ICON_BUTTON } from "@/constants/styles";
 import { FoodEntryForm } from "@/features/nutrition/components/FoodEntryForm";
 import {
   MACRO_COLORS,
   MACRO_LABELS,
   MACROS,
-  MEAL_LABELS,
+  MEAL_LABEL_KEYS,
   MEALS,
 } from "@/features/nutrition/constants/nutrition";
 import { useFoodLog } from "@/features/nutrition/hooks/use-food-log";
@@ -36,6 +38,9 @@ export const FoodLog = ({
   isEditable,
   emptyMessage,
 }: FoodLogProps) => {
+  const locale = useLocale();
+  const t = useTranslations("nutrition.foodLog");
+  const tLabels = useTranslations("nutrition.labels");
   const log = useFoodLog();
   const meals = MEALS.filter((meal) =>
     entries.some((entry) => entry.meal === meal),
@@ -47,7 +52,7 @@ export const FoodLog = ({
         meals.map((meal) => (
           <div key={meal} className={`${CARD} overflow-hidden`}>
             <h3 className="border-b border-line px-4 py-2 text-xs font-semibold tracking-wide text-muted uppercase">
-              {MEAL_LABELS[meal]}
+              {tLabels(MEAL_LABEL_KEYS[meal])}
             </h3>
             <ul className="divide-y divide-line">
               {entries
@@ -89,7 +94,7 @@ export const FoodLog = ({
                           type="button"
                           onClick={() => log.handleEdit(entry)}
                           className={ICON_BUTTON}
-                          aria-label="Sửa bữa ăn"
+                          aria-label={t("editMeal")}
                         >
                           <Pencil className="size-4" />
                         </button>
@@ -97,10 +102,15 @@ export const FoodLog = ({
                           type="button"
                           onClick={() => log.handleDelete(entry)}
                           disabled={log.pendingId === entry.id}
+                          aria-busy={log.pendingId === entry.id}
                           className={`${ICON_BUTTON} text-danger`}
-                          aria-label="Xóa bữa ăn"
+                          aria-label={t("deleteMeal")}
                         >
-                          <Trash2 className="size-4" />
+                          {log.pendingId === entry.id ? (
+                            <Spinner size="sm" />
+                          ) : (
+                            <Trash2 className="size-4" />
+                          )}
                         </button>
                       </div>
                     )}
@@ -126,13 +136,13 @@ export const FoodLog = ({
             className={`${BUTTON_SECONDARY} w-full border-dashed`}
           >
             <Plus className="size-5" aria-hidden />
-            Ghi bữa ăn
+            {t("logMeal")}
           </button>
           <BottomSheet
             isOpen={log.sheet.isOpen}
             onOpenChange={log.handleSheetChange}
-            title={log.sheet.entry ? "Sửa bữa ăn" : "Ghi bữa ăn"}
-            description={formatFullDay(date)}
+            title={log.sheet.entry ? t("editMeal") : t("logMeal")}
+            description={formatFullDay(date, locale)}
           >
             <FoodEntryForm
               key={log.sheet.formKey}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -32,10 +33,9 @@ import type {
   StickerInput,
 } from "@/features/chat/utils/sticker-rules";
 import type { DmReplyPostView } from "@/features/social/types/dm";
+import { useLocalizeMessage } from "@/i18n/use-localize-message";
 
 const MARK_READ_DEBOUNCE_MS = 600;
-const SEND_FAILED_TEXT = "Không gửi được tin nhắn. Thử lại nhé.";
-const ACTION_FAILED_TEXT = "Không thực hiện được. Thử lại nhé.";
 
 export interface ThreadSnapshot {
   messages: SerializedChatMessage[];
@@ -110,6 +110,9 @@ interface Options {
 }
 
 export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
+  const locale = useLocale();
+  const t = useTranslations("chat.chatMessages");
+  const localize = useLocalizeMessage();
   const [messages, setMessages] = useState<ThreadMessage[]>(() =>
     mergeMessages([], initial.messages),
   );
@@ -298,8 +301,8 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
       } catch (error) {
         setSendError(
           error instanceof Error && error.message !== "send"
-            ? error.message
-            : SEND_FAILED_TEXT,
+            ? localize(error.message)
+            : t("sendFailed"),
         );
         setMessages((current) =>
           current.map((message) =>
@@ -312,7 +315,7 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
         void sync();
       }
     },
-    [sync],
+    [localize, sync, t],
   );
 
   // Shows the bubble at once (no id yet), then delivers it.
@@ -476,12 +479,12 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
         toast.error(
           error instanceof Error && error.message
             ? error.message
-            : ACTION_FAILED_TEXT,
+            : t("actionFailed"),
         );
         void sync();
       }
     },
-    [sync],
+    [sync, t],
   );
 
   // emoji null removes my reaction.
@@ -495,11 +498,12 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
             message.reactions,
             adapterRef.current.viewer,
             emoji,
+            locale,
           ),
         }),
         (current) => current.reactMessage(messageId, emoji),
       ),
-    [mutate],
+    [mutate, locale],
   );
 
   const edit = useCallback(

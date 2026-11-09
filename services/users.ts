@@ -62,3 +62,7 @@ export const setUserEmail = async (userId: number, email: string) => {
     .set({ email: trimmed, emailKey: toEmailKey(trimmed) })
     .where(eq(users.id, userId));
 };
+
+export const setUserLocale = async (id: number, locale: string) => {
+  await db.update(users).set({ locale }).where(eq(users.id, id));
+};

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   type FormEvent,
   startTransition,
@@ -10,7 +11,6 @@ import { toast } from "sonner";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { INITIAL_FORM_STATE } from "@/constants/form";
-import { CONFIRM_MESSAGES } from "@/features/workouts/constants/messages";
 import { saveExerciseAction } from "@/features/workouts/services/workout-actions";
 import type { Exercise } from "@/features/workouts/types/workout";
 import { shouldConfirmLinkChange } from "@/features/workouts/utils/exercise";
@@ -31,6 +31,7 @@ export const useExerciseForm = ({
   hasSets,
   onSaved,
 }: UseExerciseFormOptions) => {
+  const t = useTranslations("workouts.exerciseForm");
   const confirm = useConfirm();
   const [state, formAction, isPending] = useActionState(
     saveExerciseAction,
@@ -56,8 +57,8 @@ export const useExerciseForm = ({
       shouldConfirmLinkChange(exercise.youtubeId, youtubeId, hasSets)
     ) {
       const isConfirmed = await confirm({
-        title: CONFIRM_MESSAGES.CHANGE_LINK_WITH_SETS,
-        confirmLabel: "Tiếp tục",
+        title: t("changeLinkConfirmTitle"),
+        confirmLabel: t("continue"),
         isDanger: true,
       });
 
@@ -74,7 +75,7 @@ export const useExerciseForm = ({
     try {
       setYoutubeUrl(await navigator.clipboard.readText());
     } catch {
-      toast.error("Không đọc được clipboard. Hãy dán thủ công.");
+      toast.error(t("clipboardError"));
     }
   };
 

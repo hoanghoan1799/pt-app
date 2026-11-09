@@ -1,0 +1,87 @@
+{
+  "home": {
+    "metaTitle": "Overview",
+    "title": "Overview",
+    "eyebrow": "Admin · {username}",
+    "workspace": "Workspace of {username}",
+    "actions": "Actions",
+    "tiles": {
+      "foods": "Food library",
+      "pts": "Manage PTs",
+      "reports": "Reports",
+      "social": "Community",
+      "messages": "Messages"
+    },
+    "usersCount": "Users · {count}",
+    "recentActivity": "Recent activity"
+  },
+  "pts": {
+    "metaTitle": "Manage PTs",
+    "eyebrow": "Admin",
+    "title": "Manage PTs",
+    "adminAccounts": "Admin accounts · {count}",
+    "superAdmin": "Super admin",
+    "ptRole": "PT · {count, plural, one {# trainee} other {# trainees}}",
+    "traineesByPt": "Trainees by PT",
+    "unassignedGroup": "No PT",
+    "groupTitle": "{title} · {count, plural, one {# trainee} other {# trainees}}",
+    "noTrainees": "No trainees yet",
+    "addPt": "Add PT"
+  },
+  "reports": {
+    "metaTitle": "Reports",
+    "eyebrow": "Admin",
+    "title": "Reports",
+    "pending": "Pending · {count}",
+    "emptyList": "No reports.",
+    "kinds": {
+      "post": "Post",
+      "comment": "Comment",
+      "user": "User"
+    },
+    "emptyPreview": "(Empty)",
+    "deleted": "This content has been deleted.",
+    "viewProfile": "View profile",
+    "view": "View",
+    "reporter": "Reported by: {name}",
+    "targetName": " · {name}",
+    "reason": " · \"{reason}\""
+  },
+  "userPage": {
+    "metaTitle": "Workouts",
+    "eyebrow": "Workouts of",
+    "preview": "View as user",
+    "history": "Workout history",
+    "tools": "Tools"
+  },
+  "userPreview": {
+    "metaTitle": "View as user",
+    "eyebrow": "View as user",
+    "notice": "This is the screen the user will see"
+  },
+  "userSummary": {
+    "metaTitle": "Summary",
+    "eyebrow": "Summary of"
+  },
+  "userNutrition": {
+    "metaTitle": "Nutrition",
+    "eyebrow": "Nutrition of"
+  },
+  "messages": {
+    "metaTitle": "Messages",
+    "threadTitle": "Messages with {name}",
+    "threadAriaLabel": "Conversation with {name}",
+    "emptyText": "No messages with this user yet",
+    "lockedEmptyText": "The chat is locked and has no messages yet. Turn it back on to send messages."
+  },
+  "messagesInfo": {
+    "metaTitle": "Chat info"
+  },
+  "messagesPhotos": {
+    "metaTitle": "Photos, stickers and links",
+    "title": "Photos, stickers and links"
+  },
+  "messagesSearch": {
+    "metaTitle": "Search messages"
+  }
+}

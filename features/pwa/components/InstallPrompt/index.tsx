@@ -2,6 +2,7 @@
 
 import { Share } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 
 import { ROUTES } from "@/constants/routes";
@@ -15,6 +16,7 @@ const BUTTON_BASE =
 // browsers get a how-to hint instead. Hidden on the chat page (KAN-102), where
 // the composer is pinned above the tab bar and the banner would cover it.
 export const InstallPrompt = () => {
+  const t = useTranslations("pwa.installPrompt");
   const { visible: canShow, platform, install, dismiss } = useInstallPrompt();
   const pathname = usePathname();
   const visible = canShow && !pathname.startsWith(ROUTES.MESSAGES);
@@ -53,24 +55,22 @@ export const InstallPrompt = () => {
       >
         <section
           role="region"
-          aria-label="Cài ứng dụng"
+          aria-label={t("regionLabel")}
           className="pointer-events-auto mx-auto flex max-w-md flex-col gap-3 rounded-2xl border border-line bg-surface p-4 text-sm shadow-[0_10px_30px_-8px_rgb(0_0_0/0.35)]"
         >
           {platform === "ios" ? (
             <p>
-              Để cài app: bấm nút Chia sẻ{" "}
+              {t("iosBefore")}{" "}
               <Share
                 className="inline size-4 align-text-bottom text-accent"
                 aria-hidden
               />{" "}
-              rồi chọn &quot;Thêm vào MH chính&quot;
+              {t("iosAfter")}
             </p>
           ) : null}
-          {platform === "in-app" ? (
-            <p>Mở trang này bằng Safari hoặc Chrome để cài app</p>
-          ) : null}
+          {platform === "in-app" ? <p>{t("inAppHint")}</p> : null}
           {platform === "android" || platform === "other" ? (
-            <p>Cài PT App lên màn hình chính để mở nhanh hơn</p>
+            <p>{t("androidHint")}</p>
           ) : null}
           <div className="flex justify-end gap-2">
             <button
@@ -78,7 +78,7 @@ export const InstallPrompt = () => {
               onClick={dismiss}
               className={`${BUTTON_BASE} text-muted`}
             >
-              Để sau
+              {t("later")}
             </button>
             {platform === "android" || platform === "other" ? (
               <button
@@ -86,7 +86,7 @@ export const InstallPrompt = () => {
                 onClick={install}
                 className={`${BUTTON_BASE} bg-accent text-accent-fg shadow-md shadow-accent/25`}
               >
-                Cài đặt
+                {t("install")}
               </button>
             ) : null}
           </div>

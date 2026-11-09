@@ -1,5 +1,6 @@
 import { TIME_ZONE } from "@/constants/time";
 import type { PhotoMime } from "@/features/chat/utils/photo-rules";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 import { formatShortDateTime } from "@/utils/time";
 
 // The photo gallery of a conversation (KAN-160): pure rules shared by the
@@ -34,12 +35,6 @@ export type GalleryPage = CursorPage<GalleryPhoto>;
 // The tabs of the gallery page (`?tab=`).
 export const GALLERY_TABS = ["photos", "stickers", "links"] as const;
 export type GalleryTab = (typeof GALLERY_TABS)[number];
-
-export const GALLERY_TAB_LABELS: Record<GalleryTab, string> = {
-  photos: "Ảnh",
-  stickers: "Sticker",
-  links: "Link",
-};
 
 // Anything that is not a known tab is the first one.
 export const parseGalleryTab = (
@@ -91,8 +86,9 @@ export const parseGalleryCursor = (
 // "An · 05/10 18:30": the accessible name and caption of a photo.
 export const photoLabel = (
   photo: Pick<GalleryPhoto, "senderName" | "createdAt">,
+  locale: Locale = DEFAULT_LOCALE,
 ) =>
-  `${photo.senderName} · ${formatShortDateTime(Date.parse(photo.createdAt), TIME_ZONE)}`;
+  `${photo.senderName} · ${formatShortDateTime(Date.parse(photo.createdAt), TIME_ZONE, locale)}`;
 
 const EXTENSIONS: Record<PhotoMime, string> = {
   "image/webp": "webp",

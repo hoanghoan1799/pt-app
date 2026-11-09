@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 
 import { CARD } from "@/constants/styles";
 import {
@@ -38,21 +39,26 @@ export const NutritionWeekSummary = ({
   weekStart,
   dayBasePath,
 }: NutritionWeekSummaryProps) => {
+  const locale = useLocale();
+  const t = useTranslations("nutrition.nutritionWeekSummary");
+  const tLabels = useTranslations("nutrition.labels");
   const summary = summarizeNutritionWeek(days);
   const stats = [
     {
       value: `${summary.loggedDays}/7`,
-      label: "ngày có ghi",
+      label: t("loggedDays"),
       className: "text-fg",
     },
     {
       value: String(summary.onTargetDays),
-      label: "ngày đạt mục tiêu",
+      label: t("onTargetDays"),
       className: "text-success",
     },
     {
-      value: summary.loggedDays ? formatCalories(summary.averageKcal) : "–",
-      label: "TB/ngày",
+      value: summary.loggedDays
+        ? formatCalories(summary.averageKcal, locale)
+        : "–",
+      label: t("avgPerDay"),
       className: "text-fg",
     },
   ];
@@ -76,7 +82,7 @@ export const NutritionWeekSummary = ({
       </div>
       <div
         role="table"
-        aria-label="Dinh dưỡng theo ngày"
+        aria-label={t("tableLabel")}
         className="text-sm tabular-nums"
       >
         <div
@@ -84,7 +90,7 @@ export const NutritionWeekSummary = ({
           className="grid grid-cols-[1fr_repeat(3,4.5rem)] px-4 py-2 text-xs"
         >
           <span role="columnheader" className="font-medium text-muted">
-            Ngày
+            {t("dayColumn")}
           </span>
           {MACROS.map((macro) => (
             <span
@@ -95,7 +101,7 @@ export const NutritionWeekSummary = ({
                 MACRO_COLORS[macro].text,
               )}
             >
-              {MACRO_LABELS[macro].name}
+              {tLabels(MACRO_LABELS[macro].nameKey)}
             </span>
           ))}
         </div>
@@ -110,9 +116,9 @@ export const NutritionWeekSummary = ({
             className="grid grid-cols-[1fr_repeat(3,4.5rem)] items-baseline border-t border-line px-4 py-2.5 transition active:bg-line/60"
           >
             <span role="rowheader" className="font-medium text-fg">
-              {getWeekdayShortLabel(day.date)}{" "}
+              {getWeekdayShortLabel(day.date, locale)}{" "}
               <span className="font-normal text-muted">
-                {formatDayMonth(day.date)}
+                {formatDayMonth(day.date, locale)}
               </span>
             </span>
             {MACROS.map((macro) => (
@@ -147,7 +153,7 @@ export const NutritionWeekSummary = ({
           className="grid grid-cols-[1fr_repeat(3,4.5rem)] border-t border-line bg-line/40 px-4 py-2.5"
         >
           <span role="rowheader" className="font-semibold text-fg">
-            TB/ngày
+            {t("avgPerDay")}
           </span>
           {MACROS.map((macro) => (
             <span
@@ -161,9 +167,10 @@ export const NutritionWeekSummary = ({
         </div>
       </div>
       <p className="border-t border-line px-4 py-2 text-xs text-muted">
-        Gram đã ăn / mục tiêu. <span className="text-success">Xanh</span>: đạt
-        (±10%), <span className="text-danger">đỏ</span>: vượt. Bấm vào ngày để
-        xem chi tiết.
+        {t.rich("legend", {
+          success: (chunks) => <span className="text-success">{chunks}</span>,
+          danger: (chunks) => <span className="text-danger">{chunks}</span>,
+        })}
       </p>
     </div>
   );

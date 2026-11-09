@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { useLocale, useTranslations } from "next-intl";
 
 import {
   MACRO_COLORS,
@@ -25,16 +26,21 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 // One macro as a ~60px ring with "eaten / target g" and the Còn/Vượt text.
 export const MacroRing = ({ macro, eaten, target }: MacroRingProps) => {
+  const locale = useLocale();
   const percent = getRingPercent(eaten, target);
   const comparison = compareToTarget(eaten, target, macro);
-  const comparisonText = formatComparison(comparison, "g");
-  const { name } = MACRO_LABELS[macro];
+  const comparisonText = formatComparison(comparison, "g", locale);
+  const t = useTranslations("nutrition.macroRing");
+  const tLabels = useTranslations("nutrition.labels");
+  const name = tLabels(MACRO_LABELS[macro].nameKey);
 
   return (
     <li className="flex min-w-0 flex-1 flex-col items-center gap-1 text-center">
       <div
         role={target ? "progressbar" : undefined}
-        aria-label={target ? `${name}: ${eaten}/${target} g` : undefined}
+        aria-label={
+          target ? t("progressLabel", { name, eaten, target }) : undefined
+        }
         aria-valuemin={target ? 0 : undefined}
         aria-valuemax={target ? 100 : undefined}
         aria-valuenow={target ? percent : undefined}

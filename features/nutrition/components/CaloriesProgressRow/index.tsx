@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { useLocale, useTranslations } from "next-intl";
 
 import { STATUS_TEXT_CLASSES } from "@/features/nutrition/constants/progress";
 import type { MacroAmounts } from "@/features/nutrition/types/nutrition";
@@ -21,16 +22,20 @@ export const CaloriesProgressRow = ({
   kcal: eaten,
   target,
 }: CaloriesProgressRowProps) => {
+  const locale = useLocale();
+  const t = useTranslations("nutrition.caloriesProgressRow");
   const goal = target ? calculateCalories(target) : undefined;
   const comparison = compareToTarget(eaten, goal, "kcal");
 
   return (
     <li className="flex items-baseline justify-between gap-2 border-b border-line pb-3">
-      <span className="font-semibold text-fg">Năng lượng</span>
+      <span className="font-semibold text-fg">{t("energy")}</span>
       <span className="text-right text-sm tabular-nums">
-        <span className="font-bold text-fg">{formatCalories(eaten)}</span>
+        <span className="font-bold text-fg">
+          {formatCalories(eaten, locale)}
+        </span>
         {goal ? (
-          <span className="text-muted"> / {formatCalories(goal)}</span>
+          <span className="text-muted"> / {formatCalories(goal, locale)}</span>
         ) : null}
         {comparison.status !== "none" && (
           <span
@@ -39,7 +44,7 @@ export const CaloriesProgressRow = ({
               STATUS_TEXT_CLASSES[comparison.status],
             )}
           >
-            {formatComparison(comparison, "kcal")}
+            {formatComparison(comparison, "kcal", locale)}
           </span>
         )}
       </span>

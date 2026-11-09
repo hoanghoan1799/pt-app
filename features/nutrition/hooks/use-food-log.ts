@@ -1,10 +1,10 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
-import { NUTRITION_MESSAGES } from "@/features/nutrition/constants/nutrition";
 import { deleteFoodEntryAction } from "@/features/nutrition/services/nutrition-actions";
 import type { FoodEntry } from "@/features/nutrition/types/nutrition";
 import { describeErrorReference } from "@/utils/errors";
@@ -17,6 +17,7 @@ interface EntrySheetState {
 }
 
 export const useFoodLog = () => {
+  const t = useTranslations("nutrition.useFoodLog");
   const confirm = useConfirm();
   const [sheet, setSheet] = useState<EntrySheetState>({
     isOpen: false,
@@ -41,8 +42,8 @@ export const useFoodLog = () => {
 
   const handleDelete = async (entry: FoodEntry) => {
     const isConfirmed = await confirm({
-      title: NUTRITION_MESSAGES.DELETE_CONFIRM,
-      confirmLabel: "Xóa",
+      title: t("deleteConfirm"),
+      confirmLabel: t("confirm"),
       isDanger: true,
     });
 
@@ -61,7 +62,7 @@ export const useFoodLog = () => {
         });
         return;
       }
-      toast.success(NUTRITION_MESSAGES.ENTRY_DELETED);
+      toast.success(t("entryDeleted"));
     });
   };
 

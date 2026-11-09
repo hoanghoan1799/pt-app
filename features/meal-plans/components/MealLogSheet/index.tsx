@@ -1,9 +1,12 @@
 "use client";
 
 import { ArrowLeft, PencilLine, Plus, Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { FormEvent } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { Input } from "@/components/common/Input";
+import { SubmitButton } from "@/components/common/SubmitButton";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
@@ -30,11 +33,12 @@ interface MealLogSheetProps {
   editing: MealLog | null;
 }
 
+// Labels are keys under mealPlans.mealLogSheet (translated at render).
 const MACRO_INPUTS = [
-  { field: "kcal", label: "Calo (kcal)" },
-  { field: "protein", label: "Protein (g)" },
-  { field: "carbs", label: "Carb (g)" },
-  { field: "fat", label: "Fat (g)" },
+  { field: "kcal", labelKey: "macroInputs.kcal" },
+  { field: "protein", labelKey: "macroInputs.protein" },
+  { field: "carbs", labelKey: "macroInputs.carbs" },
+  { field: "fat", labelKey: "macroInputs.fat" },
 ] as const;
 
 type BodyProps = Omit<MealLogSheetProps, "isOpen">;
@@ -46,6 +50,8 @@ const MealLogSheetBody = ({
   library,
   editing,
 }: BodyProps) => {
+  const t = useTranslations("mealPlans.mealLogSheet");
+  const tFoods = useTranslations("foods.labels");
   const form = useMealLogSheet(mealId, library, editing, () =>
     onOpenChange(false),
   );
@@ -61,23 +67,18 @@ const MealLogSheetBody = ({
     return (
       <div className="space-y-3">
         <label htmlFor="log-search" className="sr-only">
-          Tìm món trong thư viện
+          {t("searchLabel")}
         </label>
-        <div className="relative">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted"
-            aria-hidden
-          />
-          <input
-            id="log-search"
-            type="search"
-            value={picker.query}
-            onChange={(event) => picker.setQuery(event.target.value)}
-            placeholder="Tìm món (VD: uc ga)"
-            autoComplete="off"
-            className={`${INPUT} pl-11`}
-          />
-        </div>
+        <Input
+          id="log-search"
+          type="search"
+          clearable
+          leadingIcon={<Search className="size-5" aria-hidden />}
+          value={picker.query}
+          onChange={(event) => picker.setQuery(event.target.value)}
+          placeholder={t("searchPlaceholder")}
+          autoComplete="off"
+        />
         {picker.isSearching &&
           (picker.results.length ? (
             <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line">
@@ -93,27 +94,29 @@ const MealLogSheetBody = ({
                         {food.name}
                       </span>
                       <span className="block text-xs text-muted">
-                        {FOOD_GROUPS[food.group].label}
+                        {tFoods(FOOD_GROUPS[food.group].labelKey)}
                         {food.state
-                          ? ` · ${FOOD_STATE_LABELS[food.state]}`
+                          ? ` · ${tFoods(FOOD_STATE_LABELS[food.state])}`
                           : ""}
                         {" · "}
                         {food.kcal} kcal/100 g
                       </span>
                     </span>
                     <Plus className="size-5 shrink-0 text-accent" aria-hidden />
-                    <span className="sr-only">Chọn {food.name}</span>
+                    <span className="sr-only">
+                      {t("pickFood", { name: food.name })}
+                    </span>
                   </button>
                 </li>
               ))}
               {picker.hasMore && (
                 <li className="px-3 py-2 text-xs text-muted">
-                  Còn nhiều món nữa, gõ thêm để thu hẹp.
+                  {t("moreResults")}
                 </li>
               )}
             </ul>
           ) : (
-            <p className="px-1 text-sm text-muted">Không tìm thấy món nào</p>
+            <p className="px-1 text-sm text-muted">{t("noResults")}</p>
           ))}
         <button
           type="button"
@@ -121,7 +124,7 @@ const MealLogSheetBody = ({
           className={`${BUTTON_SECONDARY} w-full border-dashed`}
         >
           <PencilLine className="size-5" aria-hidden />
-          Món không có trong thư viện
+          {t("freeFood")}
         </button>
       </div>
     );
@@ -135,7 +138,7 @@ const MealLogSheetBody = ({
         <p className="text-[15px] font-medium text-fg">{name}</p>
         <div>
           <label htmlFor="log-grams" className={LABEL}>
-            Số gram
+            {t("grams")}
           </label>
           <input
             id="log-grams"
@@ -148,13 +151,9 @@ const MealLogSheetBody = ({
           {form.error && <p className={FIELD_ERROR}>{form.error}</p>}
         </div>
         <div className="grid grid-cols-1 gap-2">
-          <button
-            type="submit"
-            disabled={form.isPending}
-            className={BUTTON_PRIMARY}
-          >
-            {editing ? "Lưu" : "Thêm món"}
-          </button>
+          <SubmitButton isPending={form.isPending} className={BUTTON_PRIMARY}>
+            {editing ? t("save") : t("addFood")}
+          </SubmitButton>
           {!editing && (
             <button
               type="button"
@@ -162,7 +161,7 @@ const MealLogSheetBody = ({
               className={BUTTON_SECONDARY}
             >
               <ArrowLeft className="size-5" aria-hidden />
-              Chọn món khác
+              {t("pickOther")}
             </button>
           )}
         </div>
@@ -174,20 +173,20 @@ const MealLogSheetBody = ({
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <div>
         <label htmlFor="log-name" className={LABEL}>
-          Tên món
+          {t("name")}
         </label>
         <input
           id="log-name"
           value={form.name}
           onChange={(event) => form.setName(event.target.value)}
           maxLength={MEAL_LOG_LIMITS.CUSTOM_NAME}
-          placeholder="VD: Phở bò"
+          placeholder={t("namePlaceholder")}
           className={INPUT}
         />
       </div>
       <div>
         <label htmlFor="log-free-grams" className={LABEL}>
-          Số gram (nếu biết)
+          {t("gramsOptional")}
         </label>
         <input
           id="log-free-grams"
@@ -199,20 +198,20 @@ const MealLogSheetBody = ({
       </div>
       <fieldset className="space-y-3">
         <legend className="text-sm font-medium text-fg">
-          Dinh dưỡng (không bắt buộc)
+          {t("nutritionOptional")}
         </legend>
         <div className="grid grid-cols-2 gap-3">
-          {MACRO_INPUTS.map(({ field, label }) => (
+          {MACRO_INPUTS.map(({ field, labelKey }) => (
             <div key={field}>
               <label htmlFor={`log-${field}`} className="sr-only">
-                {label}
+                {t(labelKey)}
               </label>
               <input
                 id={`log-${field}`}
                 value={form.macros[field]}
                 onChange={(event) => form.setMacro(field, event.target.value)}
                 inputMode="decimal"
-                placeholder={label}
+                placeholder={t(labelKey)}
                 className={INPUT}
               />
             </div>
@@ -221,13 +220,9 @@ const MealLogSheetBody = ({
       </fieldset>
       {form.error && <p className={FIELD_ERROR}>{form.error}</p>}
       <div className="grid grid-cols-1 gap-2">
-        <button
-          type="submit"
-          disabled={form.isPending}
-          className={BUTTON_PRIMARY}
-        >
-          {editing ? "Lưu" : "Thêm món"}
-        </button>
+        <SubmitButton isPending={form.isPending} className={BUTTON_PRIMARY}>
+          {editing ? t("save") : t("addFood")}
+        </SubmitButton>
         {!editing && (
           <button
             type="button"
@@ -235,7 +230,7 @@ const MealLogSheetBody = ({
             className={BUTTON_SECONDARY}
           >
             <ArrowLeft className="size-5" aria-hidden />
-            Tìm trong thư viện
+            {t("searchLibrary")}
           </button>
         )}
       </div>
@@ -252,20 +247,24 @@ export const MealLogSheet = ({
   mealName,
   library,
   editing,
-}: MealLogSheetProps) => (
-  <BottomSheet
-    isOpen={isOpen}
-    onOpenChange={onOpenChange}
-    title={editing ? "Sửa món" : "Ghi món đã ăn"}
-    description={mealName}
-  >
-    <MealLogSheetBody
-      key={editing?.id ?? "new"}
+}: MealLogSheetProps) => {
+  const t = useTranslations("mealPlans.mealLogSheet");
+
+  return (
+    <BottomSheet
+      isOpen={isOpen}
       onOpenChange={onOpenChange}
-      mealId={mealId}
-      mealName={mealName}
-      library={library}
-      editing={editing}
-    />
-  </BottomSheet>
-);
+      title={editing ? t("editTitle") : t("addTitle")}
+      description={mealName}
+    >
+      <MealLogSheetBody
+        key={editing?.id ?? "new"}
+        onOpenChange={onOpenChange}
+        mealId={mealId}
+        mealName={mealName}
+        library={library}
+        editing={editing}
+      />
+    </BottomSheet>
+  );
+};

@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+import { getFormatTranslator } from "@/i18n/format-translator";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
+
 // Photos in chat (KAN-160). Pure rules shared by the routes, the send action
 // and the browser; nothing here touches the database.
 
@@ -234,8 +237,13 @@ export const bubbleBox = (
 };
 
 // Inbox line: "📷 Ảnh", or "📷 " + the caption when the photo has text.
-export const photoPreview = (caption: string) =>
-  caption.trim() === "" ? PHOTO_PREVIEW : `📷 ${caption}`;
+export const photoPreview = (
+  caption: string,
+  locale: Locale = DEFAULT_LOCALE,
+) =>
+  caption.trim() === ""
+    ? `📷 ${getFormatTranslator(locale)("thread.photo")}`
+    : `📷 ${caption}`;
 
 // Browser-side encoding plan. The photo is fitted into 1600 px and encoded
 // at the first quality; while it is bigger than the target the quality drops

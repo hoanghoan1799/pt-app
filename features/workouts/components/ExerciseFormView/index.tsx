@@ -1,12 +1,13 @@
 import { ClipboardPaste } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { FormEvent } from "react";
 
+import { Input } from "@/components/common/Input";
 import { SubmitButton } from "@/components/common/SubmitButton";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
   FIELD_ERROR,
-  INPUT,
   LABEL,
   TEXTAREA,
 } from "@/constants/styles";
@@ -41,9 +42,9 @@ export const ExerciseFormView = ({
   onPaste,
   onSubmit,
 }: ExerciseFormViewProps) => {
+  const t = useTranslations("workouts.exerciseForm");
   const youtubeError =
-    fieldErrors.youtubeUrl ??
-    (hasInvalidUrl ? "Link YouTube không hợp lệ" : "");
+    fieldErrors.youtubeUrl ?? (hasInvalidUrl ? t("invalidYoutubeUrl") : "");
 
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
@@ -53,10 +54,12 @@ export const ExerciseFormView = ({
 
       <div>
         <label htmlFor="youtubeUrl" className={LABEL}>
-          Link video YouTube <span className="text-danger">*</span>
+          {t("youtubeLabel")} <span className="text-danger">*</span>
         </label>
         <div className="flex gap-2">
-          <input
+          <Input
+            wrapperClassName="min-w-0 flex-1"
+            clearable
             id="youtubeUrl"
             name="youtubeUrl"
             type="url"
@@ -67,13 +70,12 @@ export const ExerciseFormView = ({
             autoCapitalize="off"
             autoCorrect="off"
             aria-invalid={Boolean(youtubeError)}
-            className={INPUT}
           />
           <button
             type="button"
             onClick={onPaste}
             className={`${BUTTON_SECONDARY} shrink-0 px-3.5`}
-            aria-label="Dán link từ clipboard"
+            aria-label={t("pasteFromClipboard")}
           >
             <ClipboardPaste className="size-5" aria-hidden />
           </button>
@@ -86,17 +88,17 @@ export const ExerciseFormView = ({
 
       <div>
         <label htmlFor="title" className={LABEL}>
-          Tên bài tập <span className="text-danger">*</span>
+          {t("titleLabel")} <span className="text-danger">*</span>
         </label>
-        <input
+        <Input
+          clearable
           id="title"
           name="title"
           defaultValue={exercise?.title}
-          placeholder="VD: Bench press"
+          placeholder={t("titlePlaceholder")}
           maxLength={EXERCISE_LIMITS.TITLE}
           autoCapitalize="sentences"
           aria-invalid={Boolean(fieldErrors.title)}
-          className={INPUT}
         />
         {fieldErrors.title && (
           <p className={FIELD_ERROR}>{fieldErrors.title}</p>
@@ -106,9 +108,9 @@ export const ExerciseFormView = ({
       <div className="grid grid-cols-[2fr_3fr] gap-3">
         <div>
           <label htmlFor="sets" className={LABEL}>
-            Số hiệp
+            {t("setsLabel")}
           </label>
-          <input
+          <Input
             id="sets"
             name="sets"
             defaultValue={exercise?.sets ?? ""}
@@ -116,20 +118,19 @@ export const ExerciseFormView = ({
             pattern="[0-9]*"
             placeholder="4"
             aria-invalid={Boolean(fieldErrors.sets)}
-            className={INPUT}
           />
         </div>
         <div>
           <label htmlFor="reps" className={LABEL}>
-            Số lần / thời gian
+            {t("repsLabel")}
           </label>
-          <input
+          <Input
+            clearable
             id="reps"
             name="reps"
             defaultValue={exercise?.reps}
-            placeholder="10-12 hoặc 30 giây"
+            placeholder={t("repsPlaceholder")}
             maxLength={EXERCISE_LIMITS.REPS}
-            className={INPUT}
           />
         </div>
       </div>
@@ -141,7 +142,7 @@ export const ExerciseFormView = ({
 
       <div>
         <label htmlFor="description" className={LABEL}>
-          Mô tả / lưu ý kỹ thuật
+          {t("descriptionLabel")}
         </label>
         <textarea
           id="description"
@@ -149,7 +150,7 @@ export const ExerciseFormView = ({
           defaultValue={exercise?.description}
           rows={4}
           maxLength={EXERCISE_LIMITS.DESCRIPTION}
-          placeholder="VD: Siết bụng, hạ tạ chậm 3 giây, nghỉ 90 giây giữa hiệp"
+          placeholder={t("descriptionPlaceholder")}
           className={TEXTAREA}
         />
         {fieldErrors.description && (
@@ -161,7 +162,7 @@ export const ExerciseFormView = ({
         className={`${BUTTON_PRIMARY} w-full`}
         isPending={isPending}
       >
-        {exercise ? "Lưu thay đổi" : "Thêm bài tập"}
+        {exercise ? t("saveChanges") : t("add")}
       </SubmitButton>
     </form>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
@@ -29,6 +30,8 @@ export const StickerGallery = ({
   chatPath,
   avatars,
 }: StickerGalleryProps) => {
+  const locale = useLocale();
+  const t = useTranslations("chat.stickerGallery");
   const router = useRouter();
   const { items, cursor, error, sentinel, loadMore, loadMoreQuietly } =
     useGalleryPager({
@@ -43,16 +46,14 @@ export const StickerGallery = ({
       items.map((item) => ({
         id: item.messageId,
         src: item.url,
-        label: `${item.alt} · ${photoLabel(item)}`,
+        label: `${item.alt} · ${photoLabel(item, locale)}`,
       })),
-    [items],
+    [items, locale],
   );
 
   if (items.length === 0) {
     return (
-      <p className="px-6 py-16 text-center text-sm text-muted">
-        Chưa có sticker nào trong cuộc trò chuyện này
-      </p>
+      <p className="px-6 py-16 text-center text-sm text-muted">{t("empty")}</p>
     );
   }
 
@@ -67,7 +68,7 @@ export const StickerGallery = ({
             <button
               type="button"
               data-gallery-sticker={item.messageId}
-              aria-label={`Xem sticker của ${photoLabel(item)}`}
+              aria-label={t("viewSticker", { label: photoLabel(item, locale) })}
               onClick={() => setOpenIndex(index)}
               className="absolute inset-0 block p-2"
             >

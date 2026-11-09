@@ -1,7 +1,9 @@
 "use client";
 
 import { KeyRound, Pencil } from "lucide-react";
+import { useTranslations } from "next-intl";
 
+import { Spinner } from "@/components/common/Spinner";
 import { SubmitButton } from "@/components/common/SubmitButton";
 import {
   BUTTON_PRIMARY,
@@ -12,7 +14,6 @@ import {
   SECTION_TITLE,
 } from "@/constants/styles";
 import { OneTimePassword } from "@/features/members/components/OneTimePassword";
-import { MEMBER_MESSAGES } from "@/features/members/constants/messages";
 import { useMemberLogin } from "@/features/members/hooks/use-member-login";
 
 interface MemberLoginCardProps {
@@ -26,16 +27,17 @@ export const MemberLoginCard = ({
   name,
   email,
 }: MemberLoginCardProps) => {
+  const t = useTranslations("members.memberLogin");
   const login = useMemberLogin(userId, email);
 
   return (
     <section className="space-y-3">
-      <h2 className={SECTION_TITLE}>Tài khoản đăng nhập</h2>
+      <h2 className={SECTION_TITLE}>{t("sectionTitle")}</h2>
       <div className={`${CARD} space-y-3 p-4`}>
         {login.isEditing ? (
           <form onSubmit={login.saveEmail} className="space-y-3">
             <label htmlFor="member-login-email" className="sr-only">
-              Email đăng nhập
+              {t("emailLabel")}
             </label>
             <input
               id="member-login-email"
@@ -62,13 +64,13 @@ export const MemberLoginCard = ({
                 onClick={login.cancelEditing}
                 className={`${BUTTON_SECONDARY} flex-1`}
               >
-                Hủy
+                {t("cancel")}
               </button>
               <SubmitButton
                 isPending={login.isSaving}
                 className={`${BUTTON_PRIMARY} flex-1`}
               >
-                Lưu
+                {t("save")}
               </SubmitButton>
             </div>
           </form>
@@ -77,7 +79,7 @@ export const MemberLoginCard = ({
             <p
               className={`min-w-0 truncate ${email ? "text-fg" : "text-muted"}`}
             >
-              {email ?? MEMBER_MESSAGES.NO_EMAIL}
+              {email ?? t("noEmail")}
             </p>
             <button
               type="button"
@@ -85,7 +87,7 @@ export const MemberLoginCard = ({
               className="flex min-h-11 shrink-0 items-center gap-1.5 px-2 text-sm font-medium text-fg"
             >
               <Pencil className="size-4" aria-hidden />
-              Đổi email
+              {t("changeEmail")}
             </button>
           </div>
         )}
@@ -102,10 +104,15 @@ export const MemberLoginCard = ({
               type="button"
               onClick={login.resetPassword}
               disabled={login.isResetting}
+              aria-busy={login.isResetting}
               className={`${BUTTON_SECONDARY} w-full`}
             >
-              <KeyRound className="size-5" aria-hidden />
-              Đặt lại mật khẩu
+              {login.isResetting ? (
+                <Spinner size="md" />
+              ) : (
+                <KeyRound className="size-5" aria-hidden />
+              )}
+              {t("resetPassword")}
             </button>
           )
         )}

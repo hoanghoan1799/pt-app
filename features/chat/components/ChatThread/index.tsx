@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import {
   type ReactNode,
   useCallback,
@@ -15,6 +16,7 @@ import {
 import { toast } from "sonner";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
+import { Spinner } from "@/components/common/Spinner";
 import { Composer } from "@/features/chat/components/Composer";
 import { EditHistorySheet } from "@/features/chat/components/EditHistorySheet";
 import { LockedBanner } from "@/features/chat/components/LockedBanner";
@@ -26,7 +28,6 @@ import { ReactorsSheet } from "@/features/chat/components/ReactorsSheet";
 import { ReplyBar } from "@/features/chat/components/ReplyBar";
 import { ReplyPostBar } from "@/features/chat/components/ReplyPostBar";
 import { TypingIndicator } from "@/features/chat/components/TypingIndicator";
-import { CHAT_MESSAGES } from "@/features/chat/constants/messages";
 import { useChatAdapter } from "@/features/chat/hooks/use-chat-adapter";
 import type { ThreadSnapshot } from "@/features/chat/hooks/use-chat-messages";
 import { useChatMessages } from "@/features/chat/hooks/use-chat-messages";
@@ -103,10 +104,6 @@ export interface ChatThreadProps {
 
 const NO_VERIFIED: number[] = [];
 const NO_AVATARS: Readonly<Record<string, string>> = {};
-
-const TRAINEE_EMPTY_TEXT = "Gửi tin nhắn đầu tiên cho PT của bạn";
-const TRAINEE_LOCKED_EMPTY_TEXT = "PT chưa mở nhắn tin cho bạn";
-const TRAINEE_ARIA_LABEL = "Cuộc trò chuyện với PT";
 
 const KEYBOARD_MIN_PX = 120;
 const HEART = "❤️";
@@ -195,12 +192,14 @@ export const ChatThread = ({
   fallbackPeerName = "PT",
   verifiedAdminIds = NO_VERIFIED,
   emptyText,
-  ariaLabel = TRAINEE_ARIA_LABEL,
+  ariaLabel,
   avatars = NO_AVATARS,
   replyPost = null,
 }: ChatThreadProps) => {
   const router = useRouter();
   const pathname = usePathname();
+  const locale = useLocale();
+  const t = useTranslations("chat.chatThread");
   const isAdmin = viewer.role === "admin";
   // Admin-only and per device; trainee views never read the stored value.
   const [neutralColors] = useNeutralChatColors(isAdmin);
@@ -271,8 +270,9 @@ export const ChatThread = ({
         Date.now(),
         adapter.viewer,
         profile.nicknames,
+        locale,
       ),
-    [messages, peerReadUpTo, adapter.viewer, profile.nicknames],
+    [messages, peerReadUpTo, adapter.viewer, profile.nicknames, locale],
   );
 
   const scrollToBottom = useCallback((smooth: boolean) => {
@@ -445,9 +445,9 @@ export const ChatThread = ({
     setIsSheetOpen(false);
     try {
       await navigator.clipboard.writeText(message.body);
-      toast.success("Đã sao chép");
+      toast.success(t("copied"));
     } catch {
-      toast.error("Không sao chép được");
+      toast.error(t("copyFailed"));
     }
   };
 
@@ -485,9 +485,9 @@ export const ChatThread = ({
       return;
     }
     const isConfirmed = await confirm({
-      title: "Thu hồi tin nhắn này với mọi người?",
-      description: "Cả hai bên sẽ chỉ thấy “Tin nhắn đã bị thu hồi”.",
-      confirmLabel: "Thu hồi",
+      title: t("unsendTitle"),
+      description: t("unsendDescription"),
+      confirmLabel: t("unsend"),
       isDanger: true,
     });
 
@@ -598,7 +598,7 @@ export const ChatThread = ({
   };
 
   const emptyMessage =
-    emptyText ?? (chatEnabled ? TRAINEE_EMPTY_TEXT : TRAINEE_LOCKED_EMPTY_TEXT);
+    emptyText ?? (chatEnabled ? t("empty") : t("emptyLocked"));
   const latestPeerName = latestAdminName(messages);
   // The other side's photo in the header: the trainee for an admin, the PT who
   // wrote last for a trainee.
@@ -618,7 +618,7 @@ export const ChatThread = ({
       : header;
   const peerRealName =
     viewer.role === "admin"
-      ? (viewer.peerName ?? "Học viên")
+      ? (viewer.peerName ?? t("traineeFallback"))
       : (latestPeerName ?? fallbackPeerName);
   const typingName =
     viewer.role === "admin"
@@ -663,9 +663,10 @@ export const ChatThread = ({
                   type="button"
                   onClick={handleLoadOlder}
                   disabled={chat.isLoadingOlder}
-                  className="rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
                 >
-                  {chat.isLoadingOlder ? "Đang tải…" : "Xem tin cũ hơn"}
+                  {chat.isLoadingOlder && <Spinner size="sm" />}
+                  {chat.isLoadingOlder ? t("loadingOlder") : t("loadOlder")}
                 </button>
               </div>
             )}
@@ -674,7 +675,11 @@ export const ChatThread = ({
                 {emptyMessage}
               </p>
             )}
-            <div role="log" aria-live="polite" aria-label={ariaLabel}>
+            <div
+              role="log"
+              aria-live="polite"
+              aria-label={ariaLabel ?? t("ariaLabel")}
+            >
               {items.map((item) => {
                 if (item.kind === "message") {
                   return (
@@ -755,9 +760,9 @@ export const ChatThread = ({
         )}
         {chatEnabled && activeEditing && (
           <ReplyBar
-            title="Đang chỉnh sửa"
+            title={t("editing")}
             snippet={activeEditing.body}
-            closeLabel="Huỷ chỉnh sửa"
+            closeLabel={t("cancelEdit")}
             onClose={() => setEditing(null)}
           />
         )}
@@ -766,14 +771,24 @@ export const ChatThread = ({
         )}
         {chatEnabled && !activeEditing && replyMessage && (
           <ReplyBar
-            title={`Đang trả lời ${senderLabel(replyMessage, adapter.viewer, profile.nicknames)}`}
-            snippet={quoteText({
-              deleted: replyMessage.deleted,
-              isSticker: Boolean(replyMessage.sticker),
-              isPhoto: Boolean(replyMessage.photo),
-              body: replyMessage.body,
+            title={t("replying", {
+              name: senderLabel(
+                replyMessage,
+                adapter.viewer,
+                profile.nicknames,
+                locale,
+              ),
             })}
-            closeLabel="Huỷ trả lời"
+            snippet={quoteText(
+              {
+                deleted: replyMessage.deleted,
+                isSticker: Boolean(replyMessage.sticker),
+                isPhoto: Boolean(replyMessage.photo),
+                body: replyMessage.body,
+              },
+              locale,
+            )}
+            closeLabel={t("cancelReply")}
             onClose={() => setReplyId(null)}
           />
         )}
@@ -788,18 +803,12 @@ export const ChatThread = ({
             onTyping={sendTyping}
             placeholder={
               viewer.role === "admin" && viewer.peerName
-                ? `Nhắn tin cho ${viewer.peerName}…`
+                ? t("placeholder", { name: viewer.peerName })
                 : undefined
             }
           />
         ) : (
-          <LockedBanner
-            text={
-              isAdmin
-                ? CHAT_MESSAGES.ADMIN_CHAT_LOCKED
-                : CHAT_MESSAGES.CHAT_LOCKED
-            }
-          />
+          <LockedBanner text={isAdmin ? t("adminLocked") : t("locked")} />
         )}
       </div>
       {hasStickerPanel && chatEnabled && (

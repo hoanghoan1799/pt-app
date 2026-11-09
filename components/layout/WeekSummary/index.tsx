@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import { WeekNavigator } from "@/components/common/WeekNavigator";
@@ -47,48 +48,52 @@ export const WeekSummary = ({
   todayWeight,
   progress,
   bodyProfile,
-}: WeekSummaryProps) => (
-  <div className="space-y-6">
-    <div className={`${CARD} p-4`}>
-      <WeekNavigator
-        basePath={basePath}
-        weekStart={weekStart}
-        selectedDate={selectedDate}
-        today={today}
-      />
-    </div>
-    <section className="space-y-2">
-      <h2 className={SECTION_TITLE}>Cân nặng theo tuần</h2>
-      <WeightTrendCard
-        weeks={weightWeeks}
-        selectedWeekStart={weekStart}
-        canLog={canLogWeight}
-        todayWeight={todayWeight}
-      />
-    </section>
-    {bodyProfile}
-    {progress != null && (
+}: WeekSummaryProps) => {
+  const t = useTranslations("layout.weekSummary");
+
+  return (
+    <div className="space-y-6">
+      <div className={`${CARD} p-4`}>
+        <WeekNavigator
+          basePath={basePath}
+          weekStart={weekStart}
+          selectedDate={selectedDate}
+          today={today}
+        />
+      </div>
       <section className="space-y-2">
-        <h2 className={SECTION_TITLE}>Tiến bộ</h2>
-        {progress}
+        <h2 className={SECTION_TITLE}>{t("weight")}</h2>
+        <WeightTrendCard
+          weeks={weightWeeks}
+          selectedWeekStart={weekStart}
+          canLog={canLogWeight}
+          todayWeight={todayWeight}
+        />
       </section>
-    )}
-    <section className="space-y-2">
-      <h2 className={SECTION_TITLE}>Tập luyện</h2>
-      <WorkoutWeekSummary
-        days={workoutDays}
-        weekStart={weekStart}
-        today={today}
-        dayBasePath={workoutsPath}
-      />
-    </section>
-    <section className="space-y-2">
-      <h2 className={SECTION_TITLE}>Dinh dưỡng</h2>
-      <NutritionWeekSummary
-        days={nutritionDays}
-        weekStart={weekStart}
-        dayBasePath={nutritionPath}
-      />
-    </section>
-  </div>
-);
+      {bodyProfile}
+      {progress != null && (
+        <section className="space-y-2">
+          <h2 className={SECTION_TITLE}>{t("progress")}</h2>
+          {progress}
+        </section>
+      )}
+      <section className="space-y-2">
+        <h2 className={SECTION_TITLE}>{t("workouts")}</h2>
+        <WorkoutWeekSummary
+          days={workoutDays}
+          weekStart={weekStart}
+          today={today}
+          dayBasePath={workoutsPath}
+        />
+      </section>
+      <section className="space-y-2">
+        <h2 className={SECTION_TITLE}>{t("nutrition")}</h2>
+        <NutritionWeekSummary
+          days={nutritionDays}
+          weekStart={weekStart}
+          dayBasePath={nutritionPath}
+        />
+      </section>
+    </div>
+  );
+};

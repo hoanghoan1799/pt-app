@@ -1,7 +1,8 @@
 "use client";
 
-import { ImagePlus, Loader2, X } from "lucide-react";
+import { ImagePlus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   type FormEvent,
   useEffect,
@@ -12,6 +13,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 
+import { SubmitButton } from "@/components/common/SubmitButton";
 import { BUTTON_PRIMARY, CARD, TEXTAREA } from "@/constants/styles";
 import {
   encodePhoto,
@@ -22,6 +24,7 @@ import { PrivacySelect } from "@/features/social/components/PrivacySelect";
 import { CAPTION_MAX_LENGTH } from "@/features/social/constants/social";
 import { createPostAction } from "@/features/social/services/social-actions";
 import type { PostPrivacy } from "@/features/social/types/social";
+import { useLocalizeMessage } from "@/i18n/use-localize-message";
 import { describeErrorReference } from "@/utils/errors";
 
 interface PostComposerProps {
@@ -59,6 +62,8 @@ const uploadPhoto = async (blob: Blob, mode: "user" | "admin") => {
 // Write a post: caption, at most one photo and the privacy (which starts from
 // the last one the person chose).
 export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
+  const t = useTranslations("social.postComposer");
+  const localize = useLocalizeMessage();
   const router = useRouter();
   const captionId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -89,7 +94,11 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
       });
     } catch (error) {
       toast.error(
-        error instanceof PhotoImageError ? error.message : PHOTO_ERRORS.GENERIC,
+        localize(
+          error instanceof PhotoImageError
+            ? error.message
+            : PHOTO_ERRORS.GENERIC,
+        ),
       );
     }
   };
@@ -97,7 +106,7 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (caption.trim() === "" && !photo) {
-      toast.error("Hãy viết nội dung hoặc chọn một ảnh.");
+      toast.error(t("emptyPost"));
       return;
     }
     startTransition(async () => {
@@ -120,7 +129,9 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
         router.refresh();
       } catch (error) {
         toast.error(
-          error instanceof Error ? error.message : PHOTO_ERRORS.GENERIC,
+          localize(
+            error instanceof Error ? error.message : PHOTO_ERRORS.GENERIC,
+          ),
         );
       }
     });
@@ -129,14 +140,14 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
   return (
     <form onSubmit={handleSubmit} className={`${CARD} space-y-3 p-4`}>
       <label htmlFor={captionId} className="sr-only">
-        Nội dung bài viết
+        {t("captionLabel")}
       </label>
       <textarea
         id={captionId}
         value={caption}
         maxLength={CAPTION_MAX_LENGTH}
         onChange={(event) => setCaption(event.target.value)}
-        placeholder="Bạn đang nghĩ gì?"
+        placeholder={t("placeholder")}
         className={TEXTAREA}
       />
       {photo && (
@@ -144,13 +155,13 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={photo.previewUrl}
-            alt="Ảnh sẽ đăng"
+            alt={t("photoAlt")}
             className="max-h-64 w-full rounded-xl object-cover"
           />
           <button
             type="button"
             onClick={() => setPhoto(null)}
-            aria-label="Bỏ ảnh"
+            aria-label={t("removePhoto")}
             className="absolute top-2 right-2 inline-flex size-9 items-center justify-center rounded-full bg-black/60 text-white"
           >
             <X className="size-5" aria-hidden />
@@ -172,7 +183,7 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={isPending}
-          aria-label="Thêm ảnh"
+          aria-label={t("addPhoto")}
           className="inline-flex size-11 items-center justify-center rounded-xl border border-line text-accent disabled:opacity-50"
         >
           <ImagePlus className="size-5" aria-hidden />
@@ -183,14 +194,12 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
           onChange={setPrivacy}
           disabled={isPending}
         />
-        <button
-          type="submit"
-          disabled={isPending}
+        <SubmitButton
+          isPending={isPending}
           className={`${BUTTON_PRIMARY} ml-auto min-h-11`}
         >
-          {isPending && <Loader2 className="size-5 animate-spin" aria-hidden />}
-          Đăng
-        </button>
+          {t("submit")}
+        </SubmitButton>
       </div>
     </form>
   );

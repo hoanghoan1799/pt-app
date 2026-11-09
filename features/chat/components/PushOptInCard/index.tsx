@@ -1,6 +1,7 @@
 "use client";
 
 import { BellRing, Share } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import {
   type PushRole,
@@ -10,10 +11,10 @@ import {
 const BUTTON_BASE =
   "inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold transition active:opacity-80";
 
-const TITLES: Record<PushRole, string> = {
-  user: "Bật thông báo để không lỡ tin nhắn từ PT",
-  admin: "Bật thông báo để không lỡ tin nhắn của học viên",
-};
+const TITLE_KEYS = {
+  user: "titleUser",
+  admin: "titleAdmin",
+} as const satisfies Record<PushRole, string>;
 
 interface PushOptInCardProps {
   role: PushRole;
@@ -22,6 +23,7 @@ interface PushOptInCardProps {
 // One-time card offering browser notifications for new chat messages. Remembers
 // "Để sau" per role, so it shows once. Renders nothing where push cannot work.
 export const PushOptInCard = ({ role }: PushOptInCardProps) => {
+  const t = useTranslations("chat.pushOptIn");
   const { state, busy, error, enable, dismiss } = usePushSubscription(role);
 
   if (state === "hidden") {
@@ -30,31 +32,26 @@ export const PushOptInCard = ({ role }: PushOptInCardProps) => {
 
   return (
     <section
-      aria-label="Bật thông báo"
+      aria-label={t("sectionLabel")}
       className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4 text-sm"
     >
       <div className="flex items-start gap-3">
         <BellRing className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden />
         <div className="min-w-0 space-y-1">
-          <p className="font-semibold">{TITLES[role]}</p>
+          <p className="font-semibold">{t(TITLE_KEYS[role])}</p>
           {state === "ios-install-hint" && (
             <p className="text-muted">
-              Trên iPhone, hãy thêm app vào Màn hình chính trước: bấm nút Chia
-              sẻ{" "}
-              <Share
-                className="inline size-4 align-text-bottom text-accent"
-                aria-hidden
-              />{" "}
-              rồi chọn &quot;Thêm vào MH chính&quot;, sau đó mở app từ màn hình
-              chính để bật thông báo.
+              {t.rich("iosInstallHint", {
+                share: () => (
+                  <Share
+                    className="inline size-4 align-text-bottom text-accent"
+                    aria-hidden
+                  />
+                ),
+              })}
             </p>
           )}
-          {state === "denied" && (
-            <p className="text-muted">
-              Thông báo đang bị chặn. Hãy bật lại trong phần cài đặt của trình
-              duyệt (hoặc cài đặt thông báo của máy) cho trang này.
-            </p>
-          )}
+          {state === "denied" && <p className="text-muted">{t("denied")}</p>}
         </div>
       </div>
       {error && (
@@ -68,7 +65,7 @@ export const PushOptInCard = ({ role }: PushOptInCardProps) => {
           onClick={dismiss}
           className={`${BUTTON_BASE} text-muted`}
         >
-          {state === "denied" ? "Đã hiểu" : "Để sau"}
+          {state === "denied" ? t("gotIt") : t("later")}
         </button>
         {state === "show" && (
           <button
@@ -77,7 +74,7 @@ export const PushOptInCard = ({ role }: PushOptInCardProps) => {
             disabled={busy}
             className={`${BUTTON_BASE} bg-accent text-accent-fg shadow-md shadow-accent/25 disabled:opacity-50`}
           >
-            Bật thông báo
+            {t("enable")}
           </button>
         )}
       </div>

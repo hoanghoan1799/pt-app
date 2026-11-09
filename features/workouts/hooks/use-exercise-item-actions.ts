@@ -1,10 +1,10 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
-import { WORKOUT_MESSAGES } from "@/features/workouts/constants/messages";
 import {
   deleteExerciseAction,
   moveExerciseAction,
@@ -18,6 +18,8 @@ export const useExerciseItemActions = (
   userId: number,
   hasSets: boolean,
 ) => {
+  const locale = useLocale();
+  const t = useTranslations("workouts.exerciseItemActions");
   const confirm = useConfirm();
   const [isPending, startTransition] = useTransition();
 
@@ -35,8 +37,8 @@ export const useExerciseItemActions = (
 
   const confirmDelete = (withSets: boolean) =>
     confirm({
-      title: getDeleteConfirmMessage(withSets),
-      confirmLabel: "Xóa",
+      title: getDeleteConfirmMessage(withSets, locale),
+      confirmLabel: t("deleteConfirmLabel"),
       isDanger: true,
     });
 
@@ -68,7 +70,7 @@ export const useExerciseItemActions = (
         return;
       }
       if (result.status === "success") {
-        toast.success(WORKOUT_MESSAGES.EXERCISE_DELETED);
+        toast.success(t("deleted"));
       }
     });
   };

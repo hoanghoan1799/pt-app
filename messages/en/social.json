@@ -1,0 +1,227 @@
+{
+  "notifications": {
+    "empty": "No notifications yet.",
+    "unread": "Unread",
+    "bell": "Notifications",
+    "bellUnread": "Notifications, {count} unread"
+  },
+  "reportActions": {
+    "deleteTitle": "Delete the reported content?",
+    "deleteDescription": "The content will be deleted permanently.",
+    "deleteConfirm": "Delete",
+    "keep": "Keep",
+    "handled": "Handled",
+    "deleteContent": "Delete content"
+  },
+  "unblock": {
+    "label": "Unblock",
+    "success": "Unblocked."
+  },
+  "privacy": {
+    "label": "Privacy",
+    "everyone": "Everyone",
+    "friends": "Friends",
+    "only_me": "Only me"
+  },
+  "terms": {
+    "accept": "Agree"
+  },
+  "profileMenu": {
+    "optionsLabel": "Options",
+    "block": "Block",
+    "report": "Report",
+    "blockTitle": "Block {name}?",
+    "blockDescription": "You won't see each other's profiles, posts or comments. Any friendship will be removed.",
+    "blocked": "User blocked."
+  },
+  "relationship": {
+    "addFriend": "Add friend",
+    "accept": "Accept",
+    "decline": "Decline",
+    "friends": "Friends",
+    "requested": "Request sent",
+    "unfriendTitle": "Unfriend {name}?",
+    "unfriendDescription": "You will no longer see each other's friends-only posts.",
+    "unfriendConfirm": "Unfriend",
+    "cancelRequest": "Cancel request"
+  },
+  "friendRequest": {
+    "cancel": "Cancel request",
+    "accept": "Accept",
+    "decline": "Decline"
+  },
+  "friendsTabs": {
+    "navLabel": "Friends",
+    "tabs": {
+      "friends": "Friends",
+      "requests": "Requests",
+      "search": "Find friends by email"
+    }
+  },
+  "friendSearch": {
+    "label": "Friend's email",
+    "hint": "Enter the full email address to search.",
+    "submit": "Search",
+    "empty": "No one was found with this email."
+  },
+  "bio": {
+    "empty": "No bio yet",
+    "edit": "Edit bio",
+    "label": "Bio",
+    "cancel": "Cancel",
+    "save": "Save"
+  },
+  "profile": {
+    "friendCount": "{count, plural, one {# friend} other {# friends}}",
+    "posts": "Posts",
+    "noPosts": "No posts yet."
+  },
+  "reactionPicker": {
+    "title": "Reactions",
+    "description": "Choose a reaction for this post"
+  },
+  "reactionBar": {
+    "comments": "{count, plural, one {# comment} other {# comments}}",
+    "reactedAs": "You reacted {emoji}",
+    "heart": "Heart",
+    "reacted": "Reacted",
+    "like": "Like",
+    "reactionsList": "{count, plural, one {# reaction, view list} other {# reactions, view list}}"
+  },
+  "reactorsSheet": {
+    "title": "Reactions",
+    "description": "Who reacted to this post",
+    "loadFailed": "Couldn't load the list.",
+    "you": "You"
+  },
+  "reportSheet": {
+    "titles": {
+      "post": "Report post",
+      "comment": "Report comment",
+      "user": "Report user"
+    },
+    "description": "An admin will review your report.",
+    "reasonLabel": "Reason (optional)",
+    "cancel": "Cancel",
+    "send": "Send report",
+    "sent": "Report sent. Thank you."
+  },
+  "dmPostQuote": {
+    "postUnavailable": "This post is no longer available",
+    "postOf": "Post by {name}",
+    "photoAlt": "Photo in the post"
+  },
+  "dmBubbleList": {
+    "deleted": "Deleted",
+    "retry": "Retry",
+    "seen": "Seen",
+    "unsend": "Unsend"
+  },
+  "dmThread": {
+    "back": "Back",
+    "loadOlder": "Load older messages",
+    "noMessages": "No messages yet. Say hello!",
+    "replying": "Replying to a post",
+    "cancelReply": "Cancel reply to post",
+    "photoAlt": "Selected photo",
+    "removePhoto": "Remove photo",
+    "uploading": "Uploading photo...",
+    "attachPhoto": "Send photo",
+    "messageLabel": "Message",
+    "placeholder": "Type a message...",
+    "send": "Send"
+  },
+  "postList": {
+    "loadFailed": "Couldn't load more. Please try again.",
+    "loading": "Loading more posts...",
+    "retry": "Try again",
+    "end": "You've reached the end of the posts."
+  },
+  "postComposer": {
+    "emptyPost": "Write something or choose a photo.",
+    "captionLabel": "Post content",
+    "placeholder": "What's on your mind?",
+    "photoAlt": "Photo to post",
+    "removePhoto": "Remove photo",
+    "addPhoto": "Add photo",
+    "submit": "Post"
+  },
+  "postCard": {
+    "deleteTitle": "Delete this post?",
+    "deleteDescription": "The post and its photo will be deleted permanently.",
+    "deleteConfirm": "Delete",
+    "postOf": "Post by {name}",
+    "edited": " · Edited",
+    "optionsLabel": "Post options",
+    "captionLabel": "Post content",
+    "cancel": "Cancel",
+    "save": "Save",
+    "viewPhoto": "View photo",
+    "photoAlt": "Photo in the post",
+    "photoOf": "Photo by {name}",
+    "replyInChat": "Reply in chat",
+    "edit": "Edit",
+    "delete": "Delete",
+    "report": "Report"
+  },
+  "comments": {
+    "label": "Comments",
+    "empty": "No comments yet.",
+    "edited": " · Edited",
+    "editLabel": "Edit comment",
+    "cancel": "Cancel",
+    "save": "Save",
+    "report": "Report",
+    "edit": "Edit",
+    "delete": "Delete",
+    "placeholder": "Write a comment...",
+    "send": "Send",
+    "deleteTitle": "Delete this comment?",
+    "deleteDescription": "The comment will be deleted permanently.",
+    "deleteConfirm": "Delete"
+  },
+  "pages": {
+    "eyebrow": "Social",
+    "feedTitle": "Feed",
+    "feedEmpty": "No posts yet. Be the first to post!",
+    "feedTerms": "Read and agree to the terms to use the Feed.",
+    "friendsLink": "Friends",
+    "friendsTitle": "Friends",
+    "friendsAria": "Friends",
+    "friendsCount": "Friends · {count}",
+    "friendsEmpty": "No friends yet. Find friends by email.",
+    "blockedAria": "Blocked",
+    "blockedCount": "Blocked · {count}",
+    "receivedAria": "Received requests",
+    "receivedCount": "Received · {count}",
+    "noRequests": "No requests.",
+    "sentAria": "Sent requests",
+    "sentCount": "Sent · {count}",
+    "noSent": "You haven't sent any requests yet.",
+    "postTitle": "Post",
+    "notificationsTitle": "Notifications"
+  },
+  "adminPages": {
+    "socialTitle": "Social",
+    "eyebrow": "Social",
+    "adminEyebrow": "Admin · {name}",
+    "chatsLink": "Trainee chats",
+    "feedEmpty": "No posts yet.",
+    "chatsTitle": "Trainee chats",
+    "chatsCount": "Conversations · {count}",
+    "chatsEmpty": "No conversations yet.",
+    "preview": "No messages yet",
+    "deletedName": "Deleted",
+    "readOnly": "View only",
+    "seeOlder": "View older messages",
+    "noMessages": "No messages yet.",
+    "postTitle": "Post",
+    "notificationsTitle": "Notifications",
+    "profileTitle": "Profile"
+  },
+  "dm": {
+    "inboxTitle": "Messages",
+    "coachTitle": "Coach",
+    "archivedNote": "Older messages with friends can only be viewed."
+  }
+}

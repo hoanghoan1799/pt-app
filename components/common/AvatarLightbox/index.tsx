@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
@@ -23,6 +24,7 @@ export const AvatarLightbox = ({
   src,
   name,
 }: AvatarLightboxProps) => {
+  const t = useTranslations("common");
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export const AvatarLightbox = ({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`Ảnh của ${name}`}
+      aria-label={t("avatarLightbox.label", { name })}
       data-avatar-lightbox
       onClick={onClose}
       className="pointer-events-auto fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
@@ -65,7 +67,7 @@ export const AvatarLightbox = ({
       <button
         ref={closeRef}
         type="button"
-        aria-label="Đóng"
+        aria-label={t("close")}
         onClick={onClose}
         className={`${ICON_BUTTON} absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 bg-white/10 text-white`}
       >

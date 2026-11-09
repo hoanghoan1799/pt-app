@@ -1,0 +1,15 @@
+{
+  "field": {
+    "failed": "无法保存照片，请重试。",
+    "unreadable": "无法读取这张照片，请换一张。",
+    "choose": "选择照片",
+    "saving": "正在保存…",
+    "save": "保存照片",
+    "cancel": "取消",
+    "remove": "移除照片"
+  },
+  "sheet": {
+    "title": "头像",
+    "description": "头像会显示在对话顶部和你的消息旁边。"
+  }
+}

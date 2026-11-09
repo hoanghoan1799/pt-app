@@ -1,10 +1,12 @@
 "use client";
 
 import { Check, ChevronDown, UserPlus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from "@/constants/styles";
 import { useSocialAction } from "@/features/social/hooks/use-social-action";
 import {
@@ -35,6 +37,7 @@ export const RelationshipButton = ({
   relationship,
   onChanged,
 }: RelationshipButtonProps) => {
+  const t = useTranslations("social.relationship");
   const confirm = useConfirm();
   const [isMenuOpen, setMenuOpen] = useState(false);
   const { isPending, run: runAction } = useSocialAction();
@@ -51,11 +54,13 @@ export const RelationshipButton = ({
       <button
         type="button"
         disabled={isPending}
+        aria-busy={isPending}
         onClick={() => run(() => sendFriendRequestAction(userId))}
         className={BUTTON_PRIMARY}
       >
+        {isPending && <Spinner size="sm" />}
         <UserPlus className="size-5" aria-hidden />
-        Kết bạn
+        {t("addFriend")}
       </button>
     );
   }
@@ -65,19 +70,23 @@ export const RelationshipButton = ({
         <button
           type="button"
           disabled={isPending}
+          aria-busy={isPending}
           onClick={() => run(() => acceptFriendRequestAction(userId))}
           className={BUTTON_PRIMARY}
         >
+          {isPending && <Spinner size="sm" />}
           <Check className="size-5" aria-hidden />
-          Chấp nhận
+          {t("accept")}
         </button>
         <button
           type="button"
           disabled={isPending}
+          aria-busy={isPending}
           onClick={() => run(() => declineFriendRequestAction(userId))}
           className={BUTTON_SECONDARY}
         >
-          Từ chối
+          {isPending && <Spinner size="sm" />}
+          {t("decline")}
         </button>
       </div>
     );
@@ -87,9 +96,9 @@ export const RelationshipButton = ({
   const handleUnfriend = async () => {
     setMenuOpen(false);
     const isConfirmed = await confirm({
-      title: `Huỷ kết bạn với ${name}?`,
-      description: "Bạn sẽ không còn thấy bài viết dành cho bạn bè của nhau.",
-      confirmLabel: "Huỷ kết bạn",
+      title: t("unfriendTitle", { name }),
+      description: t("unfriendDescription"),
+      confirmLabel: t("unfriendConfirm"),
       isDanger: true,
     });
 
@@ -103,10 +112,12 @@ export const RelationshipButton = ({
       <button
         type="button"
         disabled={isPending}
+        aria-busy={isPending}
         onClick={() => setMenuOpen(true)}
         className={BUTTON_SECONDARY}
       >
-        {isFriend ? "Bạn bè" : "Đã gửi lời mời"}
+        {isPending && <Spinner size="sm" />}
+        {isFriend ? t("friends") : t("requested")}
         <ChevronDown className="size-5" aria-hidden />
       </button>
       <BottomSheet isOpen={isMenuOpen} onOpenChange={setMenuOpen} title={name}>
@@ -117,7 +128,7 @@ export const RelationshipButton = ({
               className={`${MENU_ITEM} text-danger`}
               onClick={handleUnfriend}
             >
-              Huỷ kết bạn
+              {t("unfriendConfirm")}
             </button>
           ) : (
             <button
@@ -128,7 +139,7 @@ export const RelationshipButton = ({
                 run(() => cancelFriendRequestAction(userId));
               }}
             >
-              Huỷ lời mời
+              {t("cancelRequest")}
             </button>
           )}
         </div>

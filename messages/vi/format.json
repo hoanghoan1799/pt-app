@@ -1,0 +1,107 @@
+{
+  "weekdayShort": {
+    "mon": "T2",
+    "tue": "T3",
+    "wed": "T4",
+    "thu": "T5",
+    "fri": "T6",
+    "sat": "T7",
+    "sun": "CN"
+  },
+  "weekdayLong": {
+    "mon": "Thứ Hai",
+    "tue": "Thứ Ba",
+    "wed": "Thứ Tư",
+    "thu": "Thứ Năm",
+    "fri": "Thứ Sáu",
+    "sat": "Thứ Bảy",
+    "sun": "Chủ Nhật"
+  },
+  "weekTitle": {
+    "sameMonth": "Tuần {startDay}–{endDay}/{month}, {year}",
+    "crossMonth": "Tuần {start}–{end}, {year}",
+    "crossYear": "Tuần {start}/{startYear}–{end}/{endYear}"
+  },
+  "fullDay": "{weekday}, {date}",
+  "monthLabel": "Tháng {month}, {year}",
+  "relative": {
+    "justNow": "vừa xong",
+    "minutes": "{count} phút trước",
+    "hours": "{count} giờ trước",
+    "days": "{count} ngày trước"
+  },
+  "inbox": {
+    "you": "Bạn: ",
+    "justNow": "Vừa xong",
+    "minutes": "{count} phút",
+    "hours": "{count} giờ",
+    "yesterday": "Hôm qua"
+  },
+  "presence": {
+    "online": "Đang hoạt động",
+    "minutes": "Hoạt động {count} phút trước",
+    "hours": "Hoạt động {count} giờ trước",
+    "yesterday": "Hoạt động hôm qua",
+    "onDate": "Hoạt động {date}",
+    "prefix": "Hoạt động "
+  },
+  "sticker": {
+    "preview": "đã gửi một sticker"
+  },
+  "weight": {
+    "bodyweight": "Tự trọng",
+    "unit": "kg"
+  },
+  "volume": {
+    "sets": "{count} hiệp"
+  },
+  "setRow": {
+    "missingReps": "Nhập số lần cho hiệp {number}",
+    "error": "Hiệp {number}: {message}"
+  },
+  "deleteExercise": {
+    "plain": "Xóa bài tập này?",
+    "withSets": "Học viên đã ghi số liệu cho bài này. Xóa bài tập sẽ xóa luôn số liệu. Tiếp tục?"
+  },
+  "trend": {
+    "first": "Lần đầu",
+    "sameMoreReps": "Cùng mức, thêm reps",
+    "sameFewerReps": "Cùng mức, ít reps",
+    "same": "Không đổi",
+    "bestBefore": "Tốt nhất trước đó {set}",
+    "bestWeek": "Tốt nhất tuần này {set}"
+  },
+  "comparison": {
+    "under": "còn {amount} {unit}",
+    "over": "vượt {amount} {unit}",
+    "on": "đạt ✓"
+  },
+  "overwrite": {
+    "question": "Ghi đè plan của {dates}?",
+    "logWarning": "Học viên đã ghi bữa ăn ở {dates}; ghi đè sẽ xóa nhật ký đó.",
+    "deleteWithLogs": "Xóa plan của ngày này? Học viên đã ghi bữa ăn ở ngày này, xóa plan sẽ xóa nhật ký đó.",
+    "delete": "Xóa plan của ngày này?"
+  },
+  "planNotice": "Plan lệch {gap} kcal so với mục tiêu mới",
+  "kcalGap": "Calo nhập {entered} lệch {percent}% so với {computed} kcal tính từ protein/carb/fat (4/4/9).",
+  "thread": {
+    "today": "Hôm nay",
+    "yesterday": "Hôm qua",
+    "seen": "Đã xem",
+    "sent": "Đã gửi",
+    "unsent": "Tin nhắn đã bị thu hồi",
+    "sticker": "Sticker",
+    "photo": "Ảnh",
+    "you": "Bạn",
+    "yourself": "chính mình",
+    "youLower": "bạn",
+    "trainee": "Học viên",
+    "pt": "PT",
+    "peerDeleted": "PT (đã xoá)"
+  },
+  "fallback": {
+    "deletedAccount": "Đã xóa",
+    "deletedAccountDm": "Đã xoá",
+    "postImageOnly": "(Bài viết chỉ có ảnh)"
+  }
+}

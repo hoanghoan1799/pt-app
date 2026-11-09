@@ -1,15 +1,18 @@
 "use client";
 
 import { UserPlus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
+import { Input } from "@/components/common/Input";
 import { SubmitButton } from "@/components/common/SubmitButton";
 import { INITIAL_FORM_STATE } from "@/constants/form";
-import { BUTTON_PRIMARY, FIELD_ERROR, INPUT, LABEL } from "@/constants/styles";
+import { BUTTON_PRIMARY, FIELD_ERROR, LABEL } from "@/constants/styles";
 import { createPtAction } from "@/features/pts/services/pt-actions";
 import { useFormFeedback } from "@/hooks/use-form-feedback";
 
 export const CreatePtForm = () => {
+  const t = useTranslations("pts.createPt");
   const [state, formAction] = useActionState(
     createPtAction,
     INITIAL_FORM_STATE,
@@ -28,9 +31,10 @@ export const CreatePtForm = () => {
     >
       <div>
         <label htmlFor="pt-username" className={LABEL}>
-          Tên đăng nhập PT
+          {t("usernameLabel")}
         </label>
-        <input
+        <Input
+          clearable
           id="pt-username"
           name="username"
           defaultValue={state.status === "error" ? state.values?.username : ""}
@@ -39,7 +43,6 @@ export const CreatePtForm = () => {
           autoCorrect="off"
           required
           aria-invalid={Boolean(usernameError)}
-          className={INPUT}
         />
         {usernameError && (
           <p role="alert" className={FIELD_ERROR}>
@@ -49,16 +52,15 @@ export const CreatePtForm = () => {
       </div>
       <div>
         <label htmlFor="pt-password" className={LABEL}>
-          Mật khẩu (ít nhất 8 ký tự)
+          {t("passwordLabel")}
         </label>
-        <input
+        <Input
           id="pt-password"
           name="password"
           type="password"
           autoComplete="new-password"
           required
           aria-invalid={Boolean(passwordError)}
-          className={INPUT}
         />
         {passwordError && (
           <p role="alert" className={FIELD_ERROR}>
@@ -68,7 +70,7 @@ export const CreatePtForm = () => {
       </div>
       <SubmitButton className={`${BUTTON_PRIMARY} w-full`}>
         <UserPlus className="size-5" aria-hidden />
-        Tạo PT
+        {t("submit")}
       </SubmitButton>
     </form>
   );

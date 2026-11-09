@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { Lock, LockOpen, Trash2 } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 import { ICON_BUTTON, INPUT } from "@/constants/styles";
 import { FOOD_STATE_LABELS } from "@/features/foods/constants/foods";
@@ -9,6 +10,7 @@ import { formatKcal } from "@/features/foods/utils/food-math";
 import { useGramsInput } from "@/features/meal-plans/hooks/use-grams-input";
 import type { PlanItem } from "@/features/meal-plans/types/meal-plan";
 import { kcalOf, macrosOf } from "@/features/meal-plans/utils/plan-totals";
+import { type Locale, toIntlLocale } from "@/utils/locale";
 
 interface MealItemRowProps {
   item: PlanItem;
@@ -19,8 +21,8 @@ interface MealItemRowProps {
   onRemove: () => void;
 }
 
-const round = (value: number) =>
-  (Math.round(value * 10) / 10).toLocaleString("vi-VN", {
+const round = (value: number, locale: Locale) =>
+  (Math.round(value * 10) / 10).toLocaleString(toIntlLocale(locale), {
     maximumFractionDigits: 1,
   });
 
@@ -32,6 +34,9 @@ export const MealItemRow = ({
   onToggleFixed,
   onRemove,
 }: MealItemRowProps) => {
+  const locale = useLocale();
+  const t = useTranslations("mealPlans.mealItemRow");
+  const tFoods = useTranslations("foods.labels");
   const { food } = item;
   const gramsInput = useGramsInput(item.grams, onGramsChange);
   const macros = macrosOf(food, item.grams);
@@ -45,26 +50,28 @@ export const MealItemRow = ({
             {food.state && (
               <span className="font-normal text-muted">
                 {" "}
-                · {FOOD_STATE_LABELS[food.state]}
+                · {tFoods(FOOD_STATE_LABELS[food.state])}
               </span>
             )}
           </p>
           {food.isArchived && (
             <p className="mt-0.5 text-xs font-medium text-warning">
-              Món đã xóa khỏi thư viện, số liệu giữ nguyên
+              {t("archived")}
             </p>
           )}
           <p className="mt-0.5 text-xs text-muted tabular-nums">
-            {formatKcal(kcalOf(macros))} kcal · P {round(macros.protein)} · C{" "}
-            {round(macros.carbs)} · F {round(macros.fat)}
+            {formatKcal(kcalOf(macros), locale)} kcal · P{" "}
+            {round(macros.protein, locale)} · C {round(macros.carbs, locale)} ·
+            F {round(macros.fat, locale)}
           </p>
         </div>
         <button
           type="button"
           onClick={onRemove}
           disabled={isDisabled}
+          aria-busy={isDisabled}
           className={`${ICON_BUTTON} -mt-1.5 -mr-2 text-danger`}
-          aria-label={`Xóa ${food.name}`}
+          aria-label={t("delete", { name: food.name })}
         >
           <Trash2 className="size-4" />
         </button>
@@ -72,7 +79,7 @@ export const MealItemRow = ({
       <div className="flex items-center gap-2">
         <div className="relative w-32">
           <input
-            aria-label={`Gram ${food.name}`}
+            aria-label={t("gramsLabel", { name: food.name })}
             value={gramsInput.text}
             onChange={(event) => gramsInput.setText(event.target.value)}
             onBlur={gramsInput.handleBlur}
@@ -92,7 +99,7 @@ export const MealItemRow = ({
           type="button"
           onClick={onToggleFixed}
           aria-pressed={isFixed}
-          aria-label={`Giữ nguyên gram ${food.name} khi tính tự động`}
+          aria-label={t("lockLabel", { name: food.name })}
           className={clsx(
             "inline-flex min-h-11 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium transition active:scale-[0.98]",
             isFixed
@@ -105,7 +112,7 @@ export const MealItemRow = ({
           ) : (
             <LockOpen className="size-4" aria-hidden />
           )}
-          {isFixed ? "Giữ gram" : "Tự tính"}
+          {isFixed ? t("fixed") : t("auto")}
         </button>
       </div>
     </li>

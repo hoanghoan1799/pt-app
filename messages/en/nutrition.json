@@ -1,0 +1,194 @@
+{
+  "labels": {
+    "sex": {
+      "male": "Male",
+      "female": "Female"
+    },
+    "activity": {
+      "sedentary": {
+        "label": "Little exercise",
+        "description": "Sitting most of the day, no training"
+      },
+      "light": {
+        "label": "Light",
+        "description": "Train 1–3 times a week"
+      },
+      "moderate": {
+        "label": "Moderate",
+        "description": "Train 3–5 times a week"
+      },
+      "active": {
+        "label": "Active",
+        "description": "Train 6–7 times a week"
+      },
+      "veryActive": {
+        "label": "Very active",
+        "description": "Train twice a day or heavy labor"
+      }
+    },
+    "goal": {
+      "cut": "Lose fat",
+      "maintain": "Maintain weight",
+      "bulk": "Build muscle"
+    },
+    "macro": {
+      "carbs": "Carbs",
+      "protein": "Protein",
+      "fat": "Fat"
+    },
+    "macroFoods": {
+      "carbs": "rice, noodles, potatoes, bread",
+      "protein": "meat, fish, eggs, legumes",
+      "fat": "oil, lard, butter, nuts"
+    },
+    "meal": {
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "snack": "Snack"
+    },
+    "mealShort": {
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "snack": "Snack"
+    },
+    "targetSource": {
+      "tdee": "Calculated from TDEE",
+      "manual": "Set by PT"
+    }
+  },
+  "weightLogForm": {
+    "todayWeight": "Today's weight",
+    "todayWeightLogged": "Today's weight (logged, edit if needed)",
+    "placeholder": "e.g. 72.5",
+    "save": "Save"
+  },
+  "nutritionWeekSummary": {
+    "loggedDays": "days logged",
+    "onTargetDays": "days on target",
+    "avgPerDay": "Avg/day",
+    "tableLabel": "Nutrition by day",
+    "dayColumn": "Day",
+    "legend": "Grams eaten / target. <success>Green</success>: on target (±10%), <danger>red</danger>: over. Tap a day for details."
+  },
+  "foodLog": {
+    "editMeal": "Edit meal",
+    "deleteMeal": "Delete meal",
+    "logMeal": "Log meal"
+  },
+  "foodEntryFormView": {
+    "mealLegend": "Meal",
+    "foodLabel": "What did you eat?",
+    "placeholder": "e.g. 1 bowl of rice, boiled chicken breast, stir-fried morning glory",
+    "estimateLabel": "Estimate (grams, optional)",
+    "foodsHint": "{carbs}: {carbFoods} · {protein}: {proteinFoods} · {fat}: {fatFoods}",
+    "saveChanges": "Save changes",
+    "logMeal": "Log meal"
+  },
+  "macroRing": {
+    "progressLabel": "{name}: {eaten}/{target} g"
+  },
+  "weightChartView": {
+    "chartLabel": "Average weight by week chart",
+    "weekTooltip": "Week {range} · {count, plural, one {# weigh-in} other {# weigh-ins}}"
+  },
+  "weightTrendCard": {
+    "latestAverage": "Latest weekly average",
+    "vsLastWeek": "vs last week",
+    "inWeeks": "in {weeks} weeks",
+    "empty": "No weigh-ins in the past {weeks} weeks.",
+    "emptyLogHint": "Log your weight below to start tracking.",
+    "viewAsTable": "View as table"
+  },
+  "nutritionDayView": {
+    "emptyTraineeLog": "The user has not logged any meals for this day.",
+    "emptyFuture": "This day hasn't come yet. Come back and log it later.",
+    "emptyToday": "No meals logged for this day yet.",
+    "dailyTargets": "Daily targets",
+    "nutrition": "Nutrition",
+    "noTarget": "The PT has not set a nutrition target for this day.",
+    "legacyLog": "Old log",
+    "eaten": "Eaten"
+  },
+  "targetForm": {
+    "gramsPerDay": "g/day",
+    "ptNote": "Note from PT",
+    "notePlaceholder": "e.g. Prioritize lean protein and lots of vegetables. Drink 2.5 liters of water a day.",
+    "hint": "Grams of nutrients (not grams of food). Applies from today; earlier days keep the old target. To calculate from TDEE, use the Body profile card.",
+    "save": "Save target"
+  },
+  "caloriesProgressRow": {
+    "energy": "Energy"
+  },
+  "energyPlanSummary": {
+    "restHint": "at rest",
+    "burnedHint": "burned/day",
+    "eatenHint": "eaten/day",
+    "target": "Target",
+    "flooredNotice": "The target can't be lower than BMR, so {kcal} is used"
+  },
+  "nutritionWeek": {
+    "completeDescription": ", all meals logged",
+    "partialDescription": ", some meals logged"
+  },
+  "bodyProfileFormView": {
+    "sex": "Sex",
+    "activityLegend": "Activity level",
+    "goal": "Goal",
+    "result": "Result",
+    "enterStats": "Enter age, height and weight to see TDEE.",
+    "applyToTarget": "Update nutrition targets from this result (from today)",
+    "targetManual": "The PT has set your target manually, so it stays the same. The PT still sees your new stats.",
+    "targetRecalculated": "Your nutrition targets will be recalculated from this result, starting today.",
+    "save": "Save stats",
+    "proteinDefault": "New default: {value} g/kg (1 to 3)",
+    "kcalHint": "Negative = deficit, 0 = maintain, positive = surplus (-1500 to 1500)",
+    "fields": {
+      "age": "Age",
+      "height": "Height",
+      "weight": "Weight",
+      "kcalAdjustment": "Deficit / surplus kcal per day",
+      "proteinPerKg": "Protein (g/kg)"
+    },
+    "units": {
+      "years": "years",
+      "cm": "cm",
+      "kg": "kg",
+      "kcal": "kcal",
+      "gPerKg": "g/kg"
+    }
+  },
+  "bodyProfileCard": {
+    "admin": {
+      "title": "Body stats & TDEE",
+      "empty": "Enter sex, age, height, weight and activity level to calculate TDEE and fill in nutrition targets automatically. Users can also enter them.",
+      "action": "Enter stats",
+      "sheetTitle": "Body stats"
+    },
+    "user": {
+      "title": "Your stats & TDEE",
+      "empty": "Enter height, weight and activity level to see how many calories you burn each day and how many grams of carbs, protein and fat to eat.",
+      "action": "Enter your stats",
+      "sheetTitle": "Your stats"
+    },
+    "summary": "{sex} · {age} years · {height} cm · {weight} kg",
+    "activityGoal": "Activity {activity} · Goal {goal}",
+    "editStats": "Edit body stats",
+    "sheetDescription": "TDEE calculated with the Mifflin-St Jeor formula"
+  },
+  "nutritionTargetCard": {
+    "dailyTarget": "Daily target",
+    "targetSummary": "{calories}/day · applies from {date}",
+    "editTarget": "Edit nutrition target",
+    "empty": "No target set. The user will see how many grams of carbs, protein and fat to eat each day.",
+    "setTarget": "Set target",
+    "sheetTitle": "Nutrition target",
+    "sheetDescription": "Grams per day for each food group"
+  },
+  "useFoodLog": {
+    "deleteConfirm": "Delete this meal?",
+    "confirm": "Delete",
+    "entryDeleted": "Meal deleted"
+  }
+}

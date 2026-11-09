@@ -15,6 +15,8 @@ import type {
   SocialActor,
 } from "@/features/social/types/social";
 import { actorKey, isSameAuthor } from "@/features/social/utils/post-rules";
+import { getPushTranslator } from "@/i18n/push-translator";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 const idSchema = z.number().int().positive();
 
@@ -128,16 +130,19 @@ export const shouldPushReaction = (
 export const notificationText = (
   kind: NotificationKind,
   actorName: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): string => {
+  const t = getPushTranslator(locale);
+
   switch (kind) {
     case "post_reaction":
-      return `${actorName} đã bày tỏ cảm xúc về bài viết của bạn`;
+      return t("social.postReaction", { name: actorName });
     case "post_comment":
-      return `${actorName} đã bình luận về bài viết của bạn`;
+      return t("social.postComment", { name: actorName });
     case "friend_request":
-      return `${actorName} đã gửi lời mời kết bạn`;
+      return t("social.friendRequest", { name: actorName });
     case "friend_accepted":
-      return `${actorName} đã chấp nhận lời mời kết bạn`;
+      return t("social.friendAccepted", { name: actorName });
   }
 };
 
@@ -166,9 +171,10 @@ export const buildReactionPush = (
   actorName: string,
   recipientKey: string,
   postId: number,
+  locale: Locale = DEFAULT_LOCALE,
 ): SocialPushPayload => ({
   title: "PT App",
-  body: `${actorName} đã bày tỏ cảm xúc về bài viết của bạn`,
+  body: notificationText("post_reaction", actorName, locale),
   url: postPathFor(recipientKey, postId),
   tag: `social-react-${postId}`,
 });
@@ -178,9 +184,13 @@ export const buildCommentPush = (
   recipientKey: string,
   postId: number,
   body: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): SocialPushPayload => ({
   title: "PT App",
-  body: `${actorName} đã bình luận: ${previewComment(body)}`,
+  body: getPushTranslator(locale)("social.commented", {
+    name: actorName,
+    preview: previewComment(body),
+  }),
   url: postPathFor(recipientKey, postId),
   tag: `social-comment-${postId}`,
 });
@@ -207,9 +217,10 @@ export const notificationHref = (
 export const buildFriendPush = (
   kind: "friend_request" | "friend_accepted",
   actorName: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): SocialPushPayload => ({
   title: "PT App",
-  body: notificationText(kind, actorName),
+  body: notificationText(kind, actorName, locale),
   url: kind === "friend_request" ? FRIEND_REQUESTS_PATH : FRIENDS_PATH,
   tag: `social-${kind}`,
 });
