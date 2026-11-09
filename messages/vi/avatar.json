@@ -1,0 +1,15 @@
+{
+  "field": {
+    "failed": "Không lưu được ảnh. Thử lại nhé.",
+    "unreadable": "Không đọc được ảnh này. Chọn ảnh khác nhé.",
+    "choose": "Chọn ảnh",
+    "saving": "Đang lưu…",
+    "save": "Lưu ảnh",
+    "cancel": "Huỷ",
+    "remove": "Xoá ảnh"
+  },
+  "sheet": {
+    "title": "Ảnh đại diện",
+    "description": "Ảnh hiện ở đầu cuộc trò chuyện và cạnh tin nhắn của bạn."
+  }
+}

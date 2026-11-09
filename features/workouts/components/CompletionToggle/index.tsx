@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import { CalendarClock, CheckCircle2, Circle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { TIME_ZONE } from "@/constants/time";
 import { formatClockTime } from "@/utils/time";
@@ -20,6 +21,8 @@ export const CompletionToggle = ({
   isPending,
   onToggle,
 }: CompletionToggleProps) => {
+  const t = useTranslations("workouts.completionToggle");
+
   if (completedAt !== null) {
     return (
       <button
@@ -33,8 +36,8 @@ export const CompletionToggle = ({
         )}
       >
         <CheckCircle2 className="size-5" aria-hidden />
-        Đã tập xong · {formatClockTime(completedAt, TIME_ZONE)}
-        <span className="text-sm font-normal opacity-70">(bấm để bỏ)</span>
+        {t("done", { time: formatClockTime(completedAt, TIME_ZONE) })}
+        <span className="text-sm font-normal opacity-70">{t("undo")}</span>
       </button>
     );
   }
@@ -48,7 +51,7 @@ export const CompletionToggle = ({
         )}
       >
         <CalendarClock className="size-5" aria-hidden />
-        Chưa tới ngày tập
+        {t("notDue")}
       </p>
     );
   }
@@ -62,7 +65,7 @@ export const CompletionToggle = ({
       className={clsx(TOGGLE_BASE, "border-line text-accent")}
     >
       <Circle className="size-5" aria-hidden />
-      Đánh dấu đã tập
+      {t("mark")}
     </button>
   );
 };

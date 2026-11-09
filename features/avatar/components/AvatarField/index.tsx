@@ -1,6 +1,7 @@
 "use client";
 
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 import { useRef, useState, useTransition } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
@@ -16,9 +17,6 @@ import {
   setUserAvatarAction,
 } from "@/features/avatar/services/avatar-actions";
 import { resizeToAvatarDataUrl } from "@/features/avatar/utils/resize-avatar";
-
-const FAILED_TEXT = "Không lưu được ảnh. Thử lại nhé.";
-const UNREADABLE_TEXT = "Không đọc được ảnh này. Chọn ảnh khác nhé.";
 
 interface AvatarFieldProps {
   role: "user" | "admin";
@@ -37,6 +35,7 @@ export const AvatarField = ({
   savedUrl,
   onSaved,
 }: AvatarFieldProps) => {
+  const t = useTranslations("avatar.field");
   const input = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +50,7 @@ export const AvatarField = ({
       setPreview(await resizeToAvatarDataUrl(file));
     } catch {
       setPreview(null);
-      setError(UNREADABLE_TEXT);
+      setError(t("unreadable"));
     }
   };
 
@@ -77,10 +76,10 @@ export const AvatarField = ({
           onSaved(result.avatarUrl);
           reset();
         } else {
-          setError(result.message ?? FAILED_TEXT);
+          setError(result.message ?? t("failed"));
         }
       } catch {
-        setError(FAILED_TEXT);
+        setError(t("failed"));
       }
     });
   };
@@ -97,10 +96,10 @@ export const AvatarField = ({
           onSaved(null);
           reset();
         } else {
-          setError(result.message ?? FAILED_TEXT);
+          setError(result.message ?? t("failed"));
         }
       } catch {
-        setError(FAILED_TEXT);
+        setError(t("failed"));
       }
     });
   };
@@ -131,7 +130,7 @@ export const AvatarField = ({
               isPending && "pointer-events-none opacity-50",
             )}
           >
-            Chọn ảnh
+            {t("choose")}
           </label>
           {preview && (
             <>
@@ -141,7 +140,7 @@ export const AvatarField = ({
                 onClick={save}
                 className={clsx(BUTTON_PRIMARY, "min-h-10 px-4 text-sm")}
               >
-                {isPending ? "Đang lưu…" : "Lưu ảnh"}
+                {isPending ? t("saving") : t("save")}
               </button>
               <button
                 type="button"
@@ -149,7 +148,7 @@ export const AvatarField = ({
                 onClick={reset}
                 className="inline-flex min-h-10 items-center rounded-lg px-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
               >
-                Huỷ
+                {t("cancel")}
               </button>
             </>
           )}
@@ -160,7 +159,7 @@ export const AvatarField = ({
               onClick={remove}
               className="inline-flex min-h-10 items-center rounded-lg px-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
             >
-              Xoá ảnh
+              {t("remove")}
             </button>
           )}
         </div>

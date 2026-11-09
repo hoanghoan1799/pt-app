@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { AvatarField } from "@/features/avatar/components/AvatarField";
@@ -22,14 +23,15 @@ export const AvatarSheet = ({
   name,
   savedUrl,
 }: AvatarSheetProps) => {
+  const t = useTranslations("avatar.sheet");
   const router = useRouter();
 
   return (
     <BottomSheet
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      title="Ảnh đại diện"
-      description="Ảnh hiện ở đầu cuộc trò chuyện và cạnh tin nhắn của bạn."
+      title={t("title")}
+      description={t("description")}
     >
       <AvatarField
         role={role}

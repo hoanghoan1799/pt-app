@@ -1,6 +1,7 @@
 "use client";
 
 import { Dumbbell, Pencil, Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
 import {
@@ -24,6 +25,7 @@ interface DayEditorProps {
 }
 
 export const DayEditor = ({ day, userId, isToday }: DayEditorProps) => {
+  const t = useTranslations("workouts.dayEditor");
   const editor = useDayEditor();
   const { exercise } = editor.exerciseSheet;
   // Read from the live day so a set logged after the sheet opened still counts.
@@ -36,13 +38,13 @@ export const DayEditor = ({ day, userId, isToday }: DayEditorProps) => {
       <DayHeading
         day={day}
         isToday={isToday}
-        fallbackTitle="Chưa đặt tiêu đề"
+        fallbackTitle={t("untitledDay")}
         action={
           <button
             type="button"
             onClick={editor.handleOpenDaySheet}
             className={`${ICON_BUTTON} -mr-2 bg-surface text-fg ring-1 ring-line`}
-            aria-label="Sửa tiêu đề và ghi chú ngày"
+            aria-label={t("editDayInfo")}
           >
             <Pencil className="size-5" />
           </button>
@@ -66,8 +68,8 @@ export const DayEditor = ({ day, userId, isToday }: DayEditorProps) => {
       ) : (
         <RestDayState
           icon={Dumbbell}
-          title="Chưa có bài tập"
-          description="Bấm “Thêm bài tập” để giao bài cho ngày này. Để trống thì user sẽ thấy là ngày nghỉ."
+          title={t("noExercisesTitle")}
+          description={t("noExercisesDescription")}
         />
       )}
 
@@ -79,7 +81,7 @@ export const DayEditor = ({ day, userId, isToday }: DayEditorProps) => {
             className={`${BUTTON_PRIMARY} w-full`}
           >
             <Plus className="size-5" aria-hidden />
-            Thêm bài tập · {formatFullDay(day.date)}
+            {t("addExercise", { date: formatFullDay(day.date) })}
           </button>
         </div>
       </div>
@@ -87,7 +89,7 @@ export const DayEditor = ({ day, userId, isToday }: DayEditorProps) => {
       <BottomSheet
         isOpen={editor.exerciseSheet.isOpen}
         onOpenChange={editor.handleExerciseSheetChange}
-        title={exercise ? "Sửa bài tập" : "Thêm bài tập"}
+        title={exercise ? t("editExerciseTitle") : t("addExerciseTitle")}
         description={formatFullDay(day.date)}
       >
         <ExerciseForm
@@ -103,7 +105,7 @@ export const DayEditor = ({ day, userId, isToday }: DayEditorProps) => {
       <BottomSheet
         isOpen={editor.isDaySheetOpen}
         onOpenChange={editor.handleDaySheetChange}
-        title="Thông tin ngày"
+        title={t("dayInfoTitle")}
         description={formatFullDay(day.date)}
       >
         <DayInfoForm

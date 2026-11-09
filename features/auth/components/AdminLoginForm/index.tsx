@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { SubmitButton } from "@/components/common/SubmitButton";
 import { BUTTON_PRIMARY, FIELD_ERROR, INPUT, LABEL } from "@/constants/styles";
 import { useLoginForm } from "@/features/auth/hooks/use-login-form";
@@ -7,6 +9,7 @@ import { loginAdminAction } from "@/features/auth/services/auth-actions";
 import { describeErrorReference } from "@/utils/errors";
 
 export const AdminLoginForm = () => {
+  const t = useTranslations("auth.adminLogin");
   const { formAction, errorMessage, errorReference, values } =
     useLoginForm(loginAdminAction);
 
@@ -14,7 +17,7 @@ export const AdminLoginForm = () => {
     <form action={formAction} className="space-y-4">
       <div>
         <label htmlFor="username" className={LABEL}>
-          Tài khoản
+          {t("usernameLabel")}
         </label>
         <input
           key={values.username}
@@ -33,7 +36,7 @@ export const AdminLoginForm = () => {
       </div>
       <div>
         <label htmlFor="password" className={LABEL}>
-          Mật khẩu
+          {t("passwordLabel")}
         </label>
         <input
           id="password"
@@ -58,7 +61,7 @@ export const AdminLoginForm = () => {
         )}
       </div>
       <SubmitButton className={`${BUTTON_PRIMARY} w-full`}>
-        Đăng nhập
+        {t("submit")}
       </SubmitButton>
     </form>
   );

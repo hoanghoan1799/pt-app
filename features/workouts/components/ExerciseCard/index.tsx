@@ -3,12 +3,12 @@
 import clsx from "clsx";
 import { Check, ExternalLink, Play, Repeat, Trophy } from "lucide-react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 
 import { CARD } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
 import { YoutubePlayer } from "@/features/workouts/components/YoutubePlayer";
-import { SET_LOGGER_COPY } from "@/features/workouts/constants/set-logger";
 import type { Exercise } from "@/features/workouts/types/workout";
 import { formatVolume } from "@/features/workouts/utils/exercise";
 import {
@@ -21,7 +21,7 @@ interface ExerciseCardProps {
   exercise: Exercise;
   index: number;
   footer?: ReactNode;
-  // "Kỷ lục mới", computed on read so it survives a reload (E6).
+  // "New personal best" badge, computed on read so it survives a reload (E6).
   isPersonalBest?: boolean;
 }
 
@@ -33,6 +33,7 @@ export const ExerciseCard = ({
   footer,
   isPersonalBest = false,
 }: ExerciseCardProps) => {
+  const t = useTranslations("workouts.exerciseCard");
   const [isPlaying, setIsPlaying] = useState(false);
   const volume = formatVolume(exercise.sets, exercise.reps);
 
@@ -56,7 +57,7 @@ export const ExerciseCard = ({
             type="button"
             onClick={() => setIsPlaying(true)}
             className="group absolute inset-0 size-full"
-            aria-label={`Phát video ${exercise.title}`}
+            aria-label={t("playVideo", { title: exercise.title })}
           >
             <Image
               src={getYoutubeThumbnailUrl(exercise.youtubeId)}
@@ -77,8 +78,10 @@ export const ExerciseCard = ({
         {exercise.completedAt !== null && !isPlaying && (
           <span className="pointer-events-none absolute top-3 right-3 flex items-center gap-1 rounded-full bg-success px-2.5 py-1 text-xs font-bold text-success-fg shadow">
             <Check className="size-3.5" strokeWidth={3} aria-hidden />
-            Đã tập {formatClockTime(exercise.completedAt, TIME_ZONE)} ·{" "}
-            {formatShortDate(exercise.completedAt, TIME_ZONE)}
+            {t("completed", {
+              time: formatClockTime(exercise.completedAt, TIME_ZONE),
+              date: formatShortDate(exercise.completedAt, TIME_ZONE),
+            })}
           </span>
         )}
       </div>
@@ -97,7 +100,7 @@ export const ExerciseCard = ({
             {isPersonalBest && (
               <p className="flex w-fit items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-fg">
                 <Trophy className="size-4" aria-hidden />
-                {SET_LOGGER_COPY.PERSONAL_BEST_BADGE}
+                {t("personalBestBadge")}
               </p>
             )}
           </div>
@@ -113,7 +116,7 @@ export const ExerciseCard = ({
           rel="noopener noreferrer"
           className="-my-2 flex min-h-11 w-fit items-center gap-1.5 text-sm font-medium text-muted"
         >
-          Mở trên YouTube
+          {t("openOnYoutube")}
           <ExternalLink className="size-4" aria-hidden />
         </a>
       </div>

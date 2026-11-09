@@ -1,11 +1,11 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { type FormEvent, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { BUTTON_PRIMARY, FIELD_ERROR, INPUT, LABEL } from "@/constants/styles";
-import { AUTH_MESSAGES } from "@/features/auth/constants/messages";
 import { resetPasscodeWithPassword } from "@/features/auth/services/passcode-actions";
 import { isValidPasscode } from "@/features/auth/utils/passcode-rules";
 
@@ -30,6 +30,7 @@ export const ForgotPasscodeSheet = ({
   onOpenChange,
   onReset,
 }: ForgotPasscodeSheetProps) => {
+  const t = useTranslations("auth.forgotPasscode");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -41,11 +42,11 @@ export const ForgotPasscodeSheet = ({
     const confirm = String(data.get("confirmPasscode") ?? "");
 
     if (!isValidPasscode(newPasscode)) {
-      setError(AUTH_MESSAGES.PASSCODE_INVALID);
+      setError(t("passcodeInvalid"));
       return;
     }
     if (newPasscode !== confirm) {
-      setError("Mã khoá nhập lại không khớp");
+      setError(t("passcodeMismatch"));
       return;
     }
     setError(null);
@@ -53,7 +54,7 @@ export const ForgotPasscodeSheet = ({
       const result = await resetPasscodeWithPassword(password, newPasscode);
 
       if (result.status === "success") {
-        toast.success("Đã đặt lại mã khoá");
+        toast.success(t("resetSuccess"));
         onReset();
         return;
       }
@@ -65,13 +66,13 @@ export const ForgotPasscodeSheet = ({
     <BottomSheet
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      title="Quên mã khoá"
-      description="Nhập mật khẩu tài khoản để đặt mã khoá mới."
+      title={t("title")}
+      description={t("description")}
     >
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
           <label htmlFor="forgot-password" className={LABEL}>
-            Mật khẩu tài khoản
+            {t("accountPasswordLabel")}
           </label>
           <input
             id="forgot-password"
@@ -84,7 +85,7 @@ export const ForgotPasscodeSheet = ({
         </div>
         <div>
           <label htmlFor="forgot-new-passcode" className={LABEL}>
-            Mã khoá mới (4 chữ số)
+            {t("newPasscodeLabel")}
           </label>
           <input
             id="forgot-new-passcode"
@@ -96,7 +97,7 @@ export const ForgotPasscodeSheet = ({
         </div>
         <div>
           <label htmlFor="forgot-confirm-passcode" className={LABEL}>
-            Nhập lại mã khoá mới
+            {t("confirmPasscodeLabel")}
           </label>
           <input
             id="forgot-confirm-passcode"
@@ -116,7 +117,7 @@ export const ForgotPasscodeSheet = ({
           disabled={isPending}
           className={`${BUTTON_PRIMARY} w-full`}
         >
-          {isPending ? "Đang lưu…" : "Đặt lại mã khoá"}
+          {isPending ? t("saving") : t("submit")}
         </button>
       </form>
     </BottomSheet>

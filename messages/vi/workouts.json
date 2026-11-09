@@ -1,0 +1,132 @@
+{
+  "exerciseEditorItem": {
+    "moveUp": "Đưa lên",
+    "moveDown": "Đưa xuống",
+    "edit": "Sửa",
+    "delete": "Xóa"
+  },
+  "exerciseCard": {
+    "playVideo": "Phát video {title}",
+    "completed": "Đã tập {time} · {date}",
+    "personalBestBadge": "Kỷ lục mới",
+    "openOnYoutube": "Mở trên YouTube"
+  },
+  "loggedSets": {
+    "loggedPrefix": "Đã ghi:",
+    "nothingLogged": "Chưa ghi hiệp nào"
+  },
+  "completionToggle": {
+    "done": "Đã tập xong · {time}",
+    "undo": "(bấm để bỏ)",
+    "notDue": "Chưa tới ngày tập",
+    "mark": "Đánh dấu đã tập"
+  },
+  "copyWeek": {
+    "trigger": "Sao chép tuần này",
+    "title": "Sao chép tuần",
+    "description": "Từ tuần {week}",
+    "targetUser": "Sang user",
+    "thisUserSuffix": " (user này)",
+    "targetDate": "Sang tuần có ngày",
+    "sourceWeek": "tuần nguồn",
+    "sourceBadge": "nguồn",
+    "hint": "Chọn ngày bất kỳ trong tuần đích. Lịch tuần đó sẽ được thay thế.",
+    "submit": "Sao chép",
+    "confirmTitle": "Lịch của tuần đích sẽ bị thay thế bằng tuần này. Tiếp tục?",
+    "confirmLabel": "Sao chép"
+  },
+  "dayHeading": {
+    "progressDone": "{completed}/{total} đã tập",
+    "exerciseCount": "{count, plural, other {# bài}}"
+  },
+  "dayView": {
+    "workoutTitle": "Bài tập hôm nay",
+    "restTitle": "Ngày nghỉ",
+    "progressLabel": "Tiến độ trong ngày",
+    "complete": "Hoàn thành buổi tập! Nghỉ ngơi tốt nhé.",
+    "restDayTitle": "Nghỉ ngơi & hồi phục",
+    "restDayDescription": "Chưa có bài tập cho ngày này. Ngủ đủ, uống đủ nước nhé!"
+  },
+  "dayTabs": {
+    "exerciseCount": "{count, plural, other {# bài}}",
+    "completedDay": "đã tập xong"
+  },
+  "weekProgress": {
+    "label": "Tiến độ tuần",
+    "summary": "{completed}/{total} bài · {percent}%"
+  },
+  "weekSummary": {
+    "sessionsDone": "{completed}/{total} buổi hoàn thành",
+    "exerciseSummary": "{completed}/{total} bài · {percent}%",
+    "progressLabel": "Tiến độ tập trong tuần",
+    "exerciseCount": "{count, plural, other {# bài}}",
+    "restDay": "Nghỉ",
+    "restDayLabel": "Ngày nghỉ"
+  },
+  "youtubePreview": {
+    "defaultTitle": "Xem trước video",
+    "pasteLink": "Dán link để xem trước video"
+  },
+  "dayEditor": {
+    "untitledDay": "Chưa đặt tiêu đề",
+    "editDayInfo": "Sửa tiêu đề và ghi chú ngày",
+    "noExercisesTitle": "Chưa có bài tập",
+    "noExercisesDescription": "Bấm “Thêm bài tập” để giao bài cho ngày này. Để trống thì user sẽ thấy là ngày nghỉ.",
+    "addExercise": "Thêm bài tập · {date}",
+    "editExerciseTitle": "Sửa bài tập",
+    "addExerciseTitle": "Thêm bài tập",
+    "dayInfoTitle": "Thông tin ngày"
+  },
+  "dayInfoForm": {
+    "titleLabel": "Tiêu đề ngày",
+    "titlePlaceholder": "VD: Push – Ngực, vai, tay sau",
+    "noteLabel": "Ghi chú cho cả buổi",
+    "notePlaceholder": "VD: Khởi động 10 phút, nghỉ 60–90 giây giữa hiệp",
+    "save": "Lưu"
+  },
+  "exerciseForm": {
+    "invalidYoutubeUrl": "Link YouTube không hợp lệ",
+    "youtubeLabel": "Link video YouTube",
+    "pasteFromClipboard": "Dán link từ clipboard",
+    "titleLabel": "Tên bài tập",
+    "titlePlaceholder": "VD: Bench press",
+    "setsLabel": "Số hiệp",
+    "repsLabel": "Số lần / thời gian",
+    "repsPlaceholder": "10-12 hoặc 30 giây",
+    "descriptionLabel": "Mô tả / lưu ý kỹ thuật",
+    "descriptionPlaceholder": "VD: Siết bụng, hạ tạ chậm 3 giây, nghỉ 90 giây giữa hiệp",
+    "saveChanges": "Lưu thay đổi",
+    "add": "Thêm bài tập",
+    "changeLinkConfirmTitle": "Học viên đã ghi số liệu cho bài này. Đổi link video sẽ xóa luôn số liệu và bắt đầu lịch sử mới. Tiếp tục?",
+    "continue": "Tiếp tục",
+    "clipboardError": "Không đọc được clipboard. Hãy dán thủ công."
+  },
+  "setLogger": {
+    "sectionLabel": "Ghi hiệp {title}",
+    "weightUnit": "kg",
+    "repsUnit": "lần",
+    "bodyweightHint": "Để trống kg nếu tập với trọng lượng cơ thể",
+    "addRow": "Thêm hiệp",
+    "saving": "Đang lưu…",
+    "save": "Lưu",
+    "nothingToSave": "Nhập ít nhất một hiệp",
+    "personalBest": "Kỷ lục mới! 🏆",
+    "saved": "Đã lưu các hiệp"
+  },
+  "setInputRow": {
+    "weightPlaceholder": "kg",
+    "repsUnit": "lần",
+    "weightLabel": "Số kg hiệp {set}",
+    "repsLabel": "Số lần hiệp {set}",
+    "deleteLabel": "Xóa hiệp {set}",
+    "hintLabel": "Lần trước {text}, dùng cho hiệp {set}",
+    "hintPrefix": "Lần trước"
+  },
+  "exerciseItemActions": {
+    "deleteConfirmLabel": "Xóa",
+    "deleted": "Đã xóa bài tập"
+  },
+  "exerciseCompletion": {
+    "done": "Đã đánh dấu tập xong 💪"
+  }
+}

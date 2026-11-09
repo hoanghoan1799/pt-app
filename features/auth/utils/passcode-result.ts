@@ -6,8 +6,12 @@ import type { ActionErrorResult } from "@/types/error";
 export const toPasscodeFailure = (failure: ActionErrorResult) =>
   failure as PasscodeFailure;
 
-// "Sai mã khoá. Còn N lần." when the server counted attempts, else its message.
-export const describePasscodeFailure = (failure: PasscodeFailure) =>
+// Wrong passcode with attempts left when the server counted them, else its
+// message. The caller passes the translated "wrong, N left" text.
+export const describePasscodeFailure = (
+  failure: PasscodeFailure,
+  describeAttemptsLeft: (attemptsLeft: number) => string,
+) =>
   failure.attemptsLeft === undefined
     ? failure.message
-    : `Sai mã khoá. Còn ${failure.attemptsLeft} lần.`;
+    : describeAttemptsLeft(failure.attemptsLeft);

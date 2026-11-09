@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import { BedDouble, Check, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 import { ProgressBar } from "@/components/common/ProgressBar";
 import { CARD } from "@/constants/styles";
@@ -30,6 +31,7 @@ export const WorkoutWeekSummary = ({
   today,
   dayBasePath,
 }: WorkoutWeekSummaryProps) => {
+  const t = useTranslations("workouts.weekSummary");
   const week = getWeekProgress(days);
   const plannedDays = days.filter((day) => day.exercises.length > 0);
   const completedDays = plannedDays.filter(isDayComplete).length;
@@ -39,13 +41,20 @@ export const WorkoutWeekSummary = ({
       <div className="space-y-2 border-b border-line p-4">
         <div className="flex items-baseline justify-between">
           <span className="text-sm text-muted">
-            {completedDays}/{plannedDays.length} buổi hoàn thành
+            {t("sessionsDone", {
+              completed: completedDays,
+              total: plannedDays.length,
+            })}
           </span>
           <span className="font-bold text-fg tabular-nums">
-            {week.completed}/{week.total} bài · {week.percent}%
+            {t("exerciseSummary", {
+              completed: week.completed,
+              total: week.total,
+              percent: week.percent,
+            })}
           </span>
         </div>
-        <ProgressBar percent={week.percent} label="Tiến độ tập trong tuần" />
+        <ProgressBar percent={week.percent} label={t("progressLabel")} />
       </div>
       <ul>
         {days.map((day) => {
@@ -73,8 +82,8 @@ export const WorkoutWeekSummary = ({
                 </span>
                 <span className="min-w-0 flex-1 truncate text-sm text-muted">
                   {progress.total
-                    ? day.title || `${progress.total} bài`
-                    : "Nghỉ"}
+                    ? day.title || t("exerciseCount", { count: progress.total })
+                    : t("restDay")}
                 </span>
                 {progress.total ? (
                   <span
@@ -93,7 +102,7 @@ export const WorkoutWeekSummary = ({
                 ) : (
                   <BedDouble
                     className="size-4 shrink-0 text-muted"
-                    aria-label="Ngày nghỉ"
+                    aria-label={t("restDayLabel")}
                   />
                 )}
                 <ChevronRight

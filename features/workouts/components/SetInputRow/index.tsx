@@ -1,13 +1,7 @@
 import { CornerDownLeft, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { ICON_BUTTON } from "@/constants/styles";
-import {
-  describeDeleteLabel,
-  describeHintLabel,
-  describeRepsLabel,
-  describeWeightLabel,
-  SET_LOGGER_COPY,
-} from "@/features/workouts/constants/set-logger";
 import {
   formatSet,
   type SetRowDraft,
@@ -47,6 +41,7 @@ export const SetInputRow = ({
   hint,
   onApplyHint,
 }: SetInputRowProps) => {
+  const t = useTranslations("workouts.setInputRow");
   const setNumber = index + 1;
   const hintText = hint ? formatSet(hint) : "";
 
@@ -64,8 +59,8 @@ export const SetInputRow = ({
         enterKeyHint="next"
         value={row.weight}
         onChange={(event) => onChange(row.id, "weight", event.target.value)}
-        placeholder={SET_LOGGER_COPY.WEIGHT_PLACEHOLDER}
-        aria-label={describeWeightLabel(setNumber)}
+        placeholder={t("weightPlaceholder")}
+        aria-label={t("weightLabel", { set: setNumber })}
         disabled={isDisabled}
         className={SET_INPUT}
       />
@@ -77,8 +72,8 @@ export const SetInputRow = ({
         enterKeyHint="done"
         value={row.reps}
         onChange={(event) => onChange(row.id, "reps", event.target.value)}
-        placeholder={targetReps.trim() || SET_LOGGER_COPY.REPS_UNIT}
-        aria-label={describeRepsLabel(setNumber)}
+        placeholder={targetReps.trim() || t("repsUnit")}
+        aria-label={t("repsLabel", { set: setNumber })}
         disabled={isDisabled}
         className={SET_INPUT}
       />
@@ -86,7 +81,7 @@ export const SetInputRow = ({
         type="button"
         onClick={() => onRemove(row.id)}
         disabled={!canRemove || isDisabled}
-        aria-label={describeDeleteLabel(setNumber)}
+        aria-label={t("deleteLabel", { set: setNumber })}
         className={ICON_BUTTON}
       >
         <Trash2 className="size-5" aria-hidden />
@@ -96,12 +91,12 @@ export const SetInputRow = ({
           type="button"
           onClick={() => onApplyHint(row.id, hint)}
           disabled={isDisabled}
-          aria-label={describeHintLabel(setNumber, hintText)}
+          aria-label={t("hintLabel", { text: hintText, set: setNumber })}
           className="col-span-2 col-start-2 flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-dashed border-line bg-surface px-3 text-sm text-muted transition active:scale-[0.98] disabled:opacity-50"
         >
           <CornerDownLeft className="size-4 shrink-0" aria-hidden />
           <span className="truncate">
-            {SET_LOGGER_COPY.HINT_PREFIX} {hintText}
+            {t("hintPrefix")} {hintText}
           </span>
         </button>
       )}

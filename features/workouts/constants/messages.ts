@@ -3,7 +3,6 @@ export const WORKOUT_MESSAGES = {
   DAY_SAVED: "Đã lưu thông tin ngày",
   EXERCISE_CREATED: "Đã thêm bài tập",
   EXERCISE_UPDATED: "Đã cập nhật bài tập",
-  EXERCISE_DELETED: "Đã xóa bài tập",
   LINK_CHANGE_NEEDS_CONFIRM: "Đổi link video cần xác nhận xóa số liệu đã ghi",
   EXERCISE_NOT_FOUND: "Bài tập không còn tồn tại",
   USER_NOT_FOUND: "Không tìm thấy user",
@@ -11,8 +10,6 @@ export const WORKOUT_MESSAGES = {
   COPY_SAME_WEEK: "Hãy chọn một tuần khác hoặc user khác",
   COPY_TARGET_HAS_SETS: "Tuần đích đã có buổi tập được ghi, không thể ghi đè",
   COMPLETION_TOO_EARLY: "Chưa tới ngày tập bài này",
-  COMPLETION_DONE: "Đã đánh dấu tập xong 💪",
-  SETS_SAVED: "Đã lưu các hiệp",
   SET_WEIGHT_RANGE: "Mức tạ từ 0,5 đến 500 kg",
   SET_WEIGHT_STEP: "Mức tạ phải chia hết cho 0,5 kg",
   SET_REPS_INTEGER: "Số lần phải là số nguyên",
@@ -42,7 +39,4 @@ export const CONFIRM_MESSAGES = {
   DELETE_EXERCISE: "Xóa bài tập này?",
   DELETE_EXERCISE_WITH_SETS:
     "Học viên đã ghi số liệu cho bài này. Xóa bài tập sẽ xóa luôn số liệu. Tiếp tục?",
-  CHANGE_LINK_WITH_SETS:
-    "Học viên đã ghi số liệu cho bài này. Đổi link video sẽ xóa luôn số liệu và bắt đầu lịch sử mới. Tiếp tục?",
-  COPY_WEEK: "Lịch của tuần đích sẽ bị thay thế bằng tuần này. Tiếp tục?",
 } as const;

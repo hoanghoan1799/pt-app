@@ -1,4 +1,5 @@
 import { BedDouble, PartyPopper } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { ProgressBar } from "@/components/common/ProgressBar";
 import { DayHeading } from "@/features/workouts/components/DayHeading";
@@ -21,6 +22,7 @@ interface DayViewProps {
 }
 
 export const DayView = ({ day, today, isInteractive }: DayViewProps) => {
+  const t = useTranslations("workouts.dayView");
   const hasExercises = day.exercises.length > 0;
   const progress = getDayProgress(day);
   const canComplete = day.date <= today;
@@ -30,15 +32,15 @@ export const DayView = ({ day, today, isInteractive }: DayViewProps) => {
       <DayHeading
         day={day}
         isToday={day.date === today}
-        fallbackTitle={hasExercises ? "Bài tập hôm nay" : "Ngày nghỉ"}
+        fallbackTitle={hasExercises ? t("workoutTitle") : t("restTitle")}
       />
       {hasExercises && progress.completed > 0 && (
-        <ProgressBar percent={progress.percent} label="Tiến độ trong ngày" />
+        <ProgressBar percent={progress.percent} label={t("progressLabel")} />
       )}
       {hasExercises && progress.percent === 100 && (
         <p className="flex items-center gap-2 rounded-xl bg-success/12 px-3 py-2.5 text-sm font-semibold text-success">
           <PartyPopper className="size-5 shrink-0" aria-hidden />
-          Hoàn thành buổi tập! Nghỉ ngơi tốt nhé.
+          {t("complete")}
         </p>
       )}
       {hasExercises ? (
@@ -71,8 +73,8 @@ export const DayView = ({ day, today, isInteractive }: DayViewProps) => {
       ) : (
         <RestDayState
           icon={BedDouble}
-          title="Nghỉ ngơi & hồi phục"
-          description="Chưa có bài tập cho ngày này. Ngủ đủ, uống đủ nước nhé!"
+          title={t("restDayTitle")}
+          description={t("restDayDescription")}
         />
       )}
     </section>
