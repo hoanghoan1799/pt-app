@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
+import { Spinner } from "@/components/common/Spinner";
 import { Composer } from "@/features/chat/components/Composer";
 import { EditHistorySheet } from "@/features/chat/components/EditHistorySheet";
 import { LockedBanner } from "@/features/chat/components/LockedBanner";
@@ -662,8 +663,9 @@ export const ChatThread = ({
                   type="button"
                   onClick={handleLoadOlder}
                   disabled={chat.isLoadingOlder}
-                  className="rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
                 >
+                  {chat.isLoadingOlder && <Spinner size="sm" />}
                   {chat.isLoadingOlder ? t("loadingOlder") : t("loadOlder")}
                 </button>
               </div>

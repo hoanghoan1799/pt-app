@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
+import { Spinner } from "@/components/common/Spinner";
 import { ICON_BUTTON, INPUT, PAGE_CONTAINER } from "@/constants/styles";
 import { type ChatPaths, jumpHref } from "@/features/chat/utils/chat-links";
 import {
@@ -196,8 +197,9 @@ export const ChatSearch = ({
         {isSearchable && state.kind === "loading" && (
           <p
             role="status"
-            className="px-6 py-16 text-center text-sm text-muted"
+            className="flex items-center justify-center gap-2 px-6 py-16 text-sm text-muted"
           >
+            <Spinner size="md" />
             {t("searching")}
           </p>
         )}
