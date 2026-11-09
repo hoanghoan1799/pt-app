@@ -9,6 +9,8 @@ interface PageSkeletonProps {
   children?: ReactNode;
   // false: children draw the whole screen (header included), e.g. chat.
   hasHeader?: boolean;
+  // false: no bottom tab bar to clear (admin screens), so less bottom padding.
+  hasTabBar?: boolean;
 }
 
 // Instant placeholder for route-level loading.tsx. Owns the accessible
@@ -16,6 +18,7 @@ interface PageSkeletonProps {
 export const PageSkeleton = async ({
   children,
   hasHeader = true,
+  hasTabBar = true,
 }: PageSkeletonProps) => {
   const t = await getTranslations("common");
 
@@ -30,7 +33,11 @@ export const PageSkeleton = async ({
             </div>
           </div>
           <div
-            className={`${PAGE_CONTAINER} space-y-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]`}
+            className={`${PAGE_CONTAINER} space-y-4 pt-4 ${
+              hasTabBar
+                ? "pb-[calc(env(safe-area-inset-bottom)+6rem)]"
+                : "pb-[calc(env(safe-area-inset-bottom)+2rem)]"
+            }`}
             aria-hidden
           >
             {children ?? (
