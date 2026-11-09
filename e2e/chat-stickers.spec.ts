@@ -530,7 +530,7 @@ test("a trainee turns a photo into a personal sticker, sends it and the PT sees 
       "Ăn uống",
       "Cảm xúc",
     ]);
-    await expect(sheet(trainee).getByText("0/30 sticker")).toBeVisible();
+    await expect(sheet(trainee).getByText("0/100 sticker")).toBeVisible();
     await expect(sheet(trainee).locator('input[type="file"]')).toHaveAttribute(
       "accept",
       "image/*",
@@ -539,7 +539,7 @@ test("a trainee turns a photo into a personal sticker, sends it and the PT sees 
     // A 1200x800 photo: far larger than the 512 px sticker box.
     await addPhoto(trainee, makePng(1200, 800));
     await expect(ownTiles(trainee)).toHaveCount(1);
-    await expect(sheet(trainee).getByText("1/30 sticker")).toBeVisible();
+    await expect(sheet(trainee).getByText("1/100 sticker")).toBeVisible();
 
     // The stored image is a small, re-encoded WebP/PNG, served from our route.
     const src = await ownTiles(trainee).locator("img").getAttribute("src");
@@ -628,7 +628,7 @@ test("the PT adds their own sticker and the trainee sees it; removing one keeps 
     await sheet(admin).getByRole("button", { name: "Sửa" }).click();
     await sheet(admin).getByRole("button", { name: "Xoá sticker này" }).click();
     await expect(ownTiles(admin)).toHaveCount(0);
-    await expect(sheet(admin).getByText("0/30 sticker")).toBeVisible();
+    await expect(sheet(admin).getByText("0/100 sticker")).toBeVisible();
     await admin.keyboard.press("Escape");
     await trainee.reload();
     await expect(sticker(trainee, MINE_ALT).getByRole("img")).toHaveJSProperty(
@@ -683,9 +683,11 @@ test("a long press shows the delete badge, and a file that is not an image is re
   });
 });
 
-test("the 31st personal sticker is refused with a Vietnamese message", async ({
+test("the 101st personal sticker is refused with a Vietnamese message", async ({
   browser,
 }) => {
+  // 100 sequential uploads take longer than the default 30 s.
+  test.setTimeout(120_000);
   await withScene(browser, async ({ trainee }) => {
     const png = makePng(16, 16);
     const post = () =>
@@ -694,17 +696,17 @@ test("the 31st personal sticker is refused with a Vietnamese message", async ({
         headers: { "Content-Type": "image/png" },
       });
 
-    for (let count = 0; count < 30; count += 1) {
+    for (let count = 0; count < 100; count += 1) {
       expect((await post()).status()).toBe(201);
     }
     const refused = await post();
 
     expect(refused.status()).toBe(409);
-    expect((await refused.json()).message).toContain("tối đa 30 sticker");
+    expect((await refused.json()).message).toContain("tối đa 100 sticker");
 
     await openMine(trainee);
-    await expect(ownTiles(trainee)).toHaveCount(30);
-    await expect(sheet(trainee).getByText("30/30 sticker")).toBeVisible();
+    await expect(ownTiles(trainee)).toHaveCount(100);
+    await expect(sheet(trainee).getByText("100/100 sticker")).toBeVisible();
     await expect(
       sheet(trainee).getByRole("button", { name: "Thêm ảnh" }),
     ).toBeDisabled();
