@@ -2,6 +2,7 @@
 
 import { Loader2, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useId, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -17,6 +18,7 @@ interface BioEditorProps {
 
 // Own profile only: shows the bio with an edit button.
 export const BioEditor = ({ mode, bio }: BioEditorProps) => {
+  const t = useTranslations("social.bio");
   const router = useRouter();
   const fieldId = useId();
   const [isEditing, setEditing] = useState(false);
@@ -42,7 +44,7 @@ export const BioEditor = ({ mode, bio }: BioEditorProps) => {
     return (
       <div className="flex items-start justify-center gap-1">
         <p className="text-sm break-words whitespace-pre-wrap text-muted">
-          {bio || "Chưa có giới thiệu"}
+          {bio || t("empty")}
         </p>
         <button
           type="button"
@@ -50,7 +52,7 @@ export const BioEditor = ({ mode, bio }: BioEditorProps) => {
             setValue(bio);
             setEditing(true);
           }}
-          aria-label="Sửa giới thiệu"
+          aria-label={t("edit")}
           className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-muted active:bg-line"
         >
           <Pencil className="size-4" aria-hidden />
@@ -61,7 +63,7 @@ export const BioEditor = ({ mode, bio }: BioEditorProps) => {
   return (
     <div className="space-y-2 text-left">
       <label htmlFor={fieldId} className="sr-only">
-        Giới thiệu
+        {t("label")}
       </label>
       <textarea
         id={fieldId}
@@ -80,7 +82,7 @@ export const BioEditor = ({ mode, bio }: BioEditorProps) => {
           disabled={isPending}
           className={`${BUTTON_SECONDARY} min-h-11`}
         >
-          Hủy
+          {t("cancel")}
         </button>
         <button
           type="button"
@@ -89,7 +91,7 @@ export const BioEditor = ({ mode, bio }: BioEditorProps) => {
           className={`${BUTTON_PRIMARY} min-h-11`}
         >
           {isPending && <Loader2 className="size-5 animate-spin" aria-hidden />}
-          Lưu
+          {t("save")}
         </button>
       </div>
     </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -13,7 +14,6 @@ export type PushRole = "user" | "admin";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 const DISMISS_KEY_PREFIX = "pt-push-optin-dismissed:";
-const ERROR_MESSAGE = "Không bật được thông báo. Vui lòng thử lại.";
 
 // Browsers that already subscribed re-register once per page session so the
 // server row exists for whoever is signed in now.
@@ -94,6 +94,7 @@ const postSubscription = async (role: PushRole, json: unknown) => {
 };
 
 export const usePushSubscription = (role: PushRole) => {
+  const t = useTranslations("chat.pushSubscription");
   const [environment, setEnvironment] = useState<Environment | null>(null);
   const [dismissed, setDismissed] = useState(true);
   const [subscribed, setSubscribed] = useState(false);
@@ -179,12 +180,12 @@ export const usePushSubscription = (role: PushRole) => {
       resyncedRoles.add(role);
       setSubscribed(true);
     } catch {
-      setError(ERROR_MESSAGE);
+      setError(t("error"));
     } finally {
       busyRef.current = false;
       setBusy(false);
     }
-  }, [role]);
+  }, [role, t]);
 
   // Turns push off for this browser: drops the server row, then the browser
   // subscription, so no message can reach it any more.
@@ -206,12 +207,12 @@ export const usePushSubscription = (role: PushRole) => {
       resyncedRoles.delete(role);
       setSubscribed(false);
     } catch {
-      setError(ERROR_MESSAGE);
+      setError(t("error"));
     } finally {
       busyRef.current = false;
       setBusy(false);
     }
-  }, [role]);
+  }, [role, t]);
 
   // What the settings menu needs, independent of the one-time card's
   // "Để sau": whether push can work here at all, and whether it is on.

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -9,10 +10,15 @@ import { listAllDmConversations } from "@/features/social/services/dm-admin-quer
 import { requireSuperAdmin } from "@/services/auth-guard";
 import { formatRelativeTime } from "@/utils/time";
 
-export const metadata: Metadata = { title: "Chat học viên" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("social.adminPages");
+
+  return { title: t("chatsTitle") };
+};
 
 // Super admin only (spec Q6): every trainee-to-trainee chat, read-only.
 const AdminDmChatsPage = async () => {
+  const t = await getTranslations("social.adminPages");
   await requireSuperAdmin();
 
   const rows = await listAllDmConversations();
@@ -20,17 +26,19 @@ const AdminDmChatsPage = async () => {
   return (
     <>
       <AppHeader
-        eyebrow="Mạng xã hội"
-        title="Chat học viên"
+        eyebrow={t("eyebrow")}
+        title={t("chatsTitle")}
         backHref={ROUTES.ADMIN_SOCIAL}
       />
       <main
         className={`${PAGE_CONTAINER} space-y-3 pt-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]`}
       >
-        <h2 className={SECTION_TITLE}>Cuộc trò chuyện · {rows.length}</h2>
+        <h2 className={SECTION_TITLE}>
+          {t("chatsCount", { count: rows.length })}
+        </h2>
         {rows.length === 0 ? (
           <p className={`${CARD} p-6 text-center text-muted`}>
-            Chưa có cuộc trò chuyện nào.
+            {t("chatsEmpty")}
           </p>
         ) : (
           <ul className="space-y-2">
@@ -54,7 +62,7 @@ const AdminDmChatsPage = async () => {
                     )}
                   </span>
                   <span className="block truncate text-sm text-muted">
-                    {row.preview || "Chưa có tin nhắn"}
+                    {row.preview || t("preview")}
                   </span>
                 </Link>
               </li>

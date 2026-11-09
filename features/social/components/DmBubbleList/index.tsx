@@ -2,11 +2,11 @@
 
 import clsx from "clsx";
 import { RotateCcw } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { ChatPhotoImage } from "@/features/chat/components/ChatPhotoImage";
 import { PHOTO_ALT } from "@/features/chat/utils/photo-rules";
 import { DmPostQuote } from "@/features/social/components/DmPostQuote";
-import { DM_MESSAGES } from "@/features/social/constants/dm";
 import type { DmThreadItem } from "@/features/social/utils/dm-thread-rules";
 
 interface DmBubbleListProps {
@@ -37,73 +37,79 @@ export const DmBubbleList = ({
   seenId = null,
   onUnsend,
   onRetry,
-}: DmBubbleListProps) => (
-  <ul className="flex flex-col gap-2">
-    {items.map((item) => {
-      const isMine = meId !== null && item.senderId === meId;
+}: DmBubbleListProps) => {
+  const t = useTranslations("social.dmBubbleList");
 
-      return (
-        <li
-          key={item.clientId}
-          className={clsx(
-            "flex flex-col gap-0.5",
-            isMine ? "items-end" : "items-start",
-          )}
-        >
-          {names && (
-            <span className="px-1 text-xs font-medium text-muted">
-              {names.get(item.senderId) ?? "Đã xoá"}
-            </span>
-          )}
-          <div
+  return (
+    <ul className="flex flex-col gap-2">
+      {items.map((item) => {
+        const isMine = meId !== null && item.senderId === meId;
+
+        return (
+          <li
+            key={item.clientId}
             className={clsx(
-              "max-w-[80%] space-y-1.5 rounded-2xl px-3 py-2 text-base break-words",
-              isMine
-                ? "bg-accent text-accent-fg"
-                : "border border-line bg-surface text-fg",
-              item.pending === "sending" && "opacity-70",
+              "flex flex-col gap-0.5",
+              isMine ? "items-end" : "items-start",
             )}
           >
-            {item.post && <DmPostQuote post={item.post} />}
-            {item.photo && (
-              <ChatPhotoImage
-                photo={{ ...item.photo, alt: PHOTO_ALT }}
-                isDimmed={item.pending === "sending"}
-              />
+            {names && (
+              <span className="px-1 text-xs font-medium text-muted">
+                {names.get(item.senderId) ?? t("deleted")}
+              </span>
             )}
-            {item.body && (
-              <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">
-                {item.body}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-2 px-1 text-xs text-muted">
-            <time dateTime={item.createdAt}>{formatTime(item.createdAt)}</time>
-            {item.pending === "failed" && onRetry && (
-              <button
-                type="button"
-                onClick={() => onRetry(item.clientId)}
-                className="inline-flex min-h-8 items-center gap-1 font-semibold text-danger"
-              >
-                <RotateCcw className="size-3.5" aria-hidden />
-                Gửi lại
-              </button>
-            )}
-            {isMine && !item.pending && seenId === item.id && (
-              <span>{DM_MESSAGES.SEEN}</span>
-            )}
-            {isMine && !item.pending && onUnsend && (
-              <button
-                type="button"
-                onClick={() => onUnsend(item.id)}
-                className="inline-flex min-h-8 items-center font-semibold"
-              >
-                {DM_MESSAGES.UNSEND}
-              </button>
-            )}
-          </div>
-        </li>
-      );
-    })}
-  </ul>
-);
+            <div
+              className={clsx(
+                "max-w-[80%] space-y-1.5 rounded-2xl px-3 py-2 text-base break-words",
+                isMine
+                  ? "bg-accent text-accent-fg"
+                  : "border border-line bg-surface text-fg",
+                item.pending === "sending" && "opacity-70",
+              )}
+            >
+              {item.post && <DmPostQuote post={item.post} />}
+              {item.photo && (
+                <ChatPhotoImage
+                  photo={{ ...item.photo, alt: PHOTO_ALT }}
+                  isDimmed={item.pending === "sending"}
+                />
+              )}
+              {item.body && (
+                <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">
+                  {item.body}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 px-1 text-xs text-muted">
+              <time dateTime={item.createdAt}>
+                {formatTime(item.createdAt)}
+              </time>
+              {item.pending === "failed" && onRetry && (
+                <button
+                  type="button"
+                  onClick={() => onRetry(item.clientId)}
+                  className="inline-flex min-h-8 items-center gap-1 font-semibold text-danger"
+                >
+                  <RotateCcw className="size-3.5" aria-hidden />
+                  {t("retry")}
+                </button>
+              )}
+              {isMine && !item.pending && seenId === item.id && (
+                <span>{t("seen")}</span>
+              )}
+              {isMine && !item.pending && onUnsend && (
+                <button
+                  type="button"
+                  onClick={() => onUnsend(item.id)}
+                  className="inline-flex min-h-8 items-center font-semibold"
+                >
+                  {t("unsend")}
+                </button>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+};

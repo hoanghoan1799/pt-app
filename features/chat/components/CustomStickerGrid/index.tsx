@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { ImagePlus, Loader2, X } from "lucide-react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { type ChangeEvent, useRef, useState } from "react";
 
 import type {
@@ -40,6 +41,7 @@ export const CustomStickerGrid = ({
   onRemove,
   onPick,
 }: CustomStickerGridProps) => {
+  const t = useTranslations("chat.customStickers");
   const fileInput = useRef<HTMLInputElement>(null);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPress = useRef(false);
@@ -95,7 +97,7 @@ export const CustomStickerGrid = ({
             onClick={() => setIsEditing((current) => !current)}
             className="min-h-10 rounded-full px-3 text-sm font-semibold text-accent"
           >
-            {isEditing ? "Xong" : "Sửa"}
+            {isEditing ? t("done") : t("edit")}
           </button>
         )}
       </div>
@@ -103,7 +105,7 @@ export const CustomStickerGrid = ({
         ref={fileInput}
         type="file"
         accept="image/*"
-        aria-label="Chọn ảnh làm sticker"
+        aria-label={t("pickPhoto")}
         className="sr-only"
         tabIndex={-1}
         onChange={handleFile}
@@ -122,7 +124,7 @@ export const CustomStickerGrid = ({
         ) : (
           <ImagePlus className="size-6" aria-hidden />
         )}
-        {isBusy ? "Đang xử lý…" : "Thêm ảnh"}
+        {isBusy ? t("processing") : t("addPhoto")}
       </button>
       {stickers.map((sticker) => (
         <div key={sticker.id} className="relative">
@@ -155,7 +157,7 @@ export const CustomStickerGrid = ({
           {isEditing && (
             <button
               type="button"
-              aria-label="Xoá sticker này"
+              aria-label={t("deleteSticker")}
               onClick={() => onRemove(sticker.id)}
               className="absolute -top-1 -right-1 flex size-7 items-center justify-center rounded-full bg-danger text-white shadow"
             >
@@ -174,7 +176,7 @@ export const CustomStickerGrid = ({
           role="status"
           className="col-span-full px-2 py-6 text-center text-sm text-muted"
         >
-          Đang tải sticker…
+          {t("loading")}
         </p>
       )}
       {status === "error" && (
@@ -182,7 +184,7 @@ export const CustomStickerGrid = ({
           role="status"
           className="col-span-full px-2 py-6 text-center text-sm text-muted"
         >
-          Không tải được sticker của bạn. Thử lại nhé.
+          {t("loadFailed")}
         </p>
       )}
       {status === "ready" && stickers.length === 0 && (
@@ -190,7 +192,7 @@ export const CustomStickerGrid = ({
           role="status"
           className="col-span-full px-2 py-6 text-center text-sm text-muted"
         >
-          Chọn một ảnh từ thư viện để tạo sticker riêng.
+          {t("empty")}
         </p>
       )}
     </>

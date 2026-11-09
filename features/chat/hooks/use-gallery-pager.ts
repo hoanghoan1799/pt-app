@@ -1,13 +1,12 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type {
   CursorPage,
   GalleryTab,
 } from "@/features/chat/utils/gallery-rules";
-
-const LOAD_FAILED = "Không tải thêm được. Thử lại nhé.";
 
 const isPage = <T>(value: unknown): value is CursorPage<T> =>
   typeof value === "object" &&
@@ -28,6 +27,7 @@ export const useGalleryPager = <T>({
   tab: GalleryTab;
   keyOf: (item: T) => string | number;
 }) => {
+  const t = useTranslations("chat.galleryPager");
   const [items, setItems] = useState<T[]>(initial.items);
   const [cursor, setCursor] = useState<number | null>(initial.nextCursor);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +52,7 @@ export const useGalleryPager = <T>({
       const data: unknown = response.ok ? await response.json() : null;
 
       if (!isPage<T>(data)) {
-        setError(LOAD_FAILED);
+        setError(t("loadFailed"));
         return;
       }
       setItems((current) => {
@@ -65,11 +65,11 @@ export const useGalleryPager = <T>({
       });
       setCursor(data.nextCursor);
     } catch {
-      setError(LOAD_FAILED);
+      setError(t("loadFailed"));
     } finally {
       loading.current = false;
     }
-  }, [cursor, endpoint, tab]);
+  }, [cursor, endpoint, tab, t]);
 
   useEffect(() => {
     const node = sentinel.current;

@@ -3,14 +3,14 @@
 // least WCAG AA contrast (4.5:1); chat-palette.test.ts enforces it.
 
 export const CHAT_PALETTE = [
-  { key: "orange", label: "Cam", bg: "#c2410c" },
-  { key: "red", label: "Đỏ", bg: "#b91c1c" },
-  { key: "pink", label: "Hồng", bg: "#be185d" },
-  { key: "purple", label: "Tím", bg: "#7e22ce" },
-  { key: "indigo", label: "Chàm", bg: "#4338ca" },
-  { key: "blue", label: "Xanh dương", bg: "#1d4ed8" },
-  { key: "teal", label: "Xanh ngọc", bg: "#0f766e" },
-  { key: "green", label: "Xanh lá", bg: "#15803d" },
+  { key: "orange", bg: "#c2410c" },
+  { key: "red", bg: "#b91c1c" },
+  { key: "pink", bg: "#be185d" },
+  { key: "purple", bg: "#7e22ce" },
+  { key: "indigo", bg: "#4338ca" },
+  { key: "blue", bg: "#1d4ed8" },
+  { key: "teal", bg: "#0f766e" },
+  { key: "green", bg: "#15803d" },
 ] as const;
 
 export type ChatColorKey = (typeof CHAT_PALETTE)[number]["key"];

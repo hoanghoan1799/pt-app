@@ -1,0 +1,285 @@
+{
+  "pushToggle": {
+    "label": "Thông báo đẩy",
+    "on": "Đang bật",
+    "off": "Đang tắt",
+    "unavailable": "Chưa dùng được trên thiết bị này",
+    "installFirst": "Thêm app vào Màn hình chính trước",
+    "blocked": "Đang bị chặn trong cài đặt trình duyệt"
+  },
+  "presenceStatus": {
+    "label": "Trạng thái hoạt động: {text}"
+  },
+  "pushOptIn": {
+    "sectionLabel": "Bật thông báo",
+    "titleUser": "Bật thông báo để không lỡ tin nhắn từ PT",
+    "titleAdmin": "Bật thông báo để không lỡ tin nhắn của học viên",
+    "iosInstallHint": "Trên iPhone, hãy thêm app vào Màn hình chính trước: bấm nút Chia sẻ <share></share> rồi chọn \"Thêm vào MH chính\", sau đó mở app từ màn hình chính để bật thông báo.",
+    "denied": "Thông báo đang bị chặn. Hãy bật lại trong phần cài đặt của trình duyệt (hoặc cài đặt thông báo của máy) cho trang này.",
+    "gotIt": "Đã hiểu",
+    "later": "Để sau",
+    "enable": "Bật thông báo"
+  },
+  "reactorsSheet": {
+    "title": "Cảm xúc",
+    "description": "Ai đã thả cảm xúc vào tin nhắn này",
+    "you": "Bạn"
+  },
+  "chatLockSwitch": {
+    "label": "Cho phép nhắn tin",
+    "failed": "Không đổi được trạng thái nhắn tin. Thử lại nhé."
+  },
+  "hideConversation": {
+    "hide": "Ẩn học viên",
+    "unhide": "Bỏ ẩn học viên",
+    "hiddenToast": "Đã ẩn 1 học viên",
+    "unhiddenToast": "Đã bỏ ẩn học viên",
+    "failed": "Không lưu được. Thử lại nhé."
+  },
+  "neutralColors": {
+    "label": "Màu trung tính",
+    "help": "Hiện mọi tin nhắn bằng màu mặc định trên máy này. Học viên vẫn thấy màu họ chọn."
+  },
+  "unreadBadge": {
+    "label": "{count} tin nhắn chưa đọc"
+  },
+  "newMessages": {
+    "label": "Tin nhắn mới"
+  },
+  "typing": {
+    "label": "{name} đang nhập…"
+  },
+  "gallery": {
+    "tabsLabel": "Loại nội dung",
+    "tabs": {
+      "photos": "Ảnh",
+      "stickers": "Sticker",
+      "links": "Link"
+    }
+  },
+  "chatInfo": {
+    "title": "Thông tin",
+    "peerSection": "Người trò chuyện",
+    "viewPhoto": "Xem ảnh của {name}",
+    "toolsSection": "Công cụ",
+    "search": "Tìm kiếm",
+    "customize": "Tuỳ chỉnh",
+    "photos": "Ảnh",
+    "photoOf": "Ảnh của {label}",
+    "galleryLink": "Ảnh, sticker và link",
+    "noPhotos": "Chưa có ảnh",
+    "displaySection": "Hiển thị",
+    "actionsSection": "Thao tác"
+  },
+  "chatHeader": {
+    "back": "Quay lại",
+    "settings": "Thông tin cuộc trò chuyện"
+  },
+  "chatInbox": {
+    "noMessages": "Chưa có tin nhắn",
+    "selectRow": "Chọn {name}",
+    "online": "Đang hoạt động",
+    "locked": "Chat đang khoá",
+    "unread": "{count} tin nhắn chưa đọc",
+    "unhide": "Bỏ ẩn"
+  },
+  "accountColor": {
+    "title": "Màu tài khoản",
+    "description": "Dùng cho mọi cuộc trò chuyện chưa chọn màu riêng.",
+    "failed": "Không lưu được. Thử lại nhé."
+  },
+  "editHistory": {
+    "title": "Lịch sử chỉnh sửa",
+    "error": "Không tải được lịch sử chỉnh sửa. Thử lại nhé.",
+    "loading": "Đang tải…",
+    "current": "Hiện tại",
+    "previous": "Bản trước, sửa lúc {time}"
+  },
+  "linkGallery": {
+    "empty": "Chưa có link nào trong cuộc trò chuyện này",
+    "showInChat": "Xem trong tin nhắn"
+  },
+  "photoGallery": {
+    "empty": "Chưa có ảnh nào trong cuộc trò chuyện này",
+    "viewPhoto": "Xem ảnh của {label}"
+  },
+  "galleryFooter": {
+    "loading": "Đang tải…"
+  },
+  "hiddenUserList": {
+    "unhide": "Bỏ ẩn"
+  },
+  "customize": {
+    "failed": "Không lưu được. Thử lại nhé.",
+    "locked": "Chat đang khoá nên chưa đổi được biệt danh và màu.",
+    "lockedAdmin": "Chat đang khoá. Biệt danh và màu của cuộc trò chuyện chưa đổi được.",
+    "saving": "Đang lưu…",
+    "save": "Lưu",
+    "clearNickname": "Xoá biệt danh",
+    "nicknameSection": "Biệt danh",
+    "nicknameOf": "Biệt danh của {name}",
+    "nicknameSelf": "Biệt danh của bạn",
+    "colorConversation": "Màu cho cuộc trò chuyện này",
+    "colorOwn": "Màu tin nhắn của bạn",
+    "colorAdminHint": "Chỉ áp dụng cho cuộc trò chuyện này, thay cho màu tài khoản.",
+    "colorUserHint": "Tin nhắn của bạn hiện màu này ở cả hai bên.",
+    "colorLabel": "Màu tin nhắn",
+    "useAccountColor": "Dùng màu tài khoản"
+  },
+  "chatSearch": {
+    "back": "Quay lại",
+    "placeholder": "Tìm trong cuộc trò chuyện",
+    "inputLabel": "Tìm tin nhắn",
+    "minLength": "Nhập ít nhất {min} ký tự để tìm tin nhắn",
+    "searching": "Đang tìm…",
+    "failed": "Không tìm được. Thử lại nhé.",
+    "empty": "Không tìm thấy tin nhắn nào",
+    "loadMore": "Xem thêm kết quả"
+  },
+  "messageActions": {
+    "title": "Tuỳ chọn tin nhắn",
+    "sentAt": "Gửi lúc {time}",
+    "reactions": "Cảm xúc",
+    "reply": "Trả lời",
+    "copy": "Sao chép",
+    "edit": "Chỉnh sửa",
+    "unsend": "Thu hồi"
+  },
+  "messageBubble": {
+    "viewReply": "Xem tin nhắn được trả lời",
+    "messageName": "tin nhắn",
+    "edited": "Đã chỉnh sửa",
+    "sending": "Đang gửi…",
+    "notSent": "Chưa gửi được",
+    "retry": "Gửi lại"
+  },
+  "replyPost": {
+    "replying": "Đang trả lời bài viết",
+    "cancel": "Bỏ trả lời bài viết"
+  },
+  "composer": {
+    "placeholder": "Nhắn tin cho PT…",
+    "processingPhoto": "Đang xử lý ảnh…",
+    "photoPreviewAlt": "Ảnh sẽ gửi",
+    "removePhoto": "Bỏ ảnh",
+    "commandsLabel": "Lệnh",
+    "attachPhoto": "Gửi ảnh",
+    "removeCommand": "Bỏ lệnh /{name}",
+    "messageLabel": "Nội dung tin nhắn",
+    "openStickers": "Mở sticker",
+    "saveEdit": "Lưu chỉnh sửa",
+    "send": "Gửi tin nhắn"
+  },
+  "stickerPanel": {
+    "description": "Chọn một sticker để gửi ngay",
+    "groupsLabel": "Nhóm sticker",
+    "groups": {
+      "workout": "Tập luyện",
+      "food": "Ăn uống",
+      "mood": "Cảm xúc"
+    },
+    "recent": "Gần đây",
+    "mine": "Của tôi",
+    "giphySearch": "Tìm sticker trên GIPHY",
+    "loading": "Đang tải sticker…",
+    "rateLimited": "Bạn tìm hơi nhanh. Chờ một chút rồi thử lại nhé.",
+    "giphyError": "Không tải được sticker GIPHY. Thử lại nhé.",
+    "giphyEmpty": "Không tìm thấy sticker nào."
+  },
+  "customStickers": {
+    "done": "Xong",
+    "edit": "Sửa",
+    "pickPhoto": "Chọn ảnh làm sticker",
+    "processing": "Đang xử lý…",
+    "addPhoto": "Thêm ảnh",
+    "deleteSticker": "Xoá sticker này",
+    "loading": "Đang tải sticker…",
+    "loadFailed": "Không tải được sticker của bạn. Thử lại nhé.",
+    "empty": "Chọn một ảnh từ thư viện để tạo sticker riêng."
+  },
+  "stickerGallery": {
+    "empty": "Chưa có sticker nào trong cuộc trò chuyện này",
+    "viewSticker": "Xem sticker của {label}"
+  },
+  "colors": {
+    "names": {
+      "orange": "Cam",
+      "red": "Đỏ",
+      "pink": "Hồng",
+      "purple": "Tím",
+      "indigo": "Chàm",
+      "blue": "Xanh dương",
+      "teal": "Xanh ngọc",
+      "green": "Xanh lá"
+    }
+  },
+  "adminChatThread": {
+    "title": "Nhắn tin với {name}"
+  },
+  "adminInbox": {
+    "passcodeRequired": "Hãy đặt mã khoá trước khi ẩn học viên.",
+    "hiddenToast": "Đã ẩn {count, plural, other {# học viên}}",
+    "hideFailed": "Không ẩn được. Thử lại nhé.",
+    "unhideFailed": "Không bỏ ẩn được. Thử lại nhé.",
+    "searchPlaceholder": "Tìm theo tên",
+    "select": "Chọn",
+    "hiddenSection": "Học viên đã ẩn",
+    "emptySearch": "Không tìm thấy học viên nào",
+    "emptyUnread": "Không có tin nhắn chưa đọc",
+    "emptyAll": "Chưa có cuộc trò chuyện nào",
+    "freshSection": "Chưa có tin nhắn",
+    "online": "Đang hoạt động",
+    "selectRow": "Chọn {name}",
+    "hideToolbar": "Ẩn học viên",
+    "cancel": "Huỷ",
+    "hideCount": "Ẩn ({count})"
+  },
+  "chatThread": {
+    "ariaLabel": "Cuộc trò chuyện với PT",
+    "empty": "Gửi tin nhắn đầu tiên cho PT của bạn",
+    "emptyLocked": "PT chưa mở nhắn tin cho bạn",
+    "copied": "Đã sao chép",
+    "copyFailed": "Không sao chép được",
+    "unsendTitle": "Thu hồi tin nhắn này với mọi người?",
+    "unsendDescription": "Cả hai bên sẽ chỉ thấy “Tin nhắn đã bị thu hồi”.",
+    "unsend": "Thu hồi",
+    "traineeFallback": "Học viên",
+    "loadingOlder": "Đang tải…",
+    "loadOlder": "Xem tin cũ hơn",
+    "editing": "Đang chỉnh sửa",
+    "cancelEdit": "Huỷ chỉnh sửa",
+    "replying": "Đang trả lời {name}",
+    "cancelReply": "Huỷ trả lời",
+    "placeholder": "Nhắn tin cho {name}…",
+    "locked": "PT đã tạm khoá nhắn tin",
+    "adminLocked": "Chat đang bị khoá. Bật lại để nhắn tin."
+  },
+  "galleryPager": {
+    "loadFailed": "Không tải thêm được. Thử lại nhé."
+  },
+  "pushSubscription": {
+    "error": "Không bật được thông báo. Vui lòng thử lại."
+  },
+  "chatMessages": {
+    "sendFailed": "Không gửi được tin nhắn. Thử lại nhé.",
+    "actionFailed": "Không thực hiện được. Thử lại nhé."
+  },
+  "shared": {
+    "fallbackPeer": "PT của bạn"
+  },
+  "pages": {
+    "messagesTitle": "Nhắn tin",
+    "searchTitle": "Tìm tin nhắn",
+    "infoTitle": "Thông tin cuộc trò chuyện",
+    "photosTitle": "Ảnh, sticker và link",
+    "coachSubtitle": "Trao đổi với PT của bạn",
+    "friendsSection": "Bạn bè",
+    "unreadDot": "Có tin nhắn chưa đọc",
+    "adminMessagesTitle": "Tin nhắn",
+    "filtersLabel": "Lọc tin nhắn",
+    "filters": {
+      "all": "Tất cả",
+      "unread": "Chưa đọc"
+    }
+  }
+}

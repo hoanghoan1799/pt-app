@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -12,9 +13,14 @@ import { getPostView } from "@/features/social/services/post-queries";
 import { hasAcceptedTerms } from "@/features/social/services/terms";
 import { requireUser } from "@/services/auth-guard";
 
-export const metadata: Metadata = { title: "Bài viết" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("social.pages");
+
+  return { title: t("postTitle") };
+};
 
 const PostPage = async ({ params }: PageProps<"/post/[id]">) => {
+  const t = await getTranslations("social.pages");
   const user = await requireUser();
 
   if (!hasAcceptedTerms(user)) {
@@ -35,7 +41,11 @@ const PostPage = async ({ params }: PageProps<"/post/[id]">) => {
   }
   return (
     <>
-      <AppHeader eyebrow="Bảng tin" title="Bài viết" backHref={ROUTES.FEED} />
+      <AppHeader
+        eyebrow={t("feedTitle")}
+        title={t("postTitle")}
+        backHref={ROUTES.FEED}
+      />
       <main
         className={`${PAGE_CONTAINER} space-y-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]`}
       >

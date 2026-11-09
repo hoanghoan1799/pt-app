@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
 import { listAdminAvatarUrls } from "@/features/avatar/services/avatar";
 import { ChatInfo } from "@/features/chat/components/ChatInfo";
-import { FALLBACK_PEER_NAME } from "@/features/chat/constants/messages";
 import { listGalleryPhotos } from "@/features/chat/services/chat-gallery";
 import { isChatEnabled } from "@/features/chat/services/chat-permission";
 import {
@@ -17,11 +17,16 @@ import { chatPaths } from "@/features/chat/utils/chat-links";
 import { INFO_PREVIEW_COUNT } from "@/features/chat/utils/gallery-rules";
 import { requireUser } from "@/services/auth-guard";
 
-export const metadata: Metadata = { title: "Thông tin cuộc trò chuyện" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("chat.pages");
+
+  return { title: t("infoTitle") };
+};
 
 // The trainee's chat info page (KAN-160). The chat may be locked: the page
 // still opens, read-only, like the thread does.
 const MessagesInfoPage = async () => {
+  const t = await getTranslations("chat.shared");
   const user = await requireUser();
   const conversation = await findConversationByUserId(user.id);
   const [profile, sender, adminAvatars, gallery] = await Promise.all([
@@ -38,7 +43,7 @@ const MessagesInfoPage = async () => {
       viewer={{ role: "user" }}
       userId={user.id}
       conversationId={conversation?.id ?? null}
-      peerName={sender?.name ?? FALLBACK_PEER_NAME}
+      peerName={sender?.name ?? t("fallbackPeer")}
       selfName={user.name}
       initialProfile={profile}
       chatEnabled={isChatEnabled(user)}

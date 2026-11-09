@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -21,11 +22,16 @@ import { hasAcceptedTerms } from "@/features/social/services/terms";
 import { requireUser } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
 
-export const metadata: Metadata = { title: "Bạn bè" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("social.pages");
+
+  return { title: t("friendsTitle") };
+};
 
 const EMPTY = `${CARD} p-6 text-center text-muted`;
 
 const FriendsPage = async ({ searchParams }: PageProps<"/friends">) => {
+  const t = await getTranslations("social.pages");
   const user = await requireUser();
 
   // Social pages sit behind the terms; the feed shows them.
@@ -41,19 +47,23 @@ const FriendsPage = async ({ searchParams }: PageProps<"/friends">) => {
 
   return (
     <>
-      <AppHeader eyebrow="Mạng xã hội" title="Bạn bè" backHref={ROUTES.FEED} />
+      <AppHeader
+        eyebrow={t("eyebrow")}
+        title={t("friendsTitle")}
+        backHref={ROUTES.FEED}
+      />
       <main
         className={`${PAGE_CONTAINER} space-y-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]`}
       >
         <FriendsTabs active={tab} requestCount={requests.received.length} />
         {tab === "friends" && (
           <>
-            <section className="space-y-2" aria-label="Bạn bè">
-              <h2 className={SECTION_TITLE}>Bạn bè · {friends.length}</h2>
+            <section className="space-y-2" aria-label={t("friendsAria")}>
+              <h2 className={SECTION_TITLE}>
+                {t("friendsCount", { count: friends.length })}
+              </h2>
               {friends.length === 0 ? (
-                <p className={EMPTY}>
-                  Chưa có bạn bè nào. Hãy tìm bạn bằng email.
-                </p>
+                <p className={EMPTY}>{t("friendsEmpty")}</p>
               ) : (
                 <ul className="space-y-2">
                   {friends.map((person) => (
@@ -63,8 +73,10 @@ const FriendsPage = async ({ searchParams }: PageProps<"/friends">) => {
               )}
             </section>
             {blocked.length > 0 && (
-              <section className="space-y-2" aria-label="Đã chặn">
-                <h2 className={SECTION_TITLE}>Đã chặn · {blocked.length}</h2>
+              <section className="space-y-2" aria-label={t("blockedAria")}>
+                <h2 className={SECTION_TITLE}>
+                  {t("blockedCount", { count: blocked.length })}
+                </h2>
                 <ul className="space-y-2">
                   {blocked.map((person) => (
                     <FriendRow key={person.id} person={person} isLinked={false}>
@@ -78,12 +90,12 @@ const FriendsPage = async ({ searchParams }: PageProps<"/friends">) => {
         )}
         {tab === "requests" && (
           <>
-            <section className="space-y-2" aria-label="Lời mời đã nhận">
+            <section className="space-y-2" aria-label={t("receivedAria")}>
               <h2 className={SECTION_TITLE}>
-                Đã nhận · {requests.received.length}
+                {t("receivedCount", { count: requests.received.length })}
               </h2>
               {requests.received.length === 0 ? (
-                <p className={EMPTY}>Không có lời mời nào.</p>
+                <p className={EMPTY}>{t("noRequests")}</p>
               ) : (
                 <ul className="space-y-2">
                   {requests.received.map((person) => (
@@ -97,10 +109,12 @@ const FriendsPage = async ({ searchParams }: PageProps<"/friends">) => {
                 </ul>
               )}
             </section>
-            <section className="space-y-2" aria-label="Lời mời đã gửi">
-              <h2 className={SECTION_TITLE}>Đã gửi · {requests.sent.length}</h2>
+            <section className="space-y-2" aria-label={t("sentAria")}>
+              <h2 className={SECTION_TITLE}>
+                {t("sentCount", { count: requests.sent.length })}
+              </h2>
               {requests.sent.length === 0 ? (
-                <p className={EMPTY}>Bạn chưa gửi lời mời nào.</p>
+                <p className={EMPTY}>{t("noSent")}</p>
               ) : (
                 <ul className="space-y-2">
                   {requests.sent.map((person) => (

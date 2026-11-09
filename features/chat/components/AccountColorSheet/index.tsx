@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
@@ -10,8 +11,6 @@ import {
   type ChatColorKey,
   DEFAULT_CHAT_COLOR,
 } from "@/features/chat/utils/chat-palette";
-
-const FAILED_TEXT = "Không lưu được. Thử lại nhé.";
 
 interface AccountColorSheetProps {
   isOpen: boolean;
@@ -27,6 +26,7 @@ export const AccountColorSheet = ({
   onOpenChange,
   savedColor,
 }: AccountColorSheetProps) => {
+  const t = useTranslations("chat.accountColor");
   const [picked, setPicked] = useState<ChatColorKey | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -41,10 +41,10 @@ export const AccountColorSheet = ({
         if (result.status === "success") {
           setPicked(color);
         } else {
-          setError(result.message ?? FAILED_TEXT);
+          setError(result.message ?? t("failed"));
         }
       } catch {
-        setError(FAILED_TEXT);
+        setError(t("failed"));
       }
     });
   };
@@ -53,13 +53,13 @@ export const AccountColorSheet = ({
     <BottomSheet
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      title="Màu tài khoản"
-      description="Dùng cho mọi cuộc trò chuyện chưa chọn màu riêng."
+      title={t("title")}
+      description={t("description")}
     >
       <div className="space-y-3">
         <ColorSwatches
           name="account"
-          label="Màu tài khoản"
+          label={t("title")}
           selected={selected}
           disabled={isPending}
           onPick={pick}

@@ -1,6 +1,7 @@
 import enAdminPages from "@/messages/en/adminPages.json";
 import enAuth from "@/messages/en/auth.json";
 import enAvatar from "@/messages/en/avatar.json";
+import enChat from "@/messages/en/chat.json";
 import enCommon from "@/messages/en/common.json";
 import enDashboard from "@/messages/en/dashboard.json";
 import enFoods from "@/messages/en/foods.json";
@@ -11,10 +12,12 @@ import enNutrition from "@/messages/en/nutrition.json";
 import enPages from "@/messages/en/pages.json";
 import enPts from "@/messages/en/pts.json";
 import enPwa from "@/messages/en/pwa.json";
+import enSocial from "@/messages/en/social.json";
 import enWorkouts from "@/messages/en/workouts.json";
 import viAdminPages from "@/messages/vi/adminPages.json";
 import viAuth from "@/messages/vi/auth.json";
 import viAvatar from "@/messages/vi/avatar.json";
+import viChat from "@/messages/vi/chat.json";
 import viCommon from "@/messages/vi/common.json";
 import viDashboard from "@/messages/vi/dashboard.json";
 import viFoods from "@/messages/vi/foods.json";
@@ -25,6 +28,7 @@ import viNutrition from "@/messages/vi/nutrition.json";
 import viPages from "@/messages/vi/pages.json";
 import viPts from "@/messages/vi/pts.json";
 import viPwa from "@/messages/vi/pwa.json";
+import viSocial from "@/messages/vi/social.json";
 import viWorkouts from "@/messages/vi/workouts.json";
 import type { Locale } from "@/utils/locale";
 
@@ -36,6 +40,7 @@ export const MESSAGES = {
     adminPages: viAdminPages,
     auth: viAuth,
     avatar: viAvatar,
+    chat: viChat,
     common: viCommon,
     dashboard: viDashboard,
     foods: viFoods,
@@ -46,12 +51,14 @@ export const MESSAGES = {
     pages: viPages,
     pts: viPts,
     pwa: viPwa,
+    social: viSocial,
     workouts: viWorkouts,
   },
   en: {
     adminPages: enAdminPages,
     auth: enAuth,
     avatar: enAvatar,
+    chat: enChat,
     common: enCommon,
     dashboard: enDashboard,
     foods: enFoods,
@@ -62,6 +69,7 @@ export const MESSAGES = {
     pages: enPages,
     pts: enPts,
     pwa: enPwa,
+    social: enSocial,
     workouts: enWorkouts,
   },
 } as const satisfies Record<Locale, Record<string, object>>;

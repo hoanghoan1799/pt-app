@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { ROUTES } from "@/constants/routes";
 import { listAdminAvatarUrls } from "@/features/avatar/services/avatar";
@@ -21,7 +22,11 @@ import { listVerifiedAdminIds } from "@/services/admins";
 import { requireUser } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
 
-export const metadata: Metadata = { title: "Nhắn tin" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("chat.pages");
+
+  return { title: t("messagesTitle") };
+};
 
 const CoachChatPage = async ({
   searchParams,

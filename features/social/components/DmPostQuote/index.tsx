@@ -1,8 +1,8 @@
 import clsx from "clsx";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 import { Avatar } from "@/components/common/Avatar";
-import { DM_MESSAGES } from "@/features/social/constants/dm";
 import type { DmReplyPostView } from "@/features/social/types/dm";
 import {
   adminPostPath,
@@ -27,6 +27,8 @@ export const DmPostQuote = ({
   mode = "user",
   className,
 }: DmPostQuoteProps) => {
+  const t = useTranslations("social.dmPostQuote");
+
   if (!post.available) {
     return (
       <p
@@ -35,7 +37,7 @@ export const DmPostQuote = ({
           className,
         )}
       >
-        {DM_MESSAGES.POST_UNAVAILABLE}
+        {t("postUnavailable")}
       </p>
     );
   }
@@ -71,7 +73,7 @@ export const DmPostQuote = ({
   return (
     <Link
       href={(mode === "admin" ? adminPostPath : postPath)(post.id)}
-      aria-label={`Bài viết của ${post.authorName}`}
+      aria-label={t("postOf", { name: post.authorName })}
       className={clsx(
         "block space-y-2 overflow-hidden rounded-xl border border-line bg-surface p-2 text-left text-fg",
         className,
@@ -96,7 +98,7 @@ export const DmPostQuote = ({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={post.photo.url}
-          alt="Ảnh trong bài viết"
+          alt={t("photoAlt")}
           width={post.photo.width}
           height={post.photo.height}
           loading="lazy"

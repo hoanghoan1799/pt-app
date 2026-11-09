@@ -1,10 +1,8 @@
 import { Globe, Lock, type LucideIcon, Users } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { INPUT } from "@/constants/styles";
-import {
-  POST_PRIVACIES,
-  PRIVACY_LABELS,
-} from "@/features/social/constants/social";
+import { POST_PRIVACIES } from "@/features/social/constants/social";
 import type { PostPrivacy } from "@/features/social/types/social";
 
 export const PRIVACY_ICONS: Record<PostPrivacy, LucideIcon> = {
@@ -25,19 +23,23 @@ export const PrivacySelect = ({
   value,
   onChange,
   disabled,
-}: PrivacySelectProps) => (
-  <select
-    id={id}
-    aria-label="Quyền riêng tư"
-    value={value}
-    disabled={disabled}
-    onChange={(event) => onChange(event.target.value as PostPrivacy)}
-    className={`${INPUT} min-h-11 w-auto py-0 text-sm`}
-  >
-    {POST_PRIVACIES.map((privacy) => (
-      <option key={privacy} value={privacy}>
-        {PRIVACY_LABELS[privacy]}
-      </option>
-    ))}
-  </select>
-);
+}: PrivacySelectProps) => {
+  const t = useTranslations("social");
+
+  return (
+    <select
+      id={id}
+      aria-label={t("privacy.label")}
+      value={value}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.value as PostPrivacy)}
+      className={`${INPUT} min-h-11 w-auto py-0 text-sm`}
+    >
+      {POST_PRIVACIES.map((privacy) => (
+        <option key={privacy} value={privacy}>
+          {t(`privacy.${privacy}`)}
+        </option>
+      ))}
+    </select>
+  );
+};

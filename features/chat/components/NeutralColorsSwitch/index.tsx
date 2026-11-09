@@ -1,19 +1,21 @@
 "use client";
 
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 
 import { useNeutralChatColors } from "@/features/chat/hooks/use-neutral-chat-colors";
 
 // Admin-only "Màu trung tính" switch: shows every bubble in the default colours
 // on this device. Stored locally, so trainees still see their own colours.
 export const NeutralColorsSwitch = () => {
+  const t = useTranslations("chat.neutralColors");
   const [checked, setChecked] = useNeutralChatColors();
 
   return (
     <div>
       <div className="flex min-h-11 items-center justify-between gap-3">
         <span id="neutral-colors-switch" className="text-sm font-medium">
-          Màu trung tính
+          {t("label")}
         </span>
         <button
           type="button"
@@ -37,8 +39,7 @@ export const NeutralColorsSwitch = () => {
         </button>
       </div>
       <p id="neutral-colors-help" className="text-sm text-muted">
-        Hiện mọi tin nhắn bằng màu mặc định trên máy này. Học viên vẫn thấy màu
-        họ chọn.
+        {t("help")}
       </p>
     </div>
   );

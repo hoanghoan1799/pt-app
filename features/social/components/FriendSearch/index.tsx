@@ -2,13 +2,13 @@
 
 import { Loader2, Search } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { type FormEvent, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Avatar } from "@/components/common/Avatar";
 import { BUTTON_PRIMARY, CARD, INPUT, LABEL } from "@/constants/styles";
 import { RelationshipButton } from "@/features/social/components/RelationshipButton";
-import { FRIEND_MESSAGES } from "@/features/social/constants/social";
 import { searchFriendAction } from "@/features/social/services/friend-actions";
 import type { SearchResult } from "@/features/social/services/friend-queries";
 import { profilePath } from "@/features/social/utils/post-rules";
@@ -16,6 +16,7 @@ import { describeErrorReference } from "@/utils/errors";
 
 // "Tìm bạn bằng email": the whole address only, so nobody can browse emails.
 export const FriendSearch = () => {
+  const t = useTranslations("social.friendSearch");
   const [email, setEmail] = useState("");
   const [result, setResult] = useState<SearchResult | null>(null);
   const [isSearched, setSearched] = useState(false);
@@ -46,7 +47,7 @@ export const FriendSearch = () => {
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
           <label htmlFor="friend-email" className={LABEL}>
-            Email của bạn bè
+            {t("label")}
           </label>
           <input
             id="friend-email"
@@ -62,9 +63,7 @@ export const FriendSearch = () => {
             placeholder="ten@example.com"
             className={INPUT}
           />
-          <p className="mt-1.5 text-sm text-muted">
-            Nhập đầy đủ địa chỉ email để tìm.
-          </p>
+          <p className="mt-1.5 text-sm text-muted">{t("hint")}</p>
         </div>
         <button
           type="submit"
@@ -76,7 +75,7 @@ export const FriendSearch = () => {
           ) : (
             <Search className="size-5" aria-hidden />
           )}
-          Tìm
+          {t("submit")}
         </button>
       </form>
       {isSearched &&
@@ -105,9 +104,7 @@ export const FriendSearch = () => {
             )}
           </div>
         ) : (
-          <p className={`${CARD} p-4 text-center text-muted`}>
-            {FRIEND_MESSAGES.SEARCH_EMPTY}
-          </p>
+          <p className={`${CARD} p-4 text-center text-muted`}>{t("empty")}</p>
         ))}
     </div>
   );

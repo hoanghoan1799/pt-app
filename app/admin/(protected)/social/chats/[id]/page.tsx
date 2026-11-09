@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -14,13 +15,18 @@ import { parseDmId } from "@/features/social/utils/dm-rules";
 import { requireSuperAdmin } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
 
-export const metadata: Metadata = { title: "Chat học viên" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("social.adminPages");
+
+  return { title: t("chatsTitle") };
+};
 
 // Read-only thread for the super admin: no composer, no unsend, no read mark.
 const AdminDmThreadPage = async ({
   params,
   searchParams,
 }: PageProps<"/admin/social/chats/[id]">) => {
+  const t = await getTranslations("social.adminPages");
   const admin = await requireSuperAdmin();
   const id = parseDmId((await params).id);
   const view =
@@ -43,8 +49,8 @@ const AdminDmThreadPage = async ({
   return (
     <>
       <AppHeader
-        eyebrow="Chỉ xem"
-        title={`${names.get(view.conversation.userLow) ?? "Đã xoá"} · ${names.get(view.conversation.userHigh) ?? "Đã xoá"}`}
+        eyebrow={t("readOnly")}
+        title={`${names.get(view.conversation.userLow) ?? t("deletedName")} · ${names.get(view.conversation.userHigh) ?? t("deletedName")}`}
         backHref={ROUTES.ADMIN_SOCIAL_CHATS}
       />
       <main
@@ -55,12 +61,12 @@ const AdminDmThreadPage = async ({
             href={`${ROUTES.ADMIN_SOCIAL_CHATS}/${id}?before=${oldest.id}`}
             className={`${BUTTON_SECONDARY} w-full`}
           >
-            Xem tin cũ hơn
+            {t("seeOlder")}
           </Link>
         )}
         {thread.messages.length === 0 ? (
           <p className={`${CARD} p-6 text-center text-muted`}>
-            Chưa có tin nhắn.
+            {t("noMessages")}
           </p>
         ) : (
           <DmBubbleList items={thread.messages} meId={null} names={names} />

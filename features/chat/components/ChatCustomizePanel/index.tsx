@@ -1,6 +1,7 @@
 "use client";
 
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 
 import {
@@ -32,11 +33,6 @@ import {
   settingsTargets,
 } from "@/features/chat/utils/chat-settings";
 import type { ThreadViewer } from "@/features/chat/utils/chat-thread-rules";
-
-const FAILED_TEXT = "Không lưu được. Thử lại nhé.";
-const LOCKED_NOTE = "Chat đang khoá nên chưa đổi được biệt danh và màu.";
-const ADMIN_LOCKED_NOTE =
-  "Chat đang khoá. Biệt danh và màu của cuộc trò chuyện chưa đổi được.";
 
 interface ActionResult {
   status: string;
@@ -74,6 +70,7 @@ const NicknameField = ({
   disabled,
   onSave,
 }: NicknameFieldProps) => {
+  const t = useTranslations("chat.customize");
   const [draft, setDraft] = useState(saved ?? "");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -117,7 +114,7 @@ const NicknameField = ({
           onClick={() => save(draft)}
           className={clsx(BUTTON_PRIMARY, "shrink-0 px-4")}
         >
-          {isPending ? "Đang lưu…" : "Lưu"}
+          {isPending ? t("saving") : t("save")}
         </button>
       </div>
       <div className="mt-1 flex min-h-9 items-center justify-between gap-3">
@@ -140,7 +137,7 @@ const NicknameField = ({
             }}
             className="inline-flex min-h-9 items-center rounded-lg px-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
           >
-            Xoá biệt danh
+            {t("clearNickname")}
           </button>
         )}
       </div>
@@ -167,6 +164,7 @@ export const ChatCustomizePanel = ({
   onProfileChange,
   chatEnabled,
 }: ChatCustomizePanelProps) => {
+  const t = useTranslations("chat.customize");
   const isAdmin = viewer.role === "admin";
   const { other, self } = settingsTargets(viewer, { peerName, selfName });
   const [colorError, setColorError] = useState<string | null>(null);
@@ -184,7 +182,7 @@ export const ChatCustomizePanel = ({
       }
       return null;
     }
-    return result.message ?? FAILED_TEXT;
+    return result.message ?? t("failed");
   };
 
   const run = async (
@@ -193,7 +191,7 @@ export const ChatCustomizePanel = ({
     try {
       return accept(await call());
     } catch {
-      return FAILED_TEXT;
+      return t("failed");
     }
   };
 
@@ -246,16 +244,16 @@ export const ChatCustomizePanel = ({
           role="status"
           className="rounded-xl border border-line bg-surface px-3 py-2 text-sm text-muted"
         >
-          {isAdmin ? ADMIN_LOCKED_NOTE : LOCKED_NOTE}
+          {isAdmin ? t("lockedAdmin") : t("locked")}
         </p>
       )}
 
       <section className="space-y-4">
-        <h3 className={SECTION_TITLE}>Biệt danh</h3>
+        <h3 className={SECTION_TITLE}>{t("nicknameSection")}</h3>
         <NicknameField
           key={`${other.key}:${profile.nicknames[other.key] ?? ""}`}
           id="chat-nickname-other"
-          label={`Biệt danh của ${other.realName}`}
+          label={t("nicknameOf", { name: other.realName })}
           target={other}
           saved={profile.nicknames[other.key]}
           disabled={readOnly}
@@ -264,7 +262,7 @@ export const ChatCustomizePanel = ({
         <NicknameField
           key={`${self.key}:${profile.nicknames[self.key] ?? ""}`}
           id="chat-nickname-self"
-          label="Biệt danh của bạn"
+          label={t("nicknameSelf")}
           target={self}
           saved={profile.nicknames[self.key]}
           disabled={readOnly}
@@ -274,16 +272,14 @@ export const ChatCustomizePanel = ({
 
       <section className="space-y-3">
         <h3 className={SECTION_TITLE}>
-          {isAdmin ? "Màu cho cuộc trò chuyện này" : "Màu tin nhắn của bạn"}
+          {isAdmin ? t("colorConversation") : t("colorOwn")}
         </h3>
         <p className="text-sm text-muted">
-          {isAdmin
-            ? "Chỉ áp dụng cho cuộc trò chuyện này, thay cho màu tài khoản."
-            : "Tin nhắn của bạn hiện màu này ở cả hai bên."}
+          {isAdmin ? t("colorAdminHint") : t("colorUserHint")}
         </p>
         <ColorSwatches
           name="conversation"
-          label={isAdmin ? "Màu cho cuộc trò chuyện này" : "Màu tin nhắn"}
+          label={isAdmin ? t("colorConversation") : t("colorLabel")}
           selected={ownColor}
           disabled={readOnly || isPending}
           onPick={pickColor}
@@ -295,7 +291,7 @@ export const ChatCustomizePanel = ({
             onClick={resetConversationColor}
             className={clsx(BUTTON_SECONDARY, "min-h-10 px-4 text-sm")}
           >
-            Dùng màu tài khoản
+            {t("useAccountColor")}
           </button>
         )}
       </section>
