@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -34,13 +34,14 @@ const AdminProfilePage = async ({
   // A trainee only for admins who may work with them (scope, hidden).
   const admin =
     kind === "user" ? await requireAdminForUser(id) : await requireAdmin();
+  const locale = await getLocale();
   const profile = await getProfile(kind, id);
 
   if (!profile) {
     notFound();
   }
   const [posts, friendCount] = await Promise.all([
-    listProfilePosts(actorOfAdmin(admin), { kind, id }),
+    listProfilePosts(actorOfAdmin(admin), { kind, id }, null, locale),
     kind === "user" ? countFriends(id) : null,
   ]);
 

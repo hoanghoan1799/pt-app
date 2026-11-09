@@ -66,5 +66,22 @@
   "userNutrition": {
     "metaTitle": "Dinh dưỡng",
     "eyebrow": "Dinh dưỡng của"
+  },
+  "messages": {
+    "metaTitle": "Nhắn tin",
+    "threadTitle": "Nhắn tin với {name}",
+    "threadAriaLabel": "Cuộc trò chuyện với {name}",
+    "emptyText": "Chưa có tin nhắn nào với user này",
+    "lockedEmptyText": "Chat đang bị khoá và chưa có tin nhắn. Bật lại để nhắn tin."
+  },
+  "messagesInfo": {
+    "metaTitle": "Thông tin cuộc trò chuyện"
+  },
+  "messagesPhotos": {
+    "metaTitle": "Ảnh, sticker và link",
+    "title": "Ảnh, sticker và link"
+  },
+  "messagesSearch": {
+    "metaTitle": "Tìm tin nhắn"
   }
 }

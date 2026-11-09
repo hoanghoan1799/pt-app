@@ -98,5 +98,10 @@
     "trainee": "Học viên",
     "pt": "PT",
     "peerDeleted": "PT (đã xoá)"
+  },
+  "fallback": {
+    "deletedAccount": "Đã xóa",
+    "deletedAccountDm": "Đã xoá",
+    "postImageOnly": "(Bài viết chỉ có ảnh)"
   }
 }

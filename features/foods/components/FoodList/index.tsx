@@ -4,7 +4,8 @@ import clsx from "clsx";
 import { Search, UtensilsCrossed } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { CARD, INPUT } from "@/constants/styles";
+import { Input } from "@/components/common/Input";
+import { CARD } from "@/constants/styles";
 import { FoodCard } from "@/features/foods/components/FoodCard";
 import { FOOD_GROUPS } from "@/features/foods/constants/foods";
 import { useFoodFilter } from "@/features/foods/hooks/use-food-filter";
@@ -43,22 +44,17 @@ export const FoodList = ({ foods, basePath, emptyHint }: FoodListProps) => {
 
   return (
     <div className="space-y-3">
-      <div className="relative">
-        <Search
-          className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted"
-          aria-hidden
-        />
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={t("searchPlaceholder")}
-          aria-label={t("searchLabel")}
-          autoCapitalize="none"
-          autoCorrect="off"
-          className={`${INPUT} pl-11`}
-        />
-      </div>
+      <Input
+        type="search"
+        clearable
+        leadingIcon={<Search className="size-5" aria-hidden />}
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder={t("searchPlaceholder")}
+        aria-label={t("searchLabel")}
+        autoCapitalize="none"
+        autoCorrect="off"
+      />
       <div className="relative -mx-4">
         <div
           role="group"

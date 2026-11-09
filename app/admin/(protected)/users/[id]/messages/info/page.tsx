@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import {
   getAvatarUrl,
@@ -19,7 +20,11 @@ import { requireAdmin } from "@/services/auth-guard";
 import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
 
-export const metadata: Metadata = { title: "Thông tin cuộc trò chuyện" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("adminPages.messagesInfo");
+
+  return { title: t("metaTitle") };
+};
 
 // The admin's chat info page for one trainee (KAN-160). A trainee this admin
 // hid is "not found" unless revealed, like the chat itself.
@@ -28,6 +33,7 @@ const AdminMessagesInfoPage = async ({
 }: PageProps<"/admin/users/[id]/messages/info">) => {
   const admin = await requireAdmin();
   const { id } = await params;
+  const locale = await getLocale();
   const user = await findUserById(Number(id));
 
   if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
@@ -42,7 +48,10 @@ const AdminMessagesInfoPage = async ({
     conversation ? loadChatProfile(conversation.id) : undefined,
     getAvatarUrl("user", user.id),
     conversation
-      ? listGalleryPhotos(conversation.id, { limit: INFO_PREVIEW_COUNT })
+      ? listGalleryPhotos(conversation.id, {
+          limit: INFO_PREVIEW_COUNT,
+          locale,
+        })
       : { items: [], nextCursor: null },
     listAdminAvatarUrls(),
   ]);

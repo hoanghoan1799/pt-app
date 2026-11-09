@@ -36,8 +36,10 @@ import {
   socialPhotoUrl,
 } from "@/features/social/utils/post-rules";
 import { visiblePrivacies } from "@/features/social/utils/visibility";
+import { getFormatTranslator } from "@/i18n/format-translator";
 import { canSeeHiddenUsers } from "@/services/admin-lock";
 import { hiddenUserIdsOf } from "@/services/hidden-users";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 const live = isNull(socialPosts.deletedAt);
 
@@ -54,6 +56,7 @@ const toPostViews = async (
     photo: { width: number; height: number } | null;
   }[],
   viewer: SocialActor,
+  locale: Locale,
 ): Promise<PostView[]> => {
   const userIds = rows
     .filter((row) => row.post.authorKind === "user")
@@ -90,6 +93,7 @@ const toPostViews = async (
   );
   const usersById = new Map(userRows.map((row) => [row.id, row]));
   const adminsById = new Map(adminRows.map((row) => [row.id, row]));
+  const t = getFormatTranslator(locale);
 
   return rows.map(({ post, photo }) => {
     const isAdmin = post.authorKind === "admin";
@@ -101,7 +105,7 @@ const toPostViews = async (
       id: post.id,
       authorKind: post.authorKind,
       authorId: post.authorId,
-      authorName: author?.name ?? "Đã xóa",
+      authorName: author?.name ?? t("fallback.deletedAccount"),
       authorAvatarUrl: author
         ? avatarUrl(post.authorKind, post.authorId, author.avatarUpdatedAt)
         : null,
@@ -130,6 +134,7 @@ const runPage = async (
   where: SQL | undefined,
   viewer: SocialActor,
   cursor: number | null,
+  locale: Locale,
 ): Promise<PostPage> => {
   const rows = await db
     .select({
@@ -149,6 +154,7 @@ const runPage = async (
       photo: row.photo?.width ? row.photo : null,
     })),
     viewer,
+    locale,
   );
 
   return {
@@ -164,6 +170,7 @@ export const listProfilePosts = async (
   viewer: SocialActor,
   author: PostAuthorRef,
   cursor: number | null = null,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<PostPage> => {
   const ctx = await loadVisibilityContext(viewer, author);
   const privacies = visiblePrivacies(viewer, author, ctx);
@@ -179,6 +186,7 @@ export const listProfilePosts = async (
     ),
     viewer,
     cursor,
+    locale,
   );
 };
 
@@ -189,6 +197,7 @@ export const listUserFeed = async (
   userId: number,
   cursor: number | null = null,
   knownFriendIds?: number[],
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<PostPage> => {
   const friendIds = knownFriendIds ?? (await listFriendIds(userId));
   const [me] = await db
@@ -226,6 +235,7 @@ export const listUserFeed = async (
     ),
     { kind: "user", id: userId },
     cursor,
+    locale,
   );
 };
 
@@ -235,6 +245,7 @@ export const listUserFeed = async (
 export const listAdminFeed = async (
   admin: { id: number; role: "super_admin" | "pt" },
   cursor: number | null = null,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<PostPage> => {
   const viewer: SocialActor = { kind: "admin", id: admin.id, role: admin.role };
   const revealed = await canSeeHiddenUsers(admin.id);
@@ -246,7 +257,7 @@ export const listAdminFeed = async (
       );
 
   if (admin.role === "super_admin") {
-    return runPage(notHidden, viewer, cursor);
+    return runPage(notHidden, viewer, cursor, locale);
   }
   return runPage(
     and(
@@ -273,6 +284,7 @@ export const listAdminFeed = async (
     ),
     viewer,
     cursor,
+    locale,
   );
 };
 
@@ -280,6 +292,7 @@ export const listAdminFeed = async (
 export const getPostView = async (
   viewer: SocialActor,
   postId: number,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<PostView | null> => {
   const visible = await loadVisiblePost(viewer, postId);
 
@@ -302,6 +315,7 @@ export const getPostView = async (
   const [view] = await toPostViews(
     [{ post: row.post, photo: row.photo?.width ? row.photo : null }],
     viewer,
+    locale,
   );
 
   return view ?? null;

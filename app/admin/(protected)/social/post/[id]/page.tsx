@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -23,11 +23,12 @@ const AdminPostPage = async ({
 }: PageProps<"/admin/social/post/[id]">) => {
   const t = await getTranslations("social.adminPages");
   const admin = await requireAdmin();
+  const locale = await getLocale();
   const id = Number((await params).id);
   const actor = actorOfAdmin(admin);
   const [post, comments] = Number.isSafeInteger(id)
     ? await Promise.all([
-        getPostView(actor, id),
+        getPostView(actor, id, locale),
         listComments(actor, id, "admin"),
       ])
     : [null, null];
