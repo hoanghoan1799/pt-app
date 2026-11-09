@@ -48,14 +48,15 @@ A small social layer on top of pt-app (profiles, photo posts, reactions, comment
 ## Visibility rules (single source: `features/social/utils/visibility.ts`)
 
 `canSeePost(viewer, post)`:
+
 1. Super admin: always.
 2. Viewer is the author: always.
 3. Viewer and author block each other (either way): never.
 4. `only_me`: no.
 5. `everyone`: yes for any signed-in account.
 6. `friends`: yes if friends, or viewer is an admin who is a default friend of the author (super admin; PT of that trainee).
-A PT viewing their own trainee's post always sees it (admin rights on their workspace).
-Admin posts: authors are admins; `friends` = all trainees in scope (super admin: everyone; PT: own trainees).
+   A PT viewing their own trainee's post always sees it (admin rights on their workspace).
+   Admin posts: authors are admins; `friends` = all trainees in scope (super admin: everyone; PT: own trainees).
 
 ## Data model (additive; FKs not enforced, deletes by hand)
 
@@ -70,13 +71,13 @@ Admin posts: authors are admins; `friends` = all trainees in scope (super admin:
 - `social_reports` (id, reporter_key, target_kind, target_id, reason, status 'open'|'resolved', created_at, resolved_by, resolved_at).
 - `social_notifications` (id, recipient_key, kind, actor_key, post_id null, created_at, read_at null).
 - `dm_conversations` (id, user_low, user_high unique pair, last_message_at, created_at), `dm_messages` (id, conversation_id, sender_id, body, photo_id null, client_id, created_at, deleted_at), `dm_reads` (conversation_id, user_id, last_read_message_id).
-Keys: `user:<id>` / `admin:<id>` like chat reactor keys.
+  Keys: `user:<id>` / `admin:<id>` like chat reactor keys.
 
 ## Assumptions (Claude, for Hoan's review)
 
 A1 Admin posts appear in every in-scope trainee's feed (super admin: all; PT: own trainees).
 A2 Post photo max 400 KB after resize, WebP; same checks as chat photos.
-A3 Feed and profile load 20 posts per page with a "Xem thêm" cursor; no realtime, refresh on open.
+A3 Feed and profile load 10 posts per page by cursor (post id, newest first); the next page loads on its own when the viewer scrolls to the 7th post of the last page (infinite scroll, "Thử lại" on failure, end-of-list note). No realtime, refresh on open.
 A4 Notifications kept 60 days; the page shows the latest 50.
 A5 Friend requests: at most 20 sent per day per trainee (`rate_limits` table). Declining deletes the request, so it can be sent again later.
 A6 (superseded 2026-11-09, see Change 2026-11-09) Trainee chat (P5) v1: text + one photo per message, unsend, read marks, polling every 5 s (Ably if configured on channel `dm:<id>`); no stickers, edits, replies or reactions yet.

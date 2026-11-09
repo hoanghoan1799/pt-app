@@ -16,6 +16,7 @@ import {
 } from "@/db/schema";
 import {
   FRIEND_REQUESTS_PER_DAY,
+  POSTS_PAGE_SIZE,
   TERMS_VERSION,
 } from "@/features/social/constants/social";
 import type { SocialActor } from "@/features/social/types/social";
@@ -487,18 +488,18 @@ describe("visibility with friends", () => {
     await befriend(alice, bob);
     const ids: number[] = [];
 
-    for (let i = 0; i < 23; i += 1) {
+    for (let i = 0; i < POSTS_PAGE_SIZE + 3; i += 1) {
       ids.push(await insertPost("user", i % 2 ? alice : bob, "friends"));
     }
     const first = await postQueries.listUserFeed(alice);
 
     expect(first.posts.map((post) => post.id)).toEqual(
-      ids.slice().reverse().slice(0, 20),
+      ids.slice().reverse().slice(0, POSTS_PAGE_SIZE),
     );
     const second = await postQueries.listUserFeed(alice, first.nextCursor);
 
     expect(second.posts.map((post) => post.id)).toEqual(
-      ids.slice().reverse().slice(20),
+      ids.slice().reverse().slice(POSTS_PAGE_SIZE),
     );
     expect(second.nextCursor).toBeNull();
   });
