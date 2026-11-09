@@ -244,3 +244,19 @@ export const resetPasscodeWithPassword = withResultErrorHandling(
     return SUCCESS;
   },
 );
+
+// "Khoá ngay": ends the unlock at once, so every admin page and action sends
+// the admin to the lock screen until the passcode is typed again. Without a
+// passcode there is nothing to lock with.
+export const lockNow = withResultErrorHandling(
+  "lockNow",
+  async (): Promise<PasscodeResult> => {
+    const admin = await requireAdminSession();
+
+    if (!admin.hasPasscode) {
+      return fail(AUTH_MESSAGES.PASSCODE_NOT_SET);
+    }
+    await clearUnlock();
+    return SUCCESS;
+  },
+);

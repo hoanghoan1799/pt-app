@@ -40,7 +40,7 @@ export const findDmConversation = async (id: number) => {
 };
 
 const loadTerms = async (ids: number[]) => {
-  const result = new Map<number, boolean>();
+  const result: boolean[] = [];
 
   for (const id of ids) {
     const [row] = await db
@@ -49,7 +49,7 @@ const loadTerms = async (ids: number[]) => {
       .where(eq(users.id, id))
       .limit(1);
 
-    result.set(id, row ? hasAcceptedTerms(row) : false);
+    result.push(row ? hasAcceptedTerms(row) : false);
   }
   return result;
 };
@@ -82,10 +82,10 @@ export const resolveDmView = async (
     return null;
   }
   const otherId = otherMember(members, viewer.id);
-  const terms = await loadTerms([viewer.id, otherId]);
+  const [terms] = await loadTerms([viewer.id]);
 
   // Social pages sit behind the terms: without them nothing opens.
-  if (!terms.get(viewer.id)) {
+  if (!terms) {
     return null;
   }
 
@@ -93,11 +93,6 @@ export const resolveDmView = async (
     conversation,
     access: "member",
     otherId,
-    readOnlyReason: sendBlockReason({
-      areFriends: pair.areFriends,
-      isBlocked: pair.isBlocked,
-      viewerAcceptedTerms: terms.get(viewer.id) ?? false,
-      otherAcceptedTerms: terms.get(otherId) ?? false,
-    }),
+    readOnlyReason: sendBlockReason(),
   };
 };

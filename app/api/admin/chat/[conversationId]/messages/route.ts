@@ -13,6 +13,8 @@ import {
   parseHistoryQuery,
 } from "@/features/chat/utils/chat-query";
 import { serializeLastSeen } from "@/features/chat/utils/presence";
+import { actorOfAdmin } from "@/features/social/services/post-context";
+import { toAdminRole } from "@/services/admin-scope";
 import { getApiAdmin } from "@/services/auth-guard";
 import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
@@ -52,13 +54,15 @@ export const GET = async (
   ) {
     return json({ error: "not_found" }, 404);
   }
+  const viewer = actorOfAdmin({ id: admin.id, role: toAdminRole(admin.role) });
   const [{ messages, hasMore }, changed, peerReadUpTo, profile] =
     await Promise.all([
-      listMessages(conversation.id, query.data),
+      listMessages(conversation.id, query.data, viewer),
       loadChanges(
         conversation.id,
         parseChangedSince(request.nextUrl.searchParams.get("changedSince")),
         conversation.lastChangeAt?.getTime() ?? 0,
+        viewer,
       ),
       getPeerReadCursor(conversation.id, "admin"),
       loadChatProfile(conversation.id),

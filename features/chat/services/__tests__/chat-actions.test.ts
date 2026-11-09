@@ -159,6 +159,7 @@ describe("sendMessageAction", () => {
       senderRole: "user",
       traineeUserId: userId,
       conversationId: expect.any(Number),
+      body: "một",
     });
   });
 
@@ -381,8 +382,10 @@ describe("adminSendMessageAction", () => {
     expect(chatPush.schedulePush).toHaveBeenCalledTimes(1);
     expect(chatPush.schedulePush).toHaveBeenCalledWith({
       senderRole: "admin",
+      senderAdminId: 7,
       traineeUserId: userId,
       conversationId: expect.any(Number),
+      body: "ok",
     });
   });
 

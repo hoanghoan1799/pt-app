@@ -2,12 +2,15 @@ import { z } from "zod";
 
 import { ROUTES } from "@/constants/routes";
 import { PHOTO_PREVIEW } from "@/features/chat/utils/photo-rules";
-import type { ChatPushPayload } from "@/features/chat/utils/push-rules";
+import {
+  buildPushPreview,
+  type ChatPushPayload,
+  PUSH_TITLE,
+} from "@/features/chat/utils/push-rules";
 import {
   DM_BODY_MAX_LENGTH,
   DM_MESSAGES,
 } from "@/features/social/constants/dm";
-import { SOCIAL_MESSAGES } from "@/features/social/constants/social";
 import type { SocialActor } from "@/features/social/types/social";
 
 // Pure rules of the trainee-to-trainee chat (P5). No database in here.
@@ -33,6 +36,8 @@ export const dmSendSchema = z.object({
     .optional()
     .default(""),
   photoId: dmIdSchema.nullable().optional().default(null),
+  // The post being replied to (a text is required then).
+  postId: dmIdSchema.nullable().optional().default(null),
 });
 
 export type DmSendInput = z.infer<typeof dmSendSchema>;
@@ -53,24 +58,9 @@ export const checkDmContent = (
   return { ok: true, body: text === "" ? null : text };
 };
 
-export interface SendState {
-  // Both sides are accepted friends and nobody blocked the other.
-  areFriends: boolean;
-  isBlocked: boolean;
-  viewerAcceptedTerms: boolean;
-  otherAcceptedTerms: boolean;
-}
-
-// null = may send; otherwise why the conversation is read-only (A7).
-export const sendBlockReason = (state: SendState): string | null => {
-  if (state.isBlocked || !state.areFriends) {
-    return DM_MESSAGES.READ_ONLY;
-  }
-  if (!state.viewerAcceptedTerms) {
-    return SOCIAL_MESSAGES.TERMS_REQUIRED;
-  }
-  return state.otherAcceptedTerms ? null : DM_MESSAGES.READ_ONLY_OTHER_TERMS;
-};
+// Owner decision 2026-11-09: trainee-to-trainee chat is turned off. Old
+// conversations stay readable (and a member can unsend), but nobody can send.
+export const sendBlockReason = (): string => DM_MESSAGES.DISABLED;
 
 // Who may open a conversation (Q6): its two members, unless one blocked the
 // other (then it is hidden); a super admin read-only; a PT never.
@@ -94,21 +84,21 @@ export const otherMember = (
   userId: number,
 ) => (members.low === userId ? members.high : members.low);
 
-// Lock-screen privacy like the coach chat: the sender's name and the kind of
-// message, never the text.
+// Owner request (2026-11-09): the sender's name as the title and a preview of
+// the message (or its kind) as the body.
 export const buildDmPushPayload = ({
   senderName,
   conversationId,
+  body,
   photo,
 }: {
   senderName: string;
   conversationId: number;
+  body?: string | null;
   photo: boolean;
 }): ChatPushPayload => ({
-  title: "PT App",
-  body: photo
-    ? `${senderName}: ${PHOTO_PREVIEW}`
-    : `${senderName} vừa nhắn tin`,
+  title: senderName.trim() === "" ? PUSH_TITLE : senderName,
+  body: buildPushPreview({ body, photo }),
   url: dmPath(conversationId),
   tag: `dm-${conversationId}`,
 });

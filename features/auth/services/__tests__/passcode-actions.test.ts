@@ -284,3 +284,29 @@ describe("resetPasscodeWithPassword", () => {
     expect(issueUnlock).not.toHaveBeenCalled();
   });
 });
+
+describe("lockNow", () => {
+  it("ends the unlock when a passcode is set", async () => {
+    await withPasscode("1234");
+
+    expect(await actions.lockNow()).toEqual({ status: "success" });
+    expect(clearUnlock).toHaveBeenCalledTimes(1);
+    expect(issueUnlock).not.toHaveBeenCalled();
+  });
+
+  it("refuses without a passcode and keeps the session as is", async () => {
+    expect(await actions.lockNow()).toEqual({
+      status: "error",
+      message: "Chưa đặt mã khoá",
+    });
+    expect(clearUnlock).not.toHaveBeenCalled();
+  });
+
+  it("works when the admin is already locked", async () => {
+    await withPasscode("1234");
+    state.unlocked = false;
+
+    expect(await actions.lockNow()).toEqual({ status: "success" });
+    expect(clearUnlock).toHaveBeenCalledTimes(1);
+  });
+});

@@ -4,7 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
 import { admins, socialPostPhotos, socialPosts, users } from "@/db/schema";
-import { TERMS_VERSION } from "@/features/social/constants/social";
+import {
+  POSTS_PAGE_SIZE,
+  TERMS_VERSION,
+} from "@/features/social/constants/social";
 
 type TestUser = { id: number; name: string; termsVersion: number | null };
 type TestAdmin = {
@@ -611,7 +614,7 @@ describe("feed and profile queries", () => {
   });
 
   it("pages with a cursor, newest first, without gaps or repeats", async () => {
-    for (let i = 0; i < 45; i += 1) {
+    for (let i = 0; i < 25; i += 1) {
       await insertPost("user", carol, "everyone", `c${i}`);
     }
     const author = { kind: "user", id: carol } as const;
@@ -628,20 +631,20 @@ describe("feed and profile queries", () => {
       second.nextCursor,
     );
 
-    expect(first.posts).toHaveLength(20);
-    expect(second.posts).toHaveLength(20);
+    expect(first.posts).toHaveLength(POSTS_PAGE_SIZE);
+    expect(second.posts).toHaveLength(POSTS_PAGE_SIZE);
     expect(third.posts).toHaveLength(5);
     expect(third.nextCursor).toBeNull();
     const ids = [...first.posts, ...second.posts, ...third.posts].map(
       (post) => post.id,
     );
 
-    expect(new Set(ids).size).toBe(45);
+    expect(new Set(ids).size).toBe(25);
     expect(ids).toEqual([...ids].sort((a, b) => b - a));
   });
 
   it("loads more through the action for the signed-in viewer only", async () => {
-    for (let i = 0; i < 25; i += 1) {
+    for (let i = 0; i < 15; i += 1) {
       await insertPost("user", carol, "everyone", `c${i}`);
     }
     asUser(bob);
@@ -653,7 +656,7 @@ describe("feed and profile queries", () => {
 
     expect(first.status).toBe("success");
     if (first.status === "success") {
-      expect(first.page.posts).toHaveLength(20);
+      expect(first.page.posts).toHaveLength(POSTS_PAGE_SIZE);
       expect(
         first.page.posts.every((post) => post.privacy === "everyone"),
       ).toBe(true);
@@ -840,5 +843,38 @@ describe("member deletion cleanup", () => {
       left.map((post) => `${post.authorKind}:${post.authorId}`).sort(),
     ).toEqual([`admin:${alice}`, `user:${bob}`]);
     expect(await db.select().from(socialPostPhotos)).toHaveLength(0);
+  });
+});
+
+describe("feed paging", () => {
+  it("keeps the next feed page free of repeats when a new post arrives", async () => {
+    for (let i = 0; i < 12; i += 1) {
+      await insertPost("user", bob, "friends", `b${i}`);
+    }
+    const first = await queries.listUserFeed(alice, null, [bob]);
+
+    await insertPost("user", bob, "friends", "fresh");
+    const second = await queries.listUserFeed(alice, first.nextCursor, [bob]);
+    const firstIds = new Set(first.posts.map((post) => post.id));
+
+    expect(first.posts).toHaveLength(POSTS_PAGE_SIZE);
+    expect(captions(second)).toEqual(["b0", "b1"]);
+    expect(second.posts.some((post) => firstIds.has(post.id))).toBe(false);
+    expect(second.nextCursor).toBeNull();
+  });
+
+  it("filters privacy on every feed page, not only the first", async () => {
+    for (let i = 0; i < 15; i += 1) {
+      await insertPost("user", bob, "friends", `ok${i}`);
+      await insertPost("user", bob, "only_me", `hidden${i}`);
+      await insertPost("user", carol, "friends", `stranger${i}`);
+    }
+    const first = await queries.listUserFeed(alice, null, [bob]);
+    const second = await queries.listUserFeed(alice, first.nextCursor, [bob]);
+    const all = [...captions(first), ...captions(second)];
+
+    expect(all).toHaveLength(15);
+    expect(all.every((caption) => caption.startsWith("ok"))).toBe(true);
+    expect(second.nextCursor).toBeNull();
   });
 });

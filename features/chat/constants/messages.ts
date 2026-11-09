@@ -11,6 +11,8 @@ export const CHAT_MESSAGES = {
   ADMIN_NOT_FOUND: "Không tìm thấy PT này",
   STICKER_NOT_EDITABLE: "Không sửa được sticker",
   MESSAGE_UNSENT: "Tin nhắn đã bị thu hồi",
+  POST_NOT_FOUND: "Không thể trả lời bài viết này.",
+  POST_NEEDS_TEXT: "Hãy viết tin nhắn để trả lời bài viết.",
 } as const;
 
 export const HIDDEN_CHAT_MESSAGES = {

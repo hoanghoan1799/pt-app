@@ -4,7 +4,10 @@ export const TERMS_VERSION = 1;
 
 export const CAPTION_MAX_LENGTH = 2000;
 export const BIO_MAX_LENGTH = 150;
-export const POSTS_PAGE_SIZE = 20;
+export const POSTS_PAGE_SIZE = 10;
+// The next page starts loading once the viewer reaches this post (1-based) of
+// the last loaded page, so it is usually there before they hit the end.
+export const POSTS_PREFETCH_AT = 7;
 export const COMMENT_MAX_LENGTH = 1000;
 // Spec A4: the page shows the latest 50, rows older than 60 days are dropped.
 export const NOTIFICATIONS_PAGE_SIZE = 50;

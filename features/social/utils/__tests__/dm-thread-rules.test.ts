@@ -14,6 +14,7 @@ const msg = (id: number, senderId = 1, clientId = `c${id}`): DmMessageView => ({
   senderId,
   body: `m${id}`,
   photo: null,
+  post: null,
   clientId,
   createdAt: "2026-11-08T00:00:00.000Z",
 });

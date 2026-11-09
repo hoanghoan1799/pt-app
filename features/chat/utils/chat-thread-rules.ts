@@ -12,6 +12,7 @@ import {
   PHOTO_QUOTE_TEXT,
 } from "@/features/chat/utils/photo-rules";
 import type { ChatSticker } from "@/features/chat/utils/sticker-rules";
+import type { DmReplyPostView } from "@/features/social/types/dm";
 
 // Pure helpers behind the trainee chat thread: merging, grouping, separators
 // and the polling schedule. No React, no network, so every rule is testable.
@@ -30,6 +31,8 @@ export interface SerializedChatMessage {
   clientId: string;
   createdAt: string;
   replyTo: SerializedReplyTo | null;
+  // The social post this message replies to, as the viewer may see it.
+  post?: DmReplyPostView | null;
   // ISO string of the last edit, null if never edited.
   editedAt: string | null;
   // Unsent for everyone: body is empty, no reactions, no quote.

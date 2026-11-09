@@ -520,6 +520,9 @@ export const chatMessages = sqliteTable(
     // purpose (production incident #121: new columns on existing tables must
     // not be notNull).
     photoId: integer("photo_id"),
+    // The social post this message replies to ("Trả lời qua tin nhắn"). Nullable
+    // like every new column; cleared when the message is unsent.
+    replyPostId: integer("reply_post_id"),
     editedAt: integer("edited_at", { mode: "timestamp_ms" }),
     // Null until the first edit, unsend or reaction.
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
@@ -893,6 +896,8 @@ export const dmMessages = sqliteTable(
     senderId: integer("sender_id").notNull(),
     body: text("body"),
     photoId: integer("photo_id"),
+    // The post this message replies to (story-reply style); null otherwise.
+    replyPostId: integer("reply_post_id"),
     // Client-generated uuid so a retried send is a no-op.
     clientId: text("client_id").notNull(),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),

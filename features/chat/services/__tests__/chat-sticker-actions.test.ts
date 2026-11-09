@@ -203,6 +203,7 @@ describe("sending a sticker", () => {
       senderRole: "user",
       traineeUserId: userId,
       conversationId: expect.any(Number),
+      body: "",
       sticker: true,
     });
   });

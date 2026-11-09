@@ -5,6 +5,7 @@ import { RotateCcw } from "lucide-react";
 
 import { ChatPhotoImage } from "@/features/chat/components/ChatPhotoImage";
 import { PHOTO_ALT } from "@/features/chat/utils/photo-rules";
+import { DmPostQuote } from "@/features/social/components/DmPostQuote";
 import { DM_MESSAGES } from "@/features/social/constants/dm";
 import type { DmThreadItem } from "@/features/social/utils/dm-thread-rules";
 
@@ -63,6 +64,7 @@ export const DmBubbleList = ({
               item.pending === "sending" && "opacity-70",
             )}
           >
+            {item.post && <DmPostQuote post={item.post} />}
             {item.photo && (
               <ChatPhotoImage
                 photo={{ ...item.photo, alt: PHOTO_ALT }}

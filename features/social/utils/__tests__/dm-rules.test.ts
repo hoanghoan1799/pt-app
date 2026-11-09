@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { DM_MESSAGES } from "@/features/social/constants/dm";
 import { TERMS_VERSION } from "@/features/social/constants/social";
 import {
   buildDmPushPayload,
@@ -12,13 +13,6 @@ import {
 } from "@/features/social/utils/dm-rules";
 
 const members = { low: 3, high: 8 };
-const okState = {
-  areFriends: true,
-  isBlocked: false,
-  viewerAcceptedTerms: true,
-  otherAcceptedTerms: true,
-};
-
 describe("dmAccessOf", () => {
   it("lets the two members in, unless a block hides the chat", () => {
     expect(dmAccessOf({ kind: "user", id: 3 }, members, false)).toBe("member");
@@ -38,24 +32,14 @@ describe("dmAccessOf", () => {
 });
 
 describe("sendBlockReason", () => {
-  it("allows friends who both accepted the terms", () => {
-    expect(sendBlockReason(okState)).toBeNull();
+  // Owner decision 2026-11-09: trainees no longer chat with each other.
+  it("always says sending is disabled", () => {
+    expect(sendBlockReason()).toBe(DM_MESSAGES.DISABLED);
   });
+});
 
-  it.each([
-    { areFriends: false },
-    { isBlocked: true },
-    { viewerAcceptedTerms: false },
-    { otherAcceptedTerms: false },
-  ])("is read-only for %o", (change) => {
-    expect(sendBlockReason({ ...okState, ...change })).toEqual(
-      expect.any(String),
-    );
-  });
-
-  it("uses the current terms version constant", () => {
-    expect(TERMS_VERSION).toBeGreaterThan(0);
-  });
+it("uses the current terms version constant", () => {
+  expect(TERMS_VERSION).toBeGreaterThan(0);
 });
 
 describe("checkDmContent", () => {
@@ -91,18 +75,30 @@ describe("helpers", () => {
     );
   });
 
-  it("builds a push without the text", () => {
+  it("builds a push titled with the sender and showing the text", () => {
     expect(
-      buildDmPushPayload({ senderName: "An", conversationId: 4, photo: true }),
+      buildDmPushPayload({
+        senderName: "An",
+        conversationId: 4,
+        body: "Đi tập không?",
+        photo: false,
+      }),
     ).toEqual({
-      title: "PT App",
-      body: "An: 📷 Ảnh",
+      title: "An",
+      body: "Đi tập không?",
       url: "/messages/dm/4",
       tag: "dm-4",
     });
+  });
+
+  it("says a photo was sent, even with a caption", () => {
     expect(
-      buildDmPushPayload({ senderName: "An", conversationId: 4, photo: false })
-        .body,
-    ).toBe("An vừa nhắn tin");
+      buildDmPushPayload({
+        senderName: "An",
+        conversationId: 4,
+        body: "nhìn nè",
+        photo: true,
+      }).body,
+    ).toBe("Đã gửi ảnh");
   });
 });

@@ -1,6 +1,13 @@
 "use client";
 
-import { Flag, Loader2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import {
+  Flag,
+  Loader2,
+  MessageCircle,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -18,12 +25,14 @@ import {
   TEXTAREA,
 } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
+import { replyPostHref } from "@/features/chat/utils/chat-links";
 import {
   PRIVACY_ICONS,
   PrivacySelect,
 } from "@/features/social/components/PrivacySelect";
 import { ReactionBar } from "@/features/social/components/ReactionBar";
 import { ReportSheet } from "@/features/social/components/ReportSheet";
+import { DM_MESSAGES } from "@/features/social/constants/dm";
 import {
   CAPTION_MAX_LENGTH,
   PRIVACY_LABELS,
@@ -71,6 +80,13 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
   );
   // Everyone can report a post that is not their own.
   const canReport = !post.canEdit;
+  // Trainees reply to a PT's post in the coach chat; a PT replies to a trainee's
+  // post in that trainee's chat. Trainee-to-trainee chat is off (owner
+  // decision 2026-11-09). The chat page itself drops the post when it cannot
+  // be quoted (locked chat, post not visible).
+  const canReplyInChat =
+    (mode === "user" && post.authorKind === "admin" && !post.canEdit) ||
+    (mode === "admin" && post.authorKind === "user");
   const hasMenu = post.canEdit || post.canDelete || canReport;
 
   const report = (result: {
@@ -100,6 +116,14 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
         router.refresh();
       }
     });
+  };
+
+  const handleReplyInChat = () => {
+    router.push(
+      mode === "admin"
+        ? replyPostHref("admin", post.authorId, post.id)
+        : replyPostHref("user", 0, post.id),
+    );
   };
 
   const handleDelete = async () => {
@@ -261,6 +285,22 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
               : postPath(post.id)
         }
       />
+
+      {canReplyInChat && (
+        <button
+          type="button"
+          onClick={handleReplyInChat}
+          disabled={isPending}
+          className={`${BUTTON_SECONDARY} min-h-11 w-full gap-2`}
+        >
+          {isPending ? (
+            <Loader2 className="size-5 animate-spin" aria-hidden />
+          ) : (
+            <MessageCircle className="size-5" aria-hidden />
+          )}
+          {DM_MESSAGES.REPLY_TO_POST}
+        </button>
+      )}
 
       <BottomSheet
         isOpen={isMenuOpen}

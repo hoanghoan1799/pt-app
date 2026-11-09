@@ -24,6 +24,7 @@ import {
   UNSENT_TEXT,
 } from "@/features/chat/utils/chat-thread-rules";
 import { tokenizeLinks } from "@/features/chat/utils/link-rules";
+import { DmPostQuote } from "@/features/social/components/DmPostQuote";
 
 const STICKER_SIZE_PX = 120;
 
@@ -242,6 +243,13 @@ export const MessageBubble = ({
                 {quoteText(replyTo)}
               </span>
             </button>
+          )}
+          {message.post && !isUnsent && (
+            <DmPostQuote
+              post={message.post}
+              mode={viewer.role}
+              className="mb-1.5 w-64 max-w-full"
+            />
           )}
           {sticker && !isUnsent ? (
             <Image

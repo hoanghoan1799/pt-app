@@ -16,10 +16,10 @@
 - Mỗi bài tập: video YouTube phát ngay trong trang, số hiệp × số lần, mô tả.
 - Ngày không có bài hiển thị "Ngày nghỉ".
 - **Đánh dấu đã tập** từng bài (hôm nay hoặc ngày đã qua; bấm lại để bỏ). Có thanh tiến độ ngày/tuần, dấu ✓ trên ngày đã tập xong.
-- **Dinh dưỡng** (tab dưới cùng): xem mục tiêu carb/protein/fat mỗi ngày (gram, quy đổi lạng) và lời dặn của PT; ghi từng bữa đã ăn (món + gram ước lượng) cho hôm nay hoặc ngày đã qua; tiến độ trong ngày (còn thiếu/đạt/vượt) và bảng tổng kết tuần.
+- **Dinh dưỡng** (tab dưới cùng): xem mục tiêu carb/protein/fat mỗi ngày (gram, quy đổi lạng) và lời dặn của PT; ghi từng bữa đã ăn (món + gram ước lượng) cho hôm nay hoặc ngày đã qua; tiến độ trong ngày (còn thiếu/đạt/vượt) và bảng tổng kết tuần. Thẻ **Yêu cầu bữa ăn** (số bữa, món thích/không ăn) mở sẵn khi chưa nhập gì, đã nhập rồi thì thu gọn, bấm tiêu đề để mở/đóng.
   - Thứ tự màn hình: **lịch tuần** (chấm xanh = đã đánh dấu đủ các bữa, vàng = đánh dấu một số bữa, xám = chưa có plan hoặc chưa đánh dấu; có chú thích màu) → **Mục tiêu trong ngày** (calo một thanh, Carb/Protein/Fat là ba vòng tròn kèm "đã ăn / mục tiêu g" và còn/vượt) → **Plan bữa ăn**.
   - Bữa đã đánh dấu **Đạt** có nền xanh; mục **Đã ăn thêm ngoài plan** chỉ hiện ở bữa có món ăn thêm.
-- **Chỉ số của bạn**: user tự nhập giới tính, tuổi, chiều cao, cân nặng, mức vận động, mục tiêu để xem BMR/TDEE. Nếu mục tiêu dinh dưỡng đang "tự tính từ TDEE" (hoặc chưa có), nó được tính lại ngay; nếu PT đã nhập tay thì giữ nguyên.
+- **Chỉ số của bạn & TDEE** (tab Tổng kết, dưới biểu đồ cân nặng): user tự nhập giới tính, tuổi, chiều cao, cân nặng, mức vận động, mục tiêu để xem BMR/TDEE. Nếu mục tiêu dinh dưỡng đang "tự tính từ TDEE" (hoặc chưa có), nó được tính lại ngay; nếu PT đã nhập tay thì giữ nguyên.
 - **Tổng kết** (tab thứ 3): tuần tập luyện (buổi/bài đã tập từng ngày) và dinh dưỡng (gram từng ngày so với mục tiêu, số ngày ghi/đạt, kcal TB). Bấm vào ngày để mở chi tiết.
 - **Cân nặng theo tuần** (đầu tab Tổng kết): user ghi "cân hôm nay" (mỗi ngày 1 số, ghi lại thì thay), biểu đồ trung bình theo tuần trong 12 tuần (chạm để xem từng tuần, có dạng bảng), thay đổi so với tuần trước và cả kỳ. Cân mới nhất cập nhật luôn chỉ số cơ thể/TDEE; mục tiêu "tự tính từ TDEE" được tính lại theo.
 - **Nhắn tin với PT** (tab **Nhắn tin**, chỉ hiện khi PT đã bật chat cho bạn): nhắn tin trực tiếp với PT, tin mới hiện gần như ngay lập tức. Số trên tab là số tin chưa đọc. Tiêu đề hiện tên PT trả lời gần nhất. Khi PT tạm khoá, bạn vẫn xem được lịch sử nhưng không gửi được tin.
@@ -119,7 +119,7 @@ db/                  schema + kết nối Drizzle
    | Biến                 | Giá trị                                                                                   |
    | -------------------- | ----------------------------------------------------------------------------------------- |
    | `SESSION_SECRET`     | chuỗi ngẫu nhiên ≥ 32 ký tự (`openssl rand -base64 32`)                                   |
-   | `ADMIN_USERNAME`     | tài khoản admin đầu tiên (3–32 ký tự a-z 0-9 . _ -)                                       |
+   | `ADMIN_USERNAME`     | tài khoản admin đầu tiên (3–32 ký tự a-z 0-9 . \_ -)                                      |
    | `ADMIN_PASSWORD`     | mật khẩu admin đầu tiên (≥ 8 ký tự)                                                       |
    | `HEALTH_CHECK_TOKEN` | (tuỳ chọn) ≥ 16 ký tự, để xem chi tiết `/api/health`                                      |
    | `ABLY_API_KEY`       | (tuỳ chọn) key Ably cho chat realtime; thiếu thì chat tự chuyển sang hỏi lại mỗi vài giây |

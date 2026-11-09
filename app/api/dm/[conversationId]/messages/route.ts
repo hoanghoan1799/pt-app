@@ -42,12 +42,10 @@ export const GET = async (request: NextRequest, { params }: Context) => {
   if (!viewer) {
     return reply({ error: "unauthorized" }, 401);
   }
-  const view = await resolveDmView(
-    id,
-    isAdmin
-      ? actorOfAdmin(viewer as Parameters<typeof actorOfAdmin>[0])
-      : actorOfUser(viewer),
-  );
+  const actor = isAdmin
+    ? actorOfAdmin(viewer as Parameters<typeof actorOfAdmin>[0])
+    : actorOfUser(viewer);
+  const view = await resolveDmView(id, actor);
 
   if (!view) {
     return reply({ error: "not_found" }, 404);
@@ -56,6 +54,7 @@ export const GET = async (request: NextRequest, { params }: Context) => {
     after,
     before,
     otherId: view.otherId,
+    viewer: actor,
   });
 
   return reply({

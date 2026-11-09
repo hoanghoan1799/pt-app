@@ -156,6 +156,7 @@ Polling details (fallback and e2e): fetch `after=<lastId>`, immediately on `focu
 - Render bodies as plain text (React escapes; no `dangerouslySetInnerHTML`, no Markdown). Links are shown as plain text in phase 1 (D9).
 - Service worker must keep **not** caching `/api/chat/*` (D3 of the PWA spec already excludes `/api`); add an e2e assert.
 - Push payloads carry only "Bạn có tin nhắn mới từ PT" / "<Tên học viên> vừa nhắn tin" and the conversation URL, never the message body (lock-screen privacy on shared phones).
+  - **Changed 2026-11-09 (owner request, Hoan):** the push title is now the sender name and the body a preview of the message (line breaks kept, spaces collapsed, max 500 characters; the OS shows the full text on long-press), or a kind label ("Đã gửi ảnh", "Đã gửi sticker", "Đã gửi liên kết"). The body is still never logged.
 - Attachments (phase 3): images only (jpeg/png/webp/heic), max 5 MB, re-encoded/resized server-side or validated by magic bytes; stored in Vercel Blob under unguessable keys; served through our route that checks the session (no public bucket listing).
 - Admin moderation: hide a message (kept for audit, shown as "Tin nhắn đã bị ẩn"), lock chat (S1). No automatic content filtering.
 - Locking chat does not delete history; deleting the member deletes it (section 4).

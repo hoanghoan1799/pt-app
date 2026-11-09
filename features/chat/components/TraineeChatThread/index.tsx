@@ -19,6 +19,7 @@ interface TraineeChatThreadProps extends Pick<
   | "avatars"
   | "jumpToId"
   | "verifiedAdminIds"
+  | "replyPost"
 > {
   // Username of the PT who wrote last, from the server; the live thread
   // takes over once a newer PT message arrives.

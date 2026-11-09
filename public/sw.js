@@ -92,7 +92,7 @@ self.addEventListener("fetch", (event) => {
 });
 
 // Web push for chat messages (KAN-103 sends, KAN-104 shows). The payload is
-// {title, body, url, tag} and never carries the message text.
+// {title, body, url, tag}: the sender name and a message preview.
 const DEFAULT_NOTIFICATION = { title: "PT App", body: "Bạn có tin nhắn mới" };
 
 const readPushPayload = (event) => {

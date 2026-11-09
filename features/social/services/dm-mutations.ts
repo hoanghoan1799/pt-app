@@ -10,6 +10,7 @@ import {
   dmReads,
   users,
 } from "@/db/schema";
+import { DM_MESSAGES } from "@/features/social/constants/dm";
 import {
   type DmView,
   findDmConversation,
@@ -17,24 +18,29 @@ import {
 } from "@/features/social/services/dm-access";
 import { isDmPhotoAttachable } from "@/features/social/services/dm-photos";
 import { getDmMessageView } from "@/features/social/services/dm-queries";
-import {
-  isBlockedBetween,
-  loadPairState,
-} from "@/features/social/services/relationships";
+import { loadVisiblePost } from "@/features/social/services/post-access";
+import { isBlockedBetween } from "@/features/social/services/relationships";
 import { hasAcceptedTerms } from "@/features/social/services/terms";
 import type { DmMessageView } from "@/features/social/types/dm";
+import type { SocialActor } from "@/features/social/types/social";
 import { checkDmContent } from "@/features/social/utils/dm-rules";
 import { pairOf } from "@/features/social/utils/friend-rules";
 
 export type DmError =
-  "not_found" | "read_only" | "empty" | "too_long" | "photo_not_found";
+  | "not_found"
+  | "read_only"
+  | "disabled"
+  | "empty"
+  | "too_long"
+  | "photo_not_found"
+  | "post_not_found";
 
 type Result<T> =
   ({ ok: true } & T) | { ok: false; error: DmError; message?: string };
 
-// Opens the chat with a friend, creating it on first use. Needs an accepted
-// friendship, no block and both sides on the terms; an existing conversation
-// stays reachable (read-only) after an unfriend, but not after a block.
+// Owner decision 2026-11-09: trainees no longer chat with each other, so a
+// conversation is never created. An existing one stays reachable (read-only
+// history) unless one side blocked the other.
 export const getOrCreateDmConversation = async (
   meId: number,
   otherId: number,
@@ -43,19 +49,13 @@ export const getOrCreateDmConversation = async (
     return { ok: false, error: "not_found" };
   }
   const { low, high } = pairOf(meId, otherId);
-  const [me, other] = await Promise.all(
-    [meId, otherId].map(async (id) => {
-      const [row] = await db
-        .select({ id: users.id, termsVersion: users.termsVersion })
-        .from(users)
-        .where(eq(users.id, id))
-        .limit(1);
+  const [me] = await db
+    .select({ id: users.id, termsVersion: users.termsVersion })
+    .from(users)
+    .where(eq(users.id, meId))
+    .limit(1);
 
-      return row ?? null;
-    }),
-  );
-
-  if (!me || !other || !hasAcceptedTerms(me)) {
+  if (!me || !hasAcceptedTerms(me)) {
     return { ok: false, error: "not_found" };
   }
   if (await isBlockedBetween(meId, otherId)) {
@@ -69,29 +69,9 @@ export const getOrCreateDmConversation = async (
     )
     .limit(1);
 
-  if (existing) {
-    return { ok: true, conversationId: existing.id };
-  }
-  const pair = await loadPairState(meId, otherId);
-
-  if (!pair.areFriends || !hasAcceptedTerms(other)) {
-    return { ok: false, error: "not_found" };
-  }
-  await db
-    .insert(dmConversations)
-    .values({ userLow: low, userHigh: high, createdAt: new Date() })
-    .onConflictDoNothing();
-  const [created] = await db
-    .select({ id: dmConversations.id })
-    .from(dmConversations)
-    .where(
-      and(eq(dmConversations.userLow, low), eq(dmConversations.userHigh, high)),
-    )
-    .limit(1);
-
-  return created
-    ? { ok: true, conversationId: created.id }
-    : { ok: false, error: "not_found" };
+  return existing
+    ? { ok: true, conversationId: existing.id }
+    : { ok: false, error: "disabled", message: DM_MESSAGES.DISABLED };
 };
 
 export interface SendDmInput {
@@ -100,6 +80,8 @@ export interface SendDmInput {
   clientId: string;
   body: string;
   photoId: number | null;
+  // The post this message replies to; needs a text.
+  postId?: number | null;
 }
 
 export type SendDmResult = Result<{
@@ -115,10 +97,8 @@ export const sendDmMessage = async (
   input: SendDmInput,
   now = new Date(),
 ): Promise<SendDmResult> => {
-  const view = await resolveDmView(input.conversationId, {
-    kind: "user",
-    id: input.senderId,
-  });
+  const sender: SocialActor = { kind: "user", id: input.senderId };
+  const view = await resolveDmView(input.conversationId, sender);
 
   if (!view || view.access !== "member" || view.otherId === null) {
     return { ok: false, error: "not_found" };
@@ -131,7 +111,7 @@ export const sendDmMessage = async (
       ok: true,
       created: false,
       recipientId,
-      message: (await getDmMessageView(existing.id)) as DmMessageView,
+      message: (await getDmMessageView(existing.id, sender)) as DmMessageView,
     };
   }
   if (view.readOnlyReason !== null) {
@@ -145,6 +125,23 @@ export const sendDmMessage = async (
       error: input.body.trim() === "" ? "empty" : "too_long",
       message: content.message,
     };
+  }
+  const postId = input.postId ?? null;
+
+  if (postId !== null) {
+    if (content.body === null) {
+      return { ok: false, error: "empty", message: DM_MESSAGES.EMPTY };
+    }
+    // Only a post the sender can see and the other member wrote.
+    const post = await loadVisiblePost(sender, postId);
+
+    if (!post || post.authorKind !== "user" || post.authorId !== recipientId) {
+      return {
+        ok: false,
+        error: "post_not_found",
+        message: DM_MESSAGES.POST_NOT_FOUND,
+      };
+    }
   }
   if (
     input.photoId !== null &&
@@ -163,6 +160,7 @@ export const sendDmMessage = async (
       senderId: input.senderId,
       body: content.body,
       photoId: input.photoId,
+      replyPostId: postId,
       clientId: input.clientId,
       createdAt: now,
     })
@@ -178,7 +176,7 @@ export const sendDmMessage = async (
           ok: true,
           created: false,
           recipientId,
-          message: (await getDmMessageView(winner.id)) as DmMessageView,
+          message: (await getDmMessageView(winner.id, sender)) as DmMessageView,
         }
       : { ok: false, error: "not_found" };
   }
@@ -199,7 +197,7 @@ export const sendDmMessage = async (
     ok: true,
     created: true,
     recipientId,
-    message: (await getDmMessageView(row.id)) as DmMessageView,
+    message: (await getDmMessageView(row.id, sender)) as DmMessageView,
   };
 };
 
@@ -236,7 +234,7 @@ export const unsendDmMessage = async (
   }
   const rows = await db
     .update(dmMessages)
-    .set({ deletedAt: now, body: null, photoId: null })
+    .set({ deletedAt: now, body: null, photoId: null, replyPostId: null })
     .where(
       and(
         eq(dmMessages.id, messageId),

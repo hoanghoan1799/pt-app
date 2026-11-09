@@ -34,15 +34,17 @@ const fail = (message: string): ActionErrorResult => ({
 const MESSAGES: Record<DmError, string> = {
   not_found: DM_MESSAGES.NOT_FOUND,
   read_only: DM_MESSAGES.READ_ONLY,
+  disabled: DM_MESSAGES.DISABLED,
   empty: DM_MESSAGES.EMPTY,
   too_long: DM_MESSAGES.TOO_LONG,
   photo_not_found: DM_MESSAGES.PHOTO_NOT_FOUND,
+  post_not_found: DM_MESSAGES.POST_NOT_FOUND,
 };
 
 export type OpenDmResult =
   { status: "success"; conversationId: number } | ActionErrorResult;
 
-// "Nhắn tin" on a friend: get or create the conversation.
+// Opens an existing (read-only) conversation; new ones are never created.
 export const openDmAction = withResultErrorHandling(
   "openDm",
   async (otherId: unknown): Promise<OpenDmResult> => {
@@ -86,6 +88,7 @@ export const sendDmAction = withResultErrorHandling(
       clientId: parsed.data.clientId,
       body: parsed.data.body,
       photoId: parsed.data.photoId,
+      postId: parsed.data.postId,
     });
 
     if (!result.ok) {
@@ -102,6 +105,7 @@ export const sendDmAction = withResultErrorHandling(
         senderId: actor.id,
         recipientId: result.recipientId,
         conversationId: parsed.data.conversationId,
+        body: result.message.body,
         photo: result.message.photo !== null,
       });
       revalidatePath(ROUTES.MESSAGES);

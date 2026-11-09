@@ -22,6 +22,7 @@ import {
 import { publishChatStatus } from "@/features/chat/services/chat-realtime";
 import { withResultErrorHandling } from "@/services/action-errors";
 import { requireAdminForUser } from "@/services/admin-access";
+import { toAdminRole } from "@/services/admin-scope";
 import { requireAdmin } from "@/services/auth-guard";
 import { findUserById } from "@/services/users";
 
@@ -98,7 +99,12 @@ const withAdminConversation = async <T>(
     return { status: "error" as const, message: CHAT_MESSAGES.CHAT_LOCKED };
   }
   return run(
-    { role: "admin", adminId: admin.id, name: admin.username },
+    {
+      role: "admin",
+      adminId: admin.id,
+      name: admin.username,
+      adminRole: toAdminRole(admin.role),
+    },
     conversation,
   );
 };

@@ -34,6 +34,7 @@ const AdminDmThreadPage = async ({
     listDmThread(id, {
       before: before ?? undefined,
       otherId: null,
+      viewer: actorOfAdmin(admin),
     }),
     loadDmMemberNames(view.conversation.userLow, view.conversation.userHigh),
   ]);

@@ -4,6 +4,7 @@ import {
   BIO_MAX_LENGTH,
   CAPTION_MAX_LENGTH,
   POST_PRIVACIES,
+  POSTS_PREFETCH_AT,
   SOCIAL_MESSAGES,
 } from "@/features/social/constants/social";
 import type {
@@ -66,3 +67,18 @@ export const adminProfilePath = (kind: "user" | "admin", id: number) =>
 
 export const parseProfileKind = (value: string): "user" | "admin" | null =>
   value === "user" || value === "admin" ? value : null;
+
+// Index of the post whose appearance loads the next page: the
+// POSTS_PREFETCH_AT-th post of the last loaded page, or the last post when
+// that page is shorter. -1 when there is nothing to watch.
+export const prefetchTriggerIndex = (
+  total: number,
+  lastPageStart: number,
+): number => {
+  if (total <= 0) {
+    return -1;
+  }
+  const start = Math.min(Math.max(lastPageStart, 0), total - 1);
+
+  return Math.min(start + POSTS_PREFETCH_AT - 1, total - 1);
+};

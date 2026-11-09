@@ -1,21 +1,16 @@
 "use client";
 
 import clsx from "clsx";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { MonthGrid } from "@/components/common/MonthGrid";
 import {
   BUTTON_DANGER,
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
-  ICON_BUTTON,
 } from "@/constants/styles";
-import { WEEKDAY_SHORT_LABELS } from "@/constants/week";
 import { useCopyDay } from "@/features/meal-plans/hooks/use-copy-day";
-import {
-  type CopyCalendarDay,
-  formatMonthLabel,
-} from "@/features/meal-plans/utils/copy-calendar";
+import type { CopyCalendarDay } from "@/features/meal-plans/utils/copy-calendar";
 import {
   formatOverwriteLogWarning,
   formatOverwriteQuestion,
@@ -78,6 +73,9 @@ export const CopyDaySheet = ({
     onDone: () => onOpenChange(false),
   });
 
+  const daysByDate = new Map(
+    copy.cells.flatMap((day) => (day ? [[day.date, day] as const] : [])),
+  );
   const logWarning = formatOverwriteLogWarning(
     copy.overwriteDates,
     copy.logDates,
@@ -129,48 +127,22 @@ export const CopyDaySheet = ({
         </div>
       ) : (
         <div>
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={copy.goToPreviousMonth}
-              disabled={!copy.canGoBack}
-              aria-label="Tháng trước"
-              className={ICON_BUTTON}
-            >
-              <ChevronLeft className="size-5" aria-hidden />
-            </button>
-            <p aria-live="polite" className="font-bold text-fg">
-              {formatMonthLabel(copy.month)}
-            </p>
-            <button
-              type="button"
-              onClick={copy.goToNextMonth}
-              aria-label="Tháng sau"
-              className={ICON_BUTTON}
-            >
-              <ChevronRight className="size-5" aria-hidden />
-            </button>
-          </div>
-          <div className="mt-1 grid grid-cols-7 gap-1">
-            {WEEKDAY_SHORT_LABELS.map((label) => (
-              <div
-                key={label}
-                aria-hidden
-                className="py-1 text-center text-xs font-semibold text-muted"
-              >
-                {label}
-              </div>
-            ))}
-            {copy.cells.map((day, index) => {
+          <MonthGrid
+            month={copy.month}
+            canGoBack={copy.canGoBack}
+            onPreviousMonth={copy.goToPreviousMonth}
+            onNextMonth={copy.goToNextMonth}
+            renderDay={(date) => {
+              const day = daysByDate.get(date);
+
               if (!day) {
-                return <span key={`blank-${index}`} />;
+                return null;
               }
 
               const isSelected = copy.selected.includes(day.date);
 
               return (
                 <button
-                  key={day.date}
                   type="button"
                   aria-label={describeDay(day)}
                   aria-disabled={day.isDisabled || undefined}
@@ -213,8 +185,8 @@ export const CopyDaySheet = ({
                   )}
                 </button>
               );
-            })}
-          </div>
+            }}
+          />
           <div className="sticky bottom-0 -mx-4 -mb-[calc(env(safe-area-inset-bottom)+1.25rem)] mt-3 bg-bg px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
             <p className="mb-2 flex items-center gap-2 text-xs text-muted">
               <span

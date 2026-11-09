@@ -18,6 +18,8 @@ import {
 } from "@/features/chat/services/chat-queries";
 import { getAdminTeamLastSeen } from "@/features/chat/services/presence";
 import { serializeLastSeen } from "@/features/chat/utils/presence";
+import { actorOfUser } from "@/features/social/services/post-context";
+import type { SocialActor } from "@/features/social/types/social";
 
 export interface ThreadPayload {
   messages: ChatMessage[];
@@ -56,10 +58,11 @@ export const loadChanges = async (
   conversationId: number,
   changedSince: number | undefined,
   lastChangeAt: number,
+  viewer?: SocialActor,
 ) =>
   changedSince === undefined
     ? { changes: [] as ChatMessage[], lastChangeAt }
-    : listChanges(conversationId, changedSince, lastChangeAt);
+    : listChanges(conversationId, changedSince, lastChangeAt, viewer);
 
 // Edit history is visible to everyone in the conversation (spec C4). Null =
 // no such message here; an unsent message shows no history.
@@ -83,6 +86,7 @@ export const loadTraineeThread = async (
   { notModified: true } | { notModified: false; payload: ThreadPayload }
 > => {
   const chatEnabled = isChatEnabled(user);
+  const viewer = actorOfUser(user);
   const conversation = await findConversationByUserId(user.id);
 
   if (!conversation) {
@@ -114,8 +118,8 @@ export const loadTraineeThread = async (
   }
   const [{ messages, hasMore }, changed, teamLastSeen, profile] =
     await Promise.all([
-      listMessages(conversation.id, query),
-      loadChanges(conversation.id, known.changedSince, lastChangeAt),
+      listMessages(conversation.id, query, viewer),
+      loadChanges(conversation.id, known.changedSince, lastChangeAt, viewer),
       getAdminTeamLastSeen(),
       loadChatProfile(conversation.id),
     ]);

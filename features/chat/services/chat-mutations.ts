@@ -21,6 +21,8 @@ import {
   unsendSchema,
   USER_READER_KEY,
 } from "@/features/chat/utils/chat-rules";
+import type { SocialActor } from "@/features/social/types/social";
+import type { AdminRole } from "@/services/admin-scope";
 
 // Shared by the trainee and admin actions (KAN-138). The callers have already
 // checked the session and the chat lock; this module checks that the message
@@ -29,7 +31,7 @@ import {
 
 export type ChatActor =
   | { role: "user"; userId: number; name: string }
-  | { role: "admin"; adminId: number; name: string };
+  | { role: "admin"; adminId: number; name: string; adminRole: AdminRole };
 
 export interface ChatConversationRef {
   id: number;
@@ -44,6 +46,12 @@ const fail = (message: string): MutationResult => ({
   status: "error",
   message,
 });
+
+// Who is looking, for the quoted post of the message sent back.
+const viewerOf = (actor: ChatActor): SocialActor =>
+  actor.role === "user"
+    ? { kind: "user", id: actor.userId }
+    : { kind: "admin", id: actor.adminId, role: actor.adminRole };
 
 const reactorKeyOf = (actor: ChatActor) =>
   actor.role === "user" ? USER_READER_KEY : adminReaderKey(actor.adminId);
@@ -69,20 +77,24 @@ const isOwnMessage = (actor: ChatActor, stored: StoredMessage) =>
 // Stamps the change cursor, tells the open conversations (ids only) and
 // returns the message as clients see it.
 const finish = async (
+  actor: ChatActor,
   conversation: ChatConversationRef,
   messageId: number,
 ): Promise<MutationResult> => {
   await touchMessage(conversation.id, messageId);
   await publishMessageUpdate(conversation.id, messageId);
-  const message = await findMessageById(messageId);
+  const message = await findMessageById(messageId, viewerOf(actor));
 
   return message
     ? { status: "success", message }
     : fail(CHAT_MESSAGES.MESSAGE_NOT_FOUND);
 };
 
-const current = async (messageId: number): Promise<MutationResult> => {
-  const message = await findMessageById(messageId);
+const current = async (
+  actor: ChatActor,
+  messageId: number,
+): Promise<MutationResult> => {
+  const message = await findMessageById(messageId, viewerOf(actor));
 
   return message
     ? { status: "success", message }
@@ -157,7 +169,7 @@ export const reactToMessage = async (
 
   if (emoji === null || existing?.emoji === emoji) {
     if (!existing) {
-      return current(messageId);
+      return current(actor, messageId);
     }
     await db
       .delete(chatReactions)
@@ -167,7 +179,7 @@ export const reactToMessage = async (
           eq(chatReactions.reactorKey, reactorKey),
         ),
       );
-    return finish(conversation, messageId);
+    return finish(actor, conversation, messageId);
   }
   await db
     .insert(chatReactions)
@@ -176,7 +188,7 @@ export const reactToMessage = async (
       target: [chatReactions.messageId, chatReactions.reactorKey],
       set: { emoji, createdAt: new Date() },
     });
-  const result = await finish(conversation, messageId);
+  const result = await finish(actor, conversation, messageId);
 
   notifyAuthor(actor, conversation, stored, emoji);
   return result;
@@ -212,7 +224,7 @@ export const editChatMessage = async (
   }
   // Saving the same text again is not an edit: no history row, no marker.
   if (stored.body === body) {
-    return current(messageId);
+    return current(actor, messageId);
   }
   const editedAt = new Date();
 
@@ -225,7 +237,7 @@ export const editChatMessage = async (
       .set({ body, editedAt })
       .where(eq(chatMessages.id, messageId));
   });
-  return finish(conversation, messageId);
+  return finish(actor, conversation, messageId);
 };
 
 // Unsend for everyone: soft delete, idempotent.
@@ -249,15 +261,15 @@ export const unsendChatMessage = async (
     return fail(CHAT_MESSAGES.NOT_YOUR_MESSAGE);
   }
   if (stored.deletedAt !== null) {
-    return current(messageId);
+    return current(actor, messageId);
   }
   await db
     .update(chatMessages)
-    .set({ deletedAt: new Date() })
+    .set({ deletedAt: new Date(), replyPostId: null })
     .where(eq(chatMessages.id, messageId));
   // KAN-160: an unsent photo is gone for good, bytes included.
   await deletePhotoOfMessage(messageId);
-  return finish(conversation, messageId);
+  return finish(actor, conversation, messageId);
 };
 
 // The reply target of a new message must be a message of the same
