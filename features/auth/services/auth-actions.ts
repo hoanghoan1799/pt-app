@@ -11,6 +11,7 @@ import {
 import { withFormErrorHandling } from "@/services/action-errors";
 import { clearUnlock } from "@/services/admin-lock";
 import { findAdminByUsername } from "@/services/admins";
+import { applyStoredLocale } from "@/services/locale-cookie";
 import {
   adminLimiterKey,
   clearAttempts,
@@ -70,6 +71,7 @@ export const loginWithEmailAction = withFormErrorHandling(
 
     await clearAttempts(limiterKey);
     await startUserSession(user.id);
+    await applyStoredLocale(user.locale);
     redirect(ROUTES.WORKOUTS);
   },
 );
@@ -106,6 +108,7 @@ export const loginAdminAction = withFormErrorHandling(
 
     await clearAttempts(limiterKey);
     await startAdminSession(admin.id);
+    await applyStoredLocale(admin.locale);
     redirect(ROUTES.ADMIN);
   },
 );

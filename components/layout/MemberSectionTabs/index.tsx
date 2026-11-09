@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 import { PAGE_CONTAINER } from "@/constants/styles";
 import {
@@ -19,13 +20,12 @@ interface MemberSectionTabsProps {
 
 const SECTIONS: {
   key: MemberSection;
-  label: string;
   getPath: (userId: number) => string;
 }[] = [
-  { key: "workouts", label: "Lịch tập", getPath: getAdminUserPath },
-  { key: "nutrition", label: "Dinh dưỡng", getPath: getAdminNutritionPath },
-  { key: "summary", label: "Tổng kết", getPath: getAdminSummaryPath },
-  { key: "messages", label: "Nhắn tin", getPath: getAdminMessagesPath },
+  { key: "workouts", getPath: getAdminUserPath },
+  { key: "nutrition", getPath: getAdminNutritionPath },
+  { key: "summary", getPath: getAdminSummaryPath },
+  { key: "messages", getPath: getAdminMessagesPath },
 ];
 
 // Segmented control switching between a member's workouts, nutrition,
@@ -35,10 +35,11 @@ export const MemberSectionTabs = ({
   active,
   weekStart,
 }: MemberSectionTabsProps) => {
+  const t = useTranslations("layout.memberTabs");
   const query = `?${new URLSearchParams({ week: weekStart })}`;
 
   return (
-    <nav aria-label="Mục của user" className={`${PAGE_CONTAINER} pt-3`}>
+    <nav aria-label={t("label")} className={`${PAGE_CONTAINER} pt-3`}>
       <ul className="grid grid-cols-4 gap-1 rounded-2xl border border-line bg-surface p-1 shadow-sm">
         {SECTIONS.map((section) => (
           <li key={section.key}>
@@ -52,7 +53,7 @@ export const MemberSectionTabs = ({
                   : "text-muted active:bg-line",
               )}
             >
-              {section.label}
+              {t(section.key)}
             </Link>
           </li>
         ))}

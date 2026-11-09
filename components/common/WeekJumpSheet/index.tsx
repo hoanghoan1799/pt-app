@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
@@ -34,6 +35,7 @@ export const WeekJumpSheet = ({
   today,
   children,
 }: WeekJumpSheetProps) => {
+  const t = useTranslations("common.week");
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [month, setMonth] = useState(getMonthOf(selectedDate));
@@ -64,7 +66,7 @@ export const WeekJumpSheet = ({
       <button
         type="button"
         onClick={() => handleOpenChange(true)}
-        aria-label={`Mở lịch, ${formatWeekTitle(weekStart)}`}
+        aria-label={t("openCalendar", { week: formatWeekTitle(weekStart) })}
         className="flex min-w-0 items-center gap-2 text-[15px] font-bold text-fg transition active:opacity-70"
       >
         {children}
@@ -73,8 +75,8 @@ export const WeekJumpSheet = ({
       <BottomSheet
         isOpen={isOpen}
         onOpenChange={handleOpenChange}
-        title="Lịch"
-        description="Chọn ngày để xem lịch"
+        title={t("calendarTitle")}
+        description={t("calendarDescription")}
       >
         <MonthGrid
           month={month}
@@ -85,9 +87,9 @@ export const WeekJumpSheet = ({
             const isSelected = date === selectedDate;
             const isInWeek = date >= weekStart && date <= weekEnd;
             const tag = isToday
-              ? "Hôm nay"
+              ? t("today")
               : date === tomorrow
-                ? "Ngày mai"
+                ? t("tomorrow")
                 : "";
 
             return (
@@ -95,8 +97,8 @@ export const WeekJumpSheet = ({
                 type="button"
                 aria-label={[
                   formatFullDay(date),
-                  isToday && "hôm nay",
-                  isSelected && "đang xem",
+                  isToday && t("dayIsToday"),
+                  isSelected && t("dayIsSelected"),
                 ]
                   .filter(Boolean)
                   .join(", ")}
@@ -132,7 +134,7 @@ export const WeekJumpSheet = ({
             disabled={selectedDate === today}
             className={`${BUTTON_SECONDARY} w-full`}
           >
-            Về hôm nay
+            {t("backToToday")}
           </button>
         </div>
       </BottomSheet>

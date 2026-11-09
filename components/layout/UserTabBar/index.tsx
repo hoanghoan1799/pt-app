@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import { ROUTES } from "@/constants/routes";
 import { UnreadBadge } from "@/features/chat/components/UnreadBadge";
@@ -18,26 +19,26 @@ import { useChatUnread } from "@/features/chat/hooks/use-chat-unread";
 
 const TABS: {
   href: string;
-  label: string;
+  labelKey: "feed" | "workouts" | "nutrition" | "messages" | "summary";
   icon: LucideIcon;
   // Other pages that belong to the tab, e.g. the food library under nutrition.
   alsoActiveOn?: string;
 }[] = [
   {
     href: ROUTES.FEED,
-    label: "Bảng tin",
+    labelKey: "feed",
     icon: Newspaper,
     alsoActiveOn: ROUTES.PROFILE,
   },
-  { href: ROUTES.WORKOUTS, label: "Lịch tập", icon: Dumbbell },
+  { href: ROUTES.WORKOUTS, labelKey: "workouts", icon: Dumbbell },
   {
     href: ROUTES.NUTRITION,
-    label: "Dinh dưỡng",
+    labelKey: "nutrition",
     icon: Utensils,
     alsoActiveOn: ROUTES.FOODS,
   },
-  { href: ROUTES.MESSAGES, label: "Nhắn tin", icon: MessageCircle },
-  { href: ROUTES.SUMMARY, label: "Tổng kết", icon: ChartColumn },
+  { href: ROUTES.MESSAGES, labelKey: "messages", icon: MessageCircle },
+  { href: ROUTES.SUMMARY, labelKey: "summary", icon: ChartColumn },
 ];
 
 // The page itself or anything below it, so "/foods" never matches "/foodstuff".
@@ -47,6 +48,7 @@ const isUnder = (pathname: string, base: string) =>
 // Floating tab bar above the home indicator; the active tab is a filled
 // pill so it reads at a glance, not just a tinted icon.
 export const UserTabBar = () => {
+  const t = useTranslations("layout.userTabs");
   const pathname = usePathname();
   // The inbox keeps the bar; every thread (coach or friend) has its own
   // header and composer, which the bar would cover.
@@ -61,7 +63,7 @@ export const UserTabBar = () => {
 
   return (
     <nav
-      aria-label="Chuyển mục"
+      aria-label={t("label")}
       className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
     >
       <ul
@@ -70,7 +72,7 @@ export const UserTabBar = () => {
           "grid-cols-5",
         )}
       >
-        {TABS.map(({ href, label, icon: Icon, alsoActiveOn }) => {
+        {TABS.map(({ href, labelKey, icon: Icon, alsoActiveOn }) => {
           const isActive =
             isUnder(pathname, href) ||
             Boolean(alsoActiveOn && isUnder(pathname, alsoActiveOn));
@@ -100,7 +102,7 @@ export const UserTabBar = () => {
                     />
                   )}
                 </span>
-                {label}
+                {t(labelKey)}
               </Link>
             </li>
           );

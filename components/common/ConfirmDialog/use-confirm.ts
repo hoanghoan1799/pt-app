@@ -3,7 +3,7 @@ import { useSyncExternalStore } from "react";
 export interface ConfirmOptions {
   title: string;
   description?: string;
-  // Label of the action button; Vietnamese, e.g. "Xóa".
+  // Label of the action button; already translated by the caller, e.g. t("delete").
   confirmLabel: string;
   cancelLabel?: string;
   // Destructive actions get the danger button.

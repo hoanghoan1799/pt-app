@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Fragment, type ReactNode } from "react";
 
 import { ICON_BUTTON } from "@/constants/styles";
@@ -25,47 +26,51 @@ export const MonthGrid = ({
   onNextMonth,
   canGoBack = true,
   renderDay,
-}: MonthGridProps) => (
-  <div>
-    <div className="flex items-center justify-between">
-      <button
-        type="button"
-        onClick={onPreviousMonth}
-        disabled={!canGoBack}
-        aria-label="Tháng trước"
-        className={ICON_BUTTON}
-      >
-        <ChevronLeft className="size-5" aria-hidden />
-      </button>
-      <p aria-live="polite" className="font-bold text-fg">
-        {formatMonthLabel(month)}
-      </p>
-      <button
-        type="button"
-        onClick={onNextMonth}
-        aria-label="Tháng sau"
-        className={ICON_BUTTON}
-      >
-        <ChevronRight className="size-5" aria-hidden />
-      </button>
-    </div>
-    <div className="mt-1 grid grid-cols-7 gap-1">
-      {WEEKDAY_SHORT_LABELS.map((label) => (
-        <div
-          key={label}
-          aria-hidden
-          className="py-1 text-center text-xs font-semibold text-muted"
+}: MonthGridProps) => {
+  const t = useTranslations("common.month");
+
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={onPreviousMonth}
+          disabled={!canGoBack}
+          aria-label={t("previous")}
+          className={ICON_BUTTON}
         >
-          {label}
-        </div>
-      ))}
-      {buildMonthCells(month).map((date, index) =>
-        date ? (
-          <Fragment key={date}>{renderDay(date)}</Fragment>
-        ) : (
-          <span key={`blank-${index}`} />
-        ),
-      )}
+          <ChevronLeft className="size-5" aria-hidden />
+        </button>
+        <p aria-live="polite" className="font-bold text-fg">
+          {formatMonthLabel(month)}
+        </p>
+        <button
+          type="button"
+          onClick={onNextMonth}
+          aria-label={t("next")}
+          className={ICON_BUTTON}
+        >
+          <ChevronRight className="size-5" aria-hidden />
+        </button>
+      </div>
+      <div className="mt-1 grid grid-cols-7 gap-1">
+        {WEEKDAY_SHORT_LABELS.map((label) => (
+          <div
+            key={label}
+            aria-hidden
+            className="py-1 text-center text-xs font-semibold text-muted"
+          >
+            {label}
+          </div>
+        ))}
+        {buildMonthCells(month).map((date, index) =>
+          date ? (
+            <Fragment key={date}>{renderDay(date)}</Fragment>
+          ) : (
+            <span key={`blank-${index}`} />
+          ),
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};

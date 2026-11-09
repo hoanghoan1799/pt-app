@@ -53,6 +53,9 @@ export const admins = sqliteTable("admins", {
   verifiedAt: integer("verified_at", { mode: "timestamp" }),
   // Profile bio (P2), up to 150 characters; null = none.
   bio: text("bio"),
+  // Preferred UI language (i18n): "vi" or "en", validated on write. Nullable
+  // on purpose (null = not chosen, use the device cookie or the default).
+  locale: text("locale"),
   createdAt: createdAt(),
 });
 
@@ -61,6 +64,9 @@ export const users = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     name: text("name").notNull(),
+    // Preferred UI language (i18n): "vi" or "en", validated on write. Nullable
+    // on purpose (null = not chosen, use the device cookie or the default).
+    locale: text("locale"),
     // Lower-cased, whitespace-collapsed name used for login lookups.
     nameKey: text("name_key").notNull().unique(),
     // The trainee's meal plan request (KAN-69, Q1): meals per day (2-6) and

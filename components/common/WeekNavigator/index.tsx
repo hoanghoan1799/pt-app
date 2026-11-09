@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 import { WeekJumpSheet } from "@/components/common/WeekJumpSheet";
 import {
@@ -27,6 +28,7 @@ export const WeekNavigator = ({
   selectedDate,
   today,
 }: WeekNavigatorProps) => {
+  const t = useTranslations("common.week");
   // Nothing to jump to when today is already the selected day.
   const isOnToday = selectedDate === today;
   const previousHref = buildScheduleHref(
@@ -41,7 +43,7 @@ export const WeekNavigator = ({
 
   return (
     <nav
-      aria-label="Chọn tuần"
+      aria-label={t("select")}
       className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1"
     >
       <WeekJumpSheet
@@ -58,7 +60,7 @@ export const WeekNavigator = ({
           href={previousHref}
           scroll={false}
           className={clsx(CONTROL, "w-8")}
-          aria-label="Tuần trước"
+          aria-label={t("previous")}
         >
           <ChevronLeft className="size-5" />
         </Link>
@@ -67,7 +69,7 @@ export const WeekNavigator = ({
             aria-disabled="true"
             className="inline-flex h-9 items-center px-1.5 text-sm font-semibold text-muted"
           >
-            Hôm nay
+            {t("today")}
           </span>
         ) : (
           <Link
@@ -78,14 +80,14 @@ export const WeekNavigator = ({
               "px-1.5 text-sm font-semibold text-accent",
             )}
           >
-            Hôm nay
+            {t("today")}
           </Link>
         )}
         <Link
           href={nextHref}
           scroll={false}
           className={clsx(CONTROL, "w-8")}
-          aria-label="Tuần sau"
+          aria-label={t("next")}
         >
           <ChevronRight className="size-5" />
         </Link>
