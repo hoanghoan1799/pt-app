@@ -4,6 +4,7 @@ import { expect, test } from "@playwright/test";
 import { TIME_ZONE } from "@/constants/time";
 import {
   addDays,
+  formatFullDay,
   getTodayDate,
   getWeekDates,
   getWeekStart,
@@ -92,7 +93,17 @@ test("copy week asks in the app dialog: Hủy copies nothing, Sao chép replaces
   const sheet = page.getByRole("dialog", { name: "Sao chép tuần" });
   const submit = sheet.getByRole("button", { name: "Sao chép", exact: true });
 
-  await sheet.getByLabel("Sang tuần có ngày").fill(TARGET_DATE);
+  // Pick the target day on the month grid, moving forward to its month.
+  const targetDay = sheet.getByRole("button", {
+    name: formatFullDay(TARGET_DATE),
+    exact: true,
+  });
+
+  for (let step = 0; step < 4 && !(await targetDay.isVisible()); step++) {
+    await sheet.getByRole("button", { name: "Tháng sau" }).click();
+  }
+  await targetDay.click();
+  await expect(targetDay).toHaveAttribute("aria-pressed", "true");
 
   // Hủy: the sheet stays open and nothing was copied.
   await submit.click();
