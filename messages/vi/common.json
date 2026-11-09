@@ -1,0 +1,39 @@
+{
+  "close": "Đóng",
+  "confirm": { "cancel": "Hủy" },
+  "errorFallback": {
+    "title": "Đã có lỗi xảy ra",
+    "serverError": "Server gặp sự cố khi tải trang này. Thử lại sau ít phút; nếu vẫn lỗi, gửi mã bên dưới cho PT.",
+    "referenceCode": "Mã tham chiếu: {code}",
+    "retry": "Thử lại",
+    "home": "Về trang đầu"
+  },
+  "dayStatus": {
+    "legendLabel": "Chú thích màu ngày",
+    "complete": "Đã hoàn thành",
+    "partial": "Đang thực hiện"
+  },
+  "week": {
+    "calendar": "Lịch tuần",
+    "select": "Chọn tuần",
+    "previous": "Tuần trước",
+    "next": "Tuần sau",
+    "today": "Hôm nay",
+    "tomorrow": "Ngày mai",
+    "backToToday": "Về hôm nay",
+    "openCalendar": "Mở lịch, {week}",
+    "calendarTitle": "Lịch",
+    "calendarDescription": "Chọn ngày để xem lịch",
+    "dayIsToday": "hôm nay",
+    "dayIsSelected": "đang xem"
+  },
+  "month": { "previous": "Tháng trước", "next": "Tháng sau" },
+  "photoViewer": {
+    "previous": "Ảnh trước",
+    "next": "Ảnh sau",
+    "download": "Tải xuống",
+    "showInChat": "Xem trong tin nhắn"
+  },
+  "avatarLightbox": { "label": "Ảnh của {name}" },
+  "verified": "Đã xác minh"
+}

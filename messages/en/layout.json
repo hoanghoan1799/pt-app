@@ -1,0 +1,57 @@
+{
+  "meta": {
+    "description": "Your weekly workout schedule, assigned by your PT"
+  },
+  "offline": {
+    "title": "No internet connection",
+    "body": "Check your Wi-Fi or mobile data and try again. Your workout schedule will show up once you are back online."
+  },
+  "globalError": { "documentTitle": "Error" },
+  "header": { "back": "Back" },
+  "userTabs": {
+    "label": "Switch section",
+    "feed": "Feed",
+    "workouts": "Workouts",
+    "nutrition": "Nutrition",
+    "messages": "Messages",
+    "summary": "Summary"
+  },
+  "memberTabs": {
+    "label": "Member sections",
+    "workouts": "Workouts",
+    "nutrition": "Nutrition",
+    "summary": "Summary",
+    "messages": "Messages"
+  },
+  "weekSummary": {
+    "weight": "Weekly weight",
+    "progress": "Progress",
+    "workouts": "Training",
+    "nutrition": "Nutrition"
+  },
+  "menus": {
+    "settings": "Settings",
+    "account": "Account",
+    "appearance": "Appearance",
+    "theme": { "light": "Light", "dark": "Dark", "system": "System" },
+    "language": "Language",
+    "accountColor": "Account color",
+    "presence": "Activity status",
+    "presenceOn": "Activity status turned on",
+    "presenceOff": "Activity status turned off",
+    "switchOn": "On",
+    "switchOff": "Off",
+    "saveFailed": "Could not save. Please try again.",
+    "passcode": "Passcode",
+    "lockNow": "Lock now",
+    "lockFailed": "Could not lock. Please try again.",
+    "lockNeedsPasscode": "Set a passcode first to lock the app.",
+    "profile": "Profile",
+    "avatar": "Profile photo",
+    "changePassword": "Change password",
+    "updating": "This feature is being updated",
+    "logout": "Log out",
+    "logoutTitle": "Log out of this device?",
+    "logoutDescription": "You will need to log in again to continue."
+  }
+}

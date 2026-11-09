@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
@@ -13,10 +14,9 @@ import {
   BUTTON_SECONDARY,
 } from "@/constants/styles";
 
-const DEFAULT_CANCEL_LABEL = "Hủy";
-
 // Mounted once in the root layout; `useConfirm()` opens it from anywhere.
 export const ConfirmDialog = () => {
+  const t = useTranslations("common.confirm");
   const { isOpen, options, requestId } = useConfirmState();
   const cancelRef = useRef<HTMLButtonElement>(null);
 
@@ -60,7 +60,7 @@ export const ConfirmDialog = () => {
           onClick={() => confirmStore.resolve(false)}
           className={BUTTON_SECONDARY}
         >
-          {options.cancelLabel ?? DEFAULT_CANCEL_LABEL}
+          {options.cancelLabel ?? t("cancel")}
         </button>
         <button
           type="button"

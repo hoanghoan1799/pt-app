@@ -12,6 +12,7 @@
 - **Quên mật khẩu**: liên hệ PT để đặt lại. PT sẽ đặt mật khẩu mới trong trang user và gửi lại cho bạn.
 - Đăng nhập sai 5 lần trong 15 phút sẽ bị khóa 15 phút.
 - **Thanh tiêu đề** (cả user và PT): menu **bánh răng** chọn giao diện **Sáng / Tối / Hệ thống** (lưu bằng cookie, áp dụng ngay từ server nên không bị nháy) và bật/tắt **thông báo đẩy**; menu **tài khoản** có **Đổi mật khẩu** và **Đăng xuất**. Mọi thao tác xóa/ghi đè/đăng xuất đều hỏi lại bằng hộp thoại trong app, không dùng hộp thoại của trình duyệt.
+- **Ngôn ngữ**: menu **bánh răng** có mục **Ngôn ngữ** chọn Tiếng Việt (mặc định) hoặc English. Lựa chọn lưu bằng cookie và, khi đã đăng nhập, lưu theo tài khoản để thiết bị khác tự theo. Đợt đầu mới dịch phần khung ứng dụng (thanh tiêu đề, thanh tab, hộp thoại, màn hình lỗi); các màn hình còn lại sẽ dịch dần.
 - Lịch theo tuần (T2 → CN), mặc định mở hôm nay, chuyển tuần trước/sau.
 - Mỗi bài tập: video YouTube phát ngay trong trang, số hiệp × số lần, mô tả.
 - Ngày không có bài hiển thị "Ngày nghỉ".

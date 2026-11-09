@@ -2,6 +2,8 @@ import "./globals.css";
 
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages, getTranslations } from "next-intl/server";
 
 import { AppToaster } from "@/components/common/AppToaster";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -9,11 +11,15 @@ import { ServiceWorkerRegister } from "@/features/pwa/components/ServiceWorkerRe
 import { INSTALL_CAPTURE_SCRIPT } from "@/features/pwa/constants/capture-script";
 import { parseTheme, THEME_COOKIE } from "@/utils/theme";
 
-export const metadata: Metadata = {
-  title: { default: "PT App", template: "%s · PT App" },
-  description: "Lịch tập luyện hằng tuần do PT giao",
-  icons: { apple: "/icons/apple-touch-icon.png" },
-  appleWebApp: { capable: true, title: "PT App", statusBarStyle: "default" },
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("layout.meta");
+
+  return {
+    title: { default: "PT App", template: "%s · PT App" },
+    description: t("description"),
+    icons: { apple: "/icons/apple-touch-icon.png" },
+    appleWebApp: { capable: true, title: "PT App", statusBarStyle: "default" },
+  };
 };
 
 const THEME_COLORS = { light: "#f4f4f5", dark: "#0c0c0e" };
@@ -45,17 +51,21 @@ export const generateViewport = async (): Promise<Viewport> => {
 // colors (no flash). This makes every route dynamic.
 const RootLayout = async ({ children }: LayoutProps<"/">) => {
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+  const locale = await getLocale();
+  const messages = await getMessages();
 
   return (
-    <html lang="vi" data-theme={theme}>
+    <html lang={locale} data-theme={theme}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: INSTALL_CAPTURE_SCRIPT }} />
       </head>
       <body className="min-h-dvh antialiased">
-        {children}
-        <AppToaster />
-        <ConfirmDialog />
-        <ServiceWorkerRegister />
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {children}
+          <AppToaster />
+          <ConfirmDialog />
+          <ServiceWorkerRegister />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

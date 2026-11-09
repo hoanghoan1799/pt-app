@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 import { DayStatusLegend } from "@/components/common/DayStatusLegend";
 import {
   type WeekDayTabItem,
@@ -22,23 +24,27 @@ export const WeekCalendarCard = ({
   items,
   selectedDate,
   today,
-}: WeekCalendarCardProps) => (
-  <section aria-label="Lịch tuần" className={`${CARD} space-y-4 p-4`}>
-    <WeekNavigator
-      basePath={basePath}
-      weekStart={weekStart}
-      selectedDate={selectedDate}
-      today={today}
-    />
-    <WeekDayTabs
-      basePath={basePath}
-      weekStart={weekStart}
-      items={items}
-      selectedDate={selectedDate}
-      today={today}
-    />
-    <div className="border-t border-line pt-3">
-      <DayStatusLegend />
-    </div>
-  </section>
-);
+}: WeekCalendarCardProps) => {
+  const t = useTranslations("common.week");
+
+  return (
+    <section aria-label={t("calendar")} className={`${CARD} space-y-4 p-4`}>
+      <WeekNavigator
+        basePath={basePath}
+        weekStart={weekStart}
+        selectedDate={selectedDate}
+        today={today}
+      />
+      <WeekDayTabs
+        basePath={basePath}
+        weekStart={weekStart}
+        items={items}
+        selectedDate={selectedDate}
+        today={today}
+      />
+      <div className="border-t border-line pt-3">
+        <DayStatusLegend />
+      </div>
+    </section>
+  );
+};

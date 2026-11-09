@@ -1,0 +1,55 @@
+{
+  "meta": { "description": "Lịch tập luyện hằng tuần do PT giao" },
+  "offline": {
+    "title": "Không có kết nối mạng",
+    "body": "Hãy kiểm tra Wi-Fi hoặc dữ liệu di động rồi thử lại. Lịch tập của bạn sẽ hiện ra khi có mạng."
+  },
+  "globalError": { "documentTitle": "Lỗi" },
+  "header": { "back": "Quay lại" },
+  "userTabs": {
+    "label": "Chuyển mục",
+    "feed": "Bảng tin",
+    "workouts": "Lịch tập",
+    "nutrition": "Dinh dưỡng",
+    "messages": "Nhắn tin",
+    "summary": "Tổng kết"
+  },
+  "memberTabs": {
+    "label": "Mục của user",
+    "workouts": "Lịch tập",
+    "nutrition": "Dinh dưỡng",
+    "summary": "Tổng kết",
+    "messages": "Nhắn tin"
+  },
+  "weekSummary": {
+    "weight": "Cân nặng theo tuần",
+    "progress": "Tiến bộ",
+    "workouts": "Tập luyện",
+    "nutrition": "Dinh dưỡng"
+  },
+  "menus": {
+    "settings": "Cài đặt",
+    "account": "Tài khoản",
+    "appearance": "Giao diện",
+    "theme": { "light": "Sáng", "dark": "Tối", "system": "Hệ thống" },
+    "language": "Ngôn ngữ",
+    "accountColor": "Màu tài khoản",
+    "presence": "Trạng thái hoạt động",
+    "presenceOn": "Đã bật trạng thái hoạt động",
+    "presenceOff": "Đã tắt trạng thái hoạt động",
+    "switchOn": "Bật",
+    "switchOff": "Tắt",
+    "saveFailed": "Không lưu được. Thử lại nhé.",
+    "passcode": "Mã khoá",
+    "lockNow": "Khoá ngay",
+    "lockFailed": "Không khoá được. Thử lại nhé.",
+    "lockNeedsPasscode": "Đặt mã khoá trước để khoá ứng dụng.",
+    "profile": "Trang cá nhân",
+    "avatar": "Ảnh đại diện",
+    "changePassword": "Đổi mật khẩu",
+    "updating": "Tính năng đang cập nhật",
+    "logout": "Đăng xuất",
+    "logoutTitle": "Đăng xuất khỏi thiết bị này?",
+    "logoutDescription": "Bạn cần đăng nhập lại để tiếp tục."
+  }
+}
