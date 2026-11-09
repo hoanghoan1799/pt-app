@@ -1,0 +1,51 @@
+{
+  "addMember": {
+    "trigger": "Thêm user",
+    "title": "Thêm user",
+    "description": "Nhập email để tạo tài khoản. Mật khẩu được tạo tự động và chỉ hiện một lần."
+  },
+  "createMember": {
+    "nameLabel": "Tên user mới",
+    "namePlaceholder": "Tên user mới",
+    "emailLabel": "Email đăng nhập",
+    "emailPlaceholder": "Email đăng nhập",
+    "ptLabel": "PT phụ trách",
+    "ptUnassigned": "Chưa giao (chỉ super admin)",
+    "submit": "Thêm"
+  },
+  "deleteMember": {
+    "confirmTitle": "Xóa user này và toàn bộ lịch tập của họ? Thao tác không thể hoàn tác.",
+    "confirmLabel": "Xóa",
+    "trigger": "Xóa user"
+  },
+  "oneTimePassword": {
+    "copy": "Sao chép",
+    "copied": "Đã sao chép",
+    "copyFailed": "Không sao chép được. Hãy chép mật khẩu bằng tay.",
+    "passwordOnce": "Mật khẩu chỉ hiện một lần. Hãy gửi cho học viên ngay.",
+    "done": "Xong"
+  },
+  "memberLogin": {
+    "sectionTitle": "Tài khoản đăng nhập",
+    "emailLabel": "Email đăng nhập",
+    "noEmail": "Chưa có email",
+    "changeEmail": "Đổi email",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "resetPassword": "Đặt lại mật khẩu",
+    "resetConfirmTitle": "Mật khẩu cũ sẽ không dùng được nữa và học viên bị đăng xuất. Tiếp tục?",
+    "resetConfirmLabel": "Đặt lại",
+    "emailChanged": "Đã đổi email"
+  },
+  "hideUser": {
+    "hide": "Ẩn học viên",
+    "unhide": "Bỏ ẩn học viên",
+    "hidden": "Đã ẩn 1 học viên",
+    "unhidden": "Đã bỏ ẩn học viên",
+    "failed": "Không thực hiện được. Thử lại nhé."
+  },
+  "exerciseProgress": {
+    "empty": "Chưa có bài nào được ghi tạ trong tuần này.",
+    "emptyHint": "Tiến bộ hiện khi học viên ghi mức tạ và số lần."
+  }
+}

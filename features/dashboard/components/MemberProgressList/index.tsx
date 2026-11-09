@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { ChevronRight, Search, Users, Utensils } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
@@ -24,21 +25,25 @@ interface MemberProgressListProps {
   isPtShown?: boolean;
 }
 
-const UNHIDE_FAILED = "Không bỏ ẩn được. Thử lại nhé.";
-
-const getStatusText = (member: MemberRow) => {
-  if (member.status === "no-plan") {
-    return "Chưa có lịch tuần này";
-  }
-  return `${member.completed}/${member.assigned} bài · ${member.activeDays}/${member.plannedDays} ngày`;
-};
-
 export const MemberProgressList = ({
   members,
   hasPasscode,
   isPtShown = false,
 }: MemberProgressListProps) => {
+  const t = useTranslations("dashboard.memberList");
   const router = useRouter();
+
+  const getStatusText = (member: MemberRow) => {
+    if (member.status === "no-plan") {
+      return t("noPlan");
+    }
+    return t("statusLine", {
+      completed: member.completed,
+      assigned: member.assigned,
+      activeDays: member.activeDays,
+      plannedDays: member.plannedDays,
+    });
+  };
   const { query, setQuery, filteredMembers } = useMemberSearch(members);
   const { revealed, remove } = useHiddenReveal(query, hasPasscode);
   const [isPending, startTransition] = useTransition();
@@ -54,9 +59,9 @@ export const MemberProgressList = ({
           router.refresh();
           return;
         }
-        toast.error(UNHIDE_FAILED);
+        toast.error(t("unhideFailed"));
       } catch {
-        toast.error(UNHIDE_FAILED);
+        toast.error(t("unhideFailed"));
       }
     });
   };
@@ -72,16 +77,16 @@ export const MemberProgressList = ({
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Tìm học viên"
-          aria-label="Tìm học viên"
+          placeholder={t("searchPlaceholder")}
+          aria-label={t("searchLabel")}
           autoComplete="off"
           enterKeyHint="search"
           className={`${INPUT} pl-11`}
         />
       </div>
       {hiddenUsers.length > 0 ? (
-        <section className="space-y-2" aria-label="Học viên đã ẩn">
-          <h2 className={SECTION_TITLE}>Học viên đã ẩn</h2>
+        <section className="space-y-2" aria-label={t("hiddenTitle")}>
+          <h2 className={SECTION_TITLE}>{t("hiddenTitle")}</h2>
           <HiddenUserList
             users={hiddenUsers}
             onUnhide={unhide}
@@ -93,11 +98,8 @@ export const MemberProgressList = ({
           className={`${CARD} flex flex-col items-center px-6 py-10 text-center`}
         >
           <Users className="size-10 text-muted" aria-hidden />
-          <p className="mt-3 font-semibold text-fg">Chưa có user nào</p>
-          <p className="mt-1 text-sm text-muted">
-            Chọn Thêm user ở mục Thao tác, sau đó họ chỉ cần nhập đúng tên để
-            vào xem bài tập.
-          </p>
+          <p className="mt-3 font-semibold text-fg">{t("emptyTitle")}</p>
+          <p className="mt-1 text-sm text-muted">{t("emptyHint")}</p>
         </div>
       ) : (
         <ul className="space-y-2">
@@ -125,7 +127,9 @@ export const MemberProgressList = ({
                       <UnreadBadge count={member.unread} className="shrink-0" />
                       {isPtShown && (
                         <span className="shrink-0 rounded-full bg-line/60 px-2 py-0.5 text-xs font-medium text-muted">
-                          {member.ptName ? `PT ${member.ptName}` : "Chưa có PT"}
+                          {member.ptName
+                            ? t("ptBadge", { name: member.ptName })
+                            : t("noPt")}
                         </span>
                       )}
                     </span>
@@ -143,7 +147,7 @@ export const MemberProgressList = ({
                   {member.status !== "no-plan" && (
                     <ProgressBar
                       percent={member.percent}
-                      label={`Tiến độ của ${member.displayName}`}
+                      label={t("progressLabel", { name: member.displayName })}
                     />
                   )}
                   <span className="flex flex-wrap items-start justify-between gap-x-2 gap-y-0.5 text-xs">
@@ -160,15 +164,15 @@ export const MemberProgressList = ({
                     <span className="ml-auto flex shrink-0 items-center gap-2 text-muted">
                       <span
                         className="inline-flex items-center gap-0.5"
-                        title="Số ngày ghi nhật ký ăn tuần này"
+                        title={t("nutritionTitle")}
                       >
                         <Utensils className="size-3" aria-hidden />
-                        <span className="sr-only">Ghi nhật ký ăn</span>
+                        <span className="sr-only">{t("nutritionLabel")}</span>
                         {member.nutritionDays}/7
                       </span>
                       {member.lastActiveLabel
-                        ? `Tập ${member.lastActiveLabel}`
-                        : "Chưa tập"}
+                        ? t("lastActive", { when: member.lastActiveLabel })
+                        : t("notTrained")}
                     </span>
                   </span>
                 </span>
@@ -181,7 +185,7 @@ export const MemberProgressList = ({
           ))}
           {!filteredMembers.length && (
             <li className={`${CARD} px-4 py-6 text-center text-sm text-muted`}>
-              Không có user nào khớp “{query}”
+              {t("noMatch", { query })}
             </li>
           )}
         </ul>

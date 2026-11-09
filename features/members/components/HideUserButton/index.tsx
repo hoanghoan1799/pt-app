@@ -2,6 +2,7 @@
 
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
@@ -19,8 +20,6 @@ interface HideUserButtonProps {
   hasPasscode: boolean;
 }
 
-const FAILED_TEXT = "Không thực hiện được. Thử lại nhé.";
-
 // Hide this trainee from the admin everywhere (R4), or bring them back. Hiding
 // needs a passcode and returns to the dashboard, where they are gone.
 export const HideUserButton = ({
@@ -28,6 +27,7 @@ export const HideUserButton = ({
   isHidden,
   hasPasscode,
 }: HideUserButtonProps) => {
+  const t = useTranslations("members.hideUser");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -43,18 +43,18 @@ export const HideUserButton = ({
           : await hideUsersAction([userId]);
 
         if (result.status !== "success") {
-          toast.error(result.message ?? FAILED_TEXT);
+          toast.error(result.message ?? t("failed"));
           return;
         }
         if (isHidden) {
-          toast.success("Đã bỏ ẩn học viên");
+          toast.success(t("unhidden"));
           router.refresh();
           return;
         }
-        toast.success("Đã ẩn 1 học viên");
+        toast.success(t("hidden"));
         router.push(ROUTES.ADMIN);
       } catch {
-        toast.error(FAILED_TEXT);
+        toast.error(t("failed"));
       }
     });
   };
@@ -73,7 +73,7 @@ export const HideUserButton = ({
       ) : (
         <Icon className="size-5" aria-hidden />
       )}
-      {isHidden ? "Bỏ ẩn học viên" : "Ẩn học viên"}
+      {isHidden ? t("unhide") : t("hide")}
     </button>
   );
 };

@@ -1,0 +1,70 @@
+{
+  "home": {
+    "metaTitle": "Tổng quan",
+    "title": "Tổng quan",
+    "eyebrow": "Admin · {username}",
+    "workspace": "Workspace của {username}",
+    "actions": "Thao tác",
+    "tiles": {
+      "foods": "Thư viện món",
+      "pts": "Quản lý PT",
+      "reports": "Báo cáo",
+      "social": "Mạng xã hội",
+      "messages": "Tin nhắn"
+    },
+    "usersCount": "User · {count}",
+    "recentActivity": "Hoạt động gần đây"
+  },
+  "pts": {
+    "metaTitle": "Quản lý PT",
+    "eyebrow": "Admin",
+    "title": "Quản lý PT",
+    "adminAccounts": "Tài khoản admin · {count}",
+    "superAdmin": "Super admin",
+    "ptRole": "PT · {count, plural, other {# học viên}}",
+    "traineesByPt": "Học viên theo PT",
+    "unassignedGroup": "Chưa có PT",
+    "groupTitle": "{title} · {count, plural, other {# học viên}}",
+    "noTrainees": "Chưa có học viên",
+    "addPt": "Thêm PT"
+  },
+  "reports": {
+    "metaTitle": "Báo cáo",
+    "eyebrow": "Admin",
+    "title": "Báo cáo",
+    "pending": "Đang chờ · {count}",
+    "emptyList": "Không có báo cáo nào.",
+    "kinds": {
+      "post": "Bài viết",
+      "comment": "Bình luận",
+      "user": "Người dùng"
+    },
+    "emptyPreview": "(Trống)",
+    "deleted": "Nội dung đã bị xóa.",
+    "viewProfile": "Xem trang cá nhân",
+    "view": "Xem",
+    "reporter": "Người báo cáo: {name}",
+    "targetName": " · {name}",
+    "reason": " · \"{reason}\""
+  },
+  "userPage": {
+    "metaTitle": "Lịch tập",
+    "eyebrow": "Lịch tập của",
+    "preview": "Xem như user",
+    "history": "Lịch sử tập",
+    "tools": "Công cụ"
+  },
+  "userPreview": {
+    "metaTitle": "Xem như user",
+    "eyebrow": "Xem như user",
+    "notice": "Đây là màn hình user sẽ thấy"
+  },
+  "userSummary": {
+    "metaTitle": "Tổng kết",
+    "eyebrow": "Tổng kết của"
+  },
+  "userNutrition": {
+    "metaTitle": "Dinh dưỡng",
+    "eyebrow": "Dinh dưỡng của"
+  }
+}

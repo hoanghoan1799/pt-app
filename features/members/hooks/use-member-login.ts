@@ -1,11 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type FormEvent, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
-import { MEMBER_MESSAGES } from "@/features/members/constants/messages";
 import {
   changeMemberEmailAction,
   resetMemberPasswordAction,
@@ -13,6 +13,7 @@ import {
 import { describeErrorReference } from "@/utils/errors";
 
 export const useMemberLogin = (userId: number, email: string | null) => {
+  const t = useTranslations("members.memberLogin");
   const router = useRouter();
   const confirm = useConfirm();
   const [isEditing, setIsEditing] = useState(false);
@@ -44,15 +45,15 @@ export const useMemberLogin = (userId: number, email: string | null) => {
       }
       setIsEditing(false);
       setEmailError(undefined);
-      toast.success("Đã đổi email");
+      toast.success(t("emailChanged"));
       router.refresh();
     });
   };
 
   const resetPassword = async () => {
     const isConfirmed = await confirm({
-      title: MEMBER_MESSAGES.RESET_CONFIRM,
-      confirmLabel: "Đặt lại",
+      title: t("resetConfirmTitle"),
+      confirmLabel: t("resetConfirmLabel"),
       isDanger: true,
     });
 

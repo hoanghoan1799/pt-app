@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { MemberSectionTabs } from "@/components/layout/MemberSectionTabs";
@@ -28,13 +29,18 @@ import {
 import { readSearchParam } from "@/utils/search-params";
 import { getTodayDate, resolveSchedule } from "@/utils/week";
 
-export const metadata: Metadata = { title: "Tổng kết" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("adminPages.userSummary");
+
+  return { title: t("metaTitle") };
+};
 
 const AdminSummaryPage = async ({
   params,
   searchParams,
 }: PageProps<"/admin/users/[id]/summary">) => {
   const admin = await requireAdmin();
+  const t = await getTranslations("adminPages.userSummary");
 
   const { id } = await params;
   const user = await findUserById(Number(id));
@@ -62,7 +68,7 @@ const AdminSummaryPage = async ({
   return (
     <>
       <AppHeader
-        eyebrow="Tổng kết của"
+        eyebrow={t("eyebrow")}
         title={displayName}
         backHref={`${ROUTES.ADMIN}?${new URLSearchParams({ week: schedule.weekStart })}`}
       />

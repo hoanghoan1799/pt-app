@@ -1,6 +1,7 @@
 "use client";
 
 import { UserPlus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
@@ -18,6 +19,7 @@ export const AddMemberButton = ({
   className,
   ptOptions,
 }: AddMemberButtonProps) => {
+  const t = useTranslations("members.addMember");
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -28,13 +30,13 @@ export const AddMemberButton = ({
         className={className}
       >
         <UserPlus className="size-6 text-accent" aria-hidden />
-        <span>Thêm user</span>
+        <span>{t("trigger")}</span>
       </button>
       <BottomSheet
         isOpen={isOpen}
         onOpenChange={setIsOpen}
-        title="Thêm user"
-        description="Nhập email để tạo tài khoản. Mật khẩu được tạo tự động và chỉ hiện một lần."
+        title={t("title")}
+        description={t("description")}
       >
         <CreateMemberForm
           ptOptions={ptOptions}

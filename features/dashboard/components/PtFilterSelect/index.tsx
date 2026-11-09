@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import { INPUT, LABEL } from "@/constants/styles";
 import { PT_FILTER_PARAM } from "@/features/dashboard/utils/pt-filter";
@@ -12,6 +13,7 @@ interface PtFilterSelectProps {
 
 // Super admin dashboard filter: all trainees, those without a PT, or one PT's.
 export const PtFilterSelect = ({ value, options }: PtFilterSelectProps) => {
+  const t = useTranslations("dashboard.ptFilter");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -33,7 +35,7 @@ export const PtFilterSelect = ({ value, options }: PtFilterSelectProps) => {
   return (
     <div>
       <label htmlFor="pt-filter" className={LABEL}>
-        Lọc theo PT
+        {t("label")}
       </label>
       <select
         id="pt-filter"
@@ -41,8 +43,8 @@ export const PtFilterSelect = ({ value, options }: PtFilterSelectProps) => {
         onChange={(event) => handleChange(event.target.value)}
         className={INPUT}
       >
-        <option value="all">Tất cả</option>
-        <option value="none">Chưa có PT</option>
+        <option value="all">{t("all")}</option>
+        <option value="none">{t("none")}</option>
         {options.map((option) => (
           <option key={option.id} value={option.id}>
             {option.username}

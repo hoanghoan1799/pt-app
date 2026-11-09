@@ -1,12 +1,12 @@
 "use client";
 
 import { Loader2, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { BUTTON_DANGER } from "@/constants/styles";
-import { MEMBER_MESSAGES } from "@/features/members/constants/messages";
 import { deleteMemberAction } from "@/features/members/services/member-actions";
 import { describeErrorReference } from "@/utils/errors";
 
@@ -15,13 +15,14 @@ interface DeleteMemberButtonProps {
 }
 
 export const DeleteMemberButton = ({ userId }: DeleteMemberButtonProps) => {
+  const t = useTranslations("members.deleteMember");
   const confirm = useConfirm();
   const [isPending, startTransition] = useTransition();
 
   const handleClick = async () => {
     const isConfirmed = await confirm({
-      title: MEMBER_MESSAGES.DELETE_CONFIRM,
-      confirmLabel: "Xóa",
+      title: t("confirmTitle"),
+      confirmLabel: t("confirmLabel"),
       isDanger: true,
     });
 
@@ -52,7 +53,7 @@ export const DeleteMemberButton = ({ userId }: DeleteMemberButtonProps) => {
       ) : (
         <Trash2 className="size-5" aria-hidden />
       )}
-      Xóa user
+      {t("trigger")}
     </button>
   );
 };
