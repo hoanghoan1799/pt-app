@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { CARD } from "@/constants/styles";
 import { MacroSplitBar } from "@/features/foods/components/MacroSplitBar";
@@ -23,6 +23,7 @@ interface FoodCardProps {
 }
 
 export const FoodCard = ({ food, href }: FoodCardProps) => {
+  const locale = useLocale();
   const tLabels = useTranslations("foods.labels");
   const group = FOOD_GROUPS[food.group];
   const Icon = group.icon;
@@ -47,7 +48,9 @@ export const FoodCard = ({ food, href }: FoodCardProps) => {
               {food.name}
             </span>
             <span className="shrink-0 text-sm tabular-nums">
-              <span className="font-bold text-fg">{formatKcal(food.kcal)}</span>
+              <span className="font-bold text-fg">
+                {formatKcal(food.kcal, locale)}
+              </span>
               <span className="text-muted"> kcal</span>
             </span>
           </span>
@@ -59,13 +62,13 @@ export const FoodCard = ({ food, href }: FoodCardProps) => {
             </span>
             <span className="shrink-0 tabular-nums">
               <span className={MACRO_COLORS.protein.text}>
-                P {formatGrams(food.protein)}
+                P {formatGrams(food.protein, locale)}
               </span>{" "}
               <span className={MACRO_COLORS.carbs.text}>
-                C {formatGrams(food.carbs)}
+                C {formatGrams(food.carbs, locale)}
               </span>{" "}
               <span className={MACRO_COLORS.fat.text}>
-                F {formatGrams(food.fat)}
+                F {formatGrams(food.fat, locale)}
               </span>
             </span>
           </span>

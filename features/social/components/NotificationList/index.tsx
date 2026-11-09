@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Avatar } from "@/components/common/Avatar";
 import { CARD } from "@/constants/styles";
@@ -17,6 +17,7 @@ const ROW = "flex items-center gap-3 p-3";
 // "Thông báo": newest first; unread rows are tinted. A row with a post links
 // to it.
 export const NotificationList = ({ notifications }: NotificationListProps) => {
+  const locale = useLocale();
   const t = useTranslations("social.notifications");
 
   if (notifications.length === 0) {
@@ -37,7 +38,12 @@ export const NotificationList = ({ notifications }: NotificationListProps) => {
                 {item.text}
               </span>
               <span className="block text-xs text-muted">
-                {formatRelativeTime(item.createdAt, TIME_ZONE)}
+                {formatRelativeTime(
+                  item.createdAt,
+                  TIME_ZONE,
+                  undefined,
+                  locale,
+                )}
               </span>
             </span>
             {item.isUnread && (

@@ -5,12 +5,14 @@ import enChat from "@/messages/en/chat.json";
 import enCommon from "@/messages/en/common.json";
 import enDashboard from "@/messages/en/dashboard.json";
 import enFoods from "@/messages/en/foods.json";
+import enFormat from "@/messages/en/format.json";
 import enLayout from "@/messages/en/layout.json";
 import enMealPlans from "@/messages/en/mealPlans.json";
 import enMembers from "@/messages/en/members.json";
 import enNutrition from "@/messages/en/nutrition.json";
 import enPages from "@/messages/en/pages.json";
 import enPts from "@/messages/en/pts.json";
+import enPush from "@/messages/en/push.json";
 import enPwa from "@/messages/en/pwa.json";
 import enSocial from "@/messages/en/social.json";
 import enWorkouts from "@/messages/en/workouts.json";
@@ -21,12 +23,14 @@ import viChat from "@/messages/vi/chat.json";
 import viCommon from "@/messages/vi/common.json";
 import viDashboard from "@/messages/vi/dashboard.json";
 import viFoods from "@/messages/vi/foods.json";
+import viFormat from "@/messages/vi/format.json";
 import viLayout from "@/messages/vi/layout.json";
 import viMealPlans from "@/messages/vi/mealPlans.json";
 import viMembers from "@/messages/vi/members.json";
 import viNutrition from "@/messages/vi/nutrition.json";
 import viPages from "@/messages/vi/pages.json";
 import viPts from "@/messages/vi/pts.json";
+import viPush from "@/messages/vi/push.json";
 import viPwa from "@/messages/vi/pwa.json";
 import viSocial from "@/messages/vi/social.json";
 import viWorkouts from "@/messages/vi/workouts.json";
@@ -44,11 +48,13 @@ export const MESSAGES = {
     common: viCommon,
     dashboard: viDashboard,
     foods: viFoods,
+    format: viFormat,
     layout: viLayout,
     mealPlans: viMealPlans,
     members: viMembers,
     nutrition: viNutrition,
     pages: viPages,
+    push: viPush,
     pts: viPts,
     pwa: viPwa,
     social: viSocial,
@@ -62,11 +68,13 @@ export const MESSAGES = {
     common: enCommon,
     dashboard: enDashboard,
     foods: enFoods,
+    format: enFormat,
     layout: enLayout,
     mealPlans: enMealPlans,
     members: enMembers,
     nutrition: enNutrition,
     pages: enPages,
+    push: enPush,
     pts: enPts,
     pwa: enPwa,
     social: enSocial,

@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
@@ -22,7 +22,7 @@ import {
   type ThreadItem,
   type ThreadMessage,
   type ThreadViewer,
-  UNSENT_TEXT,
+  unsentText,
 } from "@/features/chat/utils/chat-thread-rules";
 import { tokenizeLinks } from "@/features/chat/utils/link-rules";
 import { DmPostQuote } from "@/features/social/components/DmPostQuote";
@@ -120,6 +120,7 @@ export const MessageBubble = ({
   const hasPhoto = Boolean(photo) && !isUnsent && !isSticker;
   // Only stored, not unsent messages have actions.
   const isInteractive = message.id !== null && !isUnsent;
+  const locale = useLocale();
   const t = useTranslations("chat.messageBubble");
   const [isViewerOpen, setViewerOpen] = useState(false);
   const gesture = useBubbleGesture(isInteractive, {
@@ -234,7 +235,7 @@ export const MessageBubble = ({
               )}
             >
               <span className="block truncate font-semibold">
-                {quoteLabel(replyTo, viewer, nicknames)}
+                {quoteLabel(replyTo, viewer, nicknames, locale)}
               </span>
               <span
                 className={clsx(
@@ -242,7 +243,7 @@ export const MessageBubble = ({
                   replyTo.deleted && "italic",
                 )}
               >
-                {quoteText(replyTo)}
+                {quoteText(replyTo, locale)}
               </span>
             </button>
           )}
@@ -280,7 +281,11 @@ export const MessageBubble = ({
                     hasPhoto && "px-2.5 pt-1.5 pb-1",
                   )}
                 >
-                  {isUnsent ? UNSENT_TEXT : <LinkedText body={message.body} />}
+                  {isUnsent ? (
+                    unsentText(locale)
+                  ) : (
+                    <LinkedText body={message.body} />
+                  )}
                 </p>
               )}
             </>

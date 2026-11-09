@@ -1,0 +1,102 @@
+{
+  "weekdayShort": {
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat",
+    "sun": "Sun"
+  },
+  "weekdayLong": {
+    "mon": "Monday",
+    "tue": "Tuesday",
+    "wed": "Wednesday",
+    "thu": "Thursday",
+    "fri": "Friday",
+    "sat": "Saturday",
+    "sun": "Sunday"
+  },
+  "weekTitle": {
+    "sameMonth": "{month} {startDay}–{endDay}, {year}",
+    "crossMonth": "{start} – {end}, {year}",
+    "crossYear": "{start}, {startYear} – {end}, {endYear}"
+  },
+  "fullDay": "{weekday}, {date}",
+  "monthLabel": "{month} {year}",
+  "relative": {
+    "justNow": "just now",
+    "minutes": "{count, plural, one {# minute ago} other {# minutes ago}}",
+    "hours": "{count, plural, one {# hour ago} other {# hours ago}}",
+    "days": "{count, plural, one {# day ago} other {# days ago}}"
+  },
+  "inbox": {
+    "you": "You: ",
+    "justNow": "Just now",
+    "minutes": "{count} min",
+    "hours": "{count} h",
+    "yesterday": "Yesterday"
+  },
+  "presence": {
+    "online": "Active now",
+    "minutes": "Active {count, plural, one {# minute} other {# minutes}} ago",
+    "hours": "Active {count, plural, one {# hour} other {# hours}} ago",
+    "yesterday": "Active yesterday",
+    "onDate": "Active {date}",
+    "prefix": "Active "
+  },
+  "sticker": {
+    "preview": "sent a sticker"
+  },
+  "weight": {
+    "bodyweight": "Bodyweight",
+    "unit": "kg"
+  },
+  "volume": {
+    "sets": "{count, plural, one {# set} other {# sets}}"
+  },
+  "setRow": {
+    "missingReps": "Enter the reps for set {number}",
+    "error": "Set {number}: {message}"
+  },
+  "deleteExercise": {
+    "plain": "Delete this exercise?",
+    "withSets": "The trainee has logged sets for this exercise. Deleting it also deletes those sets. Continue?"
+  },
+  "trend": {
+    "first": "First time",
+    "sameMoreReps": "Same weight, more reps",
+    "sameFewerReps": "Same weight, fewer reps",
+    "same": "No change",
+    "bestBefore": "Previous best {set}",
+    "bestWeek": "Best this week {set}"
+  },
+  "comparison": {
+    "under": "{amount} {unit} left",
+    "over": "{amount} {unit} over",
+    "on": "on target ✓"
+  },
+  "overwrite": {
+    "question": "Overwrite the plan for {dates}?",
+    "logWarning": "The trainee logged meals on {dates}; overwriting deletes that log.",
+    "deleteWithLogs": "Delete the plan for this day? The trainee logged meals on this day, and deleting the plan deletes that log.",
+    "delete": "Delete the plan for this day?"
+  },
+  "planNotice": "Plan is {gap} kcal off the new target",
+  "kcalGap": "Entered {entered} kcal is {percent}% off the {computed} kcal calculated from protein/carbs/fat (4/4/9).",
+  "thread": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "seen": "Seen",
+    "sent": "Sent",
+    "unsent": "This message was unsent",
+    "sticker": "Sticker",
+    "photo": "Photo",
+    "you": "You",
+    "yourself": "yourself",
+    "youLower": "you",
+    "trainee": "Trainee",
+    "pt": "PT",
+    "peerDeleted": "PT (deleted)"
+  }
+}

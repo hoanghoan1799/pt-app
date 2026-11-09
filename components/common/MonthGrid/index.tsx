@@ -1,12 +1,12 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Fragment, type ReactNode } from "react";
 
 import { ICON_BUTTON } from "@/constants/styles";
-import { WEEKDAY_SHORT_LABELS } from "@/constants/week";
 import { buildMonthCells, formatMonthLabel } from "@/utils/month";
+import { getWeekdayShortLabels } from "@/utils/week";
 
 interface MonthGridProps {
   // "YYYY-MM"
@@ -27,6 +27,7 @@ export const MonthGrid = ({
   canGoBack = true,
   renderDay,
 }: MonthGridProps) => {
+  const locale = useLocale();
   const t = useTranslations("common.month");
 
   return (
@@ -42,7 +43,7 @@ export const MonthGrid = ({
           <ChevronLeft className="size-5" aria-hidden />
         </button>
         <p aria-live="polite" className="font-bold text-fg">
-          {formatMonthLabel(month)}
+          {formatMonthLabel(month, locale)}
         </p>
         <button
           type="button"
@@ -54,7 +55,7 @@ export const MonthGrid = ({
         </button>
       </div>
       <div className="mt-1 grid grid-cols-7 gap-1">
-        {WEEKDAY_SHORT_LABELS.map((label) => (
+        {getWeekdayShortLabels(locale).map((label) => (
           <div
             key={label}
             aria-hidden

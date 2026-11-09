@@ -7,8 +7,13 @@ import {
   parseCustomRef,
   STICKER_ALT_CUSTOM,
 } from "@/features/chat/utils/custom-sticker-rules";
+import { getFormatTranslator } from "@/i18n/format-translator";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 export const STICKER_PREVIEW = "đã gửi một sticker";
+
+export const stickerPreview = (locale: Locale = DEFAULT_LOCALE) =>
+  getFormatTranslator(locale)("sticker.preview");
 export const STICKER_ALT_GIPHY = "Sticker GIPHY";
 
 const GIPHY_ID = /^[A-Za-z0-9]{3,40}$/;

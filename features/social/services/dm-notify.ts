@@ -6,7 +6,7 @@ import { after } from "next/server";
 import { db } from "@/db";
 import { pushSubscriptions, users } from "@/db/schema";
 import {
-  deliver,
+  deliverLocalized,
   getVapid,
   type PushSender,
   sendWithWebPush,
@@ -19,6 +19,7 @@ import {
 } from "@/features/chat/utils/ably-capabilities";
 import { userOwnerKey } from "@/features/chat/utils/push-rules";
 import { buildDmPushPayload } from "@/features/social/utils/dm-rules";
+import { getPushTranslator } from "@/i18n/push-translator";
 import { logServerError } from "@/services/logger";
 
 // Realtime and push for trainee chats. Both are best effort and never throw:
@@ -76,14 +77,17 @@ export const sendDmPush = async (
       .where(eq(users.id, senderId))
       .limit(1);
 
-    await deliver(
+    await deliverLocalized(
       targets,
-      buildDmPushPayload({
-        senderName: person?.name ?? "Bạn bè",
-        conversationId,
-        body,
-        photo,
-      }),
+      (locale) =>
+        buildDmPushPayload({
+          senderName:
+            person?.name ?? getPushTranslator(locale)("friendFallback"),
+          conversationId,
+          body,
+          photo,
+          locale,
+        }),
       vapid,
       sender,
     );

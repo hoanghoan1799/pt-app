@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -36,7 +36,10 @@ const AdminMessagesInboxPage = async ({
   const admin = await requireAdmin();
   const query = await searchParams;
   const isUnreadOnly = readSearchParam(query.filter) === UNREAD_FILTER;
-  const { conversations, withoutConversation } = await listAdminInbox(admin.id);
+  const { conversations, withoutConversation } = await listAdminInbox(
+    admin.id,
+    await getLocale(),
+  );
   const items = isUnreadOnly
     ? conversations.filter((item) => item.unread > 0)
     : conversations;

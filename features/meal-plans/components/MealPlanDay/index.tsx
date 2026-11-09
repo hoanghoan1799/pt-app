@@ -1,7 +1,7 @@
 "use client";
 
 import { Copy, Percent, Plus, Trash2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { BUTTON_SECONDARY } from "@/constants/styles";
@@ -61,6 +61,7 @@ export const MealPlanDay = ({
   datesWithPlan,
   datesWithLogs,
 }: MealPlanDayProps) => {
+  const locale = useLocale();
   const t = useTranslations("mealPlans.mealPlanDay");
   const confirm = useConfirm();
   const day = useMealPlanDay(userId, plan);
@@ -173,6 +174,7 @@ export const MealPlanDay = ({
           const isConfirmed = await confirm({
             title: formatDeletePlanQuestion(
               logs.length > 0 || marks.length > 0,
+              locale,
             ),
             confirmLabel: t("confirmDelete"),
             isDanger: true,

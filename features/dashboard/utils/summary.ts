@@ -3,6 +3,7 @@ import type {
   MemberRow,
   WeekSummary,
 } from "@/features/dashboard/types/dashboard";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 import { calculatePercent, formatRelativeTime } from "@/utils/time";
 
 export const summarizeWeek = (members: MemberProgress[]): WeekSummary => {
@@ -39,13 +40,21 @@ interface MemberRowOptions {
   getHref: (memberId: number, weekStart: string) => string;
   // Unread counts keyed by trainee id; trainees without unread are absent.
   unreadByUserId?: ReadonlyMap<number, number>;
+  locale?: Locale;
 }
 
 // Display-ready rows; relative times are computed once on the server so the
 // client list renders the same text it was hydrated with.
 export const toMemberRows = (
   members: MemberProgress[],
-  { weekStart, timeZone, now, getHref, unreadByUserId }: MemberRowOptions,
+  {
+    weekStart,
+    timeZone,
+    now,
+    getHref,
+    unreadByUserId,
+    locale = DEFAULT_LOCALE,
+  }: MemberRowOptions,
 ): MemberRow[] =>
   members.map((member) => ({
     ...member,
@@ -54,7 +63,7 @@ export const toMemberRows = (
     lastActiveLabel:
       member.lastActiveAt === null
         ? null
-        : formatRelativeTime(member.lastActiveAt, timeZone, now),
+        : formatRelativeTime(member.lastActiveAt, timeZone, now, locale),
     href: getHref(member.id, weekStart),
     unread: unreadByUserId?.get(member.id) ?? 0,
   }));

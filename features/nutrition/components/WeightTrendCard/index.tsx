@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { CARD } from "@/constants/styles";
 import { WeightChangeStat } from "@/features/nutrition/components/WeightChangeStat";
@@ -25,6 +25,7 @@ export const WeightTrendCard = ({
   canLog,
   todayWeight,
 }: WeightTrendCardProps) => {
+  const locale = useLocale();
   const t = useTranslations("nutrition.weightTrendCard");
   const changes = getWeightChanges(weeks);
   const hasData = changes.latest !== null;
@@ -34,7 +35,7 @@ export const WeightTrendCard = ({
       <div className="grid grid-cols-3 divide-x divide-line border-b border-line">
         <p className="px-2 py-3 text-center">
           <span className="block text-lg font-bold text-fg tabular-nums">
-            {hasData ? `${formatDecimal(changes.latest ?? 0)} kg` : "–"}
+            {hasData ? `${formatDecimal(changes.latest ?? 0, locale)} kg` : "–"}
           </span>
           <span className="text-xs text-muted">{t("latestAverage")}</span>
         </p>
@@ -74,12 +75,12 @@ export const WeightTrendCard = ({
                     scope="row"
                     className="px-4 py-2 text-left font-normal text-muted"
                   >
-                    {formatWeekRange(week.weekStart)}
+                    {formatWeekRange(week.weekStart, locale)}
                   </th>
                   <td className="px-4 py-2 text-right font-semibold text-fg">
                     {week.averageKg === null
                       ? "–"
-                      : `${formatDecimal(week.averageKg)} kg`}
+                      : `${formatDecimal(week.averageKg, locale)} kg`}
                   </td>
                 </tr>
               ))}

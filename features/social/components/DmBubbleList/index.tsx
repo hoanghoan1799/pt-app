@@ -2,12 +2,13 @@
 
 import clsx from "clsx";
 import { RotateCcw } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { ChatPhotoImage } from "@/features/chat/components/ChatPhotoImage";
 import { PHOTO_ALT } from "@/features/chat/utils/photo-rules";
 import { DmPostQuote } from "@/features/social/components/DmPostQuote";
 import type { DmThreadItem } from "@/features/social/utils/dm-thread-rules";
+import { type Locale, toIntlLocale } from "@/utils/locale";
 
 interface DmBubbleListProps {
   items: DmThreadItem[];
@@ -21,8 +22,8 @@ interface DmBubbleListProps {
   onRetry?: (clientId: string) => void;
 }
 
-const formatTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString("vi-VN", {
+const formatTime = (iso: string, locale: Locale) =>
+  new Date(iso).toLocaleTimeString(toIntlLocale(locale), {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -38,6 +39,7 @@ export const DmBubbleList = ({
   onUnsend,
   onRetry,
 }: DmBubbleListProps) => {
+  const locale = useLocale();
   const t = useTranslations("social.dmBubbleList");
 
   return (
@@ -82,7 +84,7 @@ export const DmBubbleList = ({
             </div>
             <div className="flex items-center gap-2 px-1 text-xs text-muted">
               <time dateTime={item.createdAt}>
-                {formatTime(item.createdAt)}
+                {formatTime(item.createdAt, locale)}
               </time>
               {item.pending === "failed" && onRetry && (
                 <button

@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import { useEffect, useState } from "react";
 
 import { PRESENCE_HEARTBEAT_MS } from "@/features/chat/utils/presence";
@@ -31,6 +32,7 @@ export const usePeerPresence = ({
   userId,
   fromThread,
 }: Options): PresenceView | null => {
+  const locale = useLocale();
   const [fetched, setFetched] = useState<Date | null>(null);
   // Device clock minus server clock, measured from the peer endpoint. Null
   // until the first answer (or its failure): without it a device clock that
@@ -98,5 +100,9 @@ export const usePeerPresence = ({
   }
   const lastSeenAt = mergeLastSeen(fetched, fromThread ?? undefined);
 
-  return presenceView(lastSeenAt, serverClockNow(now.getTime(), skewMs));
+  return presenceView(
+    lastSeenAt,
+    serverClockNow(now.getTime(), skewMs),
+    locale,
+  );
 };

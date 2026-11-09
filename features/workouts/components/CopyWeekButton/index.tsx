@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { ChevronDown, Copy } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
@@ -40,6 +40,7 @@ export const CopyWeekButton = ({
   today,
   members,
 }: CopyWeekButtonProps) => {
+  const locale = useLocale();
   const t = useTranslations("workouts.copyWeek");
   const tWeek = useTranslations("common.week");
   const { isOpen, setIsOpen, formAction, handleSubmit, isPending } =
@@ -72,7 +73,9 @@ export const CopyWeekButton = ({
         isOpen={isOpen}
         onOpenChange={handleOpenChange}
         title={t("title")}
-        description={t("description", { week: formatWeekRange(weekStart) })}
+        description={t("description", {
+          week: formatWeekRange(weekStart, locale),
+        })}
       >
         <form action={formAction} onSubmit={handleSubmit} className="space-y-4">
           <input type="hidden" name="userId" value={userId} />
@@ -119,7 +122,7 @@ export const CopyWeekButton = ({
                   <button
                     type="button"
                     aria-label={[
-                      formatFullDay(date),
+                      formatFullDay(date, locale),
                       isToday && tWeek("dayIsToday"),
                       isSource && t("sourceWeek"),
                     ]

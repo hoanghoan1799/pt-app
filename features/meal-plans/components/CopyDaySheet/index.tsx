@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { MonthGrid } from "@/components/common/MonthGrid";
@@ -42,6 +42,7 @@ export const CopyDaySheet = ({
   isOpen,
   onOpenChange,
 }: CopyDaySheetProps) => {
+  const locale = useLocale();
   const t = useTranslations("mealPlans.copyDaySheet");
   const tWeek = useTranslations("common.week");
 
@@ -57,7 +58,7 @@ export const CopyDaySheet = ({
 
   const describeDay = (day: CopyCalendarDay) =>
     [
-      formatFullDay(day.date),
+      formatFullDay(day.date, locale),
       getTag(day),
       day.isSource && t("sourceDay"),
       day.isPast && t("past"),
@@ -83,6 +84,7 @@ export const CopyDaySheet = ({
   const logWarning = formatOverwriteLogWarning(
     copy.overwriteDates,
     copy.logDates,
+    locale,
   );
 
   return (
@@ -93,7 +95,9 @@ export const CopyDaySheet = ({
         onOpenChange(open);
       }}
       title={t("title")}
-      description={t("description", { date: formatFullDay(sourceDate) })}
+      description={t("description", {
+        date: formatFullDay(sourceDate, locale),
+      })}
     >
       {copy.isConfirming ? (
         <div
@@ -102,13 +106,13 @@ export const CopyDaySheet = ({
           className="space-y-4"
         >
           <p className="text-[15px] font-medium text-fg">
-            {formatOverwriteQuestion(copy.overwriteDates)}
+            {formatOverwriteQuestion(copy.overwriteDates, locale)}
           </p>
           {logWarning && (
             <p className="text-sm font-medium text-warning">{logWarning}</p>
           )}
           <p className="text-sm text-muted">
-            {t("replaceNotice", { date: formatFullDay(sourceDate) })}
+            {t("replaceNotice", { date: formatFullDay(sourceDate, locale) })}
           </p>
           <div className="grid grid-cols-2 gap-2">
             <button

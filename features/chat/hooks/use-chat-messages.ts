@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -109,6 +109,7 @@ interface Options {
 }
 
 export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
+  const locale = useLocale();
   const t = useTranslations("chat.chatMessages");
   const [messages, setMessages] = useState<ThreadMessage[]>(() =>
     mergeMessages([], initial.messages),
@@ -495,11 +496,12 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
             message.reactions,
             adapterRef.current.viewer,
             emoji,
+            locale,
           ),
         }),
         (current) => current.reactMessage(messageId, emoji),
       ),
-    [mutate],
+    [mutate, locale],
   );
 
   const edit = useCallback(

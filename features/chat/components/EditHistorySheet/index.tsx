@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
@@ -38,6 +38,7 @@ export const EditHistorySheet = ({
   editsUrl,
   currentBody,
 }: EditHistorySheetProps) => {
+  const locale = useLocale();
   const t = useTranslations("chat.editHistory");
   const [state, setState] = useState<HistoryState | null>(null);
 
@@ -100,7 +101,7 @@ export const EditHistorySheet = ({
               className="rounded-2xl border border-line bg-surface px-3.5 py-2.5"
             >
               <p className="text-xs text-muted">
-                {t("previous", { time: formatSentAt(edit.editedAt) })}
+                {t("previous", { time: formatSentAt(edit.editedAt, locale) })}
               </p>
               <p className="mt-0.5 text-[15px] break-words whitespace-pre-wrap text-fg">
                 {edit.previousBody}

@@ -1,0 +1,19 @@
+{
+  "title": "PT App",
+  "preview": {
+    "photo": "Sent a photo",
+    "sticker": "Sent a sticker",
+    "link": "Sent a link",
+    "fallback": "Sent a message"
+  },
+  "reaction": "{name} reacted {emoji} to your message",
+  "traineeFallback": "Trainee",
+  "friendFallback": "A friend",
+  "social": {
+    "postReaction": "{name} reacted to your post",
+    "postComment": "{name} commented on your post",
+    "commented": "{name} commented: {preview}",
+    "friendRequest": "{name} sent you a friend request",
+    "friendAccepted": "{name} accepted your friend request"
+  }
+}

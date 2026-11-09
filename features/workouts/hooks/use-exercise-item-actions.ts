@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
@@ -18,6 +18,7 @@ export const useExerciseItemActions = (
   userId: number,
   hasSets: boolean,
 ) => {
+  const locale = useLocale();
   const t = useTranslations("workouts.exerciseItemActions");
   const confirm = useConfirm();
   const [isPending, startTransition] = useTransition();
@@ -36,7 +37,7 @@ export const useExerciseItemActions = (
 
   const confirmDelete = (withSets: boolean) =>
     confirm({
-      title: getDeleteConfirmMessage(withSets),
+      title: getDeleteConfirmMessage(withSets, locale),
       confirmLabel: t("deleteConfirmLabel"),
       isDanger: true,
     });

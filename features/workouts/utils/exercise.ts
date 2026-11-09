@@ -1,8 +1,16 @@
-import { CONFIRM_MESSAGES } from "@/features/workouts/constants/messages";
+import { getFormatTranslator } from "@/i18n/format-translator";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 // "4 hiệp × 10-12", "4 hiệp", "10-12" or "" depending on what was filled in.
-export const formatVolume = (sets: number | null, reps: string) => {
-  const parts = [sets ? `${sets} hiệp` : "", reps.trim()].filter(Boolean);
+export const formatVolume = (
+  sets: number | null,
+  reps: string,
+  locale: Locale = DEFAULT_LOCALE,
+) => {
+  const parts = [
+    sets ? getFormatTranslator(locale)("volume.sets", { count: sets }) : "",
+    reps.trim(),
+  ].filter(Boolean);
 
   return parts.join(" × ");
 };
@@ -25,7 +33,10 @@ export const shouldConfirmLinkChange = (
 ) => hasSets && newId !== null && newId !== oldId;
 
 // OQ1: the PT is told the trainee's logged sets go with the exercise.
-export const getDeleteConfirmMessage = (hasSets: boolean) =>
-  hasSets
-    ? CONFIRM_MESSAGES.DELETE_EXERCISE_WITH_SETS
-    : CONFIRM_MESSAGES.DELETE_EXERCISE;
+export const getDeleteConfirmMessage = (
+  hasSets: boolean,
+  locale: Locale = DEFAULT_LOCALE,
+) =>
+  getFormatTranslator(locale)(
+    hasSets ? "deleteExercise.withSets" : "deleteExercise.plain",
+  );

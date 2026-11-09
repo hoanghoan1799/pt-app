@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -19,6 +19,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
 // Super admin only (spec Q6): every trainee-to-trainee chat, read-only.
 const AdminDmChatsPage = async () => {
   const t = await getTranslations("social.adminPages");
+  const locale = await getLocale();
   await requireSuperAdmin();
 
   const rows = await listAllDmConversations();
@@ -57,6 +58,8 @@ const AdminDmChatsPage = async () => {
                         {formatRelativeTime(
                           row.lastMessageAt.getTime(),
                           TIME_ZONE,
+                          undefined,
+                          locale,
                         )}
                       </span>
                     )}

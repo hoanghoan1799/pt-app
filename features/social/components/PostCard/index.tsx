@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -61,6 +61,7 @@ const MENU_ITEM =
   "flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-base font-medium active:bg-line/70";
 
 export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
+  const locale = useLocale();
   const t = useTranslations("social.postCard");
   const tPrivacy = useTranslations("social.privacy");
   const router = useRouter();
@@ -162,7 +163,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
               {post.authorVerified && <VerifiedBadge />}
             </span>
             <span className="flex items-center gap-1 text-xs text-muted">
-              {formatRelativeTime(post.createdAt, TIME_ZONE)}
+              {formatRelativeTime(post.createdAt, TIME_ZONE, undefined, locale)}
               {post.edited && t("edited")}
               <span aria-hidden>·</span>
               <PrivacyIcon className="size-3.5" aria-hidden />

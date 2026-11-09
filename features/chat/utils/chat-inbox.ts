@@ -1,5 +1,6 @@
 import { TIME_ZONE } from "@/constants/time";
-import { PEER_DELETED_NAME } from "@/features/chat/utils/chat-thread-rules";
+import { getFormatTranslator } from "@/i18n/format-translator";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 import { formatShortDate } from "@/utils/time";
 
 const MINUTE_MS = 60 * 1000;
@@ -20,14 +21,17 @@ interface PreviewSender {
 export const inboxPreviewPrefix = (
   item: PreviewSender,
   viewerAdminId: number,
+  locale: Locale = DEFAULT_LOCALE,
 ) => {
+  const t = getFormatTranslator(locale);
+
   if (!item.lastFromAdmin) {
     return "";
   }
   if (item.lastSenderAdminId === viewerAdminId) {
-    return YOU_PREFIX;
+    return t("inbox.you");
   }
-  return `${item.lastSenderAdminName ?? PEER_DELETED_NAME}: `;
+  return `${item.lastSenderAdminName ?? t("thread.peerDeleted")}: `;
 };
 
 const dayFormatter = new Intl.DateTimeFormat("en-CA", {
@@ -44,25 +48,27 @@ const dayKey = (value: number) => dayFormatter.format(new Date(value));
 export const formatInboxTime = (
   timestamp: number | null,
   nowMs: number,
+  locale: Locale = DEFAULT_LOCALE,
 ): string => {
   if (timestamp === null) {
     return "";
   }
+  const t = getFormatTranslator(locale);
   const elapsed = nowMs - timestamp;
 
   if (elapsed < MINUTE_MS) {
-    return "Vừa xong";
+    return t("inbox.justNow");
   }
   const today = dayKey(nowMs);
   const day = dayKey(timestamp);
 
   if (day === today) {
     return elapsed < HOUR_MS
-      ? `${Math.floor(elapsed / MINUTE_MS)} phút`
-      : `${Math.floor(elapsed / HOUR_MS)} giờ`;
+      ? t("inbox.minutes", { count: Math.floor(elapsed / MINUTE_MS) })
+      : t("inbox.hours", { count: Math.floor(elapsed / HOUR_MS) });
   }
   if (day === dayKey(nowMs - DAY_MS)) {
-    return "Hôm qua";
+    return t("inbox.yesterday");
   }
-  return formatShortDate(timestamp, TIME_ZONE);
+  return formatShortDate(timestamp, TIME_ZONE, locale);
 };

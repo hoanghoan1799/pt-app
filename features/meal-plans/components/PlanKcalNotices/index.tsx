@@ -1,5 +1,5 @@
 import { TriangleAlert } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import {
   formatPlanKcalNotice,
@@ -14,6 +14,7 @@ interface PlanKcalNoticesProps {
 // S3: the target changed (weigh-in or profile) and these planned days no
 // longer match it; the PT sees by how much to change the plan.
 export const PlanKcalNotices = ({ notices }: PlanKcalNoticesProps) => {
+  const locale = useLocale();
   const t = useTranslations("mealPlans.planKcalNotices");
 
   if (!notices.length) {
@@ -32,8 +33,10 @@ export const PlanKcalNotices = ({ notices }: PlanKcalNoticesProps) => {
       <ul className="space-y-1 text-sm text-fg">
         {notices.map((notice) => (
           <li key={notice.date}>
-            <span className="font-medium">{formatFullDay(notice.date)}:</span>{" "}
-            {formatPlanKcalNotice(notice.gapKcal)}
+            <span className="font-medium">
+              {formatFullDay(notice.date, locale)}:
+            </span>{" "}
+            {formatPlanKcalNotice(notice.gapKcal, locale)}
           </li>
         ))}
       </ul>

@@ -1,7 +1,7 @@
 "use client";
 
 import { Dumbbell, Pencil, Plus } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
 import {
@@ -25,6 +25,7 @@ interface DayEditorProps {
 }
 
 export const DayEditor = ({ day, userId, isToday }: DayEditorProps) => {
+  const locale = useLocale();
   const t = useTranslations("workouts.dayEditor");
   const editor = useDayEditor();
   const { exercise } = editor.exerciseSheet;
@@ -81,7 +82,7 @@ export const DayEditor = ({ day, userId, isToday }: DayEditorProps) => {
             className={`${BUTTON_PRIMARY} w-full`}
           >
             <Plus className="size-5" aria-hidden />
-            {t("addExercise", { date: formatFullDay(day.date) })}
+            {t("addExercise", { date: formatFullDay(day.date, locale) })}
           </button>
         </div>
       </div>
@@ -90,7 +91,7 @@ export const DayEditor = ({ day, userId, isToday }: DayEditorProps) => {
         isOpen={editor.exerciseSheet.isOpen}
         onOpenChange={editor.handleExerciseSheetChange}
         title={exercise ? t("editExerciseTitle") : t("addExerciseTitle")}
-        description={formatFullDay(day.date)}
+        description={formatFullDay(day.date, locale)}
       >
         <ExerciseForm
           key={editor.exerciseSheet.formKey}
@@ -106,7 +107,7 @@ export const DayEditor = ({ day, userId, isToday }: DayEditorProps) => {
         isOpen={editor.isDaySheetOpen}
         onOpenChange={editor.handleDaySheetChange}
         title={t("dayInfoTitle")}
-        description={formatFullDay(day.date)}
+        description={formatFullDay(day.date, locale)}
       >
         <DayInfoForm
           day={day}

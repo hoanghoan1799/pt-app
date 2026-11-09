@@ -7,12 +7,17 @@ import {
 } from "@/features/chat/utils/chat-rules";
 import { adminLabel } from "@/features/chat/utils/chat-settings";
 import { displayNameFor } from "@/features/chat/utils/display-name";
-import {
-  type ChatPhoto,
-  PHOTO_QUOTE_TEXT,
-} from "@/features/chat/utils/photo-rules";
+import type { ChatPhoto } from "@/features/chat/utils/photo-rules";
 import type { ChatSticker } from "@/features/chat/utils/sticker-rules";
 import type { DmReplyPostView } from "@/features/social/types/dm";
+import { getFormatTranslator } from "@/i18n/format-translator";
+import {
+  DEFAULT_LOCALE,
+  type Locale,
+  LOCALES,
+  toIntlLocale,
+} from "@/utils/locale";
+import { formatDayMonth } from "@/utils/week";
 
 // Pure helpers behind the trainee chat thread: merging, grouping, separators
 // and the polling schedule. No React, no network, so every rule is testable.
@@ -272,33 +277,42 @@ const dayFormatter = new Intl.DateTimeFormat("en-CA", {
   month: "2-digit",
   day: "2-digit",
 });
-const timeFormatter = new Intl.DateTimeFormat("vi-VN", {
-  timeZone: TIME_ZONE,
-  hour: "2-digit",
-  minute: "2-digit",
-  hourCycle: "h23",
-});
+const timeFormatters = Object.fromEntries(
+  LOCALES.map((locale) => [
+    locale,
+    new Intl.DateTimeFormat(toIntlLocale(locale), {
+      timeZone: TIME_ZONE,
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }),
+  ]),
+) as Record<Locale, Intl.DateTimeFormat>;
 
 // yyyy-mm-dd in the app time zone.
 export const dayKey = (value: number | string) =>
   dayFormatter.format(new Date(value));
 
-export const formatTime = (iso: string) => timeFormatter.format(new Date(iso));
+export const formatTime = (iso: string, locale: Locale = DEFAULT_LOCALE) =>
+  timeFormatters[locale].format(new Date(iso));
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export const dayLabel = (iso: string, nowMs: number) => {
+export const dayLabel = (
+  iso: string,
+  nowMs: number,
+  locale: Locale = DEFAULT_LOCALE,
+) => {
   const key = dayKey(iso);
+  const t = getFormatTranslator(locale);
 
   if (key === dayKey(nowMs)) {
-    return "Hôm nay";
+    return t("thread.today");
   }
   if (key === dayKey(nowMs - DAY_MS)) {
-    return "Hôm qua";
+    return t("thread.yesterday");
   }
-  const [, month, day] = key.split("-");
-
-  return `${day}/${month}`;
+  return formatDayMonth(key, locale);
 };
 
 export type ThreadItem =
@@ -324,6 +338,9 @@ export type ThreadItem =
 
 export const PEER_DELETED_NAME = "PT (đã xoá)";
 
+const peerDeletedName = (locale: Locale) =>
+  getFormatTranslator(locale)("thread.peerDeleted");
+
 const senderKey = (message: ThreadMessage) =>
   message.senderRole === "user" ? "user" : `admin:${message.senderAdminId}`;
 
@@ -332,6 +349,7 @@ const senderNameFor = (
   viewer: ThreadViewer,
   continuesRun: boolean,
   nicknames: Readonly<Record<string, string>>,
+  locale: Locale,
 ) => {
   if (continuesRun) {
     return null;
@@ -339,7 +357,7 @@ const senderNameFor = (
   if (viewer.role === "user") {
     return message.senderRole === "admin"
       ? message.senderAdminName === null
-        ? PEER_DELETED_NAME
+        ? peerDeletedName(locale)
         : adminLabel(
             nicknames,
             message.senderAdminId,
@@ -353,7 +371,7 @@ const senderNameFor = (
   return message.senderRole === "admin" &&
     message.senderAdminId !== viewer.adminId
     ? message.senderAdminName === null
-      ? PEER_DELETED_NAME
+      ? peerDeletedName(locale)
       : adminLabel(nicknames, message.senderAdminId, message.senderAdminName)
     : null;
 };
@@ -366,7 +384,9 @@ export const buildThreadItems = (
   nowMs: number,
   viewer: ThreadViewer = USER_VIEWER,
   nicknames: Readonly<Record<string, string>> = {},
+  locale: Locale = DEFAULT_LOCALE,
 ): ThreadItem[] => {
+  const t = getFormatTranslator(locale);
   // "Mine" is the right-hand side: the trainee's own messages, or for an
   // admin every admin message (the PT inbox is shared, D4).
   const isMine = (message: ThreadMessage) => message.senderRole === viewer.role;
@@ -390,7 +410,7 @@ export const buildThreadItems = (
       items.push({
         kind: "day",
         key: `day-${key}`,
-        label: dayLabel(message.createdAt, nowMs),
+        label: dayLabel(message.createdAt, nowMs, locale),
       });
       separated = true;
     } else if (
@@ -400,7 +420,7 @@ export const buildThreadItems = (
       items.push({
         kind: "time",
         key: `time-${key}`,
-        label: formatTime(message.createdAt),
+        label: formatTime(message.createdAt, locale),
       });
       separated = true;
     }
@@ -433,6 +453,7 @@ export const buildThreadItems = (
         viewer,
         Boolean(continuesRun),
         nicknames,
+        locale,
       ),
       showAvatar: !mine && isLastInRun,
       avatarName:
@@ -451,8 +472,8 @@ export const buildThreadItems = (
       statusLine:
         mine && message.id !== null && message.id === lastMineStoredId
           ? message.id <= peerReadUpTo
-            ? "Đã xem"
-            : "Đã gửi"
+            ? t("thread.seen")
+            : t("thread.sent")
           : null,
     });
     previousIndex = items.length - 1;
@@ -524,6 +545,7 @@ export const withMyReaction = (
   reactions: SerializedReaction[],
   viewer: ThreadViewer,
   emoji: string | null,
+  locale: Locale = DEFAULT_LOCALE,
 ): SerializedReaction[] => {
   const key = viewerReactorKey(viewer);
   const others = reactions.filter((reaction) => reaction.reactorKey !== key);
@@ -536,7 +558,10 @@ export const withMyReaction = (
     {
       emoji,
       reactorKey: key,
-      reactorName: viewer.role === "admin" ? viewer.adminName : "Bạn",
+      reactorName:
+        viewer.role === "admin"
+          ? viewer.adminName
+          : getFormatTranslator(locale)("thread.you"),
     },
   ];
 };
@@ -613,40 +638,48 @@ export const UNSENT_TEXT = "Tin nhắn đã bị thu hồi";
 export const STICKER_TEXT = "Sticker";
 
 // One line for a quote or the reply bar: the tombstone, "Sticker" or the text.
-export const quoteText = (quote: {
-  deleted: boolean;
-  isSticker?: boolean;
-  isPhoto?: boolean;
-  body: string;
-}) => {
+export const quoteText = (
+  quote: {
+    deleted: boolean;
+    isSticker?: boolean;
+    isPhoto?: boolean;
+    body: string;
+  },
+  locale: Locale = DEFAULT_LOCALE,
+) => {
+  const t = getFormatTranslator(locale);
+
   if (quote.deleted) {
-    return UNSENT_TEXT;
+    return t("thread.unsent");
   }
   if (quote.isPhoto && quote.body === "") {
-    return PHOTO_QUOTE_TEXT;
+    return t("thread.photo");
   }
-  return quote.isSticker ? STICKER_TEXT : quote.body;
+  return quote.isSticker ? t("thread.sticker") : quote.body;
 };
+
+export const unsentText = (locale: Locale = DEFAULT_LOCALE) =>
+  getFormatTranslator(locale)("thread.unsent");
 
 // "10:42, 06/11" for the actions sheet.
-export const formatSentAt = (iso: string) => {
-  const [, month, day] = dayKey(iso).split("-");
-
-  return `${formatTime(iso)}, ${day}/${month}`;
-};
+export const formatSentAt = (iso: string, locale: Locale = DEFAULT_LOCALE) =>
+  `${formatTime(iso, locale)}, ${formatDayMonth(dayKey(iso), locale)}`;
 
 // Who wrote a message, for "Đang trả lời <name>"; nicknames apply (D2).
 export const senderLabel = (
   message: ThreadMessage,
   viewer: ThreadViewer,
   nicknames: Readonly<Record<string, string>> = {},
+  locale: Locale = DEFAULT_LOCALE,
 ) => {
+  const t = getFormatTranslator(locale);
+
   if (isOwnMessage(message, viewer)) {
-    return "chính mình";
+    return t("thread.yourself");
   }
   if (message.senderRole === "admin") {
     return message.senderAdminName === null
-      ? PEER_DELETED_NAME
+      ? peerDeletedName(locale)
       : adminLabel(
           nicknames,
           message.senderAdminId,
@@ -655,8 +688,8 @@ export const senderLabel = (
         );
   }
   return viewer.role === "admin"
-    ? displayNameFor(nicknames, "user", viewer.peerName ?? "Học viên")
-    : "bạn";
+    ? displayNameFor(nicknames, "user", viewer.peerName ?? t("thread.trainee"))
+    : t("thread.youLower");
 };
 
 // Name above a quoted snippet inside a bubble (only the role is known, so the
@@ -665,11 +698,14 @@ export const quoteLabel = (
   replyTo: SerializedReplyTo,
   viewer: ThreadViewer,
   nicknames: Readonly<Record<string, string>> = {},
+  locale: Locale = DEFAULT_LOCALE,
 ) => {
+  const t = getFormatTranslator(locale);
+
   if (replyTo.senderRole === viewer.role) {
-    return viewer.role === "admin" ? "PT" : "Bạn";
+    return viewer.role === "admin" ? t("thread.pt") : t("thread.you");
   }
   return viewer.role === "admin"
-    ? displayNameFor(nicknames, "user", viewer.peerName ?? "Học viên")
-    : displayNameFor(nicknames, "pt", "PT");
+    ? displayNameFor(nicknames, "user", viewer.peerName ?? t("thread.trainee"))
+    : displayNameFor(nicknames, "pt", t("thread.pt"));
 };

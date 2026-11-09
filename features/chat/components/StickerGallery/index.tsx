@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
@@ -30,6 +30,7 @@ export const StickerGallery = ({
   chatPath,
   avatars,
 }: StickerGalleryProps) => {
+  const locale = useLocale();
   const t = useTranslations("chat.stickerGallery");
   const router = useRouter();
   const { items, cursor, error, sentinel, loadMore, loadMoreQuietly } =
@@ -45,9 +46,9 @@ export const StickerGallery = ({
       items.map((item) => ({
         id: item.messageId,
         src: item.url,
-        label: `${item.alt} · ${photoLabel(item)}`,
+        label: `${item.alt} · ${photoLabel(item, locale)}`,
       })),
-    [items],
+    [items, locale],
   );
 
   if (items.length === 0) {
@@ -67,7 +68,7 @@ export const StickerGallery = ({
             <button
               type="button"
               data-gallery-sticker={item.messageId}
-              aria-label={t("viewSticker", { label: photoLabel(item) })}
+              aria-label={t("viewSticker", { label: photoLabel(item, locale) })}
               onClick={() => setOpenIndex(index)}
               className="absolute inset-0 block p-2"
             >

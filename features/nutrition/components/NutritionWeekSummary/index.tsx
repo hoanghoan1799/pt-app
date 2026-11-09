@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { CARD } from "@/constants/styles";
 import {
@@ -39,6 +39,7 @@ export const NutritionWeekSummary = ({
   weekStart,
   dayBasePath,
 }: NutritionWeekSummaryProps) => {
+  const locale = useLocale();
   const t = useTranslations("nutrition.nutritionWeekSummary");
   const tLabels = useTranslations("nutrition.labels");
   const summary = summarizeNutritionWeek(days);
@@ -54,7 +55,9 @@ export const NutritionWeekSummary = ({
       className: "text-success",
     },
     {
-      value: summary.loggedDays ? formatCalories(summary.averageKcal) : "–",
+      value: summary.loggedDays
+        ? formatCalories(summary.averageKcal, locale)
+        : "–",
       label: t("avgPerDay"),
       className: "text-fg",
     },
@@ -113,9 +116,9 @@ export const NutritionWeekSummary = ({
             className="grid grid-cols-[1fr_repeat(3,4.5rem)] items-baseline border-t border-line px-4 py-2.5 transition active:bg-line/60"
           >
             <span role="rowheader" className="font-medium text-fg">
-              {getWeekdayShortLabel(day.date)}{" "}
+              {getWeekdayShortLabel(day.date, locale)}{" "}
               <span className="font-normal text-muted">
-                {formatDayMonth(day.date)}
+                {formatDayMonth(day.date, locale)}
               </span>
             </span>
             {MACROS.map((macro) => (

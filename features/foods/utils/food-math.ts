@@ -1,6 +1,8 @@
 import { FOOD_LIMITS } from "@/features/foods/constants/foods";
 import type { Food, FoodAmount, MacroShare } from "@/features/foods/types/food";
 import { KCAL_PER_GRAM } from "@/features/nutrition/constants/energy";
+import { getFormatTranslator } from "@/i18n/format-translator";
+import { DEFAULT_LOCALE, type Locale, toIntlLocale } from "@/utils/locale";
 
 type Macros = Pick<Food, "protein" | "carbs" | "fat">;
 
@@ -89,18 +91,25 @@ export const macroSplit = (macros: Macros): MacroShare => {
 };
 
 // "35" -> "35", "46.5" -> "46,5": Vietnamese decimal comma, one decimal.
-export const formatGrams = (grams: number) =>
-  roundTo(grams, 1).toLocaleString("vi-VN", {
+export const formatGrams = (grams: number, locale: Locale = DEFAULT_LOCALE) =>
+  roundTo(grams, 1).toLocaleString(toIntlLocale(locale), {
     maximumFractionDigits: 1,
     useGrouping: false,
   });
 
-export const formatKcal = (kcal: number) =>
-  Math.round(kcal).toLocaleString("vi-VN", { useGrouping: false });
+export const formatKcal = (kcal: number, locale: Locale = DEFAULT_LOCALE) =>
+  Math.round(kcal).toLocaleString(toIntlLocale(locale), {
+    useGrouping: false,
+  });
 
 // Shown next to the kcal field and as the refusal message.
-export const describeKcalGap = (kcal: number, macros: Macros) => {
-  const percent = Math.round(kcalGap(kcal, macros) * 100);
-
-  return `Calo nhập ${formatKcal(kcal)} lệch ${percent}% so với ${formatKcal(kcalFromMacros(macros))} kcal tính từ protein/carb/fat (4/4/9).`;
-};
+export const describeKcalGap = (
+  kcal: number,
+  macros: Macros,
+  locale: Locale = DEFAULT_LOCALE,
+) =>
+  getFormatTranslator(locale)("kcalGap", {
+    entered: formatKcal(kcal, locale),
+    percent: Math.round(kcalGap(kcal, macros) * 100),
+    computed: formatKcal(kcalFromMacros(macros), locale),
+  });

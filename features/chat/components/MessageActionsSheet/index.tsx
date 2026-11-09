@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { Copy, Pencil, Reply, Undo2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
@@ -68,6 +68,7 @@ export const MessageActionsSheet = ({
   onEdit,
   onUnsend,
 }: MessageActionsSheetProps) => {
+  const locale = useLocale();
   const t = useTranslations("chat.messageActions");
   const mine = myReactionOf(message, viewer);
   // A sticker has no text: it can be reacted to, replied to and unsent only.
@@ -81,7 +82,9 @@ export const MessageActionsSheet = ({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title={t("title")}
-      description={t("sentAt", { time: formatSentAt(message.createdAt) })}
+      description={t("sentAt", {
+        time: formatSentAt(message.createdAt, locale),
+      })}
     >
       {canWrite && (
         <div

@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import {
   MACRO_COLORS,
@@ -7,6 +7,7 @@ import {
   MACROS,
 } from "@/features/nutrition/constants/nutrition";
 import type { MacroAmounts } from "@/features/nutrition/types/nutrition";
+import { type Locale, toIntlLocale } from "@/utils/locale";
 
 interface MacroChipsProps {
   totals: MacroAmounts;
@@ -16,10 +17,13 @@ interface MacroChipsProps {
 
 const round = (value: number) => Math.round(value * 10) / 10;
 
-const format = (value: number) =>
-  round(value).toLocaleString("vi-VN", { maximumFractionDigits: 1 });
+const format = (value: number, locale: Locale) =>
+  round(value).toLocaleString(toIntlLocale(locale), {
+    maximumFractionDigits: 1,
+  });
 
 export const MacroChips = ({ totals, target }: MacroChipsProps) => {
+  const locale = useLocale();
   const tLabels = useTranslations("nutrition.labels");
 
   return (
@@ -41,12 +45,13 @@ export const MacroChips = ({ totals, target }: MacroChipsProps) => {
             {tLabels(MACRO_LABELS[macro].nameKey)} (g)
           </p>
           <p className="text-sm leading-tight font-bold text-fg tabular-nums">
-            {format(totals[macro])}
+            {format(totals[macro], locale)}
             {target ? (
               <span className="block text-xs font-normal text-muted">
                 {/* The space keeps "70 / 70,1" readable as text when the
                   block layout is not applied (screen readers, copy). */}
-                <span className="sr-only"> </span>/ {format(target[macro])}
+                <span className="sr-only"> </span>/{" "}
+                {format(target[macro], locale)}
               </span>
             ) : null}
           </p>

@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import {
   MACRO_COLORS,
@@ -26,9 +26,10 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 // One macro as a ~60px ring with "eaten / target g" and the Còn/Vượt text.
 export const MacroRing = ({ macro, eaten, target }: MacroRingProps) => {
+  const locale = useLocale();
   const percent = getRingPercent(eaten, target);
   const comparison = compareToTarget(eaten, target, macro);
-  const comparisonText = formatComparison(comparison, "g");
+  const comparisonText = formatComparison(comparison, "g", locale);
   const t = useTranslations("nutrition.macroRing");
   const tLabels = useTranslations("nutrition.labels");
   const name = tLabels(MACRO_LABELS[macro].nameKey);

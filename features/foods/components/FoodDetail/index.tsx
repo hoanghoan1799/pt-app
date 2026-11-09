@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { CARD } from "@/constants/styles";
 import { FoodAmountCalculator } from "@/features/foods/components/FoodAmountCalculator";
@@ -28,6 +28,7 @@ const MACRO_ORDER = ["protein", "carbs", "fat"] as const;
 // What a food is made of per 100 g, plus the amount calculator. Read-only:
 // the admin page adds the edit form below it.
 export const FoodDetail = ({ food }: FoodDetailProps) => {
+  const locale = useLocale();
   const t = useTranslations("foods.foodDetail");
   const tFoodLabels = useTranslations("foods.labels");
   const tNutritionLabels = useTranslations("nutrition.labels");
@@ -53,7 +54,7 @@ export const FoodDetail = ({ food }: FoodDetailProps) => {
               {food.state && ` · ${tFoodLabels(FOOD_STATE_LABELS[food.state])}`}
             </p>
             <p className="text-3xl font-bold text-fg tabular-nums">
-              {formatKcal(food.kcal)}{" "}
+              {formatKcal(food.kcal, locale)}{" "}
               <span className="text-base font-medium text-muted">
                 kcal / 100 g
               </span>
@@ -84,7 +85,7 @@ export const FoodDetail = ({ food }: FoodDetailProps) => {
                 })}
               </dt>
               <dd className="mt-0.5 text-lg font-bold text-fg tabular-nums">
-                {formatGrams(food[macro])}
+                {formatGrams(food[macro], locale)}
                 <span className="text-xs font-medium text-muted"> g</span>
               </dd>
             </div>
@@ -93,13 +94,13 @@ export const FoodDetail = ({ food }: FoodDetailProps) => {
 
         <ul className="space-y-1 text-sm text-muted">
           {food.fiber !== null && (
-            <li>{t("fiber", { grams: formatGrams(food.fiber) })}</li>
+            <li>{t("fiber", { grams: formatGrams(food.fiber, locale) })}</li>
           )}
           {food.servingLabel && food.servingGrams && (
             <li>
               {t("serving", {
                 label: food.servingLabel,
-                grams: formatGrams(food.servingGrams),
+                grams: formatGrams(food.servingGrams, locale),
               })}
             </li>
           )}

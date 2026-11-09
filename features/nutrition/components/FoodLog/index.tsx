@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { Pencil, Plus, Trash2, UtensilsCrossed } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { BUTTON_SECONDARY, CARD, ICON_BUTTON } from "@/constants/styles";
@@ -37,6 +37,7 @@ export const FoodLog = ({
   isEditable,
   emptyMessage,
 }: FoodLogProps) => {
+  const locale = useLocale();
   const t = useTranslations("nutrition.foodLog");
   const tLabels = useTranslations("nutrition.labels");
   const log = useFoodLog();
@@ -135,7 +136,7 @@ export const FoodLog = ({
             isOpen={log.sheet.isOpen}
             onOpenChange={log.handleSheetChange}
             title={log.sheet.entry ? t("editMeal") : t("logMeal")}
-            description={formatFullDay(date)}
+            description={formatFullDay(date, locale)}
           >
             <FoodEntryForm
               key={log.sheet.formKey}

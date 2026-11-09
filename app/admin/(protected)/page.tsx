@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { WeekNavigator } from "@/components/common/WeekNavigator";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -66,6 +66,7 @@ const getMemberHref = (memberId: number, weekStart: string) =>
 const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
   const admin = await requireAdmin();
   const t = await getTranslations("adminPages.home");
+  const locale = await getLocale();
   const query = await searchParams;
   const today = getTodayDate(TIME_ZONE);
   const now = getRequestTime();
@@ -107,6 +108,7 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     timeZone: TIME_ZONE,
     now,
     getHref: getMemberHref,
+    locale,
     unreadByUserId: new Map(
       unreadByTrainee.map((row) => [row.userId, row.unread]),
     ),

@@ -31,3 +31,7 @@ export const getLocaleCookieOptions = () => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
 });
+
+// BCP 47 tag for Intl (numbers, dates) per app locale.
+export const toIntlLocale = (locale: Locale) =>
+  locale === "en" ? "en-US" : "vi-VN";

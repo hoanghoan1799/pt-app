@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { Lock } from "lucide-react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Avatar } from "@/components/common/Avatar";
 import { CARD } from "@/constants/styles";
@@ -41,24 +41,26 @@ export const ChatInboxList = ({
   onUnhide,
   isBusy = false,
 }: ChatInboxListProps) => {
+  const locale = useLocale();
   const t = useTranslations("chat.chatInbox");
 
   return (
     <ul className={`${CARD} divide-y divide-line overflow-hidden`}>
       {items.map((item) => {
         const isUnread = item.unread > 0;
-        const prefix = inboxPreviewPrefix(item, adminId);
+        const prefix = inboxPreviewPrefix(item, adminId, locale);
         const preview = item.preview
           ? `${prefix}${item.preview}`
           : t("noMessages");
         const time = formatInboxTime(
           item.lastMessageAt ? item.lastMessageAt.getTime() : null,
           nowMs,
+          locale,
         );
 
         const now = new Date(nowMs);
         const online = isOnline(item.lastSeenAt, now);
-        const lastSeen = shortLastSeen(item.lastSeenAt, now);
+        const lastSeen = shortLastSeen(item.lastSeenAt, now, locale);
 
         const row = (
           <>
