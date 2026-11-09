@@ -9,12 +9,12 @@ import { type ReactNode, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Avatar } from "@/components/common/Avatar";
+import { Input } from "@/components/common/Input";
 import { Spinner } from "@/components/common/Spinner";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
   CARD,
-  INPUT,
   PAGE_CONTAINER,
   SECTION_TITLE,
 } from "@/constants/styles";
@@ -174,22 +174,18 @@ export const AdminInbox = ({
       )}
     >
       <div className="flex items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted"
-            aria-hidden
-          />
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t("searchPlaceholder")}
-            aria-label={t("searchPlaceholder")}
-            autoComplete="off"
-            enterKeyHint="search"
-            className={`${INPUT} pl-10`}
-          />
-        </div>
+        <Input
+          type="search"
+          clearable
+          leadingIcon={<Search className="size-4" aria-hidden />}
+          wrapperClassName="min-w-0 flex-1"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t("searchPlaceholder")}
+          aria-label={t("searchPlaceholder")}
+          autoComplete="off"
+          enterKeyHint="search"
+        />
         {!isSelecting && (
           <button
             type="button"

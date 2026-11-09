@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
-import { INPUT } from "@/constants/styles";
+import { Input } from "@/components/common/Input";
 import { CustomStickerGrid } from "@/features/chat/components/CustomStickerGrid";
 import {
   bundledStickerUrl,
@@ -195,21 +195,17 @@ export const StickerPanel = ({
         )}
       </div>
       {activeTab === GIPHY_TAB && (
-        <div className="relative mb-3">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted"
-            aria-hidden
-          />
-          <input
-            type="search"
-            value={query}
-            maxLength={50}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t("giphySearch")}
-            aria-label={t("giphySearch")}
-            className={clsx(INPUT, "pl-11")}
-          />
-        </div>
+        <Input
+          type="search"
+          clearable
+          leadingIcon={<Search className="size-5" aria-hidden />}
+          wrapperClassName="mb-3"
+          value={query}
+          maxLength={50}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t("giphySearch")}
+          aria-label={t("giphySearch")}
+        />
       )}
       <div
         id="sticker-grid"

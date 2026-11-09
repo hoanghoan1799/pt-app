@@ -9,8 +9,9 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 
 import { Avatar } from "@/components/common/Avatar";
+import { Input } from "@/components/common/Input";
 import { ProgressBar } from "@/components/common/ProgressBar";
-import { CARD, INPUT, SECTION_TITLE } from "@/constants/styles";
+import { CARD, SECTION_TITLE } from "@/constants/styles";
 import { HiddenUserList } from "@/features/chat/components/HiddenUserList";
 import { UnreadBadge } from "@/features/chat/components/UnreadBadge";
 import { useHiddenReveal } from "@/features/chat/hooks/use-hidden-reveal";
@@ -68,22 +69,17 @@ export const MemberProgressList = ({
 
   return (
     <div className="space-y-3">
-      <div className="relative">
-        <Search
-          className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted"
-          aria-hidden
-        />
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={t("searchPlaceholder")}
-          aria-label={t("searchLabel")}
-          autoComplete="off"
-          enterKeyHint="search"
-          className={`${INPUT} pl-11`}
-        />
-      </div>
+      <Input
+        type="search"
+        clearable
+        leadingIcon={<Search className="size-5" aria-hidden />}
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder={t("searchPlaceholder")}
+        aria-label={t("searchLabel")}
+        autoComplete="off"
+        enterKeyHint="search"
+      />
       {hiddenUsers.length > 0 ? (
         <section className="space-y-2" aria-label={t("hiddenTitle")}>
           <h2 className={SECTION_TITLE}>{t("hiddenTitle")}</h2>
