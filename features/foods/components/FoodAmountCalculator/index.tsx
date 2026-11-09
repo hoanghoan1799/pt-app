@@ -3,7 +3,8 @@
 import clsx from "clsx";
 import { useLocale, useTranslations } from "next-intl";
 
-import { CARD, INPUT, LABEL } from "@/constants/styles";
+import { Input } from "@/components/common/Input";
+import { CARD, LABEL } from "@/constants/styles";
 import { useFoodAmount } from "@/features/foods/hooks/use-food-amount";
 import type { Food } from "@/features/foods/types/food";
 import { formatGrams, formatKcal } from "@/features/foods/utils/food-math";
@@ -63,7 +64,7 @@ export const FoodAmountCalculator = ({ food }: FoodAmountCalculatorProps) => {
           {unit === "servings" ? t("servingsCount") : t("amountGrams")}
         </label>
         <div className="relative">
-          <input
+          <Input
             id="food-amount"
             value={text}
             onChange={(event) => setText(event.target.value)}
@@ -71,7 +72,7 @@ export const FoodAmountCalculator = ({ food }: FoodAmountCalculatorProps) => {
             autoComplete="off"
             aria-invalid={!isValid}
             aria-describedby="amount-hint"
-            className={`${INPUT} pr-24`}
+            className="pr-24"
           />
           <span className="pointer-events-none absolute top-1/2 right-4 max-w-20 -translate-y-1/2 truncate text-sm text-muted">
             {unitLabel}

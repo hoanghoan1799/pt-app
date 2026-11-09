@@ -3,6 +3,7 @@
 import { UserPlus } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Input } from "@/components/common/Input";
 import { SubmitButton } from "@/components/common/SubmitButton";
 import { BUTTON_PRIMARY, FIELD_ERROR, INPUT, LABEL } from "@/constants/styles";
 import { OneTimePassword } from "@/features/members/components/OneTimePassword";
@@ -42,7 +43,8 @@ export const CreateMemberForm = ({
         <label htmlFor="member-name" className={LABEL}>
           {t("nameLabel")}
         </label>
-        <input
+        <Input
+          clearable
           key={defaultName}
           id="member-name"
           name="name"
@@ -53,7 +55,6 @@ export const CreateMemberForm = ({
           enterKeyHint="next"
           required
           aria-invalid={Boolean(nameError)}
-          className={INPUT}
         />
         {nameError && (
           <p role="alert" className={FIELD_ERROR}>
@@ -65,7 +66,8 @@ export const CreateMemberForm = ({
         <label htmlFor="member-email" className={LABEL}>
           {t("emailLabel")}
         </label>
-        <input
+        <Input
+          clearable
           key={defaultEmail}
           id="member-email"
           name="email"
@@ -79,7 +81,6 @@ export const CreateMemberForm = ({
           enterKeyHint="done"
           required
           aria-invalid={Boolean(emailError)}
-          className={INPUT}
         />
         {emailError && (
           <p role="alert" className={FIELD_ERROR}>

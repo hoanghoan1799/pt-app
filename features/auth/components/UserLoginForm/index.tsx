@@ -3,8 +3,9 @@
 import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Input } from "@/components/common/Input";
 import { SubmitButton } from "@/components/common/SubmitButton";
-import { BUTTON_PRIMARY, FIELD_ERROR, INPUT, LABEL } from "@/constants/styles";
+import { BUTTON_PRIMARY, FIELD_ERROR, LABEL } from "@/constants/styles";
 import { useLoginForm } from "@/features/auth/hooks/use-login-form";
 import { loginWithEmailAction } from "@/features/auth/services/auth-actions";
 import { describeErrorReference } from "@/utils/errors";
@@ -20,7 +21,8 @@ export const UserLoginForm = () => {
         <label htmlFor="email" className={LABEL}>
           Email
         </label>
-        <input
+        <Input
+          clearable
           id="email"
           name="email"
           type="email"
@@ -34,14 +36,13 @@ export const UserLoginForm = () => {
           required
           aria-invalid={Boolean(errorMessage)}
           aria-describedby={errorMessage ? "login-error" : undefined}
-          className={INPUT}
         />
       </div>
       <div>
         <label htmlFor="password" className={LABEL}>
           {t("passwordLabel")}
         </label>
-        <input
+        <Input
           id="password"
           name="password"
           type="password"
@@ -50,7 +51,6 @@ export const UserLoginForm = () => {
           required
           aria-invalid={Boolean(errorMessage)}
           aria-describedby={errorMessage ? "login-error" : undefined}
-          className={INPUT}
         />
         {errorMessage && (
           <p id="login-error" role="alert" className={FIELD_ERROR}>

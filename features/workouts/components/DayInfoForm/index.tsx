@@ -2,11 +2,11 @@
 
 import { useTranslations } from "next-intl";
 
+import { Input } from "@/components/common/Input";
 import { SubmitButton } from "@/components/common/SubmitButton";
 import {
   BUTTON_PRIMARY,
   FIELD_ERROR,
-  INPUT,
   LABEL,
   TEXTAREA,
 } from "@/constants/styles";
@@ -32,14 +32,14 @@ export const DayInfoForm = ({ day, userId, onSaved }: DayInfoFormProps) => {
         <label htmlFor="day-title" className={LABEL}>
           {t("titleLabel")}
         </label>
-        <input
+        <Input
+          clearable
           id="day-title"
           name="title"
           defaultValue={day.title}
           placeholder={t("titlePlaceholder")}
           maxLength={EXERCISE_LIMITS.DAY_TITLE}
           autoCapitalize="sentences"
-          className={INPUT}
         />
         {fieldErrors.title && (
           <p className={FIELD_ERROR}>{fieldErrors.title}</p>

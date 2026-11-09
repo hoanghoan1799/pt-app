@@ -7,8 +7,9 @@ import { type FormEvent, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Avatar } from "@/components/common/Avatar";
+import { Input } from "@/components/common/Input";
 import { Spinner } from "@/components/common/Spinner";
-import { BUTTON_PRIMARY, CARD, INPUT, LABEL } from "@/constants/styles";
+import { BUTTON_PRIMARY, CARD, LABEL } from "@/constants/styles";
 import { RelationshipButton } from "@/features/social/components/RelationshipButton";
 import { searchFriendAction } from "@/features/social/services/friend-actions";
 import type { SearchResult } from "@/features/social/services/friend-queries";
@@ -50,7 +51,8 @@ export const FriendSearch = () => {
           <label htmlFor="friend-email" className={LABEL}>
             {t("label")}
           </label>
-          <input
+          <Input
+            clearable
             id="friend-email"
             type="email"
             inputMode="email"
@@ -62,7 +64,6 @@ export const FriendSearch = () => {
               setSearched(false);
             }}
             placeholder="ten@example.com"
-            className={INPUT}
           />
           <p className="mt-1.5 text-sm text-muted">{t("hint")}</p>
         </div>
