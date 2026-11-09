@@ -10,6 +10,9 @@ export interface Food {
   name: string;
   // Accent-free lower-cased name used by the search.
   nameKey: string;
+  // Optional translations of `name` (null = use the starter map or `name`).
+  nameEn: string | null;
+  nameZh: string | null;
   group: FoodGroup;
   state: FoodState | null;
   kcal: number;

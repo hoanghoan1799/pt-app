@@ -5,6 +5,8 @@ import { asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { foods, mealPlanItems, mealPlanMeals } from "@/db/schema";
 import { listFoods } from "@/features/foods/services/food-queries";
+import type { Food } from "@/features/foods/types/food";
+import { localizeFoodName } from "@/features/foods/utils/food-locale";
 import { NOTICE_HORIZON_DAYS } from "@/features/meal-plans/constants/meal-plans";
 import { listDaysInRange } from "@/features/meal-plans/services/meal-plan-store";
 import type { PlanDay, PlanFood } from "@/features/meal-plans/types/meal-plan";
@@ -19,6 +21,8 @@ import {
 } from "@/features/meal-plans/utils/plan-totals";
 import { listTargets } from "@/features/nutrition/services/nutrition-queries";
 import { findTargetForDate } from "@/features/nutrition/utils/nutrition";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
+import { toNameKey } from "@/utils/name";
 import { addDays, getWeekDates } from "@/utils/week";
 
 // Archived foods are NOT filtered out: a plan keeps showing what it was built
@@ -27,6 +31,8 @@ const planFoodColumns = {
   id: foods.id,
   name: foods.name,
   nameKey: foods.nameKey,
+  nameEn: foods.nameEn,
+  nameZh: foods.nameZh,
   group: foods.group,
   state: foods.state,
   kcal: foods.kcal,
@@ -37,28 +43,44 @@ const planFoodColumns = {
 };
 
 const toPlanFood = (
-  row: Omit<PlanFood, "isArchived">,
+  row: Omit<PlanFood, "isArchived" | "searchKey"> &
+    Pick<Food, "nameEn" | "nameZh">,
   isArchived: boolean,
-): PlanFood => ({
-  id: row.id,
-  name: row.name,
-  nameKey: row.nameKey,
-  group: row.group,
-  state: row.state,
-  kcal: row.kcal,
-  protein: row.protein,
-  carbs: row.carbs,
-  fat: row.fat,
-  isArchived,
-});
+  locale: Locale,
+): PlanFood => {
+  const name = localizeFoodName(row, locale);
 
-// The active library the PT searches when adding a food to a meal.
-export const listPlanFoods = async (): Promise<PlanFood[]> =>
-  (await listFoods()).map((food) => toPlanFood(food, false));
+  return {
+    id: row.id,
+    name,
+    nameKey: row.nameKey,
+    // The search also matches the name in the user's language.
+    ...(locale === DEFAULT_LOCALE
+      ? {}
+      : { searchKey: `${row.nameKey} ${toNameKey(name)}` }),
+    group: row.group,
+    state: row.state,
+    kcal: row.kcal,
+    protein: row.protein,
+    carbs: row.carbs,
+    fat: row.fat,
+    isArchived,
+  };
+};
+
+// The active library the PT searches when adding a food to a meal, named and
+// sorted in `locale`.
+export const listPlanFoods = async (
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<PlanFood[]> =>
+  (await listFoods())
+    .map((food) => toPlanFood(food, false, locale))
+    .sort((a, b) => a.name.localeCompare(b.name, locale));
 
 export const getMealPlanWeek = async (
   userId: number,
   weekStart: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<PlanDay[]> => {
   const dates = getWeekDates(weekStart);
   const dayRows = await listDaysInRange(
@@ -115,7 +137,7 @@ export const getMealPlanWeek = async (
           .filter((item) => item.mealId === meal.id)
           .map(({ food, ...item }) => ({
             ...item,
-            food: toPlanFood(food, food.archivedAt !== null),
+            food: toPlanFood(food, food.archivedAt !== null, locale),
           })),
       })),
   }));

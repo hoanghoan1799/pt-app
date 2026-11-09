@@ -38,6 +38,8 @@
   "foodFormView": {
     "name": "Food name",
     "namePlaceholder": "e.g. Chicken breast (cooked)",
+    "nameEn": "English name (optional)",
+    "nameZh": "Chinese name (optional)",
     "group": "Group",
     "state": "State",
     "notApplicable": "Not applicable",

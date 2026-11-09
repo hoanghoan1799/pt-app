@@ -1,4 +1,10 @@
 {
+  "mealNames": {
+    "breakfast": "Breakfast",
+    "lunch": "Lunch",
+    "dinner": "Dinner",
+    "snack": "Snack {n}"
+  },
   "mealCard": {
     "sectionLabel": "Meal {index}: {name}",
     "mealNameLabel": "Meal {index} name",

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -9,6 +9,7 @@ import { DeleteFoodButton } from "@/features/foods/components/DeleteFoodButton";
 import { FoodDetail } from "@/features/foods/components/FoodDetail";
 import { FoodForm } from "@/features/foods/components/FoodForm";
 import { getFood } from "@/features/foods/services/food-queries";
+import { localizeFood } from "@/features/foods/utils/food-locale";
 import { requireSuperAdmin } from "@/services/auth-guard";
 
 export const generateMetadata = async (): Promise<Metadata> => {
@@ -27,18 +28,19 @@ const AdminFoodPage = async ({ params }: PageProps<"/admin/foods/[id]">) => {
   if (!food) {
     notFound();
   }
+  const shown = localizeFood(food, await getLocale());
 
   return (
     <>
       <AppHeader
         eyebrow={t("eyebrow")}
-        title={food.name}
+        title={shown.name}
         backHref={ROUTES.ADMIN_FOODS}
       />
       <main
         className={`${PAGE_CONTAINER} space-y-6 pt-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]`}
       >
-        <FoodDetail food={food} />
+        <FoodDetail food={shown} />
         <section className="space-y-3">
           <h2 className={SECTION_TITLE}>{t("edit")}</h2>
           <FoodForm food={food} />

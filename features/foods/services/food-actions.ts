@@ -54,6 +54,9 @@ const readFoodForm = (formData: FormData) => {
       ...values,
       // Empty serving fields are stored as null, not as an empty label.
       servingLabel: values.servingLabel || null,
+      // An empty translation falls back to the starter map or the name.
+      nameEn: values.nameEn || null,
+      nameZh: values.nameZh || null,
       nameKey: toNameKey(values.name),
     },
   } as const;

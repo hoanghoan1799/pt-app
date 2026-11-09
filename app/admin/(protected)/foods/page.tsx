@@ -1,13 +1,14 @@
 import { Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { BUTTON_PRIMARY, PAGE_CONTAINER } from "@/constants/styles";
 import { FoodList } from "@/features/foods/components/FoodList";
 import { listFoods } from "@/features/foods/services/food-queries";
+import { localizeFoods } from "@/features/foods/utils/food-locale";
 import { requireSuperAdmin } from "@/services/auth-guard";
 
 export const generateMetadata = async (): Promise<Metadata> => {
@@ -20,7 +21,7 @@ const AdminFoodsPage = async () => {
   await requireSuperAdmin();
   const t = await getTranslations("pages.adminFoods");
 
-  const foods = await listFoods();
+  const foods = localizeFoods(await listFoods(), await getLocale());
 
   return (
     <>

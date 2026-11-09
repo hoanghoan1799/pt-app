@@ -43,6 +43,8 @@ describe("foodFormSchema accepts good input", () => {
       fiber: null,
       servingLabel: "",
       servingGrams: null,
+      nameEn: "",
+      nameZh: "",
       source: "USDA FDC 171477",
       confirmed: false,
     });

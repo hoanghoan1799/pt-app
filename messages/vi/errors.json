@@ -258,6 +258,8 @@
     "servingLabel": "Tên khẩu phần",
     "servingGrams": "Khối lượng khẩu phần",
     "source": "Nguồn",
+    "nameEn": "Tên tiếng Anh",
+    "nameZh": "Tên tiếng Trung",
     "age": "Tuổi",
     "height": "Chiều cao",
     "weight": "Cân nặng",

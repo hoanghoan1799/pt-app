@@ -13,6 +13,7 @@ import { MealGapNotice } from "@/features/meal-plans/components/MealGapNotice";
 import { MealItemRow } from "@/features/meal-plans/components/MealItemRow";
 import { MealLogSummary } from "@/features/meal-plans/components/MealLogSummary";
 import { useMealCard } from "@/features/meal-plans/hooks/use-meal-card";
+import { useMealName } from "@/features/meal-plans/hooks/use-meal-name";
 import { useMealNameInput } from "@/features/meal-plans/hooks/use-meal-name-input";
 import type { MealLog, MealMark } from "@/features/meal-plans/types/meal-log";
 import type {
@@ -63,7 +64,8 @@ export const MealCard = ({
   const t = useTranslations("mealPlans.mealCard");
   const confirm = useConfirm();
   const card = useMealCard(userId, meal);
-  const nameInput = useMealNameInput(meal.name, card.rename);
+  const mealName = useMealName()(meal.name);
+  const nameInput = useMealNameInput(meal.name, mealName, card.rename);
   const totals = sumItems(meal.items);
   const takenFoodIds = meal.items.map((item) => item.foodId);
   const gaps =
@@ -81,11 +83,11 @@ export const MealCard = ({
   return (
     <section
       className={`${CARD} flex flex-col gap-3 p-4`}
-      aria-label={t("sectionLabel", { index: index + 1, name: meal.name })}
+      aria-label={t("sectionLabel", { index: index + 1, name: mealName })}
     >
       <div className="flex items-center gap-1">
         <MealCollapseToggle
-          mealName={meal.name}
+          mealName={mealName}
           isCollapsed={isCollapsed}
           controlsId={bodyId}
           onToggle={onToggleCollapse}
@@ -108,7 +110,7 @@ export const MealCard = ({
           onClick={() => onMove(-1)}
           disabled={isFirst || isBusy}
           className={ICON_BUTTON}
-          aria-label={t("moveUp", { name: meal.name })}
+          aria-label={t("moveUp", { name: mealName })}
         >
           <ChevronUp className="size-5" />
         </button>
@@ -117,7 +119,7 @@ export const MealCard = ({
           onClick={() => onMove(1)}
           disabled={isLast || isBusy}
           className={ICON_BUTTON}
-          aria-label={t("moveDown", { name: meal.name })}
+          aria-label={t("moveDown", { name: mealName })}
         >
           <ChevronDown className="size-5" />
         </button>
@@ -127,7 +129,7 @@ export const MealCard = ({
             if (
               !meal.items.length ||
               (await confirm({
-                title: t("deleteMealQuestion", { meal: meal.name }),
+                title: t("deleteMealQuestion", { meal: mealName }),
                 confirmLabel: t("confirmDelete"),
                 isDanger: true,
               }))
@@ -138,7 +140,7 @@ export const MealCard = ({
           disabled={isOnly || isBusy}
           aria-busy={isBusy}
           className={`${ICON_BUTTON} text-danger`}
-          aria-label={t("deleteMeal", { name: meal.name })}
+          aria-label={t("deleteMeal", { name: mealName })}
         >
           <Trash2 className="size-4" />
         </button>
@@ -186,7 +188,7 @@ export const MealCard = ({
         )}
 
         <FoodPicker
-          mealName={meal.name}
+          mealName={mealName}
           library={library}
           takenFoodIds={takenFoodIds}
           isDisabled={isBusy}
@@ -197,7 +199,7 @@ export const MealCard = ({
           <div className="space-y-2">
             <p
               className="text-sm font-semibold text-fg tabular-nums"
-              aria-label={t("totalLabel", { name: meal.name })}
+              aria-label={t("totalLabel", { name: mealName })}
             >
               {Math.round(kcalOf(totals))} kcal
               {target && (

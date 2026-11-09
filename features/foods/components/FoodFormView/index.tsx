@@ -13,6 +13,7 @@ import {
   FOOD_STATE_LABELS,
 } from "@/features/foods/constants/foods";
 import type { Food } from "@/features/foods/types/food";
+import { translatedFoodName } from "@/features/foods/utils/food-locale";
 import { MACRO_LABELS } from "@/features/nutrition/constants/nutrition";
 
 interface KcalCheck {
@@ -123,6 +124,32 @@ export const FoodFormView = ({
           aria-invalid={Boolean(fieldErrors.name)}
         />
         {fieldErrors.name && <p className={FIELD_ERROR}>{fieldErrors.name}</p>}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {(["en", "zh"] as const).map((language) => {
+          const field = language === "en" ? "nameEn" : "nameZh";
+
+          return (
+            <div key={field}>
+              <label htmlFor={`food-${field}`} className={LABEL}>
+                {t(field)}
+              </label>
+              <Input
+                clearable
+                id={`food-${field}`}
+                name={field}
+                defaultValue={food ? translatedFoodName(food, language) : ""}
+                maxLength={FOOD_LIMITS.NAME_MAX}
+                autoComplete="off"
+                aria-invalid={Boolean(fieldErrors[field])}
+              />
+              {fieldErrors[field] && (
+                <p className={FIELD_ERROR}>{fieldErrors[field]}</p>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-2 gap-3">

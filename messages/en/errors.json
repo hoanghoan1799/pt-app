@@ -258,6 +258,8 @@
     "servingLabel": "Serving name",
     "servingGrams": "Serving weight",
     "source": "Source",
+    "nameEn": "English name",
+    "nameZh": "Chinese name",
     "age": "Age",
     "height": "Height",
     "weight": "Weight",

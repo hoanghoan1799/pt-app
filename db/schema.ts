@@ -310,6 +310,10 @@ export const foods = sqliteTable(
     // Accent-free lower-cased name (utils/name.ts), used for search and for
     // the uniqueness check among active foods.
     nameKey: text("name_key").notNull(),
+    // Optional translations; null falls back to the starter-food map, then to
+    // `name` (features/foods/utils/food-locale.ts).
+    nameEn: text("name_en"),
+    nameZh: text("name_zh"),
     group: text("group", {
       enum: FOOD_GROUP_VALUES,
     }).notNull(),

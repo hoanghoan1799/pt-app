@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -20,6 +20,7 @@ import {
 import { NutritionWeek } from "@/features/nutrition/components/NutritionWeek";
 import { getNutritionWeek } from "@/features/nutrition/services/nutrition-queries";
 import { requireUser } from "@/services/auth-guard";
+import { parseLocale } from "@/utils/locale";
 import { readSearchParam } from "@/utils/search-params";
 import { getTodayDate, resolveSchedule } from "@/utils/week";
 
@@ -32,6 +33,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
 const NutritionPage = async ({ searchParams }: PageProps<"/nutrition">) => {
   const user = await requireUser();
   const t = await getTranslations("pages.nutrition");
+  const locale = parseLocale(await getLocale());
   const params = await searchParams;
   const today = getTodayDate(TIME_ZONE);
   const { weekStart, selectedDate } = resolveSchedule(
@@ -40,14 +42,15 @@ const NutritionPage = async ({ searchParams }: PageProps<"/nutrition">) => {
   );
   const [days, planDays, library, completion] = await Promise.all([
     getNutritionWeek(user.id, weekStart),
-    getMealPlanWeek(user.id, weekStart),
-    listPlanFoods(),
+    getMealPlanWeek(user.id, weekStart, locale),
+    listPlanFoods(locale),
     getWeekCompletion(user.id, weekStart),
   ]);
   const selectedPlan =
     planDays.find((day) => day.date === selectedDate) ?? null;
   const { logs, marks } = await getMealLogData(
     selectedPlan?.meals.map((meal) => meal.id) ?? [],
+    locale,
   );
 
   return (
