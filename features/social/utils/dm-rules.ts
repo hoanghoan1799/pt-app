@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { ROUTES } from "@/constants/routes";
-import { PHOTO_PREVIEW } from "@/features/chat/utils/photo-rules";
+import { photoPreview } from "@/features/chat/utils/photo-rules";
 import {
   buildPushPreview,
   type ChatPushPayload,
@@ -12,6 +12,7 @@ import {
   DM_MESSAGES,
 } from "@/features/social/constants/dm";
 import type { SocialActor } from "@/features/social/types/social";
+import { localizeMessageFor } from "@/i18n/localize-message";
 import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 // Pure rules of the trainee-to-trainee chat (P5). No database in here.
@@ -108,16 +109,21 @@ export const buildDmPushPayload = ({
 });
 
 // Inbox preview line.
-export const dmPreview = (message: {
-  body: string | null;
-  photoId: number | null;
-  deleted: boolean;
-}) => {
+export const dmPreview = (
+  message: {
+    body: string | null;
+    photoId: number | null;
+    deleted: boolean;
+  },
+  locale: Locale = DEFAULT_LOCALE,
+) => {
   if (message.deleted) {
-    return DM_MESSAGES.UNSENT;
+    return localizeMessageFor(locale, DM_MESSAGES.UNSENT);
   }
   if (message.photoId !== null) {
-    return message.body ? `${PHOTO_PREVIEW} ${message.body}` : PHOTO_PREVIEW;
+    const label = photoPreview("", locale);
+
+    return message.body ? `${label} ${message.body}` : label;
   }
   return message.body ?? "";
 };

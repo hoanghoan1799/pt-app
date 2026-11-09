@@ -5,6 +5,7 @@ import { desc, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { dmConversations, dmMessages, users } from "@/db/schema";
 import { dmPreview } from "@/features/social/utils/dm-rules";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 // Read-only views for the super admin (Q6). Callers must have passed
 // requireSuperAdmin; nothing here checks the role.
@@ -17,7 +18,9 @@ export interface AdminDmRow {
   preview: string;
 }
 
-export const listAllDmConversations = async (): Promise<AdminDmRow[]> => {
+export const listAllDmConversations = async (
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<AdminDmRow[]> => {
   const rows = await db
     .select()
     .from(dmConversations)
@@ -55,11 +58,14 @@ export const listAllDmConversations = async (): Promise<AdminDmRow[]> => {
       highName: names.get(row.userHigh) ?? "Đã xoá",
       lastMessageAt: row.lastMessageAt,
       preview: last
-        ? dmPreview({
-            body: last.body,
-            photoId: last.photoId,
-            deleted: last.deletedAt !== null,
-          })
+        ? dmPreview(
+            {
+              body: last.body,
+              photoId: last.photoId,
+              deleted: last.deletedAt !== null,
+            },
+            locale,
+          )
         : "",
     };
   });

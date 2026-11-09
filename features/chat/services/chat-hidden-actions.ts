@@ -15,6 +15,7 @@ import {
 import { withResultErrorHandling } from "@/services/action-errors";
 import { issueReveal } from "@/services/admin-lock";
 import { requireAdmin } from "@/services/auth-guard";
+import { getActiveLocale } from "@/services/localize-message";
 
 const idSchema = z.number().int().positive();
 const idsSchema = z.array(idSchema).min(1).max(100);
@@ -94,7 +95,11 @@ export const revealHiddenUsersAction = withResultErrorHandling(
     if (!parsed.success) {
       return noMatch();
     }
-    const result = await revealHiddenUsers(admin.id, parsed.data);
+    const result = await revealHiddenUsers(
+      admin.id,
+      parsed.data,
+      await getActiveLocale(),
+    );
 
     if (result.status === "success") {
       await issueReveal(admin.id);

@@ -15,6 +15,7 @@ import {
   setInputSchema,
 } from "@/features/workouts/utils/sets";
 import { getFormatTranslator } from "@/i18n/format-translator";
+import { localizeMessageFor } from "@/i18n/localize-message";
 import { parseDecimal } from "@/utils/decimal";
 import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
@@ -147,7 +148,10 @@ export const rowsToSetInputs = (
   }
 
   return sets.length > SET_LIMITS.MAX_ROWS
-    ? { ok: false, message: WORKOUT_MESSAGES.SET_TOO_MANY }
+    ? {
+        ok: false,
+        message: localizeMessageFor(locale, WORKOUT_MESSAGES.SET_TOO_MANY),
+      }
     : { ok: true, sets };
 };
 

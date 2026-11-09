@@ -21,6 +21,7 @@ import {
   parseOptionalNumber,
   toFieldText,
 } from "@/features/meal-plans/utils/log-number-input";
+import { useLocalizeMessage } from "@/i18n/use-localize-message";
 
 // "search": pick a library food; "amount": its grams; "free": a food typed by
 // name. Editing a library food starts at "amount", a free food at "free".
@@ -39,6 +40,7 @@ export const useMealLogSheet = (
   onDone: () => void,
 ) => {
   const t = useTranslations("mealPlans.useMealLogSheet");
+  const localize = useLocalizeMessage();
   const picker = useFoodPicker(library, []);
   const { isPending, run } = useMealPlanAction();
   const [step, setStep] = useState<LogStep>(() => {
@@ -83,13 +85,13 @@ export const useMealLogSheet = (
     const grams = normalizeGrams(gramsText.trim() || "0");
 
     if (grams === null) {
-      setError(MEAL_PLAN_MESSAGES.INVALID_INPUT);
+      setError(localize(MEAL_PLAN_MESSAGES.INVALID_INPUT));
       return;
     }
 
     if (step === "amount") {
       if (grams <= 0) {
-        setError(MEAL_LOG_MESSAGES.GRAMS_REQUIRED);
+        setError(localize(MEAL_LOG_MESSAGES.GRAMS_REQUIRED));
         return;
       }
       setError(null);
@@ -114,7 +116,7 @@ export const useMealLogSheet = (
     }
 
     if (!name.trim()) {
-      setError(MEAL_LOG_MESSAGES.NAME_REQUIRED);
+      setError(localize(MEAL_LOG_MESSAGES.NAME_REQUIRED));
       return;
     }
 
@@ -124,7 +126,7 @@ export const useMealLogSheet = (
     }));
 
     if (numbers.some(({ value }) => value === "invalid")) {
-      setError(MEAL_PLAN_MESSAGES.INVALID_INPUT);
+      setError(localize(MEAL_PLAN_MESSAGES.INVALID_INPUT));
       return;
     }
     setError(null);

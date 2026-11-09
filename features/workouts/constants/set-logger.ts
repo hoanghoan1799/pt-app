@@ -1,4 +1,5 @@
 import { getFormatTranslator } from "@/i18n/format-translator";
+import { localizeMessageFor } from "@/i18n/localize-message";
 import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 // Client-side validation messages for the set rows (utils/set-logger.ts,
@@ -13,4 +14,7 @@ export const describeRowError = (
   message: string,
   locale: Locale = DEFAULT_LOCALE,
 ) =>
-  getFormatTranslator(locale)("setRow.error", { number: setNumber, message });
+  getFormatTranslator(locale)("setRow.error", {
+    number: setNumber,
+    message: localizeMessageFor(locale, message),
+  });

@@ -35,6 +35,8 @@ import {
   dmPreview,
   otherMember,
 } from "@/features/social/utils/dm-rules";
+import { getFormatTranslator } from "@/i18n/format-translator";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 export type { DmMessageView, DmThreadPage };
 
@@ -235,7 +237,10 @@ const listVisibleConversations = async (userId: number) => {
   );
 };
 
-export const listDmInbox = async (userId: number): Promise<DmInboxRow[]> => {
+export const listDmInbox = async (
+  userId: number,
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<DmInboxRow[]> => {
   const conversations = await listVisibleConversations(userId);
 
   if (conversations.length === 0) {
@@ -290,11 +295,14 @@ export const listDmInbox = async (userId: number): Promise<DmInboxRow[]> => {
           otherId,
           name: person.name,
           avatarUrl: avatarUrl("user", person.id, person.avatarUpdatedAt),
-          preview: `${last.senderId === userId ? "Bạn: " : ""}${dmPreview({
-            body: last.body,
-            photoId: last.photoId,
-            deleted: last.deletedAt !== null,
-          })}`,
+          preview: `${last.senderId === userId ? getFormatTranslator(locale)("inbox.you") : ""}${dmPreview(
+            {
+              body: last.body,
+              photoId: last.photoId,
+              deleted: last.deletedAt !== null,
+            },
+            locale,
+          )}`,
           lastMessageAt: row.lastMessageAt?.toISOString() ?? null,
           unread: unread.get(row.id) ?? 0,
         },
