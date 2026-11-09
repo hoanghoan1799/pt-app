@@ -1,0 +1,32 @@
+{
+  "home": {
+    "tagline": "Log in to see this week's workouts"
+  },
+  "workouts": {
+    "metaTitle": "Workouts",
+    "eyebrow": "Hello"
+  },
+  "summary": {
+    "metaTitle": "Summary",
+    "eyebrow": "Week summary"
+  },
+  "changePassword": {
+    "metaTitle": "Change password",
+    "title": "Change password",
+    "forgotHint": "Forgot your current password? Contact your PT to reset it."
+  },
+  "terms": {
+    "metaTitle": "Terms of use",
+    "eyebrow": "Social",
+    "title": "Terms",
+    "accepted": "You have accepted the terms (version {version})."
+  },
+  "profile": {
+    "metaTitle": "Profile",
+    "eyebrow": "Profile"
+  },
+  "adminLogin": {
+    "title": "PT area",
+    "tagline": "Log in to manage members and workouts"
+  }
+}

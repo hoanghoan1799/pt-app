@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { Delete } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 
 import { PASSCODE_LENGTH } from "@/features/auth/utils/passcode-rules";
@@ -33,6 +34,7 @@ export const PasscodeKeypad = ({
   hasError = false,
   isKeyboardEnabled = false,
 }: PasscodeKeypadProps) => {
+  const t = useTranslations("auth.passcodeKeypad");
   const addDigit = (digit: string) => {
     if (!isDisabled && value.length < PASSCODE_LENGTH) {
       onChange(value + digit);
@@ -69,7 +71,10 @@ export const PasscodeKeypad = ({
     <div className="flex flex-col items-center gap-8">
       <div
         role="img"
-        aria-label={`Đã nhập ${value.length} trên ${PASSCODE_LENGTH} chữ số`}
+        aria-label={t("progress", {
+          count: value.length,
+          total: PASSCODE_LENGTH,
+        })}
         className="flex gap-4"
       >
         {Array.from({ length: PASSCODE_LENGTH }, (_, index) => (
@@ -113,7 +118,7 @@ export const PasscodeKeypad = ({
           className={clsx(KEY, "border-transparent bg-transparent")}
           disabled={isDisabled || value.length === 0}
           onClick={removeDigit}
-          aria-label="Xoá"
+          aria-label={t("delete")}
         >
           <Delete className="size-6" aria-hidden />
         </button>

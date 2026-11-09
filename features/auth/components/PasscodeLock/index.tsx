@@ -2,6 +2,7 @@
 
 import { Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -22,9 +23,8 @@ interface PasscodeLockProps {
   nextPath: string;
 }
 
-const SIGNED_OUT_TOAST = "Đã đăng xuất vì nhập sai quá 5 lần";
-
 export const PasscodeLock = ({ nextPath }: PasscodeLockProps) => {
+  const t = useTranslations("auth.passcodeLock");
   const router = useRouter();
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -43,11 +43,15 @@ export const PasscodeLock = ({ nextPath }: PasscodeLockProps) => {
       const failure = toPasscodeFailure(result);
 
       if (failure.signedOut) {
-        toast.error(SIGNED_OUT_TOAST);
+        toast.error(t("signedOutToast"));
         router.replace(ROUTES.ADMIN_LOGIN);
         return;
       }
-      setError(describePasscodeFailure(failure));
+      setError(
+        describePasscodeFailure(failure, (attemptsLeft) =>
+          t("wrongAttempts", { count: attemptsLeft }),
+        ),
+      );
     });
   };
 
@@ -70,7 +74,7 @@ export const PasscodeLock = ({ nextPath }: PasscodeLockProps) => {
       <span className="flex size-14 items-center justify-center rounded-full bg-accent/15 text-accent">
         <Lock className="size-7" aria-hidden />
       </span>
-      <h1 className="mt-4 text-xl font-bold text-fg">Nhập mã khoá</h1>
+      <h1 className="mt-4 text-xl font-bold text-fg">{t("title")}</h1>
       <p role="alert" className="mt-2 min-h-5 text-sm font-medium text-danger">
         {error}
       </p>
@@ -89,14 +93,14 @@ export const PasscodeLock = ({ nextPath }: PasscodeLockProps) => {
           className={`${BUTTON_SECONDARY} flex-1`}
           onClick={() => setIsForgotOpen(true)}
         >
-          Quên mã khoá
+          {t("forgot")}
         </button>
         <button
           type="button"
           className={`${BUTTON_SECONDARY} flex-1`}
           onClick={logOut}
         >
-          Đăng xuất
+          {t("logout")}
         </button>
       </div>
       <ForgotPasscodeSheet

@@ -1,0 +1,15 @@
+{
+  "field": {
+    "failed": "Could not save the photo. Please try again.",
+    "unreadable": "Could not read this photo. Please choose another one.",
+    "choose": "Choose photo",
+    "saving": "Saving…",
+    "save": "Save photo",
+    "cancel": "Cancel",
+    "remove": "Remove photo"
+  },
+  "sheet": {
+    "title": "Profile photo",
+    "description": "Your photo appears at the top of conversations and next to your messages."
+  }
+}

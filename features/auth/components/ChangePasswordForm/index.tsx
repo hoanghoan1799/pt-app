@@ -2,6 +2,7 @@
 
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -9,25 +10,29 @@ import { SubmitButton } from "@/components/common/SubmitButton";
 import { INITIAL_FORM_STATE } from "@/constants/form";
 import { ROUTES } from "@/constants/routes";
 import { BUTTON_PRIMARY, FIELD_ERROR, INPUT, LABEL } from "@/constants/styles";
-import { AUTH_MESSAGES } from "@/features/auth/constants/messages";
 import { changePasswordAction } from "@/features/auth/services/password-actions";
 import { describeErrorReference } from "@/utils/errors";
 
 const FIELDS = [
   {
     name: "currentPassword",
-    label: "Mật khẩu hiện tại",
+    labelKey: "fields.currentPassword",
     autoComplete: "current-password",
   },
-  { name: "newPassword", label: "Mật khẩu mới", autoComplete: "new-password" },
+  {
+    name: "newPassword",
+    labelKey: "fields.newPassword",
+    autoComplete: "new-password",
+  },
   {
     name: "confirmPassword",
-    label: "Nhập lại mật khẩu mới",
+    labelKey: "fields.confirmPassword",
     autoComplete: "new-password",
   },
 ] as const;
 
 export const ChangePasswordForm = () => {
+  const t = useTranslations("auth.changePassword");
   const router = useRouter();
   const [visible, setVisible] = useState<Record<string, boolean>>({});
   const [state, formAction] = useActionState(
@@ -39,10 +44,10 @@ export const ChangePasswordForm = () => {
   // Only trainees have this page; the admin app has no password page yet.
   useEffect(() => {
     if (state.status === "success") {
-      toast.success(AUTH_MESSAGES.PASSWORD_CHANGED_TOAST);
+      toast.success(t("toastSuccess"));
       router.replace(ROUTES.WORKOUTS);
     }
-  }, [state.status, state.submittedAt, router]);
+  }, [state.status, state.submittedAt, router, t]);
 
   const isError = state.status === "error";
   const fieldErrors = state.fieldErrors ?? {};
@@ -67,7 +72,7 @@ export const ChangePasswordForm = () => {
         return (
           <div key={field.name}>
             <label htmlFor={field.name} className={LABEL}>
-              {field.label}
+              {t(field.labelKey)}
             </label>
             <div className="relative">
               <input
@@ -82,7 +87,7 @@ export const ChangePasswordForm = () => {
               />
               <button
                 type="button"
-                aria-label={isVisible ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                aria-label={isVisible ? t("hidePassword") : t("showPassword")}
                 aria-pressed={isVisible}
                 onClick={() =>
                   setVisible((prev) => ({
@@ -122,7 +127,7 @@ export const ChangePasswordForm = () => {
         </p>
       )}
       <SubmitButton className={`${BUTTON_PRIMARY} w-full`}>
-        Đổi mật khẩu
+        {t("submit")}
       </SubmitButton>
     </form>
   );

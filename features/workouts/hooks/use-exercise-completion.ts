@@ -1,9 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useOptimistic, useTransition } from "react";
 import { toast } from "sonner";
 
-import { WORKOUT_MESSAGES } from "@/features/workouts/constants/messages";
 import { setExerciseCompletionAction } from "@/features/workouts/services/completion-actions";
 import type { Exercise } from "@/features/workouts/types/workout";
 import { describeErrorReference } from "@/utils/errors";
@@ -14,6 +14,7 @@ export const useExerciseCompletion = (exercise: Exercise) => {
   const [completedAt, setOptimisticCompletedAt] = useOptimistic(
     exercise.completedAt,
   );
+  const t = useTranslations("workouts.exerciseCompletion");
   const [isPending, startTransition] = useTransition();
 
   const handleToggle = () => {
@@ -34,7 +35,7 @@ export const useExerciseCompletion = (exercise: Exercise) => {
         return;
       }
       if (isCompleting) {
-        toast.success(WORKOUT_MESSAGES.COMPLETION_DONE);
+        toast.success(t("done"));
       }
     });
   };

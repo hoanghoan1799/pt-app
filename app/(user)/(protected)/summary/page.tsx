@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { WeekSummary } from "@/components/layout/WeekSummary";
@@ -22,10 +23,15 @@ import { requireUser } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
 import { getTodayDate, resolveSchedule } from "@/utils/week";
 
-export const metadata: Metadata = { title: "Tổng kết" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("pages.summary");
+
+  return { title: t("metaTitle") };
+};
 
 const SummaryPage = async ({ searchParams }: PageProps<"/summary">) => {
   const user = await requireUser();
+  const t = await getTranslations("pages.summary");
   const params = await searchParams;
   const today = getTodayDate(TIME_ZONE);
   const schedule = resolveSchedule(
@@ -51,7 +57,7 @@ const SummaryPage = async ({ searchParams }: PageProps<"/summary">) => {
   return (
     <>
       <AppHeader
-        eyebrow="Tổng kết tuần"
+        eyebrow={t("eyebrow")}
         title={user.name}
         actions={<UserHeaderActions />}
       />

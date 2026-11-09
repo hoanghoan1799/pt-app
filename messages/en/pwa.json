@@ -1,0 +1,14 @@
+{
+  "installPrompt": {
+    "regionLabel": "Install app",
+    "iosBefore": "To install the app, tap the Share button",
+    "iosAfter": "then choose \"Add to Home Screen\"",
+    "inAppHint": "Open this page in Safari or Chrome to install the app",
+    "androidHint": "Add PT App to your home screen to open it faster",
+    "later": "Later",
+    "install": "Install"
+  },
+  "offlineRetry": {
+    "retry": "Try again"
+  }
+}

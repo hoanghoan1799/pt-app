@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -17,10 +18,15 @@ import { hasAcceptedTerms } from "@/features/social/services/terms";
 import { parseProfileKind } from "@/features/social/utils/post-rules";
 import { requireUser } from "@/services/auth-guard";
 
-export const metadata: Metadata = { title: "Trang cá nhân" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("pages.profile");
+
+  return { title: t("metaTitle") };
+};
 
 const ProfilePage = async ({ params }: PageProps<"/profile/[kind]/[id]">) => {
   const user = await requireUser();
+  const t = await getTranslations("pages.profile");
 
   // Social pages sit behind the terms; the feed shows them.
   if (!hasAcceptedTerms(user)) {
@@ -49,7 +55,7 @@ const ProfilePage = async ({ params }: PageProps<"/profile/[kind]/[id]">) => {
   return (
     <>
       <AppHeader
-        eyebrow="Trang cá nhân"
+        eyebrow={t("eyebrow")}
         title={profile.name}
         backHref={ROUTES.FEED}
       />

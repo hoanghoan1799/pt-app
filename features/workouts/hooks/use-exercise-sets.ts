@@ -1,13 +1,10 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import {
-  SET_LIMITS,
-  WORKOUT_MESSAGES,
-} from "@/features/workouts/constants/messages";
-import { SET_LOGGER_COPY } from "@/features/workouts/constants/set-logger";
+import { SET_LIMITS } from "@/features/workouts/constants/messages";
 import { saveExerciseSetsAction } from "@/features/workouts/services/set-actions";
 import type { ExerciseWithSets } from "@/features/workouts/types/workout";
 import {
@@ -29,6 +26,7 @@ import { describeErrorReference } from "@/utils/errors";
 export const useExerciseSets = (
   exercise: Pick<ExerciseWithSets, "id" | "sets" | "loggedSets">,
 ) => {
+  const t = useTranslations("workouts.setLogger");
   const [rows, setRows] = useState<SetRowDraft[]>(() =>
     createInitialRows(exercise.loggedSets, exercise.sets),
   );
@@ -77,7 +75,7 @@ export const useExerciseSets = (
       return;
     }
     if (isEmptyFirstSave(parsed.sets.length, exercise.loggedSets.length)) {
-      toast.error(SET_LOGGER_COPY.NOTHING_TO_SAVE);
+      toast.error(t("nothingToSave"));
       return;
     }
 
@@ -90,11 +88,7 @@ export const useExerciseSets = (
         });
         return;
       }
-      toast.success(
-        result.personalBest
-          ? SET_LOGGER_COPY.PERSONAL_BEST
-          : WORKOUT_MESSAGES.SETS_SAVED,
-      );
+      toast.success(result.personalBest ? t("personalBest") : t("saved"));
     });
   };
 

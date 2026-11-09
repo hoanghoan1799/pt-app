@@ -1,0 +1,32 @@
+{
+  "home": {
+    "tagline": "Đăng nhập để xem lịch tập tuần này"
+  },
+  "workouts": {
+    "metaTitle": "Lịch tập",
+    "eyebrow": "Xin chào"
+  },
+  "summary": {
+    "metaTitle": "Tổng kết",
+    "eyebrow": "Tổng kết tuần"
+  },
+  "changePassword": {
+    "metaTitle": "Đổi mật khẩu",
+    "title": "Đổi mật khẩu",
+    "forgotHint": "Quên mật khẩu hiện tại? Liên hệ PT của bạn để đặt lại."
+  },
+  "terms": {
+    "metaTitle": "Điều khoản sử dụng",
+    "eyebrow": "Mạng xã hội",
+    "title": "Điều khoản",
+    "accepted": "Bạn đã đồng ý điều khoản (phiên bản {version})."
+  },
+  "profile": {
+    "metaTitle": "Trang cá nhân",
+    "eyebrow": "Trang cá nhân"
+  },
+  "adminLogin": {
+    "title": "Khu vực PT",
+    "tagline": "Đăng nhập để quản lý user và bài tập"
+  }
+}

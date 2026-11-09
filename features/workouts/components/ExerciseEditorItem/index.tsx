@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { ArrowDown, ArrowUp, Pencil, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { ICON_BUTTON } from "@/constants/styles";
 import { ExerciseCard } from "@/features/workouts/components/ExerciseCard";
@@ -30,6 +31,7 @@ export const ExerciseEditorItem = ({
   userId,
   onEdit,
 }: ExerciseEditorItemProps) => {
+  const t = useTranslations("workouts.exerciseEditorItem");
   const hasSets = exercise.loggedSets.length > 0;
   const { isPending, handleMove, handleDelete } = useExerciseItemActions(
     exercise.id,
@@ -52,7 +54,7 @@ export const ExerciseEditorItem = ({
                 onClick={() => handleMove("up")}
                 disabled={isPending || index === 0}
                 className={ICON_BUTTON}
-                aria-label="Đưa lên"
+                aria-label={t("moveUp")}
               >
                 <ArrowUp className="size-5" />
               </button>
@@ -61,7 +63,7 @@ export const ExerciseEditorItem = ({
                 onClick={() => handleMove("down")}
                 disabled={isPending || index === count - 1}
                 className={ICON_BUTTON}
-                aria-label="Đưa xuống"
+                aria-label={t("moveDown")}
               >
                 <ArrowDown className="size-5" />
               </button>
@@ -73,7 +75,7 @@ export const ExerciseEditorItem = ({
                 className={clsx(TOOL_BUTTON, "text-fg")}
               >
                 <Pencil className="size-4" aria-hidden />
-                Sửa
+                {t("edit")}
               </button>
               <button
                 type="button"
@@ -82,7 +84,7 @@ export const ExerciseEditorItem = ({
                 className={clsx(TOOL_BUTTON, "text-danger")}
               >
                 <Trash2 className="size-4" aria-hidden />
-                Xóa
+                {t("delete")}
               </button>
             </div>
           </>

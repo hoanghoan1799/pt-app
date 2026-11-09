@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -35,25 +36,23 @@ const FLOW_STEPS: Record<Flow, Step[]> = {
   off: ["current"],
 };
 
-const STEP_LABEL: Record<Step, string> = {
-  current: "Nhập mã khoá hiện tại",
-  new: "Nhập mã khoá mới",
-  confirm: "Nhập lại mã khoá mới",
-};
+const STEP_LABEL_KEY = {
+  current: "steps.current",
+  new: "steps.new",
+  confirm: "steps.confirm",
+} as const satisfies Record<Step, string>;
 
-const FLOW_TITLE: Record<Flow, string> = {
-  set: "Đặt mã khoá",
-  change: "Đổi mã khoá",
-  off: "Tắt mã khoá",
-};
+const FLOW_TITLE_KEY = {
+  set: "flowTitle.set",
+  change: "flowTitle.change",
+  off: "flowTitle.off",
+} as const satisfies Record<Flow, string>;
 
-const FLOW_DONE: Record<Flow, string> = {
-  set: "Đã bật mã khoá",
-  change: "Đã đổi mã khoá",
-  off: "Đã tắt mã khoá",
-};
-
-const MISMATCH_MESSAGE = "Mã khoá nhập lại không khớp";
+const FLOW_DONE_KEY = {
+  set: "flowDone.set",
+  change: "flowDone.change",
+  off: "flowDone.off",
+} as const satisfies Record<Flow, string>;
 
 const runFlow = (
   flow: Flow,
@@ -75,6 +74,7 @@ export const PasscodeSettingsSheet = ({
   onOpenChange,
   hasPasscode,
 }: PasscodeSettingsSheetProps) => {
+  const t = useTranslations("auth.passcodeSettings");
   const router = useRouter();
   const defaultFlow: Flow | null = hasPasscode ? null : "set";
   // undefined = the default screen: set when no passcode, else the choice.
@@ -117,7 +117,7 @@ export const PasscodeSettingsSheet = ({
       const result = await runFlow(activeFlow, all);
 
       if (result.status === "success") {
-        toast.success(FLOW_DONE[activeFlow]);
+        toast.success(t(FLOW_DONE_KEY[activeFlow]));
         close();
         // The server layout and menu read hasPasscode.
         router.refresh();
@@ -127,11 +127,15 @@ export const PasscodeSettingsSheet = ({
 
       if (failure.signedOut) {
         close();
-        toast.error("Đã đăng xuất vì nhập sai quá 5 lần");
+        toast.error(t("signedOutToast"));
         router.replace(ROUTES.ADMIN_LOGIN);
         return;
       }
-      restart(describePasscodeFailure(failure));
+      restart(
+        describePasscodeFailure(failure, (attemptsLeft) =>
+          t("wrongAttempts", { count: attemptsLeft }),
+        ),
+      );
     });
   };
 
@@ -146,7 +150,7 @@ export const PasscodeSettingsSheet = ({
     const all = { ...entries, [step]: next };
 
     if (step === "confirm" && all.confirm !== all.new) {
-      restart(MISMATCH_MESSAGE);
+      restart(t("mismatch"));
       return;
     }
     if (stepIndex === steps.length - 1) {
@@ -170,16 +174,14 @@ export const PasscodeSettingsSheet = ({
     <BottomSheet
       isOpen={isOpen}
       onOpenChange={handleOpenChange}
-      title={flow ? FLOW_TITLE[flow] : "Mã khoá"}
-      description={
-        flow
-          ? undefined
-          : "Mã khoá đang bật. Ứng dụng sẽ khoá sau 5 phút không dùng."
-      }
+      title={flow ? t(FLOW_TITLE_KEY[flow]) : t("title")}
+      description={flow ? undefined : t("enabledDescription")}
     >
       {flow && step ? (
         <div className="flex flex-col items-center gap-3 pt-2">
-          <p className="text-base font-medium text-fg">{STEP_LABEL[step]}</p>
+          <p className="text-base font-medium text-fg">
+            {t(STEP_LABEL_KEY[step])}
+          </p>
           <p role="alert" className="min-h-5 text-sm font-medium text-danger">
             {error}
           </p>
@@ -195,7 +197,7 @@ export const PasscodeSettingsSheet = ({
               className="mt-2 min-h-11 px-3 text-sm font-medium text-muted"
               onClick={() => setChosenFlow(null)}
             >
-              Quay lại
+              {t("back")}
             </button>
           )}
         </div>
@@ -206,14 +208,14 @@ export const PasscodeSettingsSheet = ({
             className={BUTTON_SECONDARY}
             onClick={() => chooseFlow("change")}
           >
-            Đổi mã khoá
+            {t("options.change")}
           </button>
           <button
             type="button"
             className={BUTTON_DANGER}
             onClick={() => chooseFlow("off")}
           >
-            Tắt mã khoá
+            {t("options.off")}
           </button>
         </div>
       )}

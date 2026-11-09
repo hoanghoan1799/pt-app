@@ -1,38 +1,15 @@
-// UI copy for the trainee's set logger (KAN-30). Server messages live in
-// `messages.ts`.
+// Copy the set logger still builds in Vietnamese. formatSet (utils/set-logger.ts)
+// is also rendered by members and the dashboard, which are not translated yet,
+// so its two labels stay here. Other UI copy lives in messages/*/workouts.json.
 export const SET_LOGGER_COPY = {
-  TITLE: "Ghi hiệp",
-  ADD_ROW: "Thêm hiệp",
-  SAVE: "Lưu",
-  SAVING: "Đang lưu…",
-  WEIGHT_PLACEHOLDER: "kg",
-  WEIGHT_UNIT: "kg",
-  REPS_UNIT: "lần",
   BODYWEIGHT: "Tự trọng",
-  BODYWEIGHT_HINT: "Để trống kg nếu tập với trọng lượng cơ thể",
-  PERSONAL_BEST: "Kỷ lục mới! 🏆",
-  PERSONAL_BEST_BADGE: "Kỷ lục mới",
-  HINT_PREFIX: "Lần trước",
-  LOGGED_PREFIX: "Đã ghi:",
-  NOTHING_LOGGED: "Chưa ghi hiệp nào",
-  NOTHING_TO_SAVE: "Nhập ít nhất một hiệp",
+  WEIGHT_UNIT: "kg",
 } as const;
 
+// Client-side validation messages for the set rows (utils/set-logger.ts,
+// tested). They still read in Vietnamese; see the i18n spec's PR order.
 export const describeMissingReps = (setNumber: number) =>
   `Nhập số lần cho hiệp ${setNumber}`;
 
 export const describeRowError = (setNumber: number, message: string) =>
   `Hiệp ${setNumber}: ${message}`;
-
-export const describeWeightLabel = (setNumber: number) =>
-  `Số kg hiệp ${setNumber}`;
-
-export const describeRepsLabel = (setNumber: number) =>
-  `Số lần hiệp ${setNumber}`;
-
-export const describeDeleteLabel = (setNumber: number) =>
-  `Xóa hiệp ${setNumber}`;
-
-// Starts with the visible text so voice control can match it (WCAG 2.5.3).
-export const describeHintLabel = (setNumber: number, text: string) =>
-  `${SET_LOGGER_COPY.HINT_PREFIX} ${text}, dùng cho hiệp ${setNumber}`;

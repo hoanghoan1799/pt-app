@@ -1,0 +1,14 @@
+{
+  "installPrompt": {
+    "regionLabel": "Cài ứng dụng",
+    "iosBefore": "Để cài app: bấm nút Chia sẻ",
+    "iosAfter": "rồi chọn \"Thêm vào MH chính\"",
+    "inAppHint": "Mở trang này bằng Safari hoặc Chrome để cài app",
+    "androidHint": "Cài PT App lên màn hình chính để mở nhanh hơn",
+    "later": "Để sau",
+    "install": "Cài đặt"
+  },
+  "offlineRetry": {
+    "retry": "Thử lại"
+  }
+}
