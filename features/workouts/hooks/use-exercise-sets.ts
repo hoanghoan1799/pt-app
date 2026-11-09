@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -26,6 +26,7 @@ import { describeErrorReference } from "@/utils/errors";
 export const useExerciseSets = (
   exercise: Pick<ExerciseWithSets, "id" | "sets" | "loggedSets">,
 ) => {
+  const locale = useLocale();
   const t = useTranslations("workouts.setLogger");
   const [rows, setRows] = useState<SetRowDraft[]>(() =>
     createInitialRows(exercise.loggedSets, exercise.sets),
@@ -68,7 +69,7 @@ export const useExerciseSets = (
   };
 
   const handleSave = () => {
-    const parsed = rowsToSetInputs(rows);
+    const parsed = rowsToSetInputs(rows, locale);
 
     if (!parsed.ok) {
       toast.error(parsed.message);

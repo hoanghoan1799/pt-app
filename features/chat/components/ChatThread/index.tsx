@@ -3,7 +3,7 @@
 import clsx from "clsx";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   type ReactNode,
   useCallback,
@@ -197,6 +197,7 @@ export const ChatThread = ({
 }: ChatThreadProps) => {
   const router = useRouter();
   const pathname = usePathname();
+  const locale = useLocale();
   const t = useTranslations("chat.chatThread");
   const isAdmin = viewer.role === "admin";
   // Admin-only and per device; trainee views never read the stored value.
@@ -268,8 +269,9 @@ export const ChatThread = ({
         Date.now(),
         adapter.viewer,
         profile.nicknames,
+        locale,
       ),
-    [messages, peerReadUpTo, adapter.viewer, profile.nicknames],
+    [messages, peerReadUpTo, adapter.viewer, profile.nicknames, locale],
   );
 
   const scrollToBottom = useCallback((smooth: boolean) => {
@@ -772,14 +774,18 @@ export const ChatThread = ({
                 replyMessage,
                 adapter.viewer,
                 profile.nicknames,
+                locale,
               ),
             })}
-            snippet={quoteText({
-              deleted: replyMessage.deleted,
-              isSticker: Boolean(replyMessage.sticker),
-              isPhoto: Boolean(replyMessage.photo),
-              body: replyMessage.body,
-            })}
+            snippet={quoteText(
+              {
+                deleted: replyMessage.deleted,
+                isSticker: Boolean(replyMessage.sticker),
+                isPhoto: Boolean(replyMessage.photo),
+                body: replyMessage.body,
+              },
+              locale,
+            )}
             closeLabel={t("cancelReply")}
             onClose={() => setReplyId(null)}
           />

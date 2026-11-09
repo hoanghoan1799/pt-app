@@ -2,7 +2,7 @@
 
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Avatar } from "@/components/common/Avatar";
 import { CARD } from "@/constants/styles";
@@ -27,6 +27,7 @@ export const LinkGallery = ({
   chatPath,
   avatars,
 }: LinkGalleryProps) => {
+  const locale = useLocale();
   const t = useTranslations("chat.linkGallery");
   const { items, cursor, error, sentinel, loadMore } = useGalleryPager({
     initial,
@@ -70,7 +71,7 @@ export const LinkGallery = ({
                   {item.text}
                 </span>
                 <span className="block truncate text-xs text-muted">
-                  {photoLabel(item)}
+                  {photoLabel(item, locale)}
                 </span>
               </span>
             </a>

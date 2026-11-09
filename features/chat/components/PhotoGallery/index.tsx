@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
@@ -34,6 +34,7 @@ export const PhotoGallery = ({
   chatPath,
   avatars,
 }: PhotoGalleryProps) => {
+  const locale = useLocale();
   const t = useTranslations("chat.photoGallery");
   const router = useRouter();
   const { items, cursor, error, sentinel, loadMore, loadMoreQuietly } =
@@ -50,9 +51,9 @@ export const PhotoGallery = ({
       items.map((item) => ({
         id: item.photoId,
         src: item.url,
-        label: photoLabel(item),
+        label: photoLabel(item, locale),
       })),
-    [items],
+    [items, locale],
   );
 
   if (items.length === 0) {
@@ -69,7 +70,7 @@ export const PhotoGallery = ({
             <button
               type="button"
               data-gallery-tile={item.photoId}
-              aria-label={t("viewPhoto", { label: photoLabel(item) })}
+              aria-label={t("viewPhoto", { label: photoLabel(item, locale) })}
               onClick={() => setOpenIndex(index)}
               className="absolute inset-0 block"
             >

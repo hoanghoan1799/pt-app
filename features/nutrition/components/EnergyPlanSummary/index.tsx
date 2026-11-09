@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import {
   MACRO_COLORS,
@@ -14,6 +14,7 @@ interface EnergyPlanSummaryProps {
 }
 
 export const EnergyPlanSummary = ({ plan }: EnergyPlanSummaryProps) => {
+  const locale = useLocale();
   const t = useTranslations("nutrition.energyPlanSummary");
   const tLabels = useTranslations("nutrition.labels");
 
@@ -49,7 +50,7 @@ export const EnergyPlanSummary = ({ plan }: EnergyPlanSummaryProps) => {
                 item.key === "target" ? "text-accent" : "text-fg",
               )}
             >
-              {formatCalories(item.value)}
+              {formatCalories(item.value, locale)}
             </dd>
             <dd className="text-[11px] text-muted">{item.hint}</dd>
           </div>
@@ -60,7 +61,9 @@ export const EnergyPlanSummary = ({ plan }: EnergyPlanSummaryProps) => {
           role="status"
           className="rounded-xl bg-danger/10 px-3 py-2 text-xs font-semibold text-danger"
         >
-          {t("flooredNotice", { kcal: formatCalories(plan.targetCalories) })}
+          {t("flooredNotice", {
+            kcal: formatCalories(plan.targetCalories, locale),
+          })}
         </p>
       )}
       <ul className="space-y-1.5 text-sm">

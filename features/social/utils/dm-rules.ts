@@ -12,6 +12,7 @@ import {
   DM_MESSAGES,
 } from "@/features/social/constants/dm";
 import type { SocialActor } from "@/features/social/types/social";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 // Pure rules of the trainee-to-trainee chat (P5). No database in here.
 
@@ -91,14 +92,17 @@ export const buildDmPushPayload = ({
   conversationId,
   body,
   photo,
+  locale = DEFAULT_LOCALE,
 }: {
   senderName: string;
   conversationId: number;
   body?: string | null;
   photo: boolean;
+  // The recipient's language.
+  locale?: Locale;
 }): ChatPushPayload => ({
   title: senderName.trim() === "" ? PUSH_TITLE : senderName,
-  body: buildPushPreview({ body, photo }),
+  body: buildPushPreview({ body, photo, locale }),
   url: dmPath(conversationId),
   tag: `dm-${conversationId}`,
 });

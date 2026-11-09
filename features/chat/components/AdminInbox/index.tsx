@@ -4,7 +4,7 @@ import clsx from "clsx";
 import { MessageCircle, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -63,6 +63,7 @@ export const AdminInbox = ({
   isUnreadOnly,
   filters,
 }: AdminInboxProps) => {
+  const locale = useLocale();
   const t = useTranslations("chat.adminInbox");
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -248,7 +249,11 @@ export const AdminInbox = ({
               <ul className={`${CARD} divide-y divide-line overflow-hidden`}>
                 {shownFresh.map((member) => {
                   const online = isOnline(member.lastSeenAt, now);
-                  const lastSeen = shortLastSeen(member.lastSeenAt, now);
+                  const lastSeen = shortLastSeen(
+                    member.lastSeenAt,
+                    now,
+                    locale,
+                  );
                   const content = (
                     <>
                       {online && (

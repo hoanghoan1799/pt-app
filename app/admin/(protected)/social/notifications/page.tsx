@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -24,7 +24,7 @@ const AdminNotificationsPage = async () => {
   const key = `admin:${admin.id}`;
 
   await purgeOldNotifications();
-  const notifications = await listNotifications(key);
+  const notifications = await listNotifications(key, await getLocale());
 
   await markAllNotificationsRead(key);
   return (

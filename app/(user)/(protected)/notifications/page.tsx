@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -31,7 +31,7 @@ const NotificationsPage = async () => {
 
   await purgeOldNotifications();
   // Listed first, so the page still shows which ones were new.
-  const notifications = await listNotifications(key);
+  const notifications = await listNotifications(key, await getLocale());
 
   await markAllNotificationsRead(key);
   return (

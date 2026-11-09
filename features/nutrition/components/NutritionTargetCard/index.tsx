@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { Pencil, Target } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
@@ -29,6 +29,7 @@ export const NutritionTargetCard = ({
   userId,
   target,
 }: NutritionTargetCardProps) => {
+  const locale = useLocale();
   const t = useTranslations("nutrition.nutritionTargetCard");
   const tLabels = useTranslations("nutrition.labels");
   const [isOpen, setIsOpen] = useState(false);
@@ -44,8 +45,8 @@ export const NutritionTargetCard = ({
           {target && (
             <p className="mt-0.5 text-xs text-muted">
               {t("targetSummary", {
-                calories: formatCalories(calculateCalories(target)),
-                date: formatDayMonth(target.effectiveFrom),
+                calories: formatCalories(calculateCalories(target), locale),
+                date: formatDayMonth(target.effectiveFrom, locale),
               })}
               <span
                 className={clsx(

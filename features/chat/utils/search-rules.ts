@@ -1,7 +1,8 @@
 import { TIME_ZONE } from "@/constants/time";
 import { adminLabel } from "@/features/chat/utils/chat-settings";
-import { PEER_DELETED_NAME } from "@/features/chat/utils/chat-thread-rules";
 import { displayNameFor } from "@/features/chat/utils/display-name";
+import { getFormatTranslator } from "@/i18n/format-translator";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 import { formatShortDateTime } from "@/utils/time";
 
 // Searching inside one conversation (KAN-160, S1 and S2): pure rules shared by
@@ -168,36 +169,51 @@ export const searchSenderLabel = (
     | { role: "user" }
     | { role: "admin"; adminId: number; peerName: string | null },
   nicknames: Readonly<Record<string, string>> = {},
+  locale: Locale = DEFAULT_LOCALE,
 ) => {
+  const t = getFormatTranslator(locale);
+
   if (viewer.role === "admin") {
     if (result.senderRole === "admin") {
       return result.senderAdminId === viewer.adminId
-        ? "Bạn"
+        ? t("thread.you")
         : result.senderName === null
-          ? PEER_DELETED_NAME
+          ? t("thread.peerDeleted")
           : adminLabel(nicknames, result.senderAdminId, result.senderName);
     }
-    return displayNameFor(nicknames, "user", viewer.peerName ?? "Học viên");
+    return displayNameFor(
+      nicknames,
+      "user",
+      viewer.peerName ?? t("thread.trainee"),
+    );
   }
   if (result.senderRole === "user") {
-    return "Bạn";
+    return t("thread.you");
   }
   return result.senderName === null
-    ? PEER_DELETED_NAME
+    ? t("thread.peerDeleted")
     : adminLabel(nicknames, result.senderAdminId, result.senderName, "pt");
 };
 
 // "05/10 18:32", with the year when it is not the current one.
-export const formatResultTime = (createdAtIso: string, nowMs: number) => {
+export const formatResultTime = (
+  createdAtIso: string,
+  nowMs: number,
+  locale: Locale = DEFAULT_LOCALE,
+) => {
   const at = Date.parse(createdAtIso);
   const year = (ms: number) =>
     new Intl.DateTimeFormat("en-CA", {
       timeZone: TIME_ZONE,
       year: "numeric",
     }).format(ms);
-  const stamp = formatShortDateTime(at, TIME_ZONE);
+  const stamp = formatShortDateTime(at, TIME_ZONE, locale);
 
-  return year(at) === year(nowMs)
-    ? stamp
-    : `${stamp.slice(0, 5)}/${year(at)}${stamp.slice(5)}`;
+  if (year(at) === year(nowMs)) {
+    return stamp;
+  }
+  // Vietnamese: "05/10/2025 18:32"; English: "Oct 5, 2025 18:32".
+  return locale === "vi"
+    ? `${stamp.slice(0, 5)}/${year(at)}${stamp.slice(5)}`
+    : stamp.replace(/^(\D+\d+)/, `$1, ${year(at)}`);
 };

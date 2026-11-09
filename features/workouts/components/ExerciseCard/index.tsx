@@ -3,7 +3,7 @@
 import clsx from "clsx";
 import { Check, ExternalLink, Play, Repeat, Trophy } from "lucide-react";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 
 import { CARD } from "@/constants/styles";
@@ -33,9 +33,10 @@ export const ExerciseCard = ({
   footer,
   isPersonalBest = false,
 }: ExerciseCardProps) => {
+  const locale = useLocale();
   const t = useTranslations("workouts.exerciseCard");
   const [isPlaying, setIsPlaying] = useState(false);
-  const volume = formatVolume(exercise.sets, exercise.reps);
+  const volume = formatVolume(exercise.sets, exercise.reps, locale);
 
   return (
     <article
@@ -79,8 +80,8 @@ export const ExerciseCard = ({
           <span className="pointer-events-none absolute top-3 right-3 flex items-center gap-1 rounded-full bg-success px-2.5 py-1 text-xs font-bold text-success-fg shadow">
             <Check className="size-3.5" strokeWidth={3} aria-hidden />
             {t("completed", {
-              time: formatClockTime(exercise.completedAt, TIME_ZONE),
-              date: formatShortDate(exercise.completedAt, TIME_ZONE),
+              time: formatClockTime(exercise.completedAt, TIME_ZONE, locale),
+              date: formatShortDate(exercise.completedAt, TIME_ZONE, locale),
             })}
           </span>
         )}

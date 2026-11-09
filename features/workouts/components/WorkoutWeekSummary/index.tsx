@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { BedDouble, Check, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { ProgressBar } from "@/components/common/ProgressBar";
 import { CARD } from "@/constants/styles";
@@ -31,6 +31,7 @@ export const WorkoutWeekSummary = ({
   today,
   dayBasePath,
 }: WorkoutWeekSummaryProps) => {
+  const locale = useLocale();
   const t = useTranslations("workouts.weekSummary");
   const week = getWeekProgress(days);
   const plannedDays = days.filter((day) => day.exercises.length > 0);
@@ -75,9 +76,9 @@ export const WorkoutWeekSummary = ({
                 className="flex min-h-12 items-center gap-3 px-4 py-2.5 transition active:bg-line/60"
               >
                 <span className="w-16 shrink-0 text-sm font-medium text-fg">
-                  {getWeekdayShortLabel(day.date)}{" "}
+                  {getWeekdayShortLabel(day.date, locale)}{" "}
                   <span className="font-normal text-muted">
-                    {formatDayMonth(day.date)}
+                    {formatDayMonth(day.date, locale)}
                   </span>
                 </span>
                 <span className="min-w-0 flex-1 truncate text-sm text-muted">

@@ -7,6 +7,7 @@ import type {
   WeeklyWeight,
   WeightLog,
 } from "@/features/nutrition/types/nutrition";
+import { DEFAULT_LOCALE, type Locale, toIntlLocale } from "@/utils/locale";
 import { addDays, getWeekStart } from "@/utils/week";
 
 const roundToTenth = (value: number) => Math.round(value * 10) / 10;
@@ -135,8 +136,11 @@ export const findNearestPoint = (points: ChartPoint[], x: number) =>
   );
 
 // "+0,4 kg" / "−1,2 kg" / "0 kg"
-export const formatWeightChange = (change: number) => {
-  const magnitude = Math.abs(change).toLocaleString("vi-VN", {
+export const formatWeightChange = (
+  change: number,
+  locale: Locale = DEFAULT_LOCALE,
+) => {
+  const magnitude = Math.abs(change).toLocaleString(toIntlLocale(locale), {
     maximumFractionDigits: 1,
   });
 

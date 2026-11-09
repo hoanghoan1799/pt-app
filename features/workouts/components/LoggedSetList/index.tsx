@@ -1,4 +1,4 @@
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { formatSet } from "@/features/workouts/utils/set-logger";
 import type { LoggedSet } from "@/features/workouts/utils/sets";
@@ -10,6 +10,7 @@ interface LoggedSetListProps {
 // Read-only sets (Q13): the admin preview (E5) shows the empty fallback; the
 // member page (F1) only renders it when sets exist.
 export const LoggedSetList = ({ sets }: LoggedSetListProps) => {
+  const locale = useLocale();
   const t = useTranslations("workouts.loggedSets");
 
   return (
@@ -17,7 +18,7 @@ export const LoggedSetList = ({ sets }: LoggedSetListProps) => {
       {sets.length > 0 ? (
         <>
           <span className="font-medium text-fg">{t("loggedPrefix")}</span>{" "}
-          {sets.map(formatSet).join(" · ")}
+          {sets.map((set) => formatSet(set, locale)).join(" · ")}
         </>
       ) : (
         t("nothingLogged")

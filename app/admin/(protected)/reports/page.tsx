@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -21,6 +21,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
 const AdminReportsPage = async () => {
   await requireSuperAdmin();
   const t = await getTranslations("adminPages.reports");
+  const locale = await getLocale();
 
   const reports = await listOpenReports();
 
@@ -52,7 +53,12 @@ const AdminReportsPage = async () => {
                   {report.targetName &&
                     t("targetName", { name: report.targetName })}
                   {" · "}
-                  {formatRelativeTime(report.createdAt, TIME_ZONE)}
+                  {formatRelativeTime(
+                    report.createdAt,
+                    TIME_ZONE,
+                    undefined,
+                    locale,
+                  )}
                 </p>
                 {report.preview !== null ? (
                   <p className="text-base break-words whitespace-pre-wrap text-fg">

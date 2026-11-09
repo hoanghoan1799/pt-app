@@ -1,5 +1,5 @@
 import { MessageSquareQuote } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import { CARD, SECTION_TITLE } from "@/constants/styles";
@@ -25,6 +25,7 @@ export const NutritionDayView = ({
   isLegacyLog = false,
   children,
 }: NutritionDayViewProps) => {
+  const locale = useLocale();
   const t = useTranslations("nutrition.nutritionDayView");
   const tWeek = useTranslations("common.week");
   const isFuture = day.date > today;
@@ -47,7 +48,7 @@ export const NutritionDayView = ({
     <section className="space-y-4">
       <div>
         <p className="text-sm font-medium text-muted">
-          {formatFullDay(day.date)}
+          {formatFullDay(day.date, locale)}
           {day.date === today && (
             <span className="text-accent"> · {tWeek("today")}</span>
           )}

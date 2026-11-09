@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import {
   type FormEvent,
   startTransition,
@@ -45,6 +46,7 @@ const getFieldErrors = (state: FormState, isKcalOutdated: boolean) => {
 };
 
 export const useFoodForm = (food: Food | null) => {
+  const locale = useLocale();
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(
     food ? updateFoodAction : createFoodAction,
@@ -85,9 +87,9 @@ export const useFoodForm = (food: Food | null) => {
   );
   const kcalCheck = hasAllNumbers
     ? {
-        fromMacros: formatKcal(kcalFromMacros(macros)),
+        fromMacros: formatKcal(kcalFromMacros(macros), locale),
         isGapTooLarge: isKcalGapTooLarge(kcalValue, macros),
-        warning: describeKcalGap(kcalValue, macros),
+        warning: describeKcalGap(kcalValue, macros, locale),
       }
     : null;
 

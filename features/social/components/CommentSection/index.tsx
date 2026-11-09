@@ -3,7 +3,7 @@
 import { Loader2, Send } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -43,6 +43,7 @@ export const CommentSection = ({
   mode,
   comments,
 }: CommentSectionProps) => {
+  const locale = useLocale();
   const t = useTranslations("social.comments");
   const router = useRouter();
   const confirm = useConfirm();
@@ -143,7 +144,12 @@ export const CommentSection = ({
                   )}
                   {comment.authorVerified && <VerifiedBadge />}
                   <span className="shrink-0 text-xs font-normal text-muted">
-                    {formatRelativeTime(comment.createdAt, TIME_ZONE)}
+                    {formatRelativeTime(
+                      comment.createdAt,
+                      TIME_ZONE,
+                      undefined,
+                      locale,
+                    )}
                     {comment.edited && t("edited")}
                   </span>
                 </p>

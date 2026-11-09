@@ -3,7 +3,7 @@
 import clsx from "clsx";
 import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
@@ -35,6 +35,7 @@ export const WeekJumpSheet = ({
   today,
   children,
 }: WeekJumpSheetProps) => {
+  const locale = useLocale();
   const t = useTranslations("common.week");
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -66,7 +67,9 @@ export const WeekJumpSheet = ({
       <button
         type="button"
         onClick={() => handleOpenChange(true)}
-        aria-label={t("openCalendar", { week: formatWeekTitle(weekStart) })}
+        aria-label={t("openCalendar", {
+          week: formatWeekTitle(weekStart, locale),
+        })}
         className="flex min-w-0 items-center gap-2 text-[15px] font-bold text-fg transition active:opacity-70"
       >
         {children}
@@ -96,7 +99,7 @@ export const WeekJumpSheet = ({
               <button
                 type="button"
                 aria-label={[
-                  formatFullDay(date),
+                  formatFullDay(date, locale),
                   isToday && t("dayIsToday"),
                   isSelected && t("dayIsSelected"),
                 ]

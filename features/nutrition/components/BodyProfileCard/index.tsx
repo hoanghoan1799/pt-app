@@ -1,7 +1,7 @@
 "use client";
 
 import { Activity, Pencil } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
@@ -57,6 +57,7 @@ export const BodyProfileCard = ({
 }: BodyProfileCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const plan = profile ? calculateEnergyPlan(profile, today) : null;
+  const locale = useLocale();
   const t = useTranslations("nutrition.bodyProfileCard");
   const tLabels = useTranslations("nutrition.labels");
   const copy = COPY[editor];
@@ -74,8 +75,8 @@ export const BodyProfileCard = ({
               {t("summary", {
                 sex: tLabels(SEX_LABEL_KEYS[profile.sex]),
                 age: plan.age,
-                height: formatDecimal(profile.heightCm),
-                weight: formatDecimal(profile.weightKg),
+                height: formatDecimal(profile.heightCm, locale),
+                weight: formatDecimal(profile.weightKg, locale),
               })}
               <span className="block text-xs text-muted">
                 {t("activityGoal", {

@@ -3,7 +3,7 @@
 import clsx from "clsx";
 import { ChevronRight, Search, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
@@ -63,6 +63,7 @@ export const ChatInfo = ({
   paths,
   preview,
 }: ChatInfoProps) => {
+  const locale = useLocale();
   const t = useTranslations("chat.chatInfo");
   const isAdmin = viewer.role === "admin";
   const [profile, setProfile] = useState(initialProfile);
@@ -176,7 +177,9 @@ export const ChatInfo = ({
                 >
                   <Link
                     href={paths.photos}
-                    aria-label={t("photoOf", { label: photoLabel(photo) })}
+                    aria-label={t("photoOf", {
+                      label: photoLabel(photo, locale),
+                    })}
                     className="absolute inset-0 block"
                   >
                     {/* A plain img: the route is cookie-authenticated. */}

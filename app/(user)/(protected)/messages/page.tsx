@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { Avatar } from "@/components/common/Avatar";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -36,6 +36,7 @@ const UnreadDot = ({ label }: { label: string }) => (
 const MessagesInboxPage = async () => {
   const t = await getTranslations("chat.pages");
   const dm = await getTranslations("social.dm");
+  const locale = await getLocale();
   const user = await requireUser();
   const [coachUnread, chats] = await Promise.all([
     countUnreadForUser(user.id),
@@ -90,6 +91,8 @@ const MessagesInboxPage = async () => {
                             {formatRelativeTime(
                               new Date(chat.lastMessageAt).getTime(),
                               TIME_ZONE,
+                              undefined,
+                              locale,
                             )}
                           </span>
                         )}

@@ -46,7 +46,7 @@ import {
 } from "@/features/chat/utils/photo-rules";
 import {
   type ChatSticker,
-  STICKER_PREVIEW,
+  stickerPreview,
   toChatSticker,
 } from "@/features/chat/utils/sticker-rules";
 import { loadReplyPostViews } from "@/features/social/services/dm-reply-post";
@@ -60,6 +60,7 @@ import {
   hiddenConversationIdsOf,
   hiddenUserIdsOf,
 } from "@/services/hidden-users";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 export interface ChatReaction {
   emoji: string;
@@ -878,7 +879,11 @@ export interface InboxWithoutConversation {
 
 // `hidden: false` is the normal inbox (this admin's hidden trainees left out);
 // `hidden: true` is only those, for the passcode reveal (KAN-163).
-const loadInbox = async (adminId: number, hidden: boolean) => {
+const loadInbox = async (
+  adminId: number,
+  hidden: boolean,
+  locale: Locale = DEFAULT_LOCALE,
+) => {
   const [rows, unreadRows, fresh] = await Promise.all([
     db
       .select({
@@ -975,9 +980,9 @@ const loadInbox = async (adminId: number, hidden: boolean) => {
     preview: row.lastDeletedAt
       ? ""
       : row.lastStickerRef
-        ? STICKER_PREVIEW
+        ? stickerPreview(locale)
         : row.lastPhotoId
-          ? photoPreview(toPreview(row.lastBody ?? ""))
+          ? photoPreview(toPreview(row.lastBody ?? ""), locale)
           : toPreview(row.lastBody ?? ""),
     lastFromAdmin: row.lastSenderRole === "admin",
     lastSenderAdminId: row.lastSenderAdminId,
@@ -997,9 +1002,10 @@ const loadInbox = async (adminId: number, hidden: boolean) => {
   return { conversations, withoutConversation };
 };
 
-export const listAdminInbox = (adminId: number) => loadInbox(adminId, false);
+export const listAdminInbox = (adminId: number, locale?: Locale) =>
+  loadInbox(adminId, false, locale);
 
 // This admin's hidden trainees in the inbox shapes: conversations newest
 // first, then the ones nobody has written to yet.
-export const listHiddenInboxForAdmin = (adminId: number) =>
-  loadInbox(adminId, true);
+export const listHiddenInboxForAdmin = (adminId: number, locale?: Locale) =>
+  loadInbox(adminId, true, locale);

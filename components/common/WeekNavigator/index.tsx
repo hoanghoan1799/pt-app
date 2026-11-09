@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { WeekJumpSheet } from "@/components/common/WeekJumpSheet";
 import {
@@ -28,6 +28,7 @@ export const WeekNavigator = ({
   selectedDate,
   today,
 }: WeekNavigatorProps) => {
+  const locale = useLocale();
   const t = useTranslations("common.week");
   // Nothing to jump to when today is already the selected day.
   const isOnToday = selectedDate === today;
@@ -53,7 +54,7 @@ export const WeekNavigator = ({
         today={today}
       >
         <CalendarDays className="size-5 shrink-0 text-accent" aria-hidden />
-        {formatWeekTitle(weekStart)}
+        {formatWeekTitle(weekStart, locale)}
       </WeekJumpSheet>
       <div className="flex items-center">
         <Link

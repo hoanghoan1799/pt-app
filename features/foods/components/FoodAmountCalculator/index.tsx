@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { CARD, INPUT, LABEL } from "@/constants/styles";
 import { useFoodAmount } from "@/features/foods/hooks/use-food-amount";
@@ -22,6 +22,7 @@ const UNIT_BUTTON = "min-h-10 rounded-lg text-sm font-semibold transition";
 
 // Type grams (or servings) and see the calories and macros for that amount.
 export const FoodAmountCalculator = ({ food }: FoodAmountCalculatorProps) => {
+  const locale = useLocale();
   const t = useTranslations("foods.foodAmountCalculator");
   const tNutritionLabels = useTranslations("nutrition.labels");
   const { unit, changeUnit, text, setText, isValid, maxAmount, result } =
@@ -84,7 +85,7 @@ export const FoodAmountCalculator = ({ food }: FoodAmountCalculatorProps) => {
           )}
         >
           {isValid
-            ? t("equals", { grams: formatGrams(result.grams) })
+            ? t("equals", { grams: formatGrams(result.grams, locale) })
             : t(unit === "servings" ? "invalidServings" : "invalidGrams", {
                 max: maxAmount,
               })}
@@ -95,7 +96,7 @@ export const FoodAmountCalculator = ({ food }: FoodAmountCalculatorProps) => {
         <div className="flex items-baseline justify-between rounded-xl bg-line/50 px-4 py-3">
           <dt className="font-semibold text-fg">{t("kcal")}</dt>
           <dd className="text-2xl font-bold text-fg tabular-nums">
-            {formatKcal(result.kcal)}{" "}
+            {formatKcal(result.kcal, locale)}{" "}
             <span className="text-sm font-medium text-muted">kcal</span>
           </dd>
         </div>
@@ -117,7 +118,7 @@ export const FoodAmountCalculator = ({ food }: FoodAmountCalculatorProps) => {
                 {tNutritionLabels(MACRO_LABELS[macro].nameKey)}
               </dt>
               <dd className="mt-0.5 text-lg font-bold text-fg tabular-nums">
-                {formatGrams(result[macro])}
+                {formatGrams(result[macro], locale)}
                 <span className="text-xs font-medium text-muted"> g</span>
               </dd>
             </div>

@@ -3,7 +3,7 @@
 import clsx from "clsx";
 import { ChevronLeft, Search } from "lucide-react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 import { ICON_BUTTON, INPUT, PAGE_CONTAINER } from "@/constants/styles";
@@ -147,6 +147,8 @@ export const ChatSearch = ({
     }
   };
 
+  const locale = useLocale();
+
   const t = useTranslations("chat.chatSearch");
   const query = text.trim();
   const isSearchable = isSearchableQuery(query);
@@ -226,10 +228,10 @@ export const ChatSearch = ({
                     >
                       <span className="flex items-baseline justify-between gap-3">
                         <span className="truncate text-sm font-semibold text-fg">
-                          {searchSenderLabel(result, viewer, nicknames)}
+                          {searchSenderLabel(result, viewer, nicknames, locale)}
                         </span>
                         <span className="shrink-0 text-xs text-muted">
-                          {formatResultTime(result.createdAt, now)}
+                          {formatResultTime(result.createdAt, now, locale)}
                         </span>
                       </span>
                       <span className="mt-0.5 block text-sm break-words text-muted">

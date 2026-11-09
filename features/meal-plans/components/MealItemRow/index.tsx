@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { Lock, LockOpen, Trash2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { ICON_BUTTON, INPUT } from "@/constants/styles";
 import { FOOD_STATE_LABELS } from "@/features/foods/constants/foods";
@@ -10,6 +10,7 @@ import { formatKcal } from "@/features/foods/utils/food-math";
 import { useGramsInput } from "@/features/meal-plans/hooks/use-grams-input";
 import type { PlanItem } from "@/features/meal-plans/types/meal-plan";
 import { kcalOf, macrosOf } from "@/features/meal-plans/utils/plan-totals";
+import { type Locale, toIntlLocale } from "@/utils/locale";
 
 interface MealItemRowProps {
   item: PlanItem;
@@ -20,8 +21,8 @@ interface MealItemRowProps {
   onRemove: () => void;
 }
 
-const round = (value: number) =>
-  (Math.round(value * 10) / 10).toLocaleString("vi-VN", {
+const round = (value: number, locale: Locale) =>
+  (Math.round(value * 10) / 10).toLocaleString(toIntlLocale(locale), {
     maximumFractionDigits: 1,
   });
 
@@ -33,6 +34,7 @@ export const MealItemRow = ({
   onToggleFixed,
   onRemove,
 }: MealItemRowProps) => {
+  const locale = useLocale();
   const t = useTranslations("mealPlans.mealItemRow");
   const tFoods = useTranslations("foods.labels");
   const { food } = item;
@@ -58,8 +60,9 @@ export const MealItemRow = ({
             </p>
           )}
           <p className="mt-0.5 text-xs text-muted tabular-nums">
-            {formatKcal(kcalOf(macros))} kcal · P {round(macros.protein)} · C{" "}
-            {round(macros.carbs)} · F {round(macros.fat)}
+            {formatKcal(kcalOf(macros), locale)} kcal · P{" "}
+            {round(macros.protein, locale)} · C {round(macros.carbs, locale)} ·
+            F {round(macros.fat, locale)}
           </p>
         </div>
         <button

@@ -1,9 +1,12 @@
+import { TIME_ZONE } from "@/constants/time";
 import {
   formatLastSeen,
   isOnline,
   latestSeen,
   parseLastSeen,
 } from "@/features/chat/utils/presence";
+import { getFormatTranslator } from "@/i18n/format-translator";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 export interface PresenceView {
   online: boolean;
@@ -11,14 +14,13 @@ export interface PresenceView {
   text: string | null;
 }
 
-const LAST_SEEN_PREFIX = "Hoạt động ";
-
 export const presenceView = (
   lastSeenAt: Date | null,
   now: Date,
+  locale: Locale = DEFAULT_LOCALE,
 ): PresenceView => ({
   online: isOnline(lastSeenAt, now),
-  text: formatLastSeen(lastSeenAt, now),
+  text: formatLastSeen(lastSeenAt, now, TIME_ZONE, locale),
 });
 
 // Inbox rows have little room: "5 phút trước" instead of "Hoạt động 5 phút
@@ -26,15 +28,15 @@ export const presenceView = (
 export const shortLastSeen = (
   lastSeenAt: Date | null,
   now: Date,
+  locale: Locale = DEFAULT_LOCALE,
 ): string | null => {
   if (isOnline(lastSeenAt, now)) {
     return null;
   }
-  const text = formatLastSeen(lastSeenAt, now);
+  const text = formatLastSeen(lastSeenAt, now, TIME_ZONE, locale);
+  const prefix = getFormatTranslator(locale)("presence.prefix");
 
-  return text?.startsWith(LAST_SEEN_PREFIX)
-    ? text.slice(LAST_SEEN_PREFIX.length)
-    : text;
+  return text?.startsWith(prefix) ? text.slice(prefix.length) : text;
 };
 
 // Where the thread asks for the other side's last seen when the message poll

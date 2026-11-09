@@ -16,7 +16,7 @@ import { after } from "next/server";
 import { db } from "@/db";
 import { pushSubscriptions, socialNotifications } from "@/db/schema";
 import {
-  deliver,
+  deliverLocalized,
   getVapid,
   type PushSender,
   sendWithWebPush,
@@ -42,6 +42,7 @@ import {
   shouldPushReaction,
 } from "@/features/social/utils/engagement-rules";
 import { logServerError } from "@/services/logger";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -90,6 +91,7 @@ export const markAllNotificationsRead = async (
 // the page can still show which ones were new.
 export const listNotifications = async (
   recipientKey: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<NotificationView[]> => {
   const rows = await db
     .select()
@@ -106,7 +108,7 @@ export const listNotifications = async (
     return {
       id: row.id,
       kind: row.kind,
-      text: notificationText(row.kind, actorName),
+      text: notificationText(row.kind, actorName, locale),
       href: notificationHref(row.kind, recipientKey, row.postId),
       actorName,
       actorAvatarUrl: actor?.avatarUrl ?? null,
@@ -221,12 +223,13 @@ const buildPayload = (
   notification: typeof socialNotifications.$inferSelect,
   actorName: string,
   commentBody: string | undefined,
+  locale: Locale,
 ) => {
   if (
     notification.kind === "friend_request" ||
     notification.kind === "friend_accepted"
   ) {
-    return buildFriendPush(notification.kind, actorName);
+    return buildFriendPush(notification.kind, actorName, locale);
   }
   const postId = notification.postId ?? 0;
 
@@ -236,8 +239,9 @@ const buildPayload = (
         notification.recipientKey,
         postId,
         commentBody ?? "",
+        locale,
       )
-    : buildReactionPush(actorName, notification.recipientKey, postId);
+    : buildReactionPush(actorName, notification.recipientKey, postId, locale);
 };
 
 export interface SocialPushInput {
@@ -309,13 +313,17 @@ export const sendSocialPush = async (
       notification.actorKey,
     );
     const actorName = actor?.name ?? DELETED_ACCOUNT_NAME;
-    const payload = buildPayload(notification, actorName, commentBody);
 
     await db
       .update(socialNotifications)
       .set({ pushedAt: now })
       .where(eq(socialNotifications.id, notification.id));
-    await deliver(targets, payload, vapid, sender);
+    await deliverLocalized(
+      targets,
+      (locale) => buildPayload(notification, actorName, commentBody, locale),
+      vapid,
+      sender,
+    );
   } catch (error) {
     logServerError("sendSocialPush", error, { notificationId });
   }

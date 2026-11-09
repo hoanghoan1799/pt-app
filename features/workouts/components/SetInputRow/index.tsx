@@ -1,5 +1,5 @@
 import { CornerDownLeft, Trash2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { ICON_BUTTON } from "@/constants/styles";
 import {
@@ -41,9 +41,10 @@ export const SetInputRow = ({
   hint,
   onApplyHint,
 }: SetInputRowProps) => {
+  const locale = useLocale();
   const t = useTranslations("workouts.setInputRow");
   const setNumber = index + 1;
-  const hintText = hint ? formatSet(hint) : "";
+  const hintText = hint ? formatSet(hint, locale) : "";
 
   return (
     <li className="grid grid-cols-[1.75rem_1fr_1fr_2.75rem] items-center gap-2">

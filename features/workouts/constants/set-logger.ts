@@ -1,15 +1,16 @@
-// Copy the set logger still builds in Vietnamese. formatSet (utils/set-logger.ts)
-// is also rendered by members and the dashboard, which are not translated yet,
-// so its two labels stay here. Other UI copy lives in messages/*/workouts.json.
-export const SET_LOGGER_COPY = {
-  BODYWEIGHT: "Tự trọng",
-  WEIGHT_UNIT: "kg",
-} as const;
+import { getFormatTranslator } from "@/i18n/format-translator";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 // Client-side validation messages for the set rows (utils/set-logger.ts,
-// tested). They still read in Vietnamese; see the i18n spec's PR order.
-export const describeMissingReps = (setNumber: number) =>
-  `Nhập số lần cho hiệp ${setNumber}`;
+// tested). The wrapped schema message stays Vietnamese (server messages).
+export const describeMissingReps = (
+  setNumber: number,
+  locale: Locale = DEFAULT_LOCALE,
+) => getFormatTranslator(locale)("setRow.missingReps", { number: setNumber });
 
-export const describeRowError = (setNumber: number, message: string) =>
-  `Hiệp ${setNumber}: ${message}`;
+export const describeRowError = (
+  setNumber: number,
+  message: string,
+  locale: Locale = DEFAULT_LOCALE,
+) =>
+  getFormatTranslator(locale)("setRow.error", { number: setNumber, message });
