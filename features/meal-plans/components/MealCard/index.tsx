@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronUp, Sparkles, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { BUTTON_PRIMARY, CARD, ICON_BUTTON } from "@/constants/styles";
@@ -10,7 +11,6 @@ import { MealCollapseToggle } from "@/features/meal-plans/components/MealCollaps
 import { MealGapNotice } from "@/features/meal-plans/components/MealGapNotice";
 import { MealItemRow } from "@/features/meal-plans/components/MealItemRow";
 import { MealLogSummary } from "@/features/meal-plans/components/MealLogSummary";
-import { formatDeleteMealQuestion } from "@/features/meal-plans/constants/meal-plans";
 import { useMealCard } from "@/features/meal-plans/hooks/use-meal-card";
 import { useMealNameInput } from "@/features/meal-plans/hooks/use-meal-name-input";
 import type { MealLog, MealMark } from "@/features/meal-plans/types/meal-log";
@@ -59,6 +59,7 @@ export const MealCard = ({
   isCollapsed,
   onToggleCollapse,
 }: MealCardProps) => {
+  const t = useTranslations("mealPlans.mealCard");
   const confirm = useConfirm();
   const card = useMealCard(userId, meal);
   const nameInput = useMealNameInput(meal.name, card.rename);
@@ -79,7 +80,7 @@ export const MealCard = ({
   return (
     <section
       className={`${CARD} flex flex-col gap-3 p-4`}
-      aria-label={`Bữa ${index + 1}: ${meal.name}`}
+      aria-label={t("sectionLabel", { index: index + 1, name: meal.name })}
     >
       <div className="flex items-center gap-1">
         <MealCollapseToggle
@@ -89,7 +90,7 @@ export const MealCard = ({
           onToggle={onToggleCollapse}
         />
         <input
-          aria-label={`Tên bữa ${index + 1}`}
+          aria-label={t("mealNameLabel", { index: index + 1 })}
           value={nameInput.name}
           onChange={(event) => nameInput.setName(event.target.value)}
           onBlur={nameInput.handleBlur}
@@ -106,7 +107,7 @@ export const MealCard = ({
           onClick={() => onMove(-1)}
           disabled={isFirst || isBusy}
           className={ICON_BUTTON}
-          aria-label={`Đưa ${meal.name} lên trên`}
+          aria-label={t("moveUp", { name: meal.name })}
         >
           <ChevronUp className="size-5" />
         </button>
@@ -115,7 +116,7 @@ export const MealCard = ({
           onClick={() => onMove(1)}
           disabled={isLast || isBusy}
           className={ICON_BUTTON}
-          aria-label={`Đưa ${meal.name} xuống dưới`}
+          aria-label={t("moveDown", { name: meal.name })}
         >
           <ChevronDown className="size-5" />
         </button>
@@ -125,8 +126,8 @@ export const MealCard = ({
             if (
               !meal.items.length ||
               (await confirm({
-                title: formatDeleteMealQuestion(meal.name),
-                confirmLabel: "Xóa",
+                title: t("deleteMealQuestion", { meal: meal.name }),
+                confirmLabel: t("confirmDelete"),
                 isDanger: true,
               }))
             ) {
@@ -135,7 +136,7 @@ export const MealCard = ({
           }}
           disabled={isOnly || isBusy}
           className={`${ICON_BUTTON} text-danger`}
-          aria-label={`Xóa ${meal.name}`}
+          aria-label={t("deleteMeal", { name: meal.name })}
         >
           <Trash2 className="size-4" />
         </button>
@@ -145,20 +146,24 @@ export const MealCard = ({
         <p className="text-sm text-muted tabular-nums">
           {Math.round(kcalOf(totals))} kcal
           {target && ` / ${Math.round(target.kcal)} kcal`}
-          {` · ${meal.items.length} món`}
+          {t("collapsedFoods", { count: meal.items.length })}
         </p>
       )}
 
       <div id={bodyId} hidden={isCollapsed} className="space-y-3">
         {target ? (
           <p className="text-xs text-muted tabular-nums">
-            Mục tiêu bữa
-            {meal.sharePercent !== null && ` (${meal.sharePercent}%)`}:{" "}
-            {Math.round(target.kcal)} kcal · P {target.protein} · C{" "}
-            {target.carbs} · F {target.fat}
+            {t("mealTarget", {
+              share:
+                meal.sharePercent !== null ? ` (${meal.sharePercent}%)` : "",
+              kcal: Math.round(target.kcal),
+              protein: target.protein,
+              carbs: target.carbs,
+              fat: target.fat,
+            })}
           </p>
         ) : (
-          <p className="text-xs text-muted">Chưa có mục tiêu cho ngày này.</p>
+          <p className="text-xs text-muted">{t("noTargetToday")}</p>
         )}
 
         {meal.items.length > 0 && (
@@ -190,7 +195,7 @@ export const MealCard = ({
           <div className="space-y-2">
             <p
               className="text-sm font-semibold text-fg tabular-nums"
-              aria-label={`Tổng ${meal.name}`}
+              aria-label={t("totalLabel", { name: meal.name })}
             >
               {Math.round(kcalOf(totals))} kcal
               {target && (
@@ -215,17 +220,13 @@ export const MealCard = ({
               className={`${BUTTON_PRIMARY} w-full`}
             >
               <Sparkles className="size-5" aria-hidden />
-              Tính tự động
+              {t("autoSolve")}
             </button>
             {!target && (
-              <p className="text-xs text-muted">
-                Đặt mục tiêu dinh dưỡng trước để tính tự động.
-              </p>
+              <p className="text-xs text-muted">{t("setTargetFirst")}</p>
             )}
             {target && solvableCount < 1 && (
-              <p className="text-xs text-muted">
-                Mọi món đang giữ gram, bỏ khóa một món để tính tự động.
-              </p>
+              <p className="text-xs text-muted">{t("allFixed")}</p>
             )}
           </div>
         )}

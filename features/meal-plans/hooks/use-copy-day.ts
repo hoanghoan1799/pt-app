@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -45,6 +46,7 @@ export const useCopyDay = ({
   isOpen,
   onDone,
 }: CopyDayOptions) => {
+  const t = useTranslations("mealPlans.useCopyDay");
   const [month, setMonth] = useState(getMonthOf(today));
   const [selected, setSelected] = useState<string[]>([]);
   // Plans and logs per month, read from the server each time the sheet opens
@@ -122,7 +124,7 @@ export const useCopyDay = ({
     setIsConfirming(false);
     run(() => copyDayAction({ userId, dayId, dates: selected }), {
       successMessage: (result) =>
-        "copied" in result ? `Đã sao chép sang ${result.copied} ngày` : "",
+        "copied" in result ? t("copied", { copied: result.copied }) : "",
       onSuccess: () => {
         setSelected([]);
         onDone();

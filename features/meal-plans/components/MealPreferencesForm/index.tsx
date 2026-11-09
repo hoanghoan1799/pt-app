@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, Utensils } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 
 import { SubmitButton } from "@/components/common/SubmitButton";
@@ -36,6 +37,7 @@ export const MealPreferencesForm = ({
   preferredMealCount,
   foodNote,
 }: MealPreferencesFormProps) => {
+  const t = useTranslations("mealPlans.mealPreferencesForm");
   const { formAction, fieldErrors, values } = useMealPreferencesForm();
   const [isOpen, setIsOpen] = useState(
     () => !hasMealPreferences(preferredMealCount, foodNote),
@@ -53,7 +55,7 @@ export const MealPreferencesForm = ({
       >
         <span className="flex items-center gap-1.5 text-xs font-semibold text-muted">
           <Utensils className="size-4" aria-hidden />
-          Yêu cầu bữa ăn
+          {t("title")}
         </span>
         <ChevronDown
           className={`size-5 text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
@@ -64,7 +66,7 @@ export const MealPreferencesForm = ({
         <form action={formAction} className="mt-3 space-y-4">
           <div>
             <label htmlFor="meal-count" className={LABEL}>
-              Số bữa mong muốn
+              {t("mealCount")}
             </label>
             <select
               id="meal-count"
@@ -75,10 +77,10 @@ export const MealPreferencesForm = ({
               aria-invalid={Boolean(fieldErrors.mealCount)}
               className={INPUT}
             >
-              <option value="">PT quyết định</option>
+              <option value="">{t("ptDecides")}</option>
               {COUNTS.map((count) => (
                 <option key={count} value={count}>
-                  {count} bữa/ngày
+                  {t("mealsPerDay", { count })}
                 </option>
               ))}
             </select>
@@ -88,7 +90,7 @@ export const MealPreferencesForm = ({
           </div>
           <div>
             <label htmlFor="food-note" className={LABEL}>
-              Món thích hoặc không ăn được
+              {t("foodLabel")}
             </label>
             <textarea
               id="food-note"
@@ -96,7 +98,7 @@ export const MealPreferencesForm = ({
               defaultValue={values?.foodNote ?? foodNote ?? ""}
               rows={3}
               maxLength={MEAL_PLAN_LIMITS.FOOD_NOTE}
-              placeholder="VD: Không ăn hải sản, thích cơm gạo lứt."
+              placeholder={t("notePlaceholder")}
               aria-invalid={Boolean(fieldErrors.foodNote)}
               className={TEXTAREA}
             />
@@ -105,12 +107,10 @@ export const MealPreferencesForm = ({
             )}
           </div>
           <SubmitButton className={`${BUTTON_PRIMARY} w-full`}>
-            Lưu yêu cầu
+            {t("save")}
           </SubmitButton>
         </form>
-        <p className="mt-3 text-xs text-muted">
-          PT sẽ xem yêu cầu này khi xếp bữa ăn cho bạn.
-        </p>
+        <p className="mt-3 text-xs text-muted">{t("hint")}</p>
       </div>
     </section>
   );

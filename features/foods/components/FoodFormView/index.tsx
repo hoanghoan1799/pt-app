@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import { TriangleAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { ChangeEvent, FormEvent } from "react";
 
 import { SubmitButton } from "@/components/common/SubmitButton";
@@ -8,10 +9,10 @@ import { FOOD_GROUP_VALUES } from "@/features/foods/constants/food-groups";
 import {
   FOOD_GROUPS,
   FOOD_LIMITS,
-  FOOD_MESSAGES,
   FOOD_STATE_LABELS,
 } from "@/features/foods/constants/foods";
 import type { Food } from "@/features/foods/types/food";
+import { MACRO_LABELS } from "@/features/nutrition/constants/nutrition";
 
 interface KcalCheck {
   fromMacros: string;
@@ -94,6 +95,9 @@ export const FoodFormView = ({
   formError,
   onSubmit,
 }: FoodFormViewProps) => {
+  const t = useTranslations("foods.foodFormView");
+  const tLabels = useTranslations("foods.labels");
+  const tNutritionLabels = useTranslations("nutrition.labels");
   const isWarningShown = Boolean(kcalCheck?.isGapTooLarge);
   // The live warning already explains a gap error from the server.
   const kcalError = isWarningShown ? undefined : fieldErrors.kcal;
@@ -105,14 +109,14 @@ export const FoodFormView = ({
 
       <div>
         <label htmlFor="food-name" className={LABEL}>
-          Tên món
+          {t("name")}
         </label>
         <input
           id="food-name"
           name="name"
           defaultValue={food?.name}
           maxLength={FOOD_LIMITS.NAME_MAX}
-          placeholder="VD: Ức gà (chín)"
+          placeholder={t("namePlaceholder")}
           autoComplete="off"
           aria-invalid={Boolean(fieldErrors.name)}
           className={INPUT}
@@ -123,7 +127,7 @@ export const FoodFormView = ({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label htmlFor="food-group" className={LABEL}>
-            Nhóm
+            {t("group")}
           </label>
           <select
             id="food-group"
@@ -134,7 +138,7 @@ export const FoodFormView = ({
           >
             {FOOD_GROUP_VALUES.map((group) => (
               <option key={group} value={group}>
-                {FOOD_GROUPS[group].label}
+                {tLabels(FOOD_GROUPS[group].labelKey)}
               </option>
             ))}
           </select>
@@ -144,7 +148,7 @@ export const FoodFormView = ({
         </div>
         <div>
           <label htmlFor="food-state" className={LABEL}>
-            Trạng thái
+            {t("state")}
           </label>
           <select
             id="food-state"
@@ -153,9 +157,9 @@ export const FoodFormView = ({
             aria-invalid={Boolean(fieldErrors.state)}
             className={INPUT}
           >
-            <option value="">Không áp dụng</option>
-            <option value="raw">{FOOD_STATE_LABELS.raw}</option>
-            <option value="cooked">{FOOD_STATE_LABELS.cooked}</option>
+            <option value="">{t("notApplicable")}</option>
+            <option value="raw">{tLabels(FOOD_STATE_LABELS.raw)}</option>
+            <option value="cooked">{tLabels(FOOD_STATE_LABELS.cooked)}</option>
           </select>
           {fieldErrors.state && (
             <p className={FIELD_ERROR}>{fieldErrors.state}</p>
@@ -164,10 +168,10 @@ export const FoodFormView = ({
       </div>
 
       <fieldset className="space-y-3">
-        <legend className={LABEL}>Giá trị trên 100 g</legend>
+        <legend className={LABEL}>{t("valuesLegend")}</legend>
         <NumberField
           name="kcal"
-          label="Calo"
+          label={t("kcal")}
           unit="kcal"
           value={values.kcal}
           onValueChange={onNumberChange.kcal}
@@ -176,7 +180,7 @@ export const FoodFormView = ({
         <div className="grid grid-cols-3 gap-2">
           <NumberField
             name="protein"
-            label="Protein"
+            label={tNutritionLabels(MACRO_LABELS.protein.nameKey)}
             unit="g"
             value={values.protein}
             onValueChange={onNumberChange.protein}
@@ -184,7 +188,7 @@ export const FoodFormView = ({
           />
           <NumberField
             name="carbs"
-            label="Carb"
+            label={tNutritionLabels(MACRO_LABELS.carbs.nameKey)}
             unit="g"
             value={values.carbs}
             onValueChange={onNumberChange.carbs}
@@ -192,7 +196,7 @@ export const FoodFormView = ({
           />
           <NumberField
             name="fat"
-            label="Fat"
+            label={tNutritionLabels(MACRO_LABELS.fat.nameKey)}
             unit="g"
             value={values.fat}
             onValueChange={onNumberChange.fat}
@@ -201,7 +205,7 @@ export const FoodFormView = ({
         </div>
         <NumberField
           name="fiber"
-          label="Chất xơ (không bắt buộc)"
+          label={t("fiber")}
           unit="g"
           defaultValue={food?.fiber === null ? "" : String(food?.fiber ?? "")}
           error={fieldErrors.fiber}
@@ -229,7 +233,7 @@ export const FoodFormView = ({
             <span>
               {isWarningShown
                 ? kcalCheck.warning
-                : `Tính từ protein/carb/fat: ${kcalCheck.fromMacros} kcal, khớp với calo đã nhập.`}
+                : t("kcalMatches", { kcal: kcalCheck.fromMacros })}
             </span>
           </p>
           {isWarningShown && (
@@ -246,25 +250,25 @@ export const FoodFormView = ({
                 onChange={(event) => onConfirmedChange(event.target.checked)}
                 className="size-5 accent-accent"
               />
-              {FOOD_MESSAGES.CONFIRM_LABEL}
+              {t("confirmLabel")}
             </label>
           )}
         </div>
       )}
 
       <fieldset className="space-y-3">
-        <legend className={LABEL}>Khẩu phần (không bắt buộc)</legend>
+        <legend className={LABEL}>{t("serving")}</legend>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label htmlFor="food-servingLabel" className="sr-only">
-              Tên khẩu phần
+              {t("servingName")}
             </label>
             <input
               id="food-servingLabel"
               name="servingLabel"
               defaultValue={food?.servingLabel ?? ""}
               maxLength={FOOD_LIMITS.SERVING_LABEL_MAX}
-              placeholder="VD: 1 tô"
+              placeholder={t("servingNamePlaceholder")}
               autoComplete="off"
               aria-invalid={Boolean(fieldErrors.servingLabel)}
               className={INPUT}
@@ -275,7 +279,7 @@ export const FoodFormView = ({
           </div>
           <div>
             <label htmlFor="food-servingGrams" className="sr-only">
-              Khối lượng khẩu phần
+              {t("servingWeight")}
             </label>
             <div className="relative">
               <input
@@ -287,7 +291,7 @@ export const FoodFormView = ({
                     : String(food?.servingGrams ?? "")
                 }
                 inputMode="decimal"
-                placeholder="VD: 500"
+                placeholder={t("servingWeightPlaceholder")}
                 autoComplete="off"
                 aria-invalid={Boolean(fieldErrors.servingGrams)}
                 className={`${INPUT} pr-10`}
@@ -305,14 +309,14 @@ export const FoodFormView = ({
 
       <div>
         <label htmlFor="food-source" className={LABEL}>
-          Nguồn số liệu (không bắt buộc)
+          {t("source")}
         </label>
         <input
           id="food-source"
           name="source"
           defaultValue={food?.source ?? ""}
           maxLength={FOOD_LIMITS.SOURCE_MAX}
-          placeholder="VD: USDA FDC 171477, nhãn sản phẩm"
+          placeholder={t("sourcePlaceholder")}
           autoComplete="off"
           aria-invalid={Boolean(fieldErrors.source)}
           className={INPUT}
@@ -332,7 +336,7 @@ export const FoodFormView = ({
         className={`${BUTTON_PRIMARY} w-full`}
         isPending={isPending}
       >
-        {food ? "Lưu thay đổi" : "Thêm món"}
+        {food ? t("saveChanges") : t("addFood")}
       </SubmitButton>
     </form>
   );

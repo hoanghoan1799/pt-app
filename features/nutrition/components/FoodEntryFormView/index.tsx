@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 import type { FormEvent } from "react";
 
 import { SubmitButton } from "@/components/common/SubmitButton";
@@ -13,7 +14,7 @@ import {
   MACRO_COLORS,
   MACRO_LABELS,
   MACROS,
-  MEAL_SHORT_LABELS,
+  MEAL_SHORT_LABEL_KEYS,
   MEALS,
   NUTRITION_LIMITS,
 } from "@/features/nutrition/constants/nutrition";
@@ -39,101 +40,115 @@ export const FoodEntryFormView = ({
   formError,
   onMealChange,
   onSubmit,
-}: FoodEntryFormViewProps) => (
-  <form onSubmit={onSubmit} className="space-y-4" noValidate>
-    <input type="hidden" name="entryId" value={entry?.id ?? ""} />
-    <input type="hidden" name="date" value={date} />
-    <input type="hidden" name="meal" value={meal} />
+}: FoodEntryFormViewProps) => {
+  const t = useTranslations("nutrition.foodEntryFormView");
+  const tLabels = useTranslations("nutrition.labels");
 
-    <fieldset>
-      <legend className={LABEL}>Bữa</legend>
-      <div className="grid grid-cols-4 gap-1 rounded-xl bg-line/60 p-1">
-        {MEALS.map((item) => (
-          <button
-            key={item}
-            type="button"
-            onClick={() => onMealChange(item)}
-            aria-pressed={meal === item}
-            className={clsx(
-              "min-h-10 rounded-lg text-sm font-semibold transition",
-              meal === item ? "bg-surface text-fg shadow-sm" : "text-muted",
-            )}
-          >
-            {MEAL_SHORT_LABELS[item]}
-          </button>
-        ))}
-      </div>
-    </fieldset>
+  return (
+    <form onSubmit={onSubmit} className="space-y-4" noValidate>
+      <input type="hidden" name="entryId" value={entry?.id ?? ""} />
+      <input type="hidden" name="date" value={date} />
+      <input type="hidden" name="meal" value={meal} />
 
-    <div>
-      <label htmlFor="description" className={LABEL}>
-        Đã ăn gì?
-      </label>
-      <textarea
-        id="description"
-        name="description"
-        defaultValue={entry?.description}
-        rows={2}
-        maxLength={NUTRITION_LIMITS.DESCRIPTION}
-        placeholder="VD: 1 bát cơm, ức gà luộc, rau muống xào"
-        className={TEXTAREA}
-      />
-    </div>
-
-    <div>
-      <p className={LABEL}>Ước lượng (gram, không bắt buộc)</p>
-      <div className="grid grid-cols-3 gap-2">
-        {MACROS.map((macro) => (
-          <div key={macro}>
-            <label
-              htmlFor={macro}
+      <fieldset>
+        <legend className={LABEL}>{t("mealLegend")}</legend>
+        <div className="grid grid-cols-4 gap-1 rounded-xl bg-line/60 p-1">
+          {MEALS.map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => onMealChange(item)}
+              aria-pressed={meal === item}
               className={clsx(
-                "mb-1 block text-xs font-semibold",
-                MACRO_COLORS[macro].text,
+                "min-h-10 rounded-lg text-sm font-semibold transition",
+                meal === item ? "bg-surface text-fg shadow-sm" : "text-muted",
               )}
             >
-              {MACRO_LABELS[macro].name}
-            </label>
-            <div className="relative">
-              <input
-                id={macro}
-                name={macro}
-                defaultValue={entry?.[macro] ?? ""}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                placeholder="0"
-                aria-invalid={Boolean(fieldErrors[macro])}
-                className={`${INPUT} pr-8`}
-              />
-              <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted">
-                g
-              </span>
-            </div>
-          </div>
-        ))}
+              {tLabels(MEAL_SHORT_LABEL_KEYS[item])}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
+      <div>
+        <label htmlFor="description" className={LABEL}>
+          {t("foodLabel")}
+        </label>
+        <textarea
+          id="description"
+          name="description"
+          defaultValue={entry?.description}
+          rows={2}
+          maxLength={NUTRITION_LIMITS.DESCRIPTION}
+          placeholder={t("placeholder")}
+          className={TEXTAREA}
+        />
       </div>
-      {MACROS.map(
-        (macro) =>
-          fieldErrors[macro] && (
-            <p key={macro} className={FIELD_ERROR}>
-              {MACRO_LABELS[macro].name}: {fieldErrors[macro]}
-            </p>
-          ),
+
+      <div>
+        <p className={LABEL}>{t("estimateLabel")}</p>
+        <div className="grid grid-cols-3 gap-2">
+          {MACROS.map((macro) => (
+            <div key={macro}>
+              <label
+                htmlFor={macro}
+                className={clsx(
+                  "mb-1 block text-xs font-semibold",
+                  MACRO_COLORS[macro].text,
+                )}
+              >
+                {tLabels(MACRO_LABELS[macro].nameKey)}
+              </label>
+              <div className="relative">
+                <input
+                  id={macro}
+                  name={macro}
+                  defaultValue={entry?.[macro] ?? ""}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="0"
+                  aria-invalid={Boolean(fieldErrors[macro])}
+                  className={`${INPUT} pr-8`}
+                />
+                <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted">
+                  g
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+        {MACROS.map(
+          (macro) =>
+            fieldErrors[macro] && (
+              <p key={macro} className={FIELD_ERROR}>
+                {tLabels(MACRO_LABELS[macro].nameKey)}: {fieldErrors[macro]}
+              </p>
+            ),
+        )}
+        <p className="mt-1.5 text-xs text-muted">
+          {t("foodsHint", {
+            carbs: tLabels(MACRO_LABELS.carbs.nameKey),
+            carbFoods: tLabels(MACRO_LABELS.carbs.foodsKey),
+            protein: tLabels(MACRO_LABELS.protein.nameKey),
+            proteinFoods: tLabels(MACRO_LABELS.protein.foodsKey),
+            fat: tLabels(MACRO_LABELS.fat.nameKey),
+            fatFoods: tLabels(MACRO_LABELS.fat.foodsKey),
+          })}
+        </p>
+      </div>
+
+      {formError && (
+        <p role="alert" className={FIELD_ERROR}>
+          {formError}
+        </p>
       )}
-      <p className="mt-1.5 text-xs text-muted">
-        Carb: {MACRO_LABELS.carbs.foods} · Protein: {MACRO_LABELS.protein.foods}{" "}
-        · Fat: {MACRO_LABELS.fat.foods}
-      </p>
-    </div>
 
-    {formError && (
-      <p role="alert" className={FIELD_ERROR}>
-        {formError}
-      </p>
-    )}
-
-    <SubmitButton className={`${BUTTON_PRIMARY} w-full`} isPending={isPending}>
-      {entry ? "Lưu thay đổi" : "Ghi bữa ăn"}
-    </SubmitButton>
-  </form>
-);
+      <SubmitButton
+        className={`${BUTTON_PRIMARY} w-full`}
+        isPending={isPending}
+      >
+        {entry ? t("saveChanges") : t("logMeal")}
+      </SubmitButton>
+    </form>
+  );
+};

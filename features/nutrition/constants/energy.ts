@@ -5,26 +5,42 @@ import type {
   Sex,
 } from "@/features/nutrition/types/nutrition";
 
-export const SEX_LABELS: Record<Sex, string> = { male: "Nam", female: "Nữ" };
+// Display labels are keys under the nutrition.labels namespace (translated at render).
+export const SEX_LABEL_KEYS = {
+  male: "sex.male",
+  female: "sex.female",
+} as const satisfies Record<Sex, string>;
 
-export const ACTIVITY_LEVELS: Record<
-  ActivityLevel,
-  { factor: number; label: string; description: string }
-> = {
+export const ACTIVITY_LEVELS = {
   sedentary: {
     factor: 1.2,
-    label: "Ít vận động",
-    description: "Ngồi nhiều, không tập",
+    labelKey: "activity.sedentary.label",
+    descriptionKey: "activity.sedentary.description",
   },
-  light: { factor: 1.375, label: "Nhẹ", description: "Tập 1–3 buổi/tuần" },
-  moderate: { factor: 1.55, label: "Vừa", description: "Tập 3–5 buổi/tuần" },
-  active: { factor: 1.725, label: "Nhiều", description: "Tập 6–7 buổi/tuần" },
+  light: {
+    factor: 1.375,
+    labelKey: "activity.light.label",
+    descriptionKey: "activity.light.description",
+  },
+  moderate: {
+    factor: 1.55,
+    labelKey: "activity.moderate.label",
+    descriptionKey: "activity.moderate.description",
+  },
+  active: {
+    factor: 1.725,
+    labelKey: "activity.active.label",
+    descriptionKey: "activity.active.description",
+  },
   very_active: {
     factor: 1.9,
-    label: "Rất nhiều",
-    description: "Tập 2 buổi/ngày hoặc lao động nặng",
+    labelKey: "activity.veryActive.label",
+    descriptionKey: "activity.veryActive.description",
   },
-};
+} as const satisfies Record<
+  ActivityLevel,
+  { factor: number; labelKey: string; descriptionKey: string }
+>;
 
 export const ACTIVITY_LEVEL_ORDER: ActivityLevel[] = [
   "sedentary",
@@ -37,14 +53,14 @@ export const ACTIVITY_LEVEL_ORDER: ActivityLevel[] = [
 // Legacy fallback only: calories relative to TDEE and protein per kg of body
 // weight, per goal. Used while a member's kcal_adjustment / protein_per_kg are
 // still null; once the PT saves the profile those two fields take over.
-export const GOALS: Record<
+export const GOALS = {
+  cut: { labelKey: "goal.cut", calorieFactor: 0.8, proteinPerKg: 2.2 },
+  maintain: { labelKey: "goal.maintain", calorieFactor: 1, proteinPerKg: 1.8 },
+  bulk: { labelKey: "goal.bulk", calorieFactor: 1.1, proteinPerKg: 2 },
+} as const satisfies Record<
   Goal,
-  { label: string; calorieFactor: number; proteinPerKg: number }
-> = {
-  cut: { label: "Giảm mỡ", calorieFactor: 0.8, proteinPerKg: 2.2 },
-  maintain: { label: "Giữ cân", calorieFactor: 1, proteinPerKg: 1.8 },
-  bulk: { label: "Tăng cơ", calorieFactor: 1.1, proteinPerKg: 2 },
-};
+  { labelKey: string; calorieFactor: number; proteinPerKg: number }
+>;
 
 export const GOAL_ORDER: Goal[] = ["cut", "maintain", "bulk"];
 

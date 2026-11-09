@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { useMealPlanAction } from "@/features/meal-plans/hooks/use-meal-plan-action";
@@ -16,6 +17,7 @@ import type { PlanFood, PlanMeal } from "@/features/meal-plans/types/meal-plan";
 // Everything one meal card does to the plan. `fixedIds` (items that keep
 // their grams in "Tính tự động") only lives on screen.
 export const useMealCard = (userId: number, meal: PlanMeal) => {
+  const t = useTranslations("mealPlans.useMealCard");
   const { isPending, run } = useMealPlanAction();
   const [fixedIds, setFixedIds] = useState<number[]>([]);
 
@@ -35,7 +37,7 @@ export const useMealCard = (userId: number, meal: PlanMeal) => {
       run(() => renameMealAction({ userId, mealId: meal.id, name })),
     remove: () =>
       run(() => removeMealAction({ userId, mealId: meal.id }), {
-        successMessage: "Đã xóa bữa",
+        successMessage: t("mealRemoved"),
       }),
     addFood: (food: PlanFood, grams?: number) =>
       run(() =>
@@ -58,7 +60,7 @@ export const useMealCard = (userId: number, meal: PlanMeal) => {
               meal.items.some((item) => item.id === id),
             ),
           }),
-        { successMessage: "Đã tính gram tự động" },
+        { successMessage: t("gramsSolved") },
       ),
   };
 };

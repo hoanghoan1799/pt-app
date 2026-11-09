@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import { CircleAlert, CircleCheck } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { CARD } from "@/constants/styles";
 import { MacroChips } from "@/features/meal-plans/components/MacroChips";
@@ -20,6 +21,8 @@ export const DayPlanSummary = ({
   target,
   hasItems,
 }: DayPlanSummaryProps) => {
+  const t = useTranslations("mealPlans.dayPlanSummary");
+  const tLabels = useTranslations("mealPlans.labels");
   const check = checkDayPlan(totals, target, hasItems);
   const problems = check.comparisons
     ? (
@@ -31,9 +34,9 @@ export const DayPlanSummary = ({
     : [];
 
   return (
-    <section className={`${CARD} space-y-3 p-4`} aria-label="Tổng cả ngày">
+    <section className={`${CARD} space-y-3 p-4`} aria-label={t("sectionLabel")}>
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-base font-bold text-fg">Cả ngày</h3>
+        <h3 className="text-base font-bold text-fg">{t("title")}</h3>
         <p className="text-sm font-semibold text-fg tabular-nums">
           {Math.round(kcalOf(totals))} kcal
           {target && (
@@ -48,33 +51,34 @@ export const DayPlanSummary = ({
       {check.status === "on" && (
         <p className="flex items-center gap-1.5 text-sm font-semibold text-success">
           <CircleCheck className="size-4 shrink-0" aria-hidden />
-          Đạt mục tiêu
+          {t("onTarget")}
         </p>
       )}
       {check.status === "off" && (
         <div className="space-y-1">
           <p className="flex items-center gap-1.5 text-sm font-semibold text-warning">
             <CircleAlert className="size-4 shrink-0" aria-hidden />
-            Chưa đạt mục tiêu
+            {t("offTarget")}
           </p>
           <ul className="text-xs text-muted">
             {problems.map(([metric, { status, difference }]) => (
               <li key={metric}>
-                {COMPARED_METRIC_LABELS[metric].name}{" "}
-                {status === "under" ? "thiếu" : "dư"} {Math.round(difference)}{" "}
-                {COMPARED_METRIC_LABELS[metric].unit}
+                {t("deviation", {
+                  name: tLabels(COMPARED_METRIC_LABELS[metric].nameKey),
+                  direction: status === "under" ? t("under") : t("over"),
+                  amount: Math.round(difference),
+                  unit: COMPARED_METRIC_LABELS[metric].unit,
+                })}
               </li>
             ))}
           </ul>
         </div>
       )}
       {check.status === "no-target" && (
-        <p className={clsx("text-xs text-muted")}>
-          Chưa có mục tiêu dinh dưỡng cho ngày này.
-        </p>
+        <p className={clsx("text-xs text-muted")}>{t("noTarget")}</p>
       )}
       {check.status === "empty" && (
-        <p className="text-xs text-muted">Thêm món vào các bữa để xem tổng.</p>
+        <p className="text-xs text-muted">{t("addFoods")}</p>
       )}
     </section>
   );

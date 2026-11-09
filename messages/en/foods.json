@@ -1,0 +1,81 @@
+{
+  "labels": {
+    "groups": {
+      "meat": "Meat",
+      "seafood": "Fish & seafood",
+      "egg_dairy": "Eggs & dairy",
+      "starch": "Starches",
+      "vegetable": "Vegetables",
+      "fruit": "Fruit",
+      "legume_nut": "Legumes & nuts",
+      "fat_oil": "Oils & fats",
+      "dish": "Cooked dishes",
+      "other": "Other"
+    },
+    "state": {
+      "raw": "Raw",
+      "cooked": "Cooked"
+    }
+  },
+  "foodDetail": {
+    "macroShare": "{name} · {percent}% of calories",
+    "fiber": "Fiber: {grams} g",
+    "serving": "Serving: {label} = {grams} g",
+    "source": "Source: {source}"
+  },
+  "macroSplitBar": {
+    "label": "Calorie split: {description}"
+  },
+  "foodLibraryLink": {
+    "title": "Food library",
+    "description": "See calories, protein, carbs and fat for each food"
+  },
+  "deleteFoodButton": {
+    "deleteConfirm": "Delete this food?",
+    "confirmDelete": "Delete",
+    "deleted": "Food deleted"
+  },
+  "foodFormView": {
+    "name": "Food name",
+    "namePlaceholder": "e.g. Chicken breast (cooked)",
+    "group": "Group",
+    "state": "State",
+    "notApplicable": "Not applicable",
+    "valuesLegend": "Values per 100 g",
+    "kcal": "Calories",
+    "fiber": "Fiber (optional)",
+    "kcalMatches": "Calculated from protein/carbs/fat: {kcal} kcal, matches the calories entered.",
+    "confirmLabel": "I have checked the numbers",
+    "serving": "Serving (optional)",
+    "servingName": "Serving name",
+    "servingNamePlaceholder": "e.g. 1 bowl",
+    "servingWeight": "Serving weight",
+    "servingWeightPlaceholder": "e.g. 500",
+    "source": "Data source (optional)",
+    "sourcePlaceholder": "e.g. USDA FDC 171477, product label",
+    "saveChanges": "Save changes",
+    "addFood": "Add food"
+  },
+  "foodList": {
+    "empty": "No foods yet",
+    "searchPlaceholder": "Search foods, e.g. chicken",
+    "searchLabel": "Search foods",
+    "filterLabel": "Filter by group",
+    "all": "All",
+    "count": "{count, plural, one {# food} other {# foods}}",
+    "noResults": "No foods found",
+    "noResultsHint": "Try fewer letters or pick another group."
+  },
+  "foodAmountCalculator": {
+    "title": "Calculate by amount",
+    "grams": "Grams",
+    "servingButton": "Serving ({label})",
+    "servingsCount": "Number of servings",
+    "amountGrams": "Amount (grams)",
+    "gram": "grams",
+    "equals": "= {grams} g",
+    "invalidServings": "Enter a number from 0 to {max} servings",
+    "invalidGrams": "Enter a number from 0 to {max} g",
+    "kcal": "Calories"
+  }
+}

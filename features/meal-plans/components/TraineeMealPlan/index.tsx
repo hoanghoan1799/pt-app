@@ -1,6 +1,7 @@
 "use client";
 
 import { CalendarX2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { CARD } from "@/constants/styles";
 import { MealPlanTitle } from "@/features/meal-plans/components/MealPlanTitle";
@@ -30,17 +31,18 @@ export const TraineeMealPlan = ({
   library,
   isLoggable,
 }: TraineeMealPlanProps) => {
+  const t = useTranslations("mealPlans.traineeMealPlan");
   const collapse = useMealCollapse(plan?.meals.map((meal) => meal.id) ?? []);
 
   if (!plan) {
     return (
-      <section className="space-y-3" aria-label="Plan bữa ăn">
+      <section className="space-y-3" aria-label={t("sectionLabel")}>
         <MealPlanTitle />
         <div
           className={`${CARD} flex items-center gap-3 px-4 py-5 text-sm text-muted`}
         >
           <CalendarX2 className="size-5 shrink-0" aria-hidden />
-          PT chưa lên plan bữa ăn cho ngày này.
+          {t("noPlan")}
         </div>
       </section>
     );
@@ -55,7 +57,7 @@ export const TraineeMealPlan = ({
   const mealTargets = split?.ok ? split.meals : null;
 
   return (
-    <section className="space-y-3" aria-label="Plan bữa ăn">
+    <section className="space-y-3" aria-label={t("sectionLabel")}>
       <MealPlanTitle
         isAllCollapsed={collapse.isAllCollapsed}
         onToggleAll={

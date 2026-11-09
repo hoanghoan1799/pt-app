@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import {
@@ -37,6 +38,7 @@ export const useMealLogSheet = (
   editing: MealLog | null,
   onDone: () => void,
 ) => {
+  const t = useTranslations("mealPlans.useMealLogSheet");
   const picker = useFoodPicker(library, []);
   const { isPending, run } = useMealPlanAction();
   const [step, setStep] = useState<LogStep>(() => {
@@ -73,9 +75,7 @@ export const useMealLogSheet = (
     setMacros((previous) => ({ ...previous, [field]: value }));
 
   const finish = (isEdit: boolean) => ({
-    successMessage: isEdit
-      ? MEAL_LOG_MESSAGES.UPDATED
-      : MEAL_LOG_MESSAGES.ADDED,
+    successMessage: isEdit ? t("updated") : t("added"),
     onSuccess: onDone,
   });
 

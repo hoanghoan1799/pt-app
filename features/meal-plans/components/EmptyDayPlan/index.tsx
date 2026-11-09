@@ -1,6 +1,7 @@
 "use client";
 
 import { CopyPlus, Plus, UtensilsCrossed } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, CARD } from "@/constants/styles";
 import { useDayPlan } from "@/features/meal-plans/hooks/use-day-plan";
@@ -22,6 +23,7 @@ export const EmptyDayPlan = ({
   newMealCount,
   lastWeekPlanCount,
 }: EmptyDayPlanProps) => {
+  const t = useTranslations("mealPlans.emptyDayPlan");
   const dayPlan = useDayPlan(userId);
 
   return (
@@ -29,8 +31,11 @@ export const EmptyDayPlan = ({
       <div className="flex items-center gap-3 text-sm text-muted">
         <UtensilsCrossed className="size-5 shrink-0" aria-hidden />
         <p>
-          <span className="font-semibold text-fg">Chưa có plan</span> cho ngày
-          này.
+          {t.rich("noPlan", {
+            strong: (chunks) => (
+              <span className="font-semibold text-fg">{chunks}</span>
+            ),
+          })}
         </p>
       </div>
       <button
@@ -40,10 +45,10 @@ export const EmptyDayPlan = ({
         className={`${BUTTON_PRIMARY} w-full`}
       >
         <Plus className="size-5" aria-hidden />
-        Tạo plan
+        {t("create")}
       </button>
       <p className="-mt-2 text-xs text-muted">
-        Plan mới có {newMealCount} bữa, thêm hoặc bớt bữa sau.
+        {t("newPlanMeals", { count: newMealCount })}
       </p>
       <button
         type="button"
@@ -52,12 +57,12 @@ export const EmptyDayPlan = ({
         className={`${BUTTON_SECONDARY} w-full`}
       >
         <CopyPlus className="size-5" aria-hidden />
-        Áp dụng tuần trước
+        {t("applyLastWeek")}
       </button>
       <p className="-mt-2 text-xs text-muted">
         {lastWeekPlanCount > 0
-          ? `Sao chép ${lastWeekPlanCount} ngày có plan của tuần trước vào các ngày còn trống của tuần này.`
-          : "Tuần trước chưa có plan nào."}
+          ? t("copyLastWeek", { count: lastWeekPlanCount })
+          : t("noLastWeek")}
       </p>
     </div>
   );

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -7,18 +8,23 @@ import { FoodList } from "@/features/foods/components/FoodList";
 import { listFoods } from "@/features/foods/services/food-queries";
 import { requireUser } from "@/services/auth-guard";
 
-export const metadata: Metadata = { title: "Thực phẩm" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("pages.foods");
+
+  return { title: t("metaTitle") };
+};
 
 const FoodsPage = async () => {
   await requireUser();
+  const t = await getTranslations("pages.foods");
 
   const foods = await listFoods();
 
   return (
     <>
       <AppHeader
-        eyebrow="Dinh dưỡng"
-        title="Thư viện thực phẩm"
+        eyebrow={t("eyebrow")}
+        title={t("title")}
         backHref={ROUTES.NUTRITION}
       />
       <main
@@ -27,7 +33,7 @@ const FoodsPage = async () => {
         <FoodList
           foods={foods}
           basePath={ROUTES.FOODS}
-          emptyHint="PT chưa thêm món nào vào thư viện."
+          emptyHint={t("emptyHint")}
         />
       </main>
     </>
