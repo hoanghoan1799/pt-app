@@ -1,0 +1,51 @@
+{
+  "addMember": {
+    "trigger": "Add user",
+    "title": "Add user",
+    "description": "Enter an email to create the account. The password is generated automatically and shown only once."
+  },
+  "createMember": {
+    "nameLabel": "New user name",
+    "namePlaceholder": "New user name",
+    "emailLabel": "Login email",
+    "emailPlaceholder": "Login email",
+    "ptLabel": "Assigned PT",
+    "ptUnassigned": "Unassigned (super admin only)",
+    "submit": "Add"
+  },
+  "deleteMember": {
+    "confirmTitle": "Delete this user and their whole workout schedule? This cannot be undone.",
+    "confirmLabel": "Delete",
+    "trigger": "Delete user"
+  },
+  "oneTimePassword": {
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyFailed": "Couldn't copy. Copy the password by hand.",
+    "passwordOnce": "This password is shown only once. Send it to the trainee right away.",
+    "done": "Done"
+  },
+  "memberLogin": {
+    "sectionTitle": "Login account",
+    "emailLabel": "Login email",
+    "noEmail": "No email yet",
+    "changeEmail": "Change email",
+    "cancel": "Cancel",
+    "save": "Save",
+    "resetPassword": "Reset password",
+    "resetConfirmTitle": "The old password will stop working and the trainee will be signed out. Continue?",
+    "resetConfirmLabel": "Reset",
+    "emailChanged": "Email changed"
+  },
+  "hideUser": {
+    "hide": "Hide trainee",
+    "unhide": "Unhide trainee",
+    "hidden": "Hid 1 trainee",
+    "unhidden": "Unhid trainee",
+    "failed": "Couldn't complete that. Please try again."
+  },
+  "exerciseProgress": {
+    "empty": "No exercise has logged weight this week.",
+    "emptyHint": "Progress appears when the trainee logs weight and reps."
+  }
+}

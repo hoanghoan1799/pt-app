@@ -1,0 +1,42 @@
+{
+  "memberList": {
+    "searchPlaceholder": "Tìm học viên",
+    "searchLabel": "Tìm học viên",
+    "hiddenTitle": "Học viên đã ẩn",
+    "emptyTitle": "Chưa có user nào",
+    "emptyHint": "Chọn Thêm user ở mục Thao tác, sau đó họ chỉ cần nhập đúng tên để vào xem bài tập.",
+    "noMatch": "Không có user nào khớp “{query}”",
+    "unhideFailed": "Không bỏ ẩn được. Thử lại nhé.",
+    "noPlan": "Chưa có lịch tuần này",
+    "statusLine": "{completed}/{assigned} bài · {activeDays}/{plannedDays} ngày",
+    "progressLabel": "Tiến độ của {name}",
+    "ptBadge": "PT {name}",
+    "noPt": "Chưa có PT",
+    "nutritionTitle": "Số ngày ghi nhật ký ăn tuần này",
+    "nutritionLabel": "Ghi nhật ký ăn",
+    "lastActive": "Tập {when}",
+    "notTrained": "Chưa tập"
+  },
+  "ptFilter": {
+    "label": "Lọc theo PT",
+    "all": "Tất cả",
+    "none": "Chưa có PT"
+  },
+  "recentActivity": {
+    "empty": "Chưa có ai đánh dấu đã tập bài nào.",
+    "personalBest": "lập kỷ lục",
+    "completed": "đã tập",
+    "bestPrefix": "Kỷ lục mới: {best} (trước đó {previous}) · ",
+    "schedule": "Lịch {date} · lúc {time}"
+  },
+  "weekSummary": {
+    "users": "User",
+    "usersHint": "{planned} người có lịch tuần này",
+    "active": "Đang tập",
+    "activeHint": "đã tập ít nhất 1 bài",
+    "done": "Hoàn thành",
+    "doneHint": "số bài đã tập / đã giao",
+    "exercises": "Bài đã tập",
+    "exercisesHint": "trên {assigned} bài đã giao"
+  }
+}

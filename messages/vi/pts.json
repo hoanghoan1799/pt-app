@@ -1,0 +1,18 @@
+{
+  "createPt": {
+    "usernameLabel": "Tên đăng nhập PT",
+    "passwordLabel": "Mật khẩu (ít nhất 8 ký tự)",
+    "submit": "Tạo PT"
+  },
+  "ptAssign": {
+    "label": "PT phụ trách",
+    "unassigned": "Chưa giao (chỉ super admin)",
+    "assigned": "Đã cập nhật PT phụ trách"
+  },
+  "verifiedToggle": {
+    "grant": "Cấp tick",
+    "revoke": "Gỡ tick",
+    "granted": "Đã cấp tick xanh",
+    "revoked": "Đã gỡ tick xanh"
+  }
+}
