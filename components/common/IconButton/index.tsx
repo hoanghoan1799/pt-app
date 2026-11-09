@@ -1,7 +1,7 @@
-import clsx from "clsx";
 import type { ComponentProps } from "react";
 
 import { ICON_BUTTON_BASE } from "@/constants/styles";
+import { cn } from "@/utils/cn";
 
 const SIZES = { sm: "size-9", md: "size-11", lg: "size-12" } as const;
 
@@ -23,7 +23,7 @@ export const IconButton = ({
     {...rest}
     type={type}
     aria-label={label}
-    className={clsx(ICON_BUTTON_BASE, SIZES[size], className)}
+    className={cn(ICON_BUTTON_BASE, SIZES[size], className)}
   >
     {children}
   </button>

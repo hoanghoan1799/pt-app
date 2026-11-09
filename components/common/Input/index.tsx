@@ -1,6 +1,5 @@
 "use client";
 
-import clsx from "clsx";
 import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import {
@@ -22,6 +21,7 @@ import {
   shouldShowClear,
 } from "@/components/common/Input/input-classes";
 import { INPUT_BASE } from "@/constants/styles";
+import { cn } from "@/utils/cn";
 import { mergeRefs } from "@/utils/merge-refs";
 
 const VARIANTS = {
@@ -128,7 +128,7 @@ export const Input = ({
     }
   };
 
-  const slot = clsx(
+  const slot = cn(
     "pointer-events-none flex items-center justify-center text-muted",
     SLOT_SIZES[size],
   );
@@ -144,9 +144,9 @@ export const Input = ({
   );
 
   return (
-    <div className={clsx("relative", wrapperClassName)}>
+    <div className={cn("relative", wrapperClassName)}>
       {leadingIcon && (
-        <span aria-hidden className={clsx(slot, "absolute inset-y-0 left-0")}>
+        <span aria-hidden className={cn(slot, "absolute inset-y-0 left-0")}>
           {leadingIcon}
         </span>
       )}
@@ -160,7 +160,7 @@ export const Input = ({
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         aria-invalid={isInvalid || undefined}
-        className={clsx(
+        className={cn(
           INPUT_BASE,
           getSizeClasses(size),
           getSlotClasses({
@@ -178,7 +178,7 @@ export const Input = ({
       />
       {clearButton && clearPosition === "start" && (
         <span
-          className={clsx(
+          className={cn(
             "absolute inset-y-0 flex items-center",
             leadingIcon ? "left-11" : "left-0",
           )}
