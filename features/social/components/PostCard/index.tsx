@@ -2,7 +2,6 @@
 
 import {
   Flag,
-  Loader2,
   MessageCircle,
   MoreHorizontal,
   Pencil,
@@ -18,6 +17,7 @@ import { Avatar } from "@/components/common/Avatar";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { PhotoViewer } from "@/components/common/PhotoViewer";
+import { Spinner } from "@/components/common/Spinner";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import {
   BUTTON_PRIMARY,
@@ -180,7 +180,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
             className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-muted active:bg-line disabled:opacity-50"
           >
             {isPending ? (
-              <Loader2 className="size-5 animate-spin" aria-hidden />
+              <Spinner size="md" />
             ) : (
               <MoreHorizontal className="size-5" aria-hidden />
             )}
@@ -294,7 +294,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
           className={`${BUTTON_SECONDARY} min-h-11 w-full gap-2`}
         >
           {isPending ? (
-            <Loader2 className="size-5 animate-spin" aria-hidden />
+            <Spinner size="md" />
           ) : (
             <MessageCircle className="size-5" aria-hidden />
           )}

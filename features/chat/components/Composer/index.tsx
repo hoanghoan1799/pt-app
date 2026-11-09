@@ -5,7 +5,6 @@ import {
   ArrowUp,
   BellOff,
   ImagePlus,
-  Loader2,
   type LucideIcon,
   Smile,
   X,
@@ -20,6 +19,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 
+import { Spinner } from "@/components/common/Spinner";
 import {
   type ChatCommand,
   composeCommandMessage,
@@ -274,7 +274,7 @@ export const Composer = ({
               role="status"
               className="inline-flex items-center gap-2 text-sm text-muted"
             >
-              <Loader2 className="size-4 animate-spin" aria-hidden />
+              <Spinner size="sm" />
               {t("processingPhoto")}
             </span>
           )}

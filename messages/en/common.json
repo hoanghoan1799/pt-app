@@ -35,5 +35,6 @@
     "showInChat": "Show in chat"
   },
   "avatarLightbox": { "label": "Photo of {name}" },
-  "verified": "Verified"
+  "verified": "Verified",
+  "loading": "Loading…"
 }

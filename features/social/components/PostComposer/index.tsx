@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagePlus, Loader2, X } from "lucide-react";
+import { ImagePlus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -13,6 +13,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_PRIMARY, CARD, TEXTAREA } from "@/constants/styles";
 import {
   encodePhoto,
@@ -190,7 +191,7 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
           disabled={isPending}
           className={`${BUTTON_PRIMARY} ml-auto min-h-11`}
         >
-          {isPending && <Loader2 className="size-5 animate-spin" aria-hidden />}
+          {isPending && <Spinner size="md" />}
           {t("submit")}
         </button>
       </div>

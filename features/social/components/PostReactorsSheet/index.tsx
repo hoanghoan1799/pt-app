@@ -1,10 +1,10 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { Spinner } from "@/components/common/Spinner";
 import { listReactorsAction } from "@/features/social/services/engagement-actions";
 import type { ReactorView } from "@/features/social/types/social";
 
@@ -60,7 +60,7 @@ export const PostReactorsSheet = ({
         <p className="py-4 text-center text-muted">{t("loadFailed")}</p>
       ) : reactors === null ? (
         <div className="flex justify-center py-6">
-          <Loader2 className="size-6 animate-spin text-muted" aria-hidden />
+          <Spinner size="lg" className="text-muted" />
         </div>
       ) : (
         <ul className="flex flex-col pb-2">

@@ -1,12 +1,13 @@
 "use client";
 
-import { Loader2, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
+import { Spinner } from "@/components/common/Spinner";
 import { ROUTES } from "@/constants/routes";
 import { BUTTON_DANGER } from "@/constants/styles";
 import { archiveFoodAction } from "@/features/foods/services/food-actions";
@@ -55,7 +56,7 @@ export const DeleteFoodButton = ({ foodId }: DeleteFoodButtonProps) => {
       className={`${BUTTON_DANGER} w-full`}
     >
       {isPending ? (
-        <Loader2 className="size-5 animate-spin" aria-hidden />
+        <Spinner size="md" />
       ) : (
         <Trash2 className="size-5" aria-hidden />
       )}

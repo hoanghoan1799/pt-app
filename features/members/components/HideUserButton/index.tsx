@@ -1,11 +1,12 @@
 "use client";
 
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
+import { Spinner } from "@/components/common/Spinner";
 import { ROUTES } from "@/constants/routes";
 import { BUTTON_SECONDARY } from "@/constants/styles";
 import { HIDDEN_CHAT_MESSAGES } from "@/features/chat/constants/messages";
@@ -69,7 +70,7 @@ export const HideUserButton = ({
       className={`${BUTTON_SECONDARY} w-full`}
     >
       {isPending ? (
-        <Loader2 className="size-5 animate-spin" aria-hidden />
+        <Spinner size="md" />
       ) : (
         <Icon className="size-5" aria-hidden />
       )}
