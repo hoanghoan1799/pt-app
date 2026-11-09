@@ -38,6 +38,8 @@
   "foodFormView": {
     "name": "食物名称",
     "namePlaceholder": "例如：鸡胸肉（熟）",
+    "nameEn": "英文名称（可选）",
+    "nameZh": "中文名称（可选）",
     "group": "分类",
     "state": "状态",
     "notApplicable": "不适用",

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { MemberSectionTabs } from "@/components/layout/MemberSectionTabs";
@@ -33,6 +33,7 @@ import {
 import { requireAdmin } from "@/services/auth-guard";
 import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
+import { parseLocale } from "@/utils/locale";
 import { getAdminNutritionPath } from "@/utils/routes";
 import { readSearchParam } from "@/utils/search-params";
 import { addDays, getTodayDate, resolveSchedule } from "@/utils/week";
@@ -49,6 +50,7 @@ const AdminNutritionPage = async ({
 }: PageProps<"/admin/users/[id]/nutrition">) => {
   const admin = await requireAdmin();
   const t = await getTranslations("adminPages.userNutrition");
+  const locale = parseLocale(await getLocale());
 
   const { id } = await params;
   const user = await findUserById(Number(id));
@@ -79,8 +81,8 @@ const AdminNutritionPage = async ({
     getNutritionWeek(user.id, schedule.weekStart),
     getLatestTarget(user.id),
     getBodyProfile(user.id),
-    getMealPlanWeek(user.id, schedule.weekStart),
-    listPlanFoods(),
+    getMealPlanWeek(user.id, schedule.weekStart, locale),
+    listPlanFoods(locale),
     countPlanDays(user.id, addDays(schedule.weekStart, -7)),
     listPlanDates(
       user.id,
@@ -99,6 +101,7 @@ const AdminNutritionPage = async ({
     planDays.find((day) => day.date === schedule.selectedDate) ?? null;
   const { logs, marks } = await getMealLogData(
     selectedPlan?.meals.map((meal) => meal.id) ?? [],
+    locale,
   );
   const selectedDay = days.find((day) => day.date === schedule.selectedDate);
 

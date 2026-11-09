@@ -14,7 +14,11 @@ export type PlanFood = Pick<
   | "protein"
   | "carbs"
   | "fat"
-> & { isArchived: boolean };
+> & {
+  isArchived: boolean;
+  // Vietnamese key plus the localized name, for the search (see localizeFood).
+  searchKey?: string;
+};
 
 export interface PlanItem {
   id: number;

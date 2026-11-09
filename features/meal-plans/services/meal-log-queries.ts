@@ -11,6 +11,7 @@ import {
   mealPlanDays,
   mealPlanMeals,
 } from "@/db/schema";
+import { localizeFoodName } from "@/features/foods/utils/food-locale";
 import { MEAL_LOG_MESSAGES } from "@/features/meal-plans/constants/meal-plans";
 import type { MealLog, MealMark } from "@/features/meal-plans/types/meal-log";
 import {
@@ -18,13 +19,18 @@ import {
   type DayCompletion,
 } from "@/features/meal-plans/utils/day-completion";
 import { resolveLogNutrition } from "@/features/meal-plans/utils/meal-log";
+import { localizeMessageFor } from "@/i18n/localize-message";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 import { getWeekDates } from "@/utils/week";
 
 const NO_NUMBERS = { kcal: null, protein: null, carbs: null, fat: null };
 
 // Logs and marks of the given plan meals (the trainee's page and the PT's
 // view read the same). Archived foods still resolve: a log keeps its numbers.
-export const getMealLogData = async (mealIds: number[]) => {
+export const getMealLogData = async (
+  mealIds: number[],
+  locale: Locale = DEFAULT_LOCALE,
+) => {
   if (!mealIds.length) {
     return { logs: [] as MealLog[], marks: [] as MealMark[] };
   }
@@ -35,6 +41,9 @@ export const getMealLogData = async (mealIds: number[]) => {
         log: mealLogs,
         food: {
           name: foods.name,
+          nameKey: foods.nameKey,
+          nameEn: foods.nameEn,
+          nameZh: foods.nameZh,
           kcal: foods.kcal,
           protein: foods.protein,
           carbs: foods.carbs,
@@ -69,8 +78,10 @@ export const getMealLogData = async (mealIds: number[]) => {
       mealId: log.mealId,
       foodId: log.foodId,
       name: isMissingFood
-        ? MEAL_LOG_MESSAGES.MISSING_FOOD_NAME
-        : (food?.name ?? log.customName ?? ""),
+        ? localizeMessageFor(locale, MEAL_LOG_MESSAGES.MISSING_FOOD_NAME)
+        : food
+          ? localizeFoodName(food, locale)
+          : (log.customName ?? ""),
       isFree: log.foodId === null,
       isArchived: food?.archivedAt != null,
       isMissingFood,

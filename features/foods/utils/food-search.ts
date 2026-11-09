@@ -9,8 +9,11 @@ interface FoodFilter {
 }
 
 // Accent- and case-insensitive: "uc ga" finds "Ức gà (chín)". Every word of
-// the query must appear in the name, in any order.
-export const filterFoods = <T extends Pick<Food, "nameKey" | "group">>(
+// the query must appear in the name, in any order. A localized food carries a
+// `searchKey` (Vietnamese plus its English/Chinese name) that is matched first.
+export const filterFoods = <
+  T extends Pick<Food, "nameKey" | "group"> & { searchKey?: string },
+>(
   foods: T[],
   { query, group }: FoodFilter,
 ): T[] => {
@@ -20,6 +23,8 @@ export const filterFoods = <T extends Pick<Food, "nameKey" | "group">>(
     if (group !== "all" && food.group !== group) {
       return false;
     }
-    return words.every((word) => food.nameKey.includes(word));
+    return words.every((word) =>
+      (food.searchKey ?? food.nameKey).includes(word),
+    );
   });
 };

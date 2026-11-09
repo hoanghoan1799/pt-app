@@ -11,6 +11,7 @@ import {
   INPUT,
 } from "@/constants/styles";
 import { SHARE_TOTAL_PERCENT } from "@/features/meal-plans/constants/meal-plans";
+import { useMealName } from "@/features/meal-plans/hooks/use-meal-name";
 import { useMealShares } from "@/features/meal-plans/hooks/use-meal-shares";
 import type { PlanMeal } from "@/features/meal-plans/types/meal-plan";
 
@@ -35,6 +36,7 @@ const SharesForm = ({
   onDone: () => void;
 }) => {
   const t = useTranslations("mealPlans.mealSharesSheet");
+  const mealName = useMealName();
   const shares = useMealShares(userId, dayId, meals, onDone);
 
   return (
@@ -46,7 +48,7 @@ const SharesForm = ({
               htmlFor={`share-${meal.id}`}
               className="min-w-0 flex-1 truncate text-[15px] text-fg"
             >
-              {meal.name}
+              {mealName(meal.name)}
             </label>
             <div className="relative w-28">
               <input

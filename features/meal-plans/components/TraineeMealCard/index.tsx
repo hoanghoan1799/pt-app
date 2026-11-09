@@ -10,6 +10,7 @@ import { MealCollapseToggle } from "@/features/meal-plans/components/MealCollaps
 import { MealLogList } from "@/features/meal-plans/components/MealLogList";
 import { MealLogSheet } from "@/features/meal-plans/components/MealLogSheet";
 import { MealMarkPanel } from "@/features/meal-plans/components/MealMarkPanel";
+import { useMealName } from "@/features/meal-plans/hooks/use-meal-name";
 import { useTraineeMealCard } from "@/features/meal-plans/hooks/use-trainee-meal-card";
 import type { MealLog, MealMark } from "@/features/meal-plans/types/meal-log";
 import type {
@@ -51,6 +52,7 @@ export const TraineeMealCard = ({
 }: TraineeMealCardProps) => {
   const t = useTranslations("mealPlans.traineeMealCard");
   const card = useTraineeMealCard();
+  const mealName = useMealName()(meal.name);
   const planned = sumItems(meal.items);
   const isAchieved = mark?.achieved ?? false;
   const eaten = countMealNutrition(meal.items, logs, isAchieved, mark?.frozen);
@@ -65,19 +67,19 @@ export const TraineeMealCard = ({
           ? "border-success/40 bg-success/10"
           : "border-line bg-surface",
       )}
-      aria-label={t("sectionLabel", { index: index + 1, name: meal.name })}
+      aria-label={t("sectionLabel", { index: index + 1, name: mealName })}
     >
       <div className="flex items-start gap-1">
         <div className="-ml-2">
           <MealCollapseToggle
-            mealName={meal.name}
+            mealName={mealName}
             isCollapsed={isCollapsed}
             controlsId={bodyId}
             onToggle={onToggleCollapse}
           />
         </div>
         <div className="min-w-0 flex-1 self-center">
-          <h3 className="text-lg font-bold text-fg">{meal.name}</h3>
+          <h3 className="text-lg font-bold text-fg">{mealName}</h3>
           {target && (
             <p className="mt-0.5 text-xs text-muted tabular-nums">
               {t("mealTarget", {
@@ -142,7 +144,7 @@ export const TraineeMealCard = ({
           <div className="space-y-2">
             <p
               className="text-sm font-semibold text-fg tabular-nums"
-              aria-label={t("eatenLabel", { name: meal.name })}
+              aria-label={t("eatenLabel", { name: mealName })}
             >
               {Math.round(eaten.kcal)} kcal
               <span className="font-normal text-muted">
@@ -160,17 +162,17 @@ export const TraineeMealCard = ({
               type="button"
               onClick={card.openAdd}
               className={`${BUTTON_PRIMARY} w-full`}
-              aria-label={t("logEatenInto", { name: meal.name })}
+              aria-label={t("logEatenInto", { name: mealName })}
             >
               <Plus className="size-5" aria-hidden />
               {t("logEaten")}
             </button>
-            <MealMarkPanel mealId={meal.id} mealName={meal.name} mark={mark} />
+            <MealMarkPanel mealId={meal.id} mealName={mealName} mark={mark} />
             <MealLogSheet
               isOpen={card.sheet.isOpen}
               onOpenChange={card.setIsOpen}
               mealId={meal.id}
-              mealName={meal.name}
+              mealName={mealName}
               library={library}
               editing={card.sheet.editing}
             />

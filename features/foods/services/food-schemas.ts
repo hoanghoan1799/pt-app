@@ -93,6 +93,8 @@ export const foodFormSchema = z
       "Khối lượng khẩu phần",
       FOOD_LIMITS.MAX_SERVING_GRAMS,
     ),
+    nameEn: optionalText("Tên tiếng Anh", FOOD_LIMITS.NAME_MAX),
+    nameZh: optionalText("Tên tiếng Trung", FOOD_LIMITS.NAME_MAX),
     source: optionalText("Nguồn", FOOD_LIMITS.SOURCE_MAX),
     // Checkbox: present ("on") when ticked.
     confirmed: z

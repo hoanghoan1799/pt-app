@@ -10,6 +10,8 @@ const foodColumns = {
   id: foods.id,
   name: foods.name,
   nameKey: foods.nameKey,
+  nameEn: foods.nameEn,
+  nameZh: foods.nameZh,
   group: foods.group,
   state: foods.state,
   kcal: foods.kcal,

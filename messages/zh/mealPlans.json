@@ -1,4 +1,10 @@
 {
+  "mealNames": {
+    "breakfast": "早餐",
+    "lunch": "午餐",
+    "dinner": "晚餐",
+    "snack": "加餐 {n}"
+  },
   "mealCard": {
     "sectionLabel": "第 {index} 餐：{name}",
     "mealNameLabel": "第 {index} 餐名称",

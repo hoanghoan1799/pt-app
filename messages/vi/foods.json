@@ -38,6 +38,8 @@
   "foodFormView": {
     "name": "Tên món",
     "namePlaceholder": "VD: Ức gà (chín)",
+    "nameEn": "Tên tiếng Anh (tùy chọn)",
+    "nameZh": "Tên tiếng Trung (tùy chọn)",
     "group": "Nhóm",
     "state": "Trạng thái",
     "notApplicable": "Không áp dụng",

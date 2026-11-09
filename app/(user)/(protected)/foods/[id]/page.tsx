@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { FoodDetail } from "@/features/foods/components/FoodDetail";
 import { getFood } from "@/features/foods/services/food-queries";
+import { localizeFood } from "@/features/foods/utils/food-locale";
 import { requireUser } from "@/services/auth-guard";
 
 export const generateMetadata = async (): Promise<Metadata> => {
@@ -20,11 +21,12 @@ const FoodPage = async ({ params }: PageProps<"/foods/[id]">) => {
   const t = await getTranslations("pages.foodDetail");
 
   const { id } = await params;
-  const food = await getFood(Number(id));
+  const raw = await getFood(Number(id));
 
-  if (!food) {
+  if (!raw) {
     notFound();
   }
+  const food = localizeFood(raw, await getLocale());
 
   return (
     <>
