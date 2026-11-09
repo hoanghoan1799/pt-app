@@ -44,6 +44,7 @@ import {
 import { AddMemberButton } from "@/features/members/components/AddMemberButton";
 import { listPtOptions } from "@/features/pts/services/pt-queries";
 import { countOpenReports } from "@/features/social/services/report-queries";
+import { adminProfilePath } from "@/features/social/utils/post-rules";
 import { isSuperAdmin } from "@/services/admin-scope";
 import { requireAdmin } from "@/services/auth-guard";
 import { getAdminUserPath } from "@/utils/routes";
@@ -139,6 +140,7 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
               accountColor={accountColor}
               isPresenceHidden={admin.presenceHidden}
               hasPasscode={admin.hasPasscode}
+              profileHref={adminProfilePath("admin", admin.id)}
             />
           </>
         }
