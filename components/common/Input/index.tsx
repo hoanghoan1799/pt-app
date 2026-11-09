@@ -73,6 +73,7 @@ export const Input = ({
   readOnly,
   onChange,
   onKeyDown,
+  "aria-invalid": ariaInvalid,
   ...rest
 }: InputProps) => {
   const t = useTranslations("common");
@@ -81,6 +82,7 @@ export const Input = ({
   const [uncontrolledHasValue, setUncontrolledHasValue] = useState(() =>
     toHasValue(defaultValue),
   );
+  const isInvalid = invalid ?? (ariaInvalid === true || ariaInvalid === "true");
   const hasValue =
     value === undefined ? uncontrolledHasValue : toHasValue(value);
 
@@ -127,7 +129,7 @@ export const Input = ({
   };
 
   const slot = clsx(
-    "pointer-events-none absolute inset-y-0 flex items-center justify-center text-muted",
+    "pointer-events-none flex items-center justify-center text-muted",
     SLOT_SIZES[size],
   );
   const clearButton = showClear && (
@@ -144,7 +146,7 @@ export const Input = ({
   return (
     <div className={clsx("relative", wrapperClassName)}>
       {leadingIcon && (
-        <span aria-hidden className={clsx(slot, "left-0")}>
+        <span aria-hidden className={clsx(slot, "absolute inset-y-0 left-0")}>
           {leadingIcon}
         </span>
       )}
@@ -157,7 +159,7 @@ export const Input = ({
         readOnly={readOnly}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        aria-invalid={invalid || undefined}
+        aria-invalid={isInvalid || undefined}
         className={clsx(
           INPUT_BASE,
           getSizeClasses(size),
@@ -169,7 +171,7 @@ export const Input = ({
             clearPosition,
           }),
           VARIANTS[variant],
-          invalid && "border-danger focus:border-danger focus:ring-danger/30",
+          isInvalid && "border-danger focus:border-danger focus:ring-danger/30",
           clearable && "[&::-webkit-search-cancel-button]:appearance-none",
           className,
         )}
@@ -187,7 +189,7 @@ export const Input = ({
       <span className="absolute inset-y-0 right-0 flex items-center">
         {clearButton && clearPosition === "end" && clearButton}
         {trailingIcon && (
-          <span aria-hidden className={clsx(slot, "static")}>
+          <span aria-hidden className={slot}>
             {trailingIcon}
           </span>
         )}
