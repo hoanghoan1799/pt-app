@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { SHARE_TOTAL_PERCENT } from "@/features/meal-plans/constants/meal-plans";
@@ -17,6 +18,7 @@ export const useMealShares = (
   meals: PlanMeal[],
   onDone: () => void,
 ) => {
+  const t = useTranslations("mealPlans.useMealShares");
   const [texts, setTexts] = useState(() => {
     // Equal start that already totals 100: the last meal takes the remainder.
     const each = Math.round((SHARE_TOTAL_PERCENT / meals.length) * 10) / 10;
@@ -55,13 +57,13 @@ export const useMealShares = (
             percent: percents[index],
           })),
         }),
-      { successMessage: "Đã lưu phần trăm các bữa", onSuccess: onDone },
+      { successMessage: t("sharesSaved"), onSuccess: onDone },
     );
   };
 
   const resetToEqual = () => {
     run(() => setMealSharesAction({ userId, dayId, shares: null }), {
-      successMessage: "Đã chia đều các bữa",
+      successMessage: t("sharesEqual"),
       onSuccess: onDone,
     });
   };

@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 
 import {
   MACRO_COLORS,
@@ -28,13 +29,17 @@ export const MacroRing = ({ macro, eaten, target }: MacroRingProps) => {
   const percent = getRingPercent(eaten, target);
   const comparison = compareToTarget(eaten, target, macro);
   const comparisonText = formatComparison(comparison, "g");
-  const { name } = MACRO_LABELS[macro];
+  const t = useTranslations("nutrition.macroRing");
+  const tLabels = useTranslations("nutrition.labels");
+  const name = tLabels(MACRO_LABELS[macro].nameKey);
 
   return (
     <li className="flex min-w-0 flex-1 flex-col items-center gap-1 text-center">
       <div
         role={target ? "progressbar" : undefined}
-        aria-label={target ? `${name}: ${eaten}/${target} g` : undefined}
+        aria-label={
+          target ? t("progressLabel", { name, eaten, target }) : undefined
+        }
         aria-valuemin={target ? 0 : undefined}
         aria-valuemax={target ? 100 : undefined}
         aria-valuenow={target ? percent : undefined}

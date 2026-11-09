@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 
 import { STATUS_TEXT_CLASSES } from "@/features/nutrition/constants/progress";
 import type { MacroAmounts } from "@/features/nutrition/types/nutrition";
@@ -21,12 +22,13 @@ export const CaloriesProgressRow = ({
   kcal: eaten,
   target,
 }: CaloriesProgressRowProps) => {
+  const t = useTranslations("nutrition.caloriesProgressRow");
   const goal = target ? calculateCalories(target) : undefined;
   const comparison = compareToTarget(eaten, goal, "kcal");
 
   return (
     <li className="flex items-baseline justify-between gap-2 border-b border-line pb-3">
-      <span className="font-semibold text-fg">Năng lượng</span>
+      <span className="font-semibold text-fg">{t("energy")}</span>
       <span className="text-right text-sm tabular-nums">
         <span className="font-bold text-fg">{formatCalories(eaten)}</span>
         {goal ? (

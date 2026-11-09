@@ -1,0 +1,194 @@
+{
+  "labels": {
+    "sex": {
+      "male": "Nam",
+      "female": "Nữ"
+    },
+    "activity": {
+      "sedentary": {
+        "label": "Ít vận động",
+        "description": "Ngồi nhiều, không tập"
+      },
+      "light": {
+        "label": "Nhẹ",
+        "description": "Tập 1–3 buổi/tuần"
+      },
+      "moderate": {
+        "label": "Vừa",
+        "description": "Tập 3–5 buổi/tuần"
+      },
+      "active": {
+        "label": "Nhiều",
+        "description": "Tập 6–7 buổi/tuần"
+      },
+      "veryActive": {
+        "label": "Rất nhiều",
+        "description": "Tập 2 buổi/ngày hoặc lao động nặng"
+      }
+    },
+    "goal": {
+      "cut": "Giảm mỡ",
+      "maintain": "Giữ cân",
+      "bulk": "Tăng cơ"
+    },
+    "macro": {
+      "carbs": "Carb",
+      "protein": "Protein",
+      "fat": "Fat"
+    },
+    "macroFoods": {
+      "carbs": "cơm, bún, khoai, bánh mì",
+      "protein": "thịt, cá, trứng, đậu",
+      "fat": "dầu, mỡ, bơ, hạt"
+    },
+    "meal": {
+      "breakfast": "Bữa sáng",
+      "lunch": "Bữa trưa",
+      "dinner": "Bữa tối",
+      "snack": "Bữa phụ"
+    },
+    "mealShort": {
+      "breakfast": "Sáng",
+      "lunch": "Trưa",
+      "dinner": "Tối",
+      "snack": "Phụ"
+    },
+    "targetSource": {
+      "tdee": "Tự tính từ TDEE",
+      "manual": "PT nhập tay"
+    }
+  },
+  "weightLogForm": {
+    "todayWeight": "Cân hôm nay",
+    "todayWeightLogged": "Cân hôm nay (đã ghi, sửa nếu cần)",
+    "placeholder": "VD: 72,5",
+    "save": "Lưu"
+  },
+  "nutritionWeekSummary": {
+    "loggedDays": "ngày có ghi",
+    "onTargetDays": "ngày đạt mục tiêu",
+    "avgPerDay": "TB/ngày",
+    "tableLabel": "Dinh dưỡng theo ngày",
+    "dayColumn": "Ngày",
+    "legend": "Gram đã ăn / mục tiêu. <success>Xanh</success>: đạt (±10%), <danger>đỏ</danger>: vượt. Bấm vào ngày để xem chi tiết."
+  },
+  "foodLog": {
+    "editMeal": "Sửa bữa ăn",
+    "deleteMeal": "Xóa bữa ăn",
+    "logMeal": "Ghi bữa ăn"
+  },
+  "foodEntryFormView": {
+    "mealLegend": "Bữa",
+    "foodLabel": "Đã ăn gì?",
+    "placeholder": "VD: 1 bát cơm, ức gà luộc, rau muống xào",
+    "estimateLabel": "Ước lượng (gram, không bắt buộc)",
+    "foodsHint": "{carbs}: {carbFoods} · {protein}: {proteinFoods} · {fat}: {fatFoods}",
+    "saveChanges": "Lưu thay đổi",
+    "logMeal": "Ghi bữa ăn"
+  },
+  "macroRing": {
+    "progressLabel": "{name}: {eaten}/{target} g"
+  },
+  "weightChartView": {
+    "chartLabel": "Biểu đồ cân nặng trung bình theo tuần",
+    "weekTooltip": "Tuần {range} · {count, plural, other {# lần cân}}"
+  },
+  "weightTrendCard": {
+    "latestAverage": "TB tuần gần nhất",
+    "vsLastWeek": "so với tuần trước",
+    "inWeeks": "trong {weeks} tuần",
+    "empty": "Chưa có số cân nào trong {weeks} tuần qua.",
+    "emptyLogHint": "Ghi cân nặng bên dưới để bắt đầu theo dõi.",
+    "viewAsTable": "Xem dạng bảng"
+  },
+  "nutritionDayView": {
+    "emptyTraineeLog": "User chưa ghi bữa ăn nào cho ngày này.",
+    "emptyFuture": "Chưa tới ngày này, quay lại ghi sau nhé.",
+    "emptyToday": "Chưa ghi bữa ăn nào cho ngày này.",
+    "dailyTargets": "Mục tiêu trong ngày",
+    "nutrition": "Dinh dưỡng",
+    "noTarget": "PT chưa đặt mục tiêu dinh dưỡng cho ngày này.",
+    "legacyLog": "Nhật ký cũ",
+    "eaten": "Đã ăn"
+  },
+  "targetForm": {
+    "gramsPerDay": "gram/ngày",
+    "ptNote": "Lời dặn của PT",
+    "notePlaceholder": "VD: Ưu tiên đạm nạc, nhiều rau. Uống 2,5 lít nước/ngày.",
+    "hint": "Gram chất dinh dưỡng (không phải gram món ăn). Áp dụng từ hôm nay; các ngày trước giữ mục tiêu cũ. Muốn tự tính theo TDEE, dùng thẻ Chỉ số cơ thể.",
+    "save": "Lưu mục tiêu"
+  },
+  "caloriesProgressRow": {
+    "energy": "Năng lượng"
+  },
+  "energyPlanSummary": {
+    "restHint": "nghỉ ngơi",
+    "burnedHint": "tiêu hao/ngày",
+    "eatenHint": "nạp/ngày",
+    "target": "Mục tiêu",
+    "flooredNotice": "Mục tiêu không được thấp hơn BMR, đã dùng {kcal}"
+  },
+  "nutritionWeek": {
+    "completeDescription": ", đã ăn đủ các bữa",
+    "partialDescription": ", đã ăn một số bữa"
+  },
+  "bodyProfileFormView": {
+    "sex": "Giới tính",
+    "activityLegend": "Mức vận động",
+    "goal": "Mục tiêu",
+    "result": "Kết quả tính",
+    "enterStats": "Nhập tuổi, chiều cao, cân nặng để xem TDEE.",
+    "applyToTarget": "Cập nhật mục tiêu dinh dưỡng theo kết quả này (từ hôm nay)",
+    "targetManual": "PT đang đặt mục tiêu riêng cho bạn, nên mục tiêu sẽ giữ nguyên. PT vẫn thấy chỉ số mới của bạn.",
+    "targetRecalculated": "Mục tiêu dinh dưỡng của bạn sẽ được tính lại theo kết quả này, từ hôm nay.",
+    "save": "Lưu chỉ số",
+    "proteinDefault": "Mặc định mới: {value} g/kg (1 đến 3)",
+    "kcalHint": "Âm = giảm, 0 = giữ, dương = tăng (-1500 đến 1500)",
+    "fields": {
+      "age": "Tuổi",
+      "height": "Cao",
+      "weight": "Nặng",
+      "kcalAdjustment": "Thâm hụt / dư kcal mỗi ngày",
+      "proteinPerKg": "Đạm (g/kg)"
+    },
+    "units": {
+      "years": "tuổi",
+      "cm": "cm",
+      "kg": "kg",
+      "kcal": "kcal",
+      "gPerKg": "g/kg"
+    }
+  },
+  "bodyProfileCard": {
+    "admin": {
+      "title": "Chỉ số cơ thể & TDEE",
+      "empty": "Nhập giới tính, tuổi, chiều cao, cân nặng và mức vận động để tính TDEE và tự điền mục tiêu dinh dưỡng. User cũng có thể tự nhập.",
+      "action": "Nhập chỉ số",
+      "sheetTitle": "Chỉ số cơ thể"
+    },
+    "user": {
+      "title": "Chỉ số của bạn & TDEE",
+      "empty": "Nhập chiều cao, cân nặng và mức vận động để biết mỗi ngày bạn tiêu hao bao nhiêu calo và nên ăn bao nhiêu carb, protein, fat.",
+      "action": "Nhập chỉ số của bạn",
+      "sheetTitle": "Chỉ số của bạn"
+    },
+    "summary": "{sex} · {age} tuổi · {height} cm · {weight} kg",
+    "activityGoal": "Vận động {activity} · Mục tiêu {goal}",
+    "editStats": "Sửa chỉ số cơ thể",
+    "sheetDescription": "Tính TDEE theo công thức Mifflin-St Jeor"
+  },
+  "nutritionTargetCard": {
+    "dailyTarget": "Mục tiêu mỗi ngày",
+    "targetSummary": "{calories}/ngày · áp dụng từ {date}",
+    "editTarget": "Sửa mục tiêu dinh dưỡng",
+    "empty": "Chưa đặt mục tiêu. User sẽ thấy cần ăn bao nhiêu gram carb, protein, fat mỗi ngày.",
+    "setTarget": "Đặt mục tiêu",
+    "sheetTitle": "Mục tiêu dinh dưỡng",
+    "sheetDescription": "Số gram mỗi ngày cho từng nhóm"
+  },
+  "useFoodLog": {
+    "deleteConfirm": "Xóa bữa ăn này?",
+    "confirm": "Xóa",
+    "entryDeleted": "Đã xóa bữa ăn"
+  }
+}

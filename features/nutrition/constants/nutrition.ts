@@ -6,14 +6,19 @@ import type {
 
 export const MACROS: Macro[] = ["carbs", "protein", "fat"];
 
-export const MACRO_LABELS: Record<
+// Keys are relative to the nutrition.labels namespace (translated at render).
+export const MACRO_LABELS = {
+  carbs: { nameKey: "macro.carbs", foodsKey: "macroFoods.carbs", short: "C" },
+  protein: {
+    nameKey: "macro.protein",
+    foodsKey: "macroFoods.protein",
+    short: "P",
+  },
+  fat: { nameKey: "macro.fat", foodsKey: "macroFoods.fat", short: "F" },
+} as const satisfies Record<
   Macro,
-  { name: string; foods: string; short: string }
-> = {
-  carbs: { name: "Carb", foods: "cơm, bún, khoai, bánh mì", short: "C" },
-  protein: { name: "Protein", foods: "thịt, cá, trứng, đậu", short: "P" },
-  fat: { name: "Fat", foods: "dầu, mỡ, bơ, hạt", short: "F" },
-};
+  { nameKey: string; foodsKey: string; short: string }
+>;
 
 // Tailwind classes per macro, backed by the --macro-* tokens in globals.css.
 export const MACRO_COLORS: Record<
@@ -42,20 +47,20 @@ export const MACRO_COLORS: Record<
 
 export const MEALS: Meal[] = ["breakfast", "lunch", "dinner", "snack"];
 
-export const MEAL_LABELS: Record<Meal, string> = {
-  breakfast: "Bữa sáng",
-  lunch: "Bữa trưa",
-  dinner: "Bữa tối",
-  snack: "Bữa phụ",
-};
+export const MEAL_LABEL_KEYS = {
+  breakfast: "meal.breakfast",
+  lunch: "meal.lunch",
+  dinner: "meal.dinner",
+  snack: "meal.snack",
+} as const satisfies Record<Meal, string>;
 
 // Short labels for the meal picker.
-export const MEAL_SHORT_LABELS: Record<Meal, string> = {
-  breakfast: "Sáng",
-  lunch: "Trưa",
-  dinner: "Tối",
-  snack: "Phụ",
-};
+export const MEAL_SHORT_LABEL_KEYS = {
+  breakfast: "mealShort.breakfast",
+  lunch: "mealShort.lunch",
+  dinner: "mealShort.dinner",
+  snack: "mealShort.snack",
+} as const satisfies Record<Meal, string>;
 
 export const NUTRITION_LIMITS = {
   MAX_GRAMS: 2000,
@@ -74,14 +79,12 @@ export const NUTRITION_MESSAGES = {
     "Đã lưu chỉ số. PT đang đặt mục tiêu riêng nên mục tiêu giữ nguyên.",
   ENTRY_CREATED: "Đã ghi bữa ăn",
   ENTRY_UPDATED: "Đã cập nhật bữa ăn",
-  ENTRY_DELETED: "Đã xóa bữa ăn",
   ENTRY_EMPTY: "Nhập món đã ăn hoặc số gram",
   ENTRY_NOT_FOUND: "Bữa ăn không còn tồn tại",
   FUTURE_DATE: "Chưa tới ngày này",
-  DELETE_CONFIRM: "Xóa bữa ăn này?",
 } as const;
 
-export const TARGET_SOURCE_LABELS: Record<TargetSource, string> = {
-  tdee: "Tự tính từ TDEE",
-  manual: "PT nhập tay",
-};
+export const TARGET_SOURCE_LABEL_KEYS = {
+  tdee: "targetSource.tdee",
+  manual: "targetSource.manual",
+} as const satisfies Record<TargetSource, string>;

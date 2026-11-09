@@ -28,5 +28,36 @@
   "adminLogin": {
     "title": "PT area",
     "tagline": "Log in to manage members and workouts"
+  },
+  "nutrition": {
+    "metaTitle": "Nutrition",
+    "eyebrow": "Hello"
+  },
+  "foods": {
+    "metaTitle": "Foods",
+    "eyebrow": "Nutrition",
+    "title": "Food library",
+    "emptyHint": "The PT hasn't added any foods to the library yet."
+  },
+  "foodDetail": {
+    "metaTitle": "Food details",
+    "eyebrow": "Food library"
+  },
+  "adminFoods": {
+    "metaTitle": "Foods",
+    "eyebrow": "Admin",
+    "title": "Foods",
+    "addFood": "Add food",
+    "emptyHint": "Tap Add food to enter the first food."
+  },
+  "adminFoodNew": {
+    "metaTitle": "Add food",
+    "eyebrow": "Foods",
+    "title": "Add food"
+  },
+  "adminFoodDetail": {
+    "metaTitle": "Food details",
+    "eyebrow": "Foods",
+    "edit": "Edit"
   }
 }

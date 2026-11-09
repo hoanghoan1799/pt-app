@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import type { PointerEvent } from "react";
 
 import {
@@ -40,6 +41,7 @@ export const WeightChartView = ({
   onPointerMove,
   onPointerLeave,
 }: WeightChartViewProps) => {
+  const t = useTranslations("nutrition.weightChartView");
   const lastPoint = points.at(-1);
   const previousPoint = points.at(-2);
   // Put the end label on the side the line isn't coming from.
@@ -55,7 +57,7 @@ export const WeightChartView = ({
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         className="block w-full touch-pan-y select-none"
         role="img"
-        aria-label="Biểu đồ cân nặng trung bình theo tuần"
+        aria-label={t("chartLabel")}
         onPointerMove={onPointerMove}
         onPointerDown={onPointerMove}
         onPointerLeave={onPointerLeave}
@@ -165,8 +167,10 @@ export const WeightChartView = ({
             {formatDecimal(activePoint.value)} kg
           </p>
           <p className="text-[11px] whitespace-nowrap text-muted">
-            Tuần {formatWeekRange(activeWeek.weekStart)} · {activeWeek.count}{" "}
-            lần cân
+            {t("weekTooltip", {
+              range: formatWeekRange(activeWeek.weekStart),
+              count: activeWeek.count,
+            })}
           </p>
         </div>
       )}

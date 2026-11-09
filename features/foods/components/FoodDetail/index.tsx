@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 
 import { CARD } from "@/constants/styles";
 import { FoodAmountCalculator } from "@/features/foods/components/FoodAmountCalculator";
@@ -27,6 +28,9 @@ const MACRO_ORDER = ["protein", "carbs", "fat"] as const;
 // What a food is made of per 100 g, plus the amount calculator. Read-only:
 // the admin page adds the edit form below it.
 export const FoodDetail = ({ food }: FoodDetailProps) => {
+  const t = useTranslations("foods.foodDetail");
+  const tFoodLabels = useTranslations("foods.labels");
+  const tNutritionLabels = useTranslations("nutrition.labels");
   const group = FOOD_GROUPS[food.group];
   const Icon = group.icon;
   const split = macroSplit(food);
@@ -45,8 +49,8 @@ export const FoodDetail = ({ food }: FoodDetailProps) => {
           </span>
           <div className="min-w-0">
             <p className="text-sm text-muted">
-              {group.label}
-              {food.state && ` · ${FOOD_STATE_LABELS[food.state]}`}
+              {tFoodLabels(group.labelKey)}
+              {food.state && ` · ${tFoodLabels(FOOD_STATE_LABELS[food.state])}`}
             </p>
             <p className="text-3xl font-bold text-fg tabular-nums">
               {formatKcal(food.kcal)}{" "}
@@ -74,7 +78,10 @@ export const FoodDetail = ({ food }: FoodDetailProps) => {
                   MACRO_COLORS[macro].text,
                 )}
               >
-                {MACRO_LABELS[macro].name} · {split[macro]}% calo
+                {t("macroShare", {
+                  name: tNutritionLabels(MACRO_LABELS[macro].nameKey),
+                  percent: split[macro],
+                })}
               </dt>
               <dd className="mt-0.5 text-lg font-bold text-fg tabular-nums">
                 {formatGrams(food[macro])}
@@ -85,14 +92,18 @@ export const FoodDetail = ({ food }: FoodDetailProps) => {
         </dl>
 
         <ul className="space-y-1 text-sm text-muted">
-          {food.fiber !== null && <li>Chất xơ: {formatGrams(food.fiber)} g</li>}
+          {food.fiber !== null && (
+            <li>{t("fiber", { grams: formatGrams(food.fiber) })}</li>
+          )}
           {food.servingLabel && food.servingGrams && (
             <li>
-              Khẩu phần: {food.servingLabel} = {formatGrams(food.servingGrams)}{" "}
-              g
+              {t("serving", {
+                label: food.servingLabel,
+                grams: formatGrams(food.servingGrams),
+              })}
             </li>
           )}
-          {food.source && <li>Nguồn: {food.source}</li>}
+          {food.source && <li>{t("source", { source: food.source })}</li>}
         </ul>
       </section>
 

@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 
 import type { MacroShare } from "@/features/foods/types/food";
 import {
@@ -14,14 +15,16 @@ const SEGMENTS = ["protein", "carbs", "fat"] as const;
 
 // Share of the food's calories that comes from protein, carbs and fat.
 export const MacroSplitBar = ({ split }: MacroSplitBarProps) => {
+  const t = useTranslations("foods.macroSplitBar");
+  const tLabels = useTranslations("nutrition.labels");
   const description = SEGMENTS.map(
-    (macro) => `${MACRO_LABELS[macro].name} ${split[macro]}%`,
+    (macro) => `${tLabels(MACRO_LABELS[macro].nameKey)} ${split[macro]}%`,
   ).join(", ");
 
   return (
     <div
       role="img"
-      aria-label={`Tỉ lệ calo: ${description}`}
+      aria-label={t("label", { description })}
       className="flex h-2 gap-0.5 overflow-hidden rounded-full bg-line"
     >
       {SEGMENTS.map(

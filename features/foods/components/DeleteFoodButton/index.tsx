@@ -2,13 +2,13 @@
 
 import { Loader2, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { ROUTES } from "@/constants/routes";
 import { BUTTON_DANGER } from "@/constants/styles";
-import { FOOD_MESSAGES } from "@/features/foods/constants/foods";
 import { archiveFoodAction } from "@/features/foods/services/food-actions";
 import { describeErrorReference } from "@/utils/errors";
 
@@ -18,14 +18,15 @@ interface DeleteFoodButtonProps {
 
 // "Xóa" archives the food: it disappears from both lists but the row stays.
 export const DeleteFoodButton = ({ foodId }: DeleteFoodButtonProps) => {
+  const t = useTranslations("foods.deleteFoodButton");
   const router = useRouter();
   const confirm = useConfirm();
   const [isPending, startTransition] = useTransition();
 
   const handleClick = async () => {
     const isConfirmed = await confirm({
-      title: FOOD_MESSAGES.DELETE_CONFIRM,
-      confirmLabel: "Xóa",
+      title: t("deleteConfirm"),
+      confirmLabel: t("confirmDelete"),
       isDanger: true,
     });
 
@@ -41,7 +42,7 @@ export const DeleteFoodButton = ({ foodId }: DeleteFoodButtonProps) => {
         });
         return;
       }
-      toast.success(FOOD_MESSAGES.DELETED);
+      toast.success(t("deleted"));
       router.replace(ROUTES.ADMIN_FOODS);
     });
   };
@@ -58,7 +59,7 @@ export const DeleteFoodButton = ({ foodId }: DeleteFoodButtonProps) => {
       ) : (
         <Trash2 className="size-5" aria-hidden />
       )}
-      Xóa
+      {t("confirmDelete")}
     </button>
   );
 };

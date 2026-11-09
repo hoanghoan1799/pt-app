@@ -14,65 +14,70 @@ import {
 
 import type { FoodGroup, FoodState } from "@/features/foods/types/food";
 
+// Display labels are keys under the foods.labels namespace (translated at render).
 export interface FoodGroupInfo {
-  label: string;
+  labelKey: `groups.${FoodGroup}`;
   icon: LucideIcon;
   // Tailwind classes for the icon tile: tinted background plus icon colour.
   tile: string;
 }
 
 export const FOOD_GROUPS: Record<FoodGroup, FoodGroupInfo> = {
-  meat: { label: "Thịt", icon: Beef, tile: "bg-rose-500/15 text-rose-600" },
+  meat: {
+    labelKey: "groups.meat",
+    icon: Beef,
+    tile: "bg-rose-500/15 text-rose-600",
+  },
   seafood: {
-    label: "Cá & hải sản",
+    labelKey: "groups.seafood",
     icon: Fish,
     tile: "bg-sky-500/15 text-sky-600",
   },
   egg_dairy: {
-    label: "Trứng & sữa",
+    labelKey: "groups.egg_dairy",
     icon: Egg,
     tile: "bg-amber-500/15 text-amber-600",
   },
   starch: {
-    label: "Tinh bột",
+    labelKey: "groups.starch",
     icon: Wheat,
     tile: "bg-yellow-500/15 text-yellow-700",
   },
   vegetable: {
-    label: "Rau",
+    labelKey: "groups.vegetable",
     icon: Leaf,
     tile: "bg-green-500/15 text-green-700",
   },
   fruit: {
-    label: "Trái cây",
+    labelKey: "groups.fruit",
     icon: Apple,
     tile: "bg-orange-500/15 text-orange-600",
   },
   legume_nut: {
-    label: "Đậu & hạt",
+    labelKey: "groups.legume_nut",
     icon: Bean,
     tile: "bg-lime-600/15 text-lime-700",
   },
   fat_oil: {
-    label: "Dầu & chất béo",
+    labelKey: "groups.fat_oil",
     icon: Droplet,
     tile: "bg-cyan-500/15 text-cyan-700",
   },
   dish: {
-    label: "Món chế biến",
+    labelKey: "groups.dish",
     icon: Soup,
     tile: "bg-red-500/15 text-red-600",
   },
   other: {
-    label: "Khác",
+    labelKey: "groups.other",
     icon: Utensils,
     tile: "bg-zinc-500/15 text-zinc-600",
   },
 };
 
-export const FOOD_STATE_LABELS: Record<FoodState, string> = {
-  raw: "Sống",
-  cooked: "Chín",
+export const FOOD_STATE_LABELS: Record<FoodState, `state.${FoodState}`> = {
+  raw: "state.raw",
+  cooked: "state.cooked",
 };
 
 export const FOOD_LIMITS = {
@@ -92,9 +97,7 @@ export const FOOD_MESSAGES = {
   INVALID_INPUT: "Vui lòng kiểm tra lại thông tin",
   CREATED: "Đã thêm món",
   UPDATED: "Đã lưu thay đổi",
-  DELETED: "Đã xóa món",
   NAME_TAKEN: "Đã có món trùng tên. Thêm trạng thái (sống/chín) để phân biệt.",
   NOT_FOUND: "Món này không còn tồn tại",
-  DELETE_CONFIRM: "Xóa món này?",
   CONFIRM_LABEL: "Tôi đã kiểm tra số liệu",
 } as const;

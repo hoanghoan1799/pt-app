@@ -1,6 +1,7 @@
 "use client";
 
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 
 import { SubmitButton } from "@/components/common/SubmitButton";
 import {
@@ -26,6 +27,8 @@ interface TargetFormProps {
 }
 
 export const TargetForm = ({ userId, target, onSaved }: TargetFormProps) => {
+  const t = useTranslations("nutrition.targetForm");
+  const tLabels = useTranslations("nutrition.labels");
   const { formAction, fieldErrors } = useTargetForm(onSaved);
 
   return (
@@ -35,10 +38,10 @@ export const TargetForm = ({ userId, target, onSaved }: TargetFormProps) => {
         <div key={macro}>
           <label htmlFor={`target-${macro}`} className={LABEL}>
             <span className={clsx("font-semibold", MACRO_COLORS[macro].text)}>
-              {MACRO_LABELS[macro].name}
+              {tLabels(MACRO_LABELS[macro].nameKey)}
             </span>{" "}
             <span className="font-normal text-muted">
-              ({MACRO_LABELS[macro].foods})
+              ({tLabels(MACRO_LABELS[macro].foodsKey)})
             </span>
           </label>
           <div className="relative">
@@ -54,7 +57,7 @@ export const TargetForm = ({ userId, target, onSaved }: TargetFormProps) => {
               className={`${INPUT} pr-24`}
             />
             <span className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-sm text-muted">
-              gram/ngày
+              {t("gramsPerDay")}
             </span>
           </div>
           {fieldErrors[macro] && (
@@ -64,7 +67,7 @@ export const TargetForm = ({ userId, target, onSaved }: TargetFormProps) => {
       ))}
       <div>
         <label htmlFor="target-note" className={LABEL}>
-          Lời dặn của PT
+          {t("ptNote")}
         </label>
         <textarea
           id="target-note"
@@ -72,17 +75,13 @@ export const TargetForm = ({ userId, target, onSaved }: TargetFormProps) => {
           defaultValue={target?.note}
           rows={3}
           maxLength={NUTRITION_LIMITS.NOTE}
-          placeholder="VD: Ưu tiên đạm nạc, nhiều rau. Uống 2,5 lít nước/ngày."
+          placeholder={t("notePlaceholder")}
           className={TEXTAREA}
         />
       </div>
-      <p className="text-xs text-muted">
-        Gram chất dinh dưỡng (không phải gram món ăn). Áp dụng từ hôm nay; các
-        ngày trước giữ mục tiêu cũ. Muốn tự tính theo TDEE, dùng thẻ Chỉ số cơ
-        thể.
-      </p>
+      <p className="text-xs text-muted">{t("hint")}</p>
       <SubmitButton className={`${BUTTON_PRIMARY} w-full`}>
-        Lưu mục tiêu
+        {t("save")}
       </SubmitButton>
     </form>
   );

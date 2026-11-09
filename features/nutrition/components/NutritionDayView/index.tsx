@@ -1,4 +1,5 @@
 import { MessageSquareQuote } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import { CARD, SECTION_TITLE } from "@/constants/styles";
@@ -24,14 +25,14 @@ export const NutritionDayView = ({
   isLegacyLog = false,
   children,
 }: NutritionDayViewProps) => {
+  const t = useTranslations("nutrition.nutritionDayView");
+  const tWeek = useTranslations("common.week");
   const isFuture = day.date > today;
   const getEmptyMessage = () => {
     if (!isEditable) {
-      return "User chưa ghi bữa ăn nào cho ngày này.";
+      return t("emptyTraineeLog");
     }
-    return isFuture
-      ? "Chưa tới ngày này, quay lại ghi sau nhé."
-      : "Chưa ghi bữa ăn nào cho ngày này.";
+    return isFuture ? t("emptyFuture") : t("emptyToday");
   };
 
   // Old entries are history on the trainee's page and hidden when there are
@@ -48,11 +49,11 @@ export const NutritionDayView = ({
         <p className="text-sm font-medium text-muted">
           {formatFullDay(day.date)}
           {day.date === today && (
-            <span className="text-accent"> · Hôm nay</span>
+            <span className="text-accent"> · {tWeek("today")}</span>
           )}
         </p>
         <h2 className="mt-0.5 text-2xl leading-tight font-bold text-fg">
-          {day.target ? "Mục tiêu trong ngày" : "Dinh dưỡng"}
+          {day.target ? t("dailyTargets") : t("nutrition")}
         </h2>
       </div>
 
@@ -65,9 +66,7 @@ export const NutritionDayView = ({
           />
         ) : (
           <>
-            <p className="text-sm text-muted">
-              PT chưa đặt mục tiêu dinh dưỡng cho ngày này.
-            </p>
+            <p className="text-sm text-muted">{t("noTarget")}</p>
             {day.loggedCount > 0 && (
               <MacroProgressList
                 totals={day.totals}
@@ -93,7 +92,7 @@ export const NutritionDayView = ({
       {showLog && (
         <div className="space-y-2">
           <h3 className={SECTION_TITLE}>
-            {isLegacyLog ? "Nhật ký cũ" : "Đã ăn"}
+            {isLegacyLog ? t("legacyLog") : t("eaten")}
           </h3>
           <FoodLog
             date={day.date}

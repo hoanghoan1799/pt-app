@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import { WeekCalendarCard } from "@/components/common/WeekCalendarCard";
@@ -20,12 +21,6 @@ interface NutritionWeekProps {
   children?: ReactNode;
 }
 
-const STATUS_DESCRIPTIONS: Record<DayCompletion, string> = {
-  complete: ", đã ăn đủ các bữa",
-  partial: ", đã ăn một số bữa",
-  none: "",
-};
-
 export const NutritionWeek = ({
   basePath,
   days,
@@ -37,7 +32,14 @@ export const NutritionWeek = ({
   completion,
   children,
 }: NutritionWeekProps) => {
+  const t = useTranslations("nutrition.nutritionWeek");
   const selectedDay = days.find((day) => day.date === selectedDate) ?? days[0];
+  const describeStatus = (status: DayCompletion) => {
+    if (status === "complete") {
+      return t("completeDescription");
+    }
+    return status === "partial" ? t("partialDescription") : "";
+  };
 
   return (
     <div className="space-y-6">
@@ -50,7 +52,7 @@ export const NutritionWeek = ({
           items={days.map((day) => ({
             date: day.date,
             status: completion[day.date] ?? "none",
-            description: STATUS_DESCRIPTIONS[completion[day.date] ?? "none"],
+            description: describeStatus(completion[day.date] ?? "none"),
           }))}
         />
       </div>

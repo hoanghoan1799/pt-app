@@ -1,0 +1,217 @@
+{
+  "mealCard": {
+    "sectionLabel": "Meal {index}: {name}",
+    "mealNameLabel": "Meal {index} name",
+    "moveUp": "Move {name} up",
+    "moveDown": "Move {name} down",
+    "deleteMealQuestion": "Delete {meal} and the foods in it?",
+    "confirmDelete": "Delete",
+    "deleteMeal": "Delete {name}",
+    "collapsedFoods": " · {count, plural, one {# food} other {# foods}}",
+    "mealTarget": "Meal target{share}: {kcal} kcal · P {protein} · C {carbs} · F {fat}",
+    "noTargetToday": "No target for this day.",
+    "totalLabel": "Total {name}",
+    "autoSolve": "Auto-calculate",
+    "setTargetFirst": "Set a nutrition target first to auto-calculate.",
+    "allFixed": "Every food has fixed grams. Unlock one food to auto-calculate."
+  },
+  "traineeMealCard": {
+    "sectionLabel": "Meal {index}: {name}",
+    "mealTarget": "Meal target: {kcal} kcal · P {protein} · C {carbs} · F {fat}",
+    "eatenSummary": "Eaten {eaten} / {planned} kcal",
+    "ptPlan": "PT's plan",
+    "noFoods": "The PT hasn't added foods to this meal yet.",
+    "extraLogged": "Eaten outside the plan",
+    "eatenLabel": "Eaten {name}",
+    "planKcal": "/ {kcal} kcal (plan)",
+    "logEatenInto": "Log food eaten in {name}",
+    "logEaten": "Log food eaten",
+    "futureDay": "This day hasn't come yet. Come back and log it later."
+  },
+  "mealLogSheet": {
+    "editTitle": "Edit food",
+    "addTitle": "Log eaten food",
+    "searchLabel": "Search the food library",
+    "searchPlaceholder": "Search foods (e.g. chicken)",
+    "pickFood": "Pick {name}",
+    "moreResults": "More foods match. Type more to narrow it down.",
+    "noResults": "No foods found",
+    "freeFood": "Food not in the library",
+    "grams": "Grams",
+    "save": "Save",
+    "addFood": "Add food",
+    "pickOther": "Pick another food",
+    "name": "Food name",
+    "namePlaceholder": "e.g. Beef pho",
+    "gramsOptional": "Grams (if known)",
+    "nutritionOptional": "Nutrition (optional)",
+    "searchLibrary": "Search the library",
+    "macroInputs": {
+      "kcal": "Calories (kcal)",
+      "protein": "Protein (g)",
+      "carbs": "Carbs (g)",
+      "fat": "Fat (g)"
+    }
+  },
+  "copyDaySheet": {
+    "sourceDay": "source day",
+    "past": "past",
+    "hasPlan": "has a plan",
+    "title": "Copy to another day",
+    "description": "From {date}",
+    "confirmLabel": "Confirm overwrite",
+    "replaceNotice": "The old plans for these days will be replaced with the plan from {date}.",
+    "cancel": "Cancel",
+    "overwrite": "Overwrite",
+    "overwriteLegend": "Has a plan, will be overwritten",
+    "copy": "Copy",
+    "copyCount": " ({count, plural, one {# day} other {# days}})"
+  },
+  "useDayPlan": {
+    "planCreated": "Plan created",
+    "appliedKeptDays": "Applied to {copied, plural, one {# day} other {# days}}, kept {skipped, plural, one {# day} other {# days}} that already had a plan",
+    "appliedLastWeek": "Applied to {copied, plural, one {# day} other {# days}} from last week",
+    "planRemoved": "Plan for this day removed"
+  },
+  "useMealCard": {
+    "mealRemoved": "Meal removed",
+    "gramsSolved": "Grams calculated automatically"
+  },
+  "useCopyDay": {
+    "copied": "Copied to {copied, plural, one {# day} other {# days}}"
+  },
+  "useMealShares": {
+    "sharesSaved": "Meal percentages saved",
+    "sharesEqual": "Meals split equally"
+  },
+  "useMealMark": {
+    "saved": "Saved"
+  },
+  "useTraineeMealCard": {
+    "removeConfirm": "Remove this food from the log?",
+    "confirmDelete": "Delete",
+    "removed": "Food removed"
+  },
+  "useMealLogSheet": {
+    "added": "Food logged",
+    "updated": "Food updated"
+  },
+  "mealPlanTitle": {
+    "title": "Meal plan",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all"
+  },
+  "memberMealRequest": {
+    "title": "Trainee's request",
+    "wantsMeals": "The trainee wants {count, plural, one {# meal} other {# meals}}"
+  },
+  "mealLogList": {
+    "noNutrition": "No nutrition data yet",
+    "archived": "Food removed from the library, its numbers are kept",
+    "edit": "Edit {name}",
+    "delete": "Delete {name}"
+  },
+  "mealMarkPanel": {
+    "achieveLabel": "On plan {name}",
+    "achieve": "On plan",
+    "achieved": "On plan ✓",
+    "noteLabel": "Note for {name}",
+    "notePlaceholder": "Which foods were short or over? e.g. about 50 g of extra rice",
+    "saveNote": "Save note"
+  },
+  "emptyDayPlan": {
+    "noPlan": "<strong>No plan</strong> for this day.",
+    "create": "Create plan",
+    "newPlanMeals": "A new plan has {count, plural, one {# meal} other {# meals}}. You can add or remove meals later.",
+    "applyLastWeek": "Apply last week",
+    "copyLastWeek": "Copy {count, plural, one {# day} other {# days}} with a plan from last week into the empty days of this week.",
+    "noLastWeek": "No plans last week yet."
+  },
+  "planKcalNotices": {
+    "sectionLabel": "Plan off target",
+    "title": "The plan needs adjusting to the target"
+  },
+  "mealPreferencesForm": {
+    "title": "Meal preferences",
+    "mealCount": "Preferred number of meals",
+    "ptDecides": "PT decides",
+    "mealsPerDay": "{count} meals/day",
+    "foodLabel": "Foods you like or can't eat",
+    "notePlaceholder": "e.g. No seafood, likes brown rice.",
+    "save": "Save preferences",
+    "hint": "The PT will review this when planning your meals."
+  },
+  "dayPlanSummary": {
+    "sectionLabel": "Whole-day total",
+    "title": "Whole day",
+    "onTarget": "On target",
+    "offTarget": "Not on target",
+    "deviation": "{name} {direction} {amount} {unit}",
+    "under": "short",
+    "over": "over",
+    "noTarget": "No nutrition target for this day.",
+    "addFoods": "Add foods to the meals to see the total."
+  },
+  "mealGapNotice": {
+    "short": "Short {grams} g {macro}",
+    "over": "Over {grams} g {macro}",
+    "addFood": "Add {grams} g {name}"
+  },
+  "labels": {
+    "gap": {
+      "protein": "protein",
+      "carbs": "carbs",
+      "fat": "fat"
+    },
+    "metric": {
+      "kcal": "Calories",
+      "protein": "Protein",
+      "carbs": "Carbs",
+      "fat": "Fat"
+    }
+  },
+  "foodPicker": {
+    "addTo": "Add food to {meal}",
+    "searchPlaceholder": "Search foods to add (e.g. chicken)",
+    "pickFood": "Add {name}",
+    "moreResults": "More foods match. Type more to narrow it down.",
+    "noResults": "No foods found"
+  },
+  "mealItemRow": {
+    "archived": "Food removed from the library, its numbers are kept",
+    "delete": "Delete {name}",
+    "gramsLabel": "Grams of {name}",
+    "lockLabel": "Keep grams of {name} when auto-calculating",
+    "fixed": "Fixed grams",
+    "auto": "Auto"
+  },
+  "mealSharesSheet": {
+    "title": "Split by %",
+    "description": "Share of the whole-day target for each meal",
+    "total": "Total: {total}% (needs {target}%)",
+    "save": "Save percentages",
+    "equal": "Split equally"
+  },
+  "traineeMealPlan": {
+    "sectionLabel": "Meal plan",
+    "noPlan": "The PT hasn't set a meal plan for this day."
+  },
+  "mealPlanDay": {
+    "sectionLabel": "Meal plan",
+    "addMeal": "Add meal",
+    "copyToDay": "Copy to another day",
+    "splitByPercent": "Split by %",
+    "confirmDelete": "Delete",
+    "deletePlan": "Delete this day's plan"
+  },
+  "mealCollapseToggle": {
+    "expand": "Expand {name}",
+    "collapse": "Collapse {name}"
+  },
+  "mealLogSummary": {
+    "noLogs": "The trainee hasn't logged anything for this meal.",
+    "sectionLabel": "Trainee's log",
+    "onPlan": "On plan",
+    "eaten": "Eaten:"
+  }
+}

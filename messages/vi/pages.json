@@ -28,5 +28,36 @@
   "adminLogin": {
     "title": "Khu vực PT",
     "tagline": "Đăng nhập để quản lý user và bài tập"
+  },
+  "nutrition": {
+    "metaTitle": "Dinh dưỡng",
+    "eyebrow": "Xin chào"
+  },
+  "foods": {
+    "metaTitle": "Thực phẩm",
+    "eyebrow": "Dinh dưỡng",
+    "title": "Thư viện thực phẩm",
+    "emptyHint": "PT chưa thêm món nào vào thư viện."
+  },
+  "foodDetail": {
+    "metaTitle": "Chi tiết món",
+    "eyebrow": "Thư viện thực phẩm"
+  },
+  "adminFoods": {
+    "metaTitle": "Thực phẩm",
+    "eyebrow": "Admin",
+    "title": "Thực phẩm",
+    "addFood": "Thêm món",
+    "emptyHint": "Bấm Thêm món để nhập món đầu tiên."
+  },
+  "adminFoodNew": {
+    "metaTitle": "Thêm món",
+    "eyebrow": "Thực phẩm",
+    "title": "Thêm món"
+  },
+  "adminFoodDetail": {
+    "metaTitle": "Chi tiết món",
+    "eyebrow": "Thực phẩm",
+    "edit": "Chỉnh sửa"
   }
 }

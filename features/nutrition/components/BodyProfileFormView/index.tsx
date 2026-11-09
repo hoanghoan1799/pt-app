@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import { Calculator } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { FormEvent } from "react";
 
 import { SubmitButton } from "@/components/common/SubmitButton";
@@ -11,7 +12,7 @@ import {
   GOAL_ORDER,
   GOALS,
   PROTEIN_PER_KG_DEFAULT,
-  SEX_LABELS,
+  SEX_LABEL_KEYS,
 } from "@/features/nutrition/constants/energy";
 import type {
   BodyProfileEditor,
@@ -39,25 +40,26 @@ interface BodyProfileFormViewProps {
 const SEGMENT = "min-h-10 rounded-lg text-sm font-semibold transition";
 const SEGMENT_ACTIVE = "bg-surface text-fg shadow-sm";
 
+// Labels and units are keys under bodyProfileFormView (translated at render).
 const NUMBER_FIELDS = [
   {
     key: "age",
-    label: "Tuổi",
-    unit: "tuổi",
+    labelKey: "fields.age",
+    unitKey: "units.years",
     placeholder: "30",
     inputMode: "numeric",
   },
   {
     key: "heightCm",
-    label: "Cao",
-    unit: "cm",
+    labelKey: "fields.height",
+    unitKey: "units.cm",
     placeholder: "170",
     inputMode: "decimal",
   },
   {
     key: "weightKg",
-    label: "Nặng",
-    unit: "kg",
+    labelKey: "fields.weight",
+    unitKey: "units.kg",
     placeholder: "65",
     inputMode: "decimal",
   },
@@ -66,19 +68,17 @@ const NUMBER_FIELDS = [
 const ENERGY_FIELDS = [
   {
     key: "kcalAdjustment",
-    label: "Thâm hụt / dư kcal mỗi ngày",
-    unit: "kcal",
+    labelKey: "fields.kcalAdjustment",
+    unitKey: "units.kcal",
     placeholder: "-200",
     inputMode: "text",
-    hint: "Âm = giảm, 0 = giữ, dương = tăng (-1500 đến 1500)",
   },
   {
     key: "proteinPerKg",
-    label: "Đạm (g/kg)",
-    unit: "g/kg",
+    labelKey: "fields.proteinPerKg",
+    unitKey: "units.gPerKg",
     placeholder: "2",
     inputMode: "decimal",
-    hint: "",
   },
 ] as const;
 
@@ -92,110 +92,45 @@ export const BodyProfileFormView = ({
   fieldErrors,
   onChange,
   onSubmit,
-}: BodyProfileFormViewProps) => (
-  <form onSubmit={onSubmit} className="space-y-5" noValidate>
-    {editor === "admin" && <input type="hidden" name="userId" value={userId} />}
-    <input type="hidden" name="sex" value={draft.sex} />
-    {editor === "user" && (
-      <input type="hidden" name="goal" value={draft.goal} />
-    )}
+}: BodyProfileFormViewProps) => {
+  const t = useTranslations("nutrition.bodyProfileFormView");
+  const tLabels = useTranslations("nutrition.labels");
 
-    <fieldset>
-      <legend className={LABEL}>Giới tính</legend>
-      <div className="grid grid-cols-2 gap-1 rounded-xl bg-line/60 p-1">
-        {(["male", "female"] as Sex[]).map((sex) => (
-          <button
-            key={sex}
-            type="button"
-            onClick={() => onChange("sex", sex)}
-            aria-pressed={draft.sex === sex}
-            className={clsx(
-              SEGMENT,
-              draft.sex === sex ? SEGMENT_ACTIVE : "text-muted",
-            )}
-          >
-            {SEX_LABELS[sex]}
-          </button>
-        ))}
-      </div>
-    </fieldset>
+  return (
+    <form onSubmit={onSubmit} className="space-y-5" noValidate>
+      {editor === "admin" && (
+        <input type="hidden" name="userId" value={userId} />
+      )}
+      <input type="hidden" name="sex" value={draft.sex} />
+      {editor === "user" && (
+        <input type="hidden" name="goal" value={draft.goal} />
+      )}
 
-    <div className="grid grid-cols-3 gap-2">
-      {NUMBER_FIELDS.map((field) => (
-        <div key={field.key}>
-          <label htmlFor={field.key} className={LABEL}>
-            {field.label}
-          </label>
-          <div className="relative">
-            <input
-              id={field.key}
-              name={field.key}
-              value={draft[field.key]}
-              onChange={(event) => onChange(field.key, event.target.value)}
-              inputMode={field.inputMode}
-              placeholder={field.placeholder}
-              aria-invalid={Boolean(fieldErrors[field.key])}
-              className={`${INPUT} px-3 pr-10`}
-            />
-            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted">
-              {field.unit}
-            </span>
-          </div>
+      <fieldset>
+        <legend className={LABEL}>{t("sex")}</legend>
+        <div className="grid grid-cols-2 gap-1 rounded-xl bg-line/60 p-1">
+          {(["male", "female"] as Sex[]).map((sex) => (
+            <button
+              key={sex}
+              type="button"
+              onClick={() => onChange("sex", sex)}
+              aria-pressed={draft.sex === sex}
+              className={clsx(
+                SEGMENT,
+                draft.sex === sex ? SEGMENT_ACTIVE : "text-muted",
+              )}
+            >
+              {tLabels(SEX_LABEL_KEYS[sex])}
+            </button>
+          ))}
         </div>
-      ))}
-    </div>
-    {NUMBER_FIELDS.map(
-      (field) =>
-        fieldErrors[field.key] && (
-          <p key={field.key} className={`${FIELD_ERROR} -mt-3`}>
-            {fieldErrors[field.key]}
-          </p>
-        ),
-    )}
+      </fieldset>
 
-    <fieldset>
-      <legend className={LABEL}>Mức vận động</legend>
-      <div className="space-y-1.5">
-        {ACTIVITY_LEVEL_ORDER.map((level) => (
-          <label
-            key={level}
-            className={clsx(
-              "flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 transition",
-              draft.activityLevel === level
-                ? "border-accent bg-accent/10"
-                : "border-line bg-surface",
-            )}
-          >
-            <input
-              type="radio"
-              name="activityLevel"
-              value={level}
-              checked={draft.activityLevel === level}
-              onChange={() => onChange("activityLevel", level)}
-              className="size-4 accent-[var(--accent)]"
-            />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-fg">
-                {ACTIVITY_LEVELS[level].label}
-              </span>
-              <span className="block text-xs text-muted">
-                {ACTIVITY_LEVELS[level].description}
-              </span>
-            </span>
-            <span className="text-xs text-muted tabular-nums">
-              ×{ACTIVITY_LEVELS[level].factor}
-            </span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
-
-    {editor === "admin" && (
-      <div className="grid grid-cols-2 gap-2">
-        {ENERGY_FIELDS.map((field) => (
+      <div className="grid grid-cols-3 gap-2">
+        {NUMBER_FIELDS.map((field) => (
           <div key={field.key}>
             <label htmlFor={field.key} className={LABEL}>
-              {field.label}
+              {t(field.labelKey)}
             </label>
             <div className="relative">
               <input
@@ -206,84 +141,157 @@ export const BodyProfileFormView = ({
                 inputMode={field.inputMode}
                 placeholder={field.placeholder}
                 aria-invalid={Boolean(fieldErrors[field.key])}
-                className={`${INPUT} px-3 pr-16`}
+                className={`${INPUT} px-3 pr-10`}
               />
               <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted">
-                {field.unit}
+                {t(field.unitKey)}
               </span>
             </div>
-            {fieldErrors[field.key] ? (
-              <p className={FIELD_ERROR}>{fieldErrors[field.key]}</p>
-            ) : (
-              <p className="mt-1 text-xs text-muted">
-                {field.key === "proteinPerKg"
-                  ? `Mặc định mới: ${PROTEIN_PER_KG_DEFAULT[draft.sex].toFixed(1).replace(".", ",")} g/kg (1 đến 3)`
-                  : field.hint}
-              </p>
-            )}
           </div>
         ))}
       </div>
-    )}
+      {NUMBER_FIELDS.map(
+        (field) =>
+          fieldErrors[field.key] && (
+            <p key={field.key} className={`${FIELD_ERROR} -mt-3`}>
+              {fieldErrors[field.key]}
+            </p>
+          ),
+      )}
 
-    {editor === "user" && draft.kcalAdjustment === "" && (
       <fieldset>
-        <legend className={LABEL}>Mục tiêu</legend>
-        <div className="grid grid-cols-3 gap-1 rounded-xl bg-line/60 p-1">
-          {GOAL_ORDER.map((goal) => (
-            <button
-              key={goal}
-              type="button"
-              onClick={() => onChange("goal", goal)}
-              aria-pressed={draft.goal === goal}
+        <legend className={LABEL}>{t("activityLegend")}</legend>
+        <div className="space-y-1.5">
+          {ACTIVITY_LEVEL_ORDER.map((level) => (
+            <label
+              key={level}
               className={clsx(
-                SEGMENT,
-                draft.goal === goal ? SEGMENT_ACTIVE : "text-muted",
+                "flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 transition",
+                draft.activityLevel === level
+                  ? "border-accent bg-accent/10"
+                  : "border-line bg-surface",
               )}
             >
-              {GOALS[goal].label}
-            </button>
+              <input
+                type="radio"
+                name="activityLevel"
+                value={level}
+                checked={draft.activityLevel === level}
+                onChange={() => onChange("activityLevel", level)}
+                className="size-4 accent-[var(--accent)]"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-fg">
+                  {tLabels(ACTIVITY_LEVELS[level].labelKey)}
+                </span>
+                <span className="block text-xs text-muted">
+                  {tLabels(ACTIVITY_LEVELS[level].descriptionKey)}
+                </span>
+              </span>
+              <span className="text-xs text-muted tabular-nums">
+                ×{ACTIVITY_LEVELS[level].factor}
+              </span>
+            </label>
           ))}
         </div>
       </fieldset>
-    )}
 
-    <div className="rounded-2xl border border-line bg-surface p-4">
-      <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-muted">
-        <Calculator className="size-4" aria-hidden />
-        Kết quả tính
-      </p>
-      {plan ? (
-        <EnergyPlanSummary plan={plan} />
+      {editor === "admin" && (
+        <div className="grid grid-cols-2 gap-2">
+          {ENERGY_FIELDS.map((field) => (
+            <div key={field.key}>
+              <label htmlFor={field.key} className={LABEL}>
+                {t(field.labelKey)}
+              </label>
+              <div className="relative">
+                <input
+                  id={field.key}
+                  name={field.key}
+                  value={draft[field.key]}
+                  onChange={(event) => onChange(field.key, event.target.value)}
+                  inputMode={field.inputMode}
+                  placeholder={field.placeholder}
+                  aria-invalid={Boolean(fieldErrors[field.key])}
+                  className={`${INPUT} px-3 pr-16`}
+                />
+                <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted">
+                  {t(field.unitKey)}
+                </span>
+              </div>
+              {fieldErrors[field.key] ? (
+                <p className={FIELD_ERROR}>{fieldErrors[field.key]}</p>
+              ) : (
+                <p className="mt-1 text-xs text-muted">
+                  {field.key === "proteinPerKg"
+                    ? t("proteinDefault", {
+                        value: PROTEIN_PER_KG_DEFAULT[draft.sex]
+                          .toFixed(1)
+                          .replace(".", ","),
+                      })
+                    : t("kcalHint")}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editor === "user" && draft.kcalAdjustment === "" && (
+        <fieldset>
+          <legend className={LABEL}>{t("goal")}</legend>
+          <div className="grid grid-cols-3 gap-1 rounded-xl bg-line/60 p-1">
+            {GOAL_ORDER.map((goal) => (
+              <button
+                key={goal}
+                type="button"
+                onClick={() => onChange("goal", goal)}
+                aria-pressed={draft.goal === goal}
+                className={clsx(
+                  SEGMENT,
+                  draft.goal === goal ? SEGMENT_ACTIVE : "text-muted",
+                )}
+              >
+                {tLabels(GOALS[goal].labelKey)}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
+
+      <div className="rounded-2xl border border-line bg-surface p-4">
+        <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-muted">
+          <Calculator className="size-4" aria-hidden />
+          {t("result")}
+        </p>
+        {plan ? (
+          <EnergyPlanSummary plan={plan} />
+        ) : (
+          <p className="text-sm text-muted">{t("enterStats")}</p>
+        )}
+      </div>
+
+      {editor === "admin" ? (
+        <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl bg-line/60 px-3">
+          <input
+            type="checkbox"
+            name="applyToTarget"
+            defaultChecked
+            className="size-5 accent-[var(--accent)]"
+          />
+          <span className="text-sm text-fg">{t("applyToTarget")}</span>
+        </label>
       ) : (
-        <p className="text-sm text-muted">
-          Nhập tuổi, chiều cao, cân nặng để xem TDEE.
+        <p className="rounded-xl bg-line/60 px-3 py-2.5 text-sm text-muted">
+          {isTargetManual ? t("targetManual") : t("targetRecalculated")}
         </p>
       )}
-    </div>
 
-    {editor === "admin" ? (
-      <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl bg-line/60 px-3">
-        <input
-          type="checkbox"
-          name="applyToTarget"
-          defaultChecked
-          className="size-5 accent-[var(--accent)]"
-        />
-        <span className="text-sm text-fg">
-          Cập nhật mục tiêu dinh dưỡng theo kết quả này (từ hôm nay)
-        </span>
-      </label>
-    ) : (
-      <p className="rounded-xl bg-line/60 px-3 py-2.5 text-sm text-muted">
-        {isTargetManual
-          ? "PT đang đặt mục tiêu riêng cho bạn, nên mục tiêu sẽ giữ nguyên. PT vẫn thấy chỉ số mới của bạn."
-          : "Mục tiêu dinh dưỡng của bạn sẽ được tính lại theo kết quả này, từ hôm nay."}
-      </p>
-    )}
-
-    <SubmitButton className={`${BUTTON_PRIMARY} w-full`} isPending={isPending}>
-      Lưu chỉ số
-    </SubmitButton>
-  </form>
-);
+      <SubmitButton
+        className={`${BUTTON_PRIMARY} w-full`}
+        isPending={isPending}
+      >
+        {t("save")}
+      </SubmitButton>
+    </form>
+  );
+};
