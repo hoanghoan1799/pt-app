@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   adminOwnerKey,
   buildChatPushPayload,
+  buildPushPreview,
   isAllowedPushEndpoint,
   isGoneStatus,
+  PUSH_PREVIEW_MAX_LENGTH,
   pushSubscriptionSchema,
   unsubscribeSchema,
   userOwnerKey,
@@ -17,63 +19,148 @@ describe("owner keys", () => {
   });
 });
 
+describe("buildPushPreview", () => {
+  it("shows the text as written", () => {
+    expect(buildPushPreview({ body: "Mai tập chân nhé" })).toBe(
+      "Mai tập chân nhé",
+    );
+  });
+
+  it("keeps line breaks, collapses spaces and tabs, and trims", () => {
+    expect(
+      buildPushPreview({ body: "  Chào  \n bạn \t khỏe  \r\nkhông  " }),
+    ).toBe("Chào\nbạn khỏe\nkhông");
+  });
+
+  it("collapses 3 or more line breaks into 2", () => {
+    expect(buildPushPreview({ body: "a\n\n\n\nb\n\nc" })).toBe("a\n\nb\n\nc");
+  });
+
+  it("keeps a text of exactly the max length", () => {
+    const text = "a".repeat(PUSH_PREVIEW_MAX_LENGTH);
+
+    expect(buildPushPreview({ body: text })).toBe(text);
+  });
+
+  it("cuts a longer text to the max length ending with an ellipsis", () => {
+    const preview = buildPushPreview({
+      body: "a".repeat(PUSH_PREVIEW_MAX_LENGTH + 30),
+    });
+
+    expect(preview).toBe(`${"a".repeat(PUSH_PREVIEW_MAX_LENGTH - 1)}…`);
+    expect(Array.from(preview)).toHaveLength(PUSH_PREVIEW_MAX_LENGTH);
+  });
+
+  it("never splits an emoji when cutting", () => {
+    const preview = buildPushPreview({
+      body: "💪".repeat(PUSH_PREVIEW_MAX_LENGTH + 5),
+    });
+
+    expect(preview).toBe(`${"💪".repeat(PUSH_PREVIEW_MAX_LENGTH - 1)}…`);
+    expect(Array.from(preview)).toHaveLength(PUSH_PREVIEW_MAX_LENGTH);
+  });
+
+  it("says a photo was sent, even with a caption", () => {
+    expect(buildPushPreview({ body: "Bữa trưa", photo: true })).toBe(
+      "Đã gửi ảnh",
+    );
+    expect(buildPushPreview({ photo: true })).toBe("Đã gửi ảnh");
+  });
+
+  it("says a sticker was sent", () => {
+    expect(buildPushPreview({ body: "", sticker: true })).toBe(
+      "Đã gửi sticker",
+    );
+  });
+
+  it("says a link was sent when the text is only links", () => {
+    expect(buildPushPreview({ body: "https://example.com/a?b=1" })).toBe(
+      "Đã gửi liên kết",
+    );
+    expect(
+      buildPushPreview({ body: " https://example.com\nwww.example.org " }),
+    ).toBe("Đã gửi liên kết");
+  });
+
+  it("shows the text when it has a link among other words", () => {
+    expect(buildPushPreview({ body: "Xem bài này https://example.com" })).toBe(
+      "Xem bài này https://example.com",
+    );
+  });
+
+  it("falls back for an empty or missing body", () => {
+    expect(buildPushPreview({ body: "" })).toBe("Đã gửi tin nhắn");
+    expect(buildPushPreview({ body: "  \n " })).toBe("Đã gửi tin nhắn");
+    expect(buildPushPreview({ body: null })).toBe("Đã gửi tin nhắn");
+    expect(buildPushPreview({})).toBe("Đã gửi tin nhắn");
+  });
+});
+
 describe("buildChatPushPayload", () => {
-  it("says a photo was sent as 📷 Ảnh, never the caption", () => {
-    const base = { traineeName: "Lan", traineeUserId: 9, conversationId: 5 };
+  const base = { traineeUserId: 9, conversationId: 5 };
 
-    expect(
-      buildChatPushPayload({ ...base, recipientRole: "user", photo: true })
-        .body,
-    ).toBe("📷 Ảnh");
-    expect(
-      buildChatPushPayload({ ...base, recipientRole: "admin", photo: true })
-        .body,
-    ).toBe("Lan: 📷 Ảnh");
-  });
-
-  it("says a sticker was sent, to either side, without any content", () => {
-    const base = { traineeName: "Lan", traineeUserId: 9, conversationId: 5 };
-
-    expect(
-      buildChatPushPayload({ ...base, recipientRole: "user", sticker: true })
-        .body,
-    ).toBe("PT đã gửi một sticker");
-    expect(
-      buildChatPushPayload({ ...base, recipientRole: "admin", sticker: true })
-        .body,
-    ).toBe("Lan đã gửi một sticker");
-  });
-
-  it("tells the trainee only that the PT wrote, and opens their chat", () => {
+  it("titles the push with the sender and shows the text to the trainee", () => {
     expect(
       buildChatPushPayload({
+        ...base,
         recipientRole: "user",
-        traineeName: "Lan",
-        traineeUserId: 9,
-        conversationId: 5,
+        senderName: "Hoan",
+        body: "Mai nhớ uống đủ nước",
       }),
     ).toEqual({
-      title: "PT App",
-      body: "Bạn có tin nhắn mới từ PT",
+      title: "Hoan",
+      body: "Mai nhớ uống đủ nước",
       url: "/messages/coach",
       tag: "chat-5",
     });
   });
 
-  it("tells the admin who wrote, and opens that member's chat tab", () => {
+  it("titles the push with the trainee and opens that member's chat tab", () => {
     expect(
       buildChatPushPayload({
+        ...base,
         recipientRole: "admin",
-        traineeName: "Lan",
-        traineeUserId: 9,
-        conversationId: 5,
+        senderName: "Lan",
+        body: "Em tập xong rồi ạ",
       }),
     ).toEqual({
-      title: "PT App",
-      body: "Lan vừa nhắn tin",
+      title: "Lan",
+      body: "Em tập xong rồi ạ",
       url: "/admin/users/9/messages",
       tag: "chat-5",
     });
+  });
+
+  it("uses kind labels for a photo and a sticker", () => {
+    expect(
+      buildChatPushPayload({
+        ...base,
+        recipientRole: "admin",
+        senderName: "Lan",
+        body: "caption",
+        photo: true,
+      }).body,
+    ).toBe("Đã gửi ảnh");
+    expect(
+      buildChatPushPayload({
+        ...base,
+        recipientRole: "user",
+        senderName: "Hoan",
+        body: "",
+        sticker: true,
+      }).body,
+    ).toBe("Đã gửi sticker");
+  });
+
+  it("falls back to the app name when the sender name is blank", () => {
+    expect(
+      buildChatPushPayload({
+        ...base,
+        recipientRole: "user",
+        senderName: "  ",
+        body: "hi",
+      }).title,
+    ).toBe("PT App");
   });
 });
 

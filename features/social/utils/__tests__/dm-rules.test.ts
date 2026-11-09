@@ -91,18 +91,30 @@ describe("helpers", () => {
     );
   });
 
-  it("builds a push without the text", () => {
+  it("builds a push titled with the sender and showing the text", () => {
     expect(
-      buildDmPushPayload({ senderName: "An", conversationId: 4, photo: true }),
+      buildDmPushPayload({
+        senderName: "An",
+        conversationId: 4,
+        body: "Đi tập không?",
+        photo: false,
+      }),
     ).toEqual({
-      title: "PT App",
-      body: "An: 📷 Ảnh",
+      title: "An",
+      body: "Đi tập không?",
       url: "/messages/dm/4",
       tag: "dm-4",
     });
+  });
+
+  it("says a photo was sent, even with a caption", () => {
     expect(
-      buildDmPushPayload({ senderName: "An", conversationId: 4, photo: false })
-        .body,
-    ).toBe("An vừa nhắn tin");
+      buildDmPushPayload({
+        senderName: "An",
+        conversationId: 4,
+        body: "nhìn nè",
+        photo: true,
+      }).body,
+    ).toBe("Đã gửi ảnh");
   });
 });

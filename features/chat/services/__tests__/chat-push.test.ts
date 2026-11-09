@@ -103,7 +103,7 @@ describe("sendChatPush", () => {
     expect(await endpoints()).toEqual([]);
   });
 
-  it("sends a trainee message to every admin, with name and no message body", async () => {
+  it("sends a trainee message to every admin, titled with the name and showing the text", async () => {
     await addSub("admin:1", "a1");
     await addSub("admin:2", "a2");
     await addSub(`user:${traineeId}`, "trainee");
@@ -112,7 +112,12 @@ describe("sendChatPush", () => {
     >(async () => undefined);
 
     await push.sendChatPush(
-      { senderRole: "user", traineeUserId: traineeId, conversationId: 3 },
+      {
+        senderRole: "user",
+        traineeUserId: traineeId,
+        conversationId: 3,
+        body: "Em tập xong rồi\nạ",
+      },
       sender,
     );
 
@@ -121,14 +126,64 @@ describe("sendChatPush", () => {
       "https://push.example/a2",
     ]);
     expect(sender.mock.calls[0][1]).toEqual({
-      title: "PT App",
-      body: "Lan vừa nhắn tin",
+      title: "Lan",
+      body: "Em tập xong rồi\nạ",
       url: `/admin/users/${traineeId}/messages`,
       tag: "chat-3",
     });
   });
 
-  it("announces a photo as '📷 Ảnh' and skips the admin who hid the trainee", async () => {
+  it("titles an admin message with the admin's username", async () => {
+    const [admin] = await db
+      .insert(admins)
+      .values({
+        username: "Hoan",
+        usernameKey: "hoan",
+        passwordHash: "x",
+        role: "super_admin",
+      })
+      .returning({ id: admins.id, username: admins.username });
+
+    await addSub(`user:${traineeId}`, "t");
+    const sender = vi.fn<
+      import("@/features/chat/services/chat-push").PushSender
+    >(async () => undefined);
+
+    await push.sendChatPush(
+      {
+        senderRole: "admin",
+        senderAdminId: admin.id,
+        traineeUserId: traineeId,
+        conversationId: 3,
+        body: "Mai tập ngực",
+      },
+      sender,
+    );
+
+    expect(sender.mock.calls[0][1].title).toBe(admin.username);
+    expect(sender.mock.calls[0][1].body).toBe("Mai tập ngực");
+  });
+
+  it('titles an admin message "PT" when the sender is unknown', async () => {
+    await addSub(`user:${traineeId}`, "t");
+    const sender = vi.fn<
+      import("@/features/chat/services/chat-push").PushSender
+    >(async () => undefined);
+
+    await push.sendChatPush(
+      {
+        senderRole: "admin",
+        traineeUserId: traineeId,
+        conversationId: 3,
+        body: "hi",
+      },
+      sender,
+    );
+
+    expect(sender.mock.calls[0][1].title).toBe("PT");
+  });
+
+  it("announces a photo as 'Đã gửi ảnh' and skips the admin who hid the trainee", async () => {
     await addSub("admin:1", "a1");
     await addSub("admin:2", "a2");
     await db.insert(adminHiddenUsers).values({ adminId: 1, userId: traineeId });
@@ -149,7 +204,7 @@ describe("sendChatPush", () => {
     expect(sender.mock.calls.map(([sub]) => sub.endpoint)).toEqual([
       "https://push.example/a2",
     ]);
-    expect(sender.mock.calls[0][1].body).toBe("Lan: 📷 Ảnh");
+    expect(sender.mock.calls[0][1].body).toBe("Đã gửi ảnh");
   });
 
   it("sends nothing and warns once when VAPID is missing", async () => {
@@ -243,7 +298,12 @@ describe("P1 workspace scope of trainee message pushes", () => {
     >(async () => undefined);
 
     await push.sendChatPush(
-      { senderRole: "user", traineeUserId: traineeId, conversationId: 3 },
+      {
+        senderRole: "user",
+        traineeUserId: traineeId,
+        conversationId: 3,
+        body: "Em tập xong rồi\nạ",
+      },
       sender,
     );
     return sender.mock.calls

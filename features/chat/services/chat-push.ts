@@ -125,9 +125,13 @@ export interface SendChatPushInput {
   senderRole: "user" | "admin";
   traineeUserId: number;
   conversationId: number;
-  // The message is a sticker (changes the push text, never carries content).
+  // The sending admin (for the push title when the trainee is notified).
+  senderAdminId?: number | null;
+  // Message text for the push preview; never logged.
+  body?: string | null;
+  // The message is a sticker (the preview becomes a kind label).
   sticker?: boolean;
-  // The message carries a photo (KAN-160): the text becomes "📷 Ảnh".
+  // The message carries a photo (KAN-160): the preview becomes a kind label.
   photo?: boolean;
 }
 
@@ -207,14 +211,17 @@ export const deliver = async (
   );
 };
 
-// Never throws and never logs the payload or any message body: only ids and
-// counts. Trainee message -> every admin's devices; admin message -> the
-// trainee's devices. 404/410 means the subscription is dead and is dropped.
+// Never throws and never logs the payload or any message body (the body is
+// in the push preview since 2026-11-09, owner request): only ids and counts.
+// Trainee message -> every admin's devices; admin message -> the trainee's
+// devices. 404/410 means the subscription is dead and is dropped.
 export const sendChatPush = async (
   {
     senderRole,
     traineeUserId,
     conversationId,
+    senderAdminId,
+    body,
     sticker,
     photo,
   }: SendChatPushInput,
@@ -232,7 +239,7 @@ export const sendChatPush = async (
       return;
     }
     const recipientRole = senderRole === "user" ? "admin" : "user";
-    let traineeName = "";
+    let senderName = "PT";
 
     if (recipientRole === "admin") {
       const [trainee] = await db
@@ -240,13 +247,21 @@ export const sendChatPush = async (
         .from(users)
         .where(eq(users.id, traineeUserId));
 
-      traineeName = trainee?.name ?? "Học viên";
+      senderName = trainee?.name ?? "Học viên";
+    } else if (senderAdminId != null) {
+      const [admin] = await db
+        .select({ username: adminsTable.username })
+        .from(adminsTable)
+        .where(eq(adminsTable.id, senderAdminId));
+
+      senderName = admin?.username ?? "PT";
     }
     const payload = buildChatPushPayload({
       recipientRole,
-      traineeName,
+      senderName,
       traineeUserId,
       conversationId,
+      body,
       sticker,
       photo,
     });

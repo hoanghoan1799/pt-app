@@ -104,6 +104,7 @@ export const sendDmAction = withResultErrorHandling(
         senderId: actor.id,
         recipientId: result.recipientId,
         conversationId: parsed.data.conversationId,
+        body: result.message.body,
         photo: result.message.photo !== null,
       });
       revalidatePath(ROUTES.MESSAGES);

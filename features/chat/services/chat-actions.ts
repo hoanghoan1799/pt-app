@@ -238,6 +238,7 @@ export const sendMessageAction = withResultErrorHandling(
         senderRole: "user",
         traineeUserId: user.id,
         conversationId: conversation.id,
+        body: resolved.content.body,
         ...(parsed.data.sticker ? { sticker: true } : {}),
         ...(parsed.data.photoId === undefined ? {} : { photo: true }),
       });
@@ -340,8 +341,10 @@ export const adminSendMessageAction = withResultErrorHandling(
     if (created && !resolved.silent) {
       schedulePush({
         senderRole: "admin",
+        senderAdminId: admin.id,
         traineeUserId: trainee.id,
         conversationId: conversation.id,
+        body: resolved.content.body,
         ...(parsed.data.sticker ? { sticker: true } : {}),
         ...(parsed.data.photoId === undefined ? {} : { photo: true }),
       });
