@@ -1,4 +1,5 @@
 {
+  "clear": "Xoá",
   "close": "Đóng",
   "confirm": { "cancel": "Hủy" },
   "errorFallback": {
