@@ -20,3 +20,7 @@ export const HIDDEN_CHAT_MESSAGES = {
   INVALID_INPUT: "Học viên không hợp lệ",
   NO_MATCH: "Không khớp",
 } as const;
+
+export const PRESENCE_MESSAGES = {
+  INVALID: "Giá trị không hợp lệ",
+} as const;

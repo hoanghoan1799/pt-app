@@ -10,6 +10,7 @@ import {
   encodeStickerImage,
   StickerImageError,
 } from "@/features/chat/utils/encode-sticker-image";
+import { useLocalizeMessage } from "@/i18n/use-localize-message";
 
 const BASE_URL = "/api/chat/stickers/custom";
 
@@ -40,6 +41,7 @@ const readMessage = async (response: Response) => {
 // re-encoded here first) and removing one. `role` picks the session the routes
 // use, since a browser may hold a trainee and a PT cookie at once.
 export const useCustomStickers = (role: "user" | "admin") => {
+  const localize = useLocalizeMessage();
   const query = role === "admin" ? "?as=admin" : "";
   const [stickers, setStickers] = useState<CustomStickerItem[]>([]);
   const [status, setStatus] = useState<CustomStickersStatus>("loading");
@@ -143,5 +145,12 @@ export const useCustomStickers = (role: "user" | "admin") => {
     [query],
   );
 
-  return { stickers, status, isBusy, error, add, remove };
+  return {
+    stickers,
+    status,
+    isBusy,
+    error: error === null ? null : localize(error),
+    add,
+    remove,
+  };
 };

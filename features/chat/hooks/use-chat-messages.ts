@@ -33,6 +33,7 @@ import type {
   StickerInput,
 } from "@/features/chat/utils/sticker-rules";
 import type { DmReplyPostView } from "@/features/social/types/dm";
+import { useLocalizeMessage } from "@/i18n/use-localize-message";
 
 const MARK_READ_DEBOUNCE_MS = 600;
 
@@ -111,6 +112,7 @@ interface Options {
 export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
   const locale = useLocale();
   const t = useTranslations("chat.chatMessages");
+  const localize = useLocalizeMessage();
   const [messages, setMessages] = useState<ThreadMessage[]>(() =>
     mergeMessages([], initial.messages),
   );
@@ -299,7 +301,7 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
       } catch (error) {
         setSendError(
           error instanceof Error && error.message !== "send"
-            ? error.message
+            ? localize(error.message)
             : t("sendFailed"),
         );
         setMessages((current) =>
@@ -313,7 +315,7 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
         void sync();
       }
     },
-    [sync, t],
+    [localize, sync, t],
   );
 
   // Shows the bubble at once (no id yet), then delivers it.

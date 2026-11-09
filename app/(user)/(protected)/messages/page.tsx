@@ -40,7 +40,7 @@ const MessagesInboxPage = async () => {
   const user = await requireUser();
   const [coachUnread, chats] = await Promise.all([
     countUnreadForUser(user.id),
-    hasAcceptedTerms(user) ? listDmInbox(user.id) : [],
+    hasAcceptedTerms(user) ? listDmInbox(user.id, locale) : [],
   ]);
 
   return (

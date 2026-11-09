@@ -5,11 +5,15 @@ import { type NextRequest, NextResponse } from "next/server";
 import { isChatEnabled } from "@/features/chat/services/chat-permission";
 import type { StickerOwner } from "@/features/chat/services/custom-stickers";
 import { getApiAdmin, getApiUser } from "@/services/auth-guard";
+import { localizeResult } from "@/services/localize-message";
 
 const NO_STORE = { "Cache-Control": "no-store" };
 
-export const stickerReply = (body: unknown, status: number) =>
-  NextResponse.json(body, { status, headers: NO_STORE });
+export const stickerReply = async (body: unknown, status: number) =>
+  NextResponse.json(await localizeResult(body), {
+    status,
+    headers: NO_STORE,
+  });
 
 // The caller's own sticker set. `?as=admin` uses the PT session, otherwise the
 // trainee's (a browser may hold both). A locked trainee gets "locked".

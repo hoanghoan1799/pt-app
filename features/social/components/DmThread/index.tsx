@@ -31,6 +31,7 @@ import { useDmThread } from "@/features/social/hooks/use-dm-thread";
 import type { DmReplyPostView, DmThreadPage } from "@/features/social/types/dm";
 import { lastSeenOwnId } from "@/features/social/utils/dm-thread-rules";
 import { profilePath } from "@/features/social/utils/post-rules";
+import { useLocalizeMessage } from "@/i18n/use-localize-message";
 
 interface DmThreadProps {
   conversationId: number;
@@ -62,6 +63,7 @@ export const DmThread = ({
 }: DmThreadProps) => {
   const router = useRouter();
   const pathname = usePathname();
+  const localize = useLocalizeMessage();
   const thread = useDmThread({ conversationId, meId, initial });
   const [text, setText] = useState("");
   const [photo, setPhoto] = useState<PendingPhoto | null>(null);
@@ -95,7 +97,7 @@ export const DmThread = ({
           .json()
           .catch(() => ({}));
 
-        toast.error(data.message ?? PHOTO_ERRORS.GENERIC);
+        toast.error(localize(data.message ?? PHOTO_ERRORS.GENERIC));
         return;
       }
       const data: { photo: { id: number } } = await response.json();
@@ -108,7 +110,11 @@ export const DmThread = ({
       });
     } catch (error) {
       toast.error(
-        error instanceof PhotoImageError ? error.message : PHOTO_ERRORS.GENERIC,
+        localize(
+          error instanceof PhotoImageError
+            ? error.message
+            : PHOTO_ERRORS.GENERIC,
+        ),
       );
     } finally {
       setUploading(false);
@@ -207,7 +213,7 @@ export const DmThread = ({
               "py-4 text-center text-sm text-muted",
             )}
           >
-            {thread.readOnlyReason}
+            {localize(thread.readOnlyReason ?? "")}
           </p>
         ) : (
           <div className={clsx(PAGE_CONTAINER, "space-y-2 py-2")}>
