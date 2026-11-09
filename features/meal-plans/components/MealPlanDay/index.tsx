@@ -4,6 +4,7 @@ import { Copy, Percent, Plus, Trash2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_SECONDARY } from "@/constants/styles";
 import { CopyDaySheet } from "@/features/meal-plans/components/CopyDaySheet";
 import { DayPlanSummary } from "@/features/meal-plans/components/DayPlanSummary";
@@ -137,9 +138,14 @@ export const MealPlanDay = ({
           day.dayPlan.isPending ||
           plan.meals.length >= MEAL_PLAN_LIMITS.MAX_MEALS_PER_DAY
         }
+        aria-busy={day.dayPlan.isPending}
         className={`${BUTTON_SECONDARY} w-full border-dashed`}
       >
-        <Plus className="size-5" aria-hidden />
+        {day.dayPlan.isPending ? (
+          <Spinner size="md" />
+        ) : (
+          <Plus className="size-5" aria-hidden />
+        )}
         {t("addMeal")}
       </button>
 
@@ -185,9 +191,14 @@ export const MealPlanDay = ({
           }
         }}
         disabled={day.dayPlan.isPending}
-        className="inline-flex min-h-11 w-full items-center justify-center gap-2 text-sm font-medium text-danger"
+        aria-busy={day.dayPlan.isPending}
+        className="inline-flex min-h-11 w-full items-center justify-center gap-2 text-sm font-medium text-danger disabled:opacity-50"
       >
-        <Trash2 className="size-4" aria-hidden />
+        {day.dayPlan.isPending ? (
+          <Spinner size="sm" />
+        ) : (
+          <Trash2 className="size-4" aria-hidden />
+        )}
         {t("deletePlan")}
       </button>
 

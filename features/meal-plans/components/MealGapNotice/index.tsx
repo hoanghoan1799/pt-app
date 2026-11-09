@@ -70,6 +70,7 @@ export const MealGapNotice = ({
                     <button
                       type="button"
                       disabled={isDisabled}
+                      aria-busy={isDisabled}
                       onClick={() => onAdd(food, grams)}
                       className="min-h-9 rounded-full border border-line bg-surface px-3 text-xs font-medium text-fg transition active:bg-line disabled:opacity-50"
                     >

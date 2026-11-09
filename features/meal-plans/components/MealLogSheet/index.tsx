@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import type { FormEvent } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { SubmitButton } from "@/components/common/SubmitButton";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
@@ -154,13 +155,9 @@ const MealLogSheetBody = ({
           {form.error && <p className={FIELD_ERROR}>{form.error}</p>}
         </div>
         <div className="grid grid-cols-1 gap-2">
-          <button
-            type="submit"
-            disabled={form.isPending}
-            className={BUTTON_PRIMARY}
-          >
+          <SubmitButton isPending={form.isPending} className={BUTTON_PRIMARY}>
             {editing ? t("save") : t("addFood")}
-          </button>
+          </SubmitButton>
           {!editing && (
             <button
               type="button"
@@ -227,13 +224,9 @@ const MealLogSheetBody = ({
       </fieldset>
       {form.error && <p className={FIELD_ERROR}>{form.error}</p>}
       <div className="grid grid-cols-1 gap-2">
-        <button
-          type="submit"
-          disabled={form.isPending}
-          className={BUTTON_PRIMARY}
-        >
+        <SubmitButton isPending={form.isPending} className={BUTTON_PRIMARY}>
           {editing ? t("save") : t("addFood")}
-        </button>
+        </SubmitButton>
         {!editing && (
           <button
             type="button"

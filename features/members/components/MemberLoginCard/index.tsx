@@ -3,6 +3,7 @@
 import { KeyRound, Pencil } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Spinner } from "@/components/common/Spinner";
 import { SubmitButton } from "@/components/common/SubmitButton";
 import {
   BUTTON_PRIMARY,
@@ -103,9 +104,14 @@ export const MemberLoginCard = ({
               type="button"
               onClick={login.resetPassword}
               disabled={login.isResetting}
+              aria-busy={login.isResetting}
               className={`${BUTTON_SECONDARY} w-full`}
             >
-              <KeyRound className="size-5" aria-hidden />
+              {login.isResetting ? (
+                <Spinner size="md" />
+              ) : (
+                <KeyRound className="size-5" aria-hidden />
+              )}
               {t("resetPassword")}
             </button>
           )

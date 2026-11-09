@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, Sparkles, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_PRIMARY, CARD, ICON_BUTTON } from "@/constants/styles";
 import { FoodPicker } from "@/features/meal-plans/components/FoodPicker";
 import { MacroChips } from "@/features/meal-plans/components/MacroChips";
@@ -135,6 +136,7 @@ export const MealCard = ({
             }
           }}
           disabled={isOnly || isBusy}
+          aria-busy={isBusy}
           className={`${ICON_BUTTON} text-danger`}
           aria-label={t("deleteMeal", { name: meal.name })}
         >
@@ -217,9 +219,14 @@ export const MealCard = ({
               type="button"
               onClick={card.solve}
               disabled={isBusy || !target || solvableCount < 1}
+              aria-busy={isBusy}
               className={`${BUTTON_PRIMARY} w-full`}
             >
-              <Sparkles className="size-5" aria-hidden />
+              {card.isPending ? (
+                <Spinner size="md" />
+              ) : (
+                <Sparkles className="size-5" aria-hidden />
+              )}
               {t("autoSolve")}
             </button>
             {!target && (

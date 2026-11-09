@@ -53,6 +53,7 @@ export const DeleteFoodButton = ({ foodId }: DeleteFoodButtonProps) => {
       type="button"
       onClick={handleClick}
       disabled={isPending}
+      aria-busy={isPending}
       className={`${BUTTON_DANGER} w-full`}
     >
       {isPending ? (

@@ -69,6 +69,7 @@ export const MealItemRow = ({
           type="button"
           onClick={onRemove}
           disabled={isDisabled}
+          aria-busy={isDisabled}
           className={`${ICON_BUTTON} -mt-1.5 -mr-2 text-danger`}
           aria-label={t("delete", { name: food.name })}
         >

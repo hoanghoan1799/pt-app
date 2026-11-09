@@ -47,6 +47,7 @@ export const DeleteMemberButton = ({ userId }: DeleteMemberButtonProps) => {
       type="button"
       onClick={handleClick}
       disabled={isPending}
+      aria-busy={isPending}
       className={`${BUTTON_DANGER} w-full`}
     >
       {isPending ? (

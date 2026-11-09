@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
+import { Spinner } from "@/components/common/Spinner";
 import { CARD } from "@/constants/styles";
 import { getAdminUserPath } from "@/utils/routes";
 
@@ -25,6 +27,8 @@ export const HiddenUserList = ({
   isBusy = false,
 }: HiddenUserListProps) => {
   const t = useTranslations("chat.hiddenUserList");
+  // The row whose unhide is running (shows the spinner).
+  const [tappedId, setTappedId] = useState<number | null>(null);
 
   return (
     <ul className={`${CARD} divide-y divide-line overflow-hidden`}>
@@ -47,9 +51,14 @@ export const HiddenUserList = ({
           <button
             type="button"
             disabled={isBusy}
-            onClick={() => onUnhide(user.userId)}
-            className="mr-3 inline-flex min-h-11 shrink-0 items-center rounded-lg border border-line px-3 text-sm font-semibold text-fg transition active:bg-line disabled:opacity-50"
+            aria-busy={isBusy && tappedId === user.userId}
+            onClick={() => {
+              setTappedId(user.userId);
+              onUnhide(user.userId);
+            }}
+            className="mr-3 inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-line px-3 text-sm font-semibold text-fg transition active:bg-line disabled:opacity-50"
           >
+            {isBusy && tappedId === user.userId && <Spinner size="sm" />}
             {t("unhide")}
           </button>
         </li>

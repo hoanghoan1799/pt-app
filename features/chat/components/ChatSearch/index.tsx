@@ -253,8 +253,10 @@ export const ChatSearch = ({
                     type="button"
                     onClick={() => void loadMore()}
                     disabled={isLoadingMore}
-                    className="rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
+                    aria-busy={isLoadingMore}
+                    className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
                   >
+                    {isLoadingMore && <Spinner size="sm" />}
                     {isLoadingMore ? t("searching") : t("loadMore")}
                   </button>
                 </div>

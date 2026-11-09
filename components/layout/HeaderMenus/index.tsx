@@ -27,6 +27,7 @@ import { toast } from "sonner";
 
 import { Avatar } from "@/components/common/Avatar";
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
+import { Spinner } from "@/components/common/Spinner";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON } from "@/constants/styles";
 import { PasscodeSettingsSheet } from "@/features/auth/components/PasscodeSettingsSheet";
@@ -101,7 +102,9 @@ export const HeaderMenus = ({
   const [isColorOpen, setIsColorOpen] = useState(false);
   const [isHidden, setIsHidden] = useState(isPresenceHidden);
   const [theme, setTheme] = useState<Theme>("system");
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
+  // Theme paints at once, so its save never blocks the other controls.
+  const [, startThemeTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRefs = useRef<Record<MenuId, HTMLButtonElement | null>>({
@@ -174,7 +177,7 @@ export const HeaderMenus = ({
     // Paint now; the cookie makes the server render the same value next time.
     paintTheme(next);
     setTheme(next);
-    startTransition(() => {
+    startThemeTransition(() => {
       void setThemeAction(next);
     });
   };
@@ -339,6 +342,8 @@ export const HeaderMenus = ({
                       lang={value}
                       aria-checked={locale === value}
                       onClick={() => chooseLocale(value)}
+                      disabled={isPending}
+                      aria-busy={isPending && locale !== value}
                       className={clsx(
                         "min-h-11 rounded-lg px-1 text-[13px] font-medium transition",
                         locale === value
@@ -347,7 +352,11 @@ export const HeaderMenus = ({
                       )}
                     >
                       {LOCALE_NAMES[value]}{" "}
-                      <span aria-hidden="true">{LOCALE_FLAGS[value]}</span>
+                      {isPending && locale !== value ? (
+                        <Spinner size="sm" className="inline-block" />
+                      ) : (
+                        <span aria-hidden="true">{LOCALE_FLAGS[value]}</span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -374,8 +383,14 @@ export const HeaderMenus = ({
                     aria-checked={!isHidden}
                     className={ITEM}
                     onClick={togglePresence}
+                    disabled={isPending}
+                    aria-busy={isPending}
                   >
-                    <CircleDot className="size-5 text-muted" aria-hidden />
+                    {isPending ? (
+                      <Spinner size="md" />
+                    ) : (
+                      <CircleDot className="size-5 text-muted" aria-hidden />
+                    )}
                     <span className="flex-1">{t("presence")}</span>
                     <span
                       aria-hidden
@@ -413,8 +428,13 @@ export const HeaderMenus = ({
                     className={ITEM}
                     onClick={lockApp}
                     disabled={isLocking}
+                    aria-busy={isLocking}
                   >
-                    <Lock className="size-5 text-muted" aria-hidden />
+                    {isLocking ? (
+                      <Spinner size="md" />
+                    ) : (
+                      <Lock className="size-5 text-muted" aria-hidden />
+                    )}
                     {t("lockNow")}
                   </button>
                 </>
@@ -477,8 +497,14 @@ export const HeaderMenus = ({
                 role="menuitem"
                 className={clsx(ITEM, "text-danger")}
                 onClick={() => void logOut()}
+                disabled={isPending}
+                aria-busy={isPending}
               >
-                <LogOut className="size-5" aria-hidden />
+                {isPending ? (
+                  <Spinner size="md" />
+                ) : (
+                  <LogOut className="size-5" aria-hidden />
+                )}
                 {t("logout")}
               </button>
             </>

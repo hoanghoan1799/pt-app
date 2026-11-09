@@ -68,6 +68,7 @@ export const DmThread = ({
   const [text, setText] = useState("");
   const [photo, setPhoto] = useState<PendingPhoto | null>(null);
   const [isUploading, setUploading] = useState(false);
+  const [isLoadingOlder, setLoadingOlder] = useState(false);
   const [quote, setQuote] = useState(replyPost);
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -151,6 +152,16 @@ export const DmThread = ({
     }
   };
 
+  // Older messages come from a plain fetch, so track it here.
+  const loadOlder = async () => {
+    setLoadingOlder(true);
+    try {
+      await thread.loadOlder();
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
+
   return (
     <div className="flex h-dvh flex-col bg-bg">
       <header className="sticky top-0 z-30 shrink-0 border-b border-line bg-bg/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
@@ -184,9 +195,12 @@ export const DmThread = ({
           {thread.hasMore && (
             <button
               type="button"
-              onClick={() => void thread.loadOlder()}
+              onClick={() => void loadOlder()}
+              disabled={isLoadingOlder}
+              aria-busy={isLoadingOlder}
               className={clsx(BUTTON_SECONDARY, "w-full")}
             >
+              {isLoadingOlder && <Spinner size="md" />}
               {t("loadOlder")}
             </button>
           )}
@@ -273,11 +287,16 @@ export const DmThread = ({
               <button
                 type="button"
                 disabled={isUploading}
+                aria-busy={isUploading}
                 onClick={() => fileRef.current?.click()}
                 aria-label={t("attachPhoto")}
                 className={ICON_BUTTON}
               >
-                <ImagePlus className="size-6" aria-hidden />
+                {isUploading ? (
+                  <Spinner size="lg" />
+                ) : (
+                  <ImagePlus className="size-6" aria-hidden />
+                )}
               </button>
               <textarea
                 value={text}
