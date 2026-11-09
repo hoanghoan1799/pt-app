@@ -66,5 +66,22 @@
   "userNutrition": {
     "metaTitle": "Nutrition",
     "eyebrow": "Nutrition of"
+  },
+  "messages": {
+    "metaTitle": "Messages",
+    "threadTitle": "Messages with {name}",
+    "threadAriaLabel": "Conversation with {name}",
+    "emptyText": "No messages with this user yet",
+    "lockedEmptyText": "The chat is locked and has no messages yet. Turn it back on to send messages."
+  },
+  "messagesInfo": {
+    "metaTitle": "Chat info"
+  },
+  "messagesPhotos": {
+    "metaTitle": "Photos, stickers and links",
+    "title": "Photos, stickers and links"
+  },
+  "messagesSearch": {
+    "metaTitle": "Search messages"
   }
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
@@ -26,6 +26,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
 
 const ProfilePage = async ({ params }: PageProps<"/profile/[kind]/[id]">) => {
   const user = await requireUser();
+  const locale = await getLocale();
   const t = await getTranslations("pages.profile");
 
   // Social pages sit behind the terms; the feed shows them.
@@ -47,7 +48,7 @@ const ProfilePage = async ({ params }: PageProps<"/profile/[kind]/[id]">) => {
     notFound();
   }
   const [posts, friendCount, relationship] = await Promise.all([
-    listProfilePosts(actorOfUser(user), { kind, id: profile.id }),
+    listProfilePosts(actorOfUser(user), { kind, id: profile.id }, null, locale),
     isTrainee ? countFriends(profile.id) : null,
     isTrainee && !isOwn ? getRelationship(user.id, profile.id) : null,
   ]);

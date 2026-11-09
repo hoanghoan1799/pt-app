@@ -23,7 +23,9 @@ import {
 import { extractUrls } from "@/features/chat/utils/link-rules";
 import { chatPhotoUrl } from "@/features/chat/utils/photo-rules";
 import { toChatSticker } from "@/features/chat/utils/sticker-rules";
+import { getFormatTranslator } from "@/i18n/format-translator";
 import { canAdminAccessUser } from "@/services/hidden-users";
+import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 
 interface SenderColumns {
   senderRole: "user" | "admin";
@@ -32,12 +34,12 @@ interface SenderColumns {
   traineeName: string;
 }
 
-const senderOf = (row: SenderColumns) => ({
+const senderOf = (row: SenderColumns, peerDeleted: string) => ({
   senderKey: row.senderRole === "user" ? "user" : `admin:${row.senderAdminId}`,
   senderName:
     row.senderRole === "user"
       ? row.traineeName
-      : (row.senderAdminName ?? "PT (đã xoá)"),
+      : (row.senderAdminName ?? peerDeleted),
 });
 
 // Photos sent in a conversation, newest first (KAN-160). Only photo messages
@@ -48,8 +50,10 @@ export const listGalleryPhotos = async (
   {
     before,
     limit = GALLERY_PAGE_SIZE,
-  }: { before?: number; limit?: number } = {},
+    locale = DEFAULT_LOCALE,
+  }: { before?: number; limit?: number; locale?: Locale } = {},
 ): Promise<GalleryPage> => {
+  const peerDeleted = getFormatTranslator(locale)("thread.peerDeleted");
   const rows = await db
     .select({
       messageId: chatMessages.id,
@@ -92,7 +96,7 @@ export const listGalleryPhotos = async (
     items: page.map((row) => ({
       photoId: row.photoId,
       messageId: row.messageId,
-      ...senderOf(row),
+      ...senderOf(row, peerDeleted),
       url: chatPhotoUrl(row.photoId),
       width: row.width,
       height: row.height,
@@ -150,8 +154,10 @@ export const listGalleryStickers = async (
   {
     before,
     limit = GALLERY_PAGE_SIZE,
-  }: { before?: number; limit?: number } = {},
+    locale = DEFAULT_LOCALE,
+  }: { before?: number; limit?: number; locale?: Locale } = {},
 ): Promise<StickerPage> => {
+  const peerDeleted = getFormatTranslator(locale)("thread.peerDeleted");
   const rows = await selectMessages(
     conversationId,
     isNotNull(chatMessages.stickerRef),
@@ -166,7 +172,7 @@ export const listGalleryStickers = async (
       ? [
           {
             messageId: row.messageId,
-            ...senderOf(row),
+            ...senderOf(row, peerDeleted),
             url: sticker.url,
             alt: sticker.alt,
             kind: sticker.kind,
@@ -200,8 +206,10 @@ export const listGalleryLinks = async (
   {
     before,
     limit = GALLERY_PAGE_SIZE,
-  }: { before?: number; limit?: number } = {},
+    locale = DEFAULT_LOCALE,
+  }: { before?: number; limit?: number; locale?: Locale } = {},
 ): Promise<LinkPage> => {
+  const peerDeleted = getFormatTranslator(locale)("thread.peerDeleted");
   const items: GalleryLink[] = [];
   const batchSize = limit * 2;
   let withLinks = 0;
@@ -233,7 +241,7 @@ export const listGalleryLinks = async (
         items.push({
           key: `${row.messageId}:${url.href}`,
           messageId: row.messageId,
-          ...senderOf(row),
+          ...senderOf(row, peerDeleted),
           href: url.href,
           text: url.text,
           domain: url.domain,
@@ -267,7 +275,8 @@ const listTab = <T extends GalleryTab>(
   tab: T,
   conversationId: number,
   before: number | undefined,
-) => LISTERS[tab](conversationId, { before }) as Promise<TabPages[T]>;
+  locale: Locale,
+) => LISTERS[tab](conversationId, { before, locale }) as Promise<TabPages[T]>;
 
 const EMPTY_PAGE = { items: [], nextCursor: null };
 
@@ -276,12 +285,13 @@ export const loadGalleryForTrainee = async <T extends GalleryTab = "photos">(
   conversationId: number | null,
   before?: number,
   tab: T = "photos" as T,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<GalleryResult<T>> => ({
   status: "ok",
   page:
     conversationId === null
       ? (EMPTY_PAGE as TabPages[T])
-      : await listTab(tab, conversationId, before),
+      : await listTab(tab, conversationId, before, locale),
 });
 
 // Admin: any conversation of a trainee this admin may access. A hidden
@@ -291,6 +301,7 @@ export const loadGalleryForAdmin = async <T extends GalleryTab = "photos">(
   conversationId: number,
   before?: number,
   tab: T = "photos" as T,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<GalleryResult<T>> => {
   const conversation = await findConversationById(conversationId);
 
@@ -302,6 +313,6 @@ export const loadGalleryForAdmin = async <T extends GalleryTab = "photos">(
   }
   return {
     status: "ok",
-    page: await listTab(tab, conversation.id, before),
+    page: await listTab(tab, conversation.id, before, locale),
   };
 };

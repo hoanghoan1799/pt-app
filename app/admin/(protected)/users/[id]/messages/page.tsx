@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { MemberSectionTabs } from "@/components/layout/MemberSectionTabs";
@@ -34,17 +35,18 @@ import { findUserById } from "@/services/users";
 import { readSearchParam } from "@/utils/search-params";
 import { getTodayDate, resolveSchedule } from "@/utils/week";
 
-export const metadata: Metadata = { title: "Nhắn tin" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("adminPages.messages");
 
-const EMPTY_TEXT = "Chưa có tin nhắn nào với user này";
-const LOCKED_EMPTY_TEXT =
-  "Chat đang bị khoá và chưa có tin nhắn. Bật lại để nhắn tin.";
+  return { title: t("metaTitle") };
+};
 
 const AdminMessagesPage = async ({
   params,
   searchParams,
 }: PageProps<"/admin/users/[id]/messages">) => {
   const admin = await requireAdmin();
+  const t = await getTranslations("adminPages.messages");
 
   const { id } = await params;
   const user = await findUserById(Number(id));
@@ -79,13 +81,13 @@ const AdminMessagesPage = async ({
     return (
       <>
         <AppHeader
-          title={`Nhắn tin với ${user.name}`}
+          title={t("threadTitle", { name: user.name })}
           backHref={ROUTES.ADMIN_MESSAGES}
         />
         {below}
         <main className={`${PAGE_CONTAINER} pt-10`}>
           <p className="px-6 text-center text-sm text-muted">
-            {LOCKED_EMPTY_TEXT}
+            {t("lockedEmptyText")}
           </p>
         </main>
       </>
@@ -143,8 +145,8 @@ const AdminMessagesPage = async ({
         peerName: user.name,
       }}
       avatars={avatars}
-      emptyText={EMPTY_TEXT}
-      ariaLabel={`Cuộc trò chuyện với ${user.name}`}
+      emptyText={t("emptyText")}
+      ariaLabel={t("threadAriaLabel", { name: user.name })}
       initial={{
         messages: messages.map(serializeMessage),
         // Read before the messages: a change made in between is fetched again,

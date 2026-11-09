@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { ChatSearch } from "@/features/chat/components/ChatSearch";
 import { loadChatProfile } from "@/features/chat/services/chat-profile";
@@ -9,7 +10,11 @@ import { requireAdmin } from "@/services/auth-guard";
 import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
 
-export const metadata: Metadata = { title: "Tìm tin nhắn" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("adminPages.messagesSearch");
+
+  return { title: t("metaTitle") };
+};
 
 // The admin's message search in one trainee's conversation (KAN-160). A
 // hidden trainee is "not found" unless revealed.
