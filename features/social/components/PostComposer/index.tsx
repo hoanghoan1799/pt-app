@@ -13,7 +13,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 
-import { Spinner } from "@/components/common/Spinner";
+import { SubmitButton } from "@/components/common/SubmitButton";
 import { BUTTON_PRIMARY, CARD, TEXTAREA } from "@/constants/styles";
 import {
   encodePhoto,
@@ -194,14 +194,12 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
           onChange={setPrivacy}
           disabled={isPending}
         />
-        <button
-          type="submit"
-          disabled={isPending}
+        <SubmitButton
+          isPending={isPending}
           className={`${BUTTON_PRIMARY} ml-auto min-h-11`}
         >
-          {isPending && <Spinner size="md" />}
           {t("submit")}
-        </button>
+        </SubmitButton>
       </div>
     </form>
   );

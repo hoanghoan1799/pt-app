@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_SECONDARY } from "@/constants/styles";
 import { setAdminVerifiedAction } from "@/features/pts/services/pt-actions";
 
@@ -36,8 +37,10 @@ export const VerifiedToggle = ({ adminId, verified }: VerifiedToggleProps) => {
       type="button"
       onClick={handleClick}
       disabled={isPending}
+      aria-busy={isPending}
       className={`${BUTTON_SECONDARY} min-h-9 px-3 text-sm`}
     >
+      {isPending && <Spinner size="sm" />}
       {verified ? t("revoke") : t("grant")}
     </button>
   );

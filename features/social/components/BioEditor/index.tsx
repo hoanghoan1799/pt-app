@@ -89,6 +89,7 @@ export const BioEditor = ({ mode, bio }: BioEditorProps) => {
           type="button"
           onClick={handleSave}
           disabled={isPending}
+          aria-busy={isPending}
           className={`${BUTTON_PRIMARY} min-h-11`}
         >
           {isPending && <Spinner size="md" />}

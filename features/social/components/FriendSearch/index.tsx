@@ -69,6 +69,7 @@ export const FriendSearch = () => {
         <button
           type="submit"
           disabled={isPending || email.trim() === ""}
+          aria-busy={isPending}
           className={`${BUTTON_PRIMARY} w-full`}
         >
           {isPending ? (

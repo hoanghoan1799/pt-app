@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from "@/constants/styles";
 import { useSocialAction } from "@/features/social/hooks/use-social-action";
 import {
@@ -53,9 +54,11 @@ export const RelationshipButton = ({
       <button
         type="button"
         disabled={isPending}
+        aria-busy={isPending}
         onClick={() => run(() => sendFriendRequestAction(userId))}
         className={BUTTON_PRIMARY}
       >
+        {isPending && <Spinner size="sm" />}
         <UserPlus className="size-5" aria-hidden />
         {t("addFriend")}
       </button>
@@ -67,18 +70,22 @@ export const RelationshipButton = ({
         <button
           type="button"
           disabled={isPending}
+          aria-busy={isPending}
           onClick={() => run(() => acceptFriendRequestAction(userId))}
           className={BUTTON_PRIMARY}
         >
+          {isPending && <Spinner size="sm" />}
           <Check className="size-5" aria-hidden />
           {t("accept")}
         </button>
         <button
           type="button"
           disabled={isPending}
+          aria-busy={isPending}
           onClick={() => run(() => declineFriendRequestAction(userId))}
           className={BUTTON_SECONDARY}
         >
+          {isPending && <Spinner size="sm" />}
           {t("decline")}
         </button>
       </div>
@@ -105,9 +112,11 @@ export const RelationshipButton = ({
       <button
         type="button"
         disabled={isPending}
+        aria-busy={isPending}
         onClick={() => setMenuOpen(true)}
         className={BUTTON_SECONDARY}
       >
+        {isPending && <Spinner size="sm" />}
         {isFriend ? t("friends") : t("requested")}
         <ChevronDown className="size-5" aria-hidden />
       </button>

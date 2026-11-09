@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_DANGER, BUTTON_SECONDARY } from "@/constants/styles";
 import { useSocialAction } from "@/features/social/hooks/use-social-action";
 import { resolveReportAction } from "@/features/social/services/friend-actions";
@@ -39,20 +40,24 @@ export const ReportActions = ({ reportId, canDelete }: ReportActionsProps) => {
       <button
         type="button"
         disabled={isPending}
+        aria-busy={isPending}
         onClick={() =>
           run(() => resolveReportAction({ reportId, resolution: "kept" }))
         }
         className={`${BUTTON_SECONDARY} ${SMALL}`}
       >
+        {isPending && <Spinner size="sm" />}
         {canDelete ? t("keep") : t("handled")}
       </button>
       {canDelete && (
         <button
           type="button"
           disabled={isPending}
+          aria-busy={isPending}
           onClick={handleDelete}
           className={`${BUTTON_DANGER} ${SMALL}`}
         >
+          {isPending && <Spinner size="sm" />}
           {t("deleteContent")}
         </button>
       )}

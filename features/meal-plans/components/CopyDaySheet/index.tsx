@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { MonthGrid } from "@/components/common/MonthGrid";
+import { Spinner } from "@/components/common/Spinner";
 import {
   BUTTON_DANGER,
   BUTTON_PRIMARY,
@@ -126,8 +127,10 @@ export const CopyDaySheet = ({
               type="button"
               onClick={copy.confirm}
               disabled={copy.isPending}
+              aria-busy={copy.isPending}
               className={BUTTON_DANGER}
             >
+              {copy.isPending && <Spinner size="md" />}
               {t("overwrite")}
             </button>
           </div>
@@ -208,8 +211,10 @@ export const CopyDaySheet = ({
               disabled={
                 copy.isPending || copy.isLoading || copy.selected.length === 0
               }
+              aria-busy={copy.isPending}
               className={`${BUTTON_PRIMARY} w-full`}
             >
+              {copy.isPending && <Spinner size="md" />}
               {t("copy")}
               {copy.selected.length > 0 &&
                 t("copyCount", { count: copy.selected.length })}

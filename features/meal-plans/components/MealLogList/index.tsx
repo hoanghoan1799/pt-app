@@ -56,6 +56,7 @@ export const MealLogList = ({
               type="button"
               onClick={() => onEdit(log)}
               disabled={isDisabled}
+              aria-busy={isDisabled}
               className={`${ICON_BUTTON} -my-1`}
               aria-label={t("edit", { name: log.name })}
             >
@@ -67,6 +68,7 @@ export const MealLogList = ({
               type="button"
               onClick={() => onRemove(log)}
               disabled={isDisabled}
+              aria-busy={isDisabled}
               className={`${ICON_BUTTON} -my-1 -mr-2 text-danger`}
               aria-label={t("delete", { name: log.name })}
             >

@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { Spinner } from "@/components/common/Spinner";
 import { ROUTES } from "@/constants/routes";
 import { BUTTON_SECONDARY } from "@/constants/styles";
 import { ForgotPasscodeSheet } from "@/features/auth/components/ForgotPasscodeSheet";
@@ -99,7 +100,10 @@ export const PasscodeLock = ({ nextPath }: PasscodeLockProps) => {
           type="button"
           className={`${BUTTON_SECONDARY} flex-1`}
           onClick={logOut}
+          disabled={isPending}
+          aria-busy={isPending}
         >
+          {isPending && <Spinner size="sm" />}
           {t("logout")}
         </button>
       </div>

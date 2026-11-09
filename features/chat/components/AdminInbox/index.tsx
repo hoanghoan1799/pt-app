@@ -9,6 +9,7 @@ import { type ReactNode, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Avatar } from "@/components/common/Avatar";
+import { Spinner } from "@/components/common/Spinner";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
@@ -328,9 +329,11 @@ export const AdminInbox = ({
             <button
               type="button"
               disabled={selected.size === 0 || isPending}
+              aria-busy={isPending}
               onClick={hideSelected}
               className={`${BUTTON_PRIMARY} flex-1`}
             >
+              {isPending && <Spinner size="md" />}
               {t("hideCount", { count: selected.size })}
             </button>
           </div>

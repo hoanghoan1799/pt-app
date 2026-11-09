@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useRef, useState, useTransition } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
+import { Spinner } from "@/components/common/Spinner";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
@@ -137,9 +138,11 @@ export const AvatarField = ({
               <button
                 type="button"
                 disabled={isPending}
+                aria-busy={isPending}
                 onClick={save}
                 className={clsx(BUTTON_PRIMARY, "min-h-10 px-4 text-sm")}
               >
+                {isPending && <Spinner size="sm" />}
                 {isPending ? t("saving") : t("save")}
               </button>
               <button
@@ -156,9 +159,11 @@ export const AvatarField = ({
             <button
               type="button"
               disabled={isPending}
+              aria-busy={isPending}
               onClick={remove}
-              className="inline-flex min-h-10 items-center rounded-lg px-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
             >
+              {isPending && <Spinner size="sm" />}
               {t("remove")}
             </button>
           )}

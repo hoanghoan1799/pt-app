@@ -114,6 +114,7 @@ export const CustomStickerGrid = ({
       <button
         type="button"
         disabled={isBusy || isFull}
+        aria-busy={isBusy}
         onClick={() => fileInput.current?.click()}
         className={clsx(
           CELL,

@@ -35,6 +35,7 @@ export const TermsAcceptButton = () => {
       type="button"
       onClick={handleAccept}
       disabled={isPending}
+      aria-busy={isPending}
       className={`${BUTTON_PRIMARY} w-full`}
     >
       {isPending && <Spinner size="md" />}

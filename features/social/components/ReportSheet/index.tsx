@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { Spinner } from "@/components/common/Spinner";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
@@ -78,8 +79,10 @@ export const ReportSheet = ({
             type="button"
             onClick={handleSend}
             disabled={isPending}
+            aria-busy={isPending}
             className={BUTTON_PRIMARY}
           >
+            {isPending && <Spinner size="sm" />}
             {t("send")}
           </button>
         </div>

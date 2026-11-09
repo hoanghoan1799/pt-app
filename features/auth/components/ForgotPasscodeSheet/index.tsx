@@ -5,6 +5,7 @@ import { type FormEvent, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { SubmitButton } from "@/components/common/SubmitButton";
 import { BUTTON_PRIMARY, FIELD_ERROR, INPUT, LABEL } from "@/constants/styles";
 import { resetPasscodeWithPassword } from "@/features/auth/services/passcode-actions";
 import { isValidPasscode } from "@/features/auth/utils/passcode-rules";
@@ -112,13 +113,12 @@ export const ForgotPasscodeSheet = ({
             </p>
           )}
         </div>
-        <button
-          type="submit"
-          disabled={isPending}
+        <SubmitButton
+          isPending={isPending}
           className={`${BUTTON_PRIMARY} w-full`}
         >
           {isPending ? t("saving") : t("submit")}
-        </button>
+        </SubmitButton>
       </form>
     </BottomSheet>
   );

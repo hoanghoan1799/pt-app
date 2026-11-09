@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 
+import { Spinner } from "@/components/common/Spinner";
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
@@ -111,9 +112,11 @@ const NicknameField = ({
         <button
           type="button"
           disabled={disabled || isPending || !canSaveNickname(draft, saved)}
+          aria-busy={isPending}
           onClick={() => save(draft)}
           className={clsx(BUTTON_PRIMARY, "shrink-0 px-4")}
         >
+          {isPending && <Spinner size="sm" />}
           {isPending ? t("saving") : t("save")}
         </button>
       </div>
@@ -131,12 +134,14 @@ const NicknameField = ({
           <button
             type="button"
             disabled={disabled || isPending}
+            aria-busy={isPending}
             onClick={() => {
               setDraft("");
               save("");
             }}
-            className="inline-flex min-h-9 items-center rounded-lg px-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
+            className="inline-flex min-h-9 items-center gap-2 rounded-lg px-2 text-sm font-medium text-muted transition active:bg-line disabled:opacity-50"
           >
+            {isPending && <Spinner size="sm" />}
             {t("clearNickname")}
           </button>
         )}
@@ -282,15 +287,18 @@ export const ChatCustomizePanel = ({
           label={isAdmin ? t("colorConversation") : t("colorLabel")}
           selected={ownColor}
           disabled={readOnly || isPending}
+          isPending={isPending}
           onPick={pickColor}
         />
         {isAdmin && (
           <button
             type="button"
             disabled={readOnly || isPending}
+            aria-busy={isPending}
             onClick={resetConversationColor}
             className={clsx(BUTTON_SECONDARY, "min-h-10 px-4 text-sm")}
           >
+            {isPending && <Spinner size="sm" />}
             {t("useAccountColor")}
           </button>
         )}

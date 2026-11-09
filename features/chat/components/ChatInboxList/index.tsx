@@ -2,8 +2,10 @@ import clsx from "clsx";
 import { Lock } from "lucide-react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
+import { useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
+import { Spinner } from "@/components/common/Spinner";
 import { CARD } from "@/constants/styles";
 import type { InboxItem } from "@/features/chat/services/chat-queries";
 import {
@@ -43,6 +45,8 @@ export const ChatInboxList = ({
 }: ChatInboxListProps) => {
   const locale = useLocale();
   const t = useTranslations("chat.chatInbox");
+  // The row whose unhide is running (shows the spinner).
+  const [tappedId, setTappedId] = useState<number | null>(null);
 
   return (
     <ul className={`${CARD} divide-y divide-line overflow-hidden`}>
@@ -159,9 +163,14 @@ export const ChatInboxList = ({
               <button
                 type="button"
                 disabled={isBusy}
-                onClick={() => onUnhide(item.userId)}
-                className="mr-3 inline-flex min-h-11 shrink-0 items-center rounded-lg border border-line px-3 text-sm font-semibold text-fg transition active:bg-line disabled:opacity-50"
+                aria-busy={isBusy && tappedId === item.userId}
+                onClick={() => {
+                  setTappedId(item.userId);
+                  onUnhide(item.userId);
+                }}
+                className="mr-3 inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-line px-3 text-sm font-semibold text-fg transition active:bg-line disabled:opacity-50"
               >
+                {isBusy && tappedId === item.userId && <Spinner size="sm" />}
                 {t("unhide")}
               </button>
             )}

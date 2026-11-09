@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { CircleCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_SECONDARY, TEXTAREA } from "@/constants/styles";
 import { MEAL_LOG_LIMITS } from "@/features/meal-plans/constants/meal-plans";
 import { useMealMark } from "@/features/meal-plans/hooks/use-meal-mark";
@@ -30,6 +31,7 @@ export const MealMarkPanel = ({
         type="button"
         onClick={state.toggleAchieved}
         disabled={state.isPending}
+        aria-busy={state.isPending}
         aria-pressed={state.achieved}
         aria-label={t("achieveLabel", { name: mealName })}
         className={clsx(
@@ -38,7 +40,11 @@ export const MealMarkPanel = ({
           state.achieved && "border-success bg-success/10 text-success",
         )}
       >
-        <CircleCheck className="size-5" aria-hidden />
+        {state.isPending ? (
+          <Spinner size="md" />
+        ) : (
+          <CircleCheck className="size-5" aria-hidden />
+        )}
         {state.achieved ? t("achieved") : t("achieve")}
       </button>
       <label htmlFor={`note-${mealId}`} className="sr-only">
@@ -58,8 +64,10 @@ export const MealMarkPanel = ({
           type="button"
           onClick={state.saveNote}
           disabled={state.isPending}
+          aria-busy={state.isPending}
           className={`${BUTTON_SECONDARY} w-full`}
         >
+          {state.isPending && <Spinner size="md" />}
           {t("saveNote")}
         </button>
       )}

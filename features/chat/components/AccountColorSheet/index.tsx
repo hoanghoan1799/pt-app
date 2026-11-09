@@ -62,6 +62,7 @@ export const AccountColorSheet = ({
           label={t("title")}
           selected={selected}
           disabled={isPending}
+          isPending={isPending}
           onPick={pick}
         />
         {error && (

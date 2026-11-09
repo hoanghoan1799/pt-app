@@ -3,6 +3,7 @@
 import { CopyPlus, Plus, UtensilsCrossed } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, CARD } from "@/constants/styles";
 import { useDayPlan } from "@/features/meal-plans/hooks/use-day-plan";
 
@@ -42,9 +43,14 @@ export const EmptyDayPlan = ({
         type="button"
         onClick={() => dayPlan.create(date)}
         disabled={dayPlan.isPending}
+        aria-busy={dayPlan.isPending}
         className={`${BUTTON_PRIMARY} w-full`}
       >
-        <Plus className="size-5" aria-hidden />
+        {dayPlan.isPending ? (
+          <Spinner size="md" />
+        ) : (
+          <Plus className="size-5" aria-hidden />
+        )}
         {t("create")}
       </button>
       <p className="-mt-2 text-xs text-muted">
@@ -54,9 +60,14 @@ export const EmptyDayPlan = ({
         type="button"
         onClick={() => dayPlan.applyLastWeek(weekStart)}
         disabled={dayPlan.isPending || lastWeekPlanCount === 0}
+        aria-busy={dayPlan.isPending}
         className={`${BUTTON_SECONDARY} w-full`}
       >
-        <CopyPlus className="size-5" aria-hidden />
+        {dayPlan.isPending ? (
+          <Spinner size="md" />
+        ) : (
+          <CopyPlus className="size-5" aria-hidden />
+        )}
         {t("applyLastWeek")}
       </button>
       <p className="-mt-2 text-xs text-muted">
