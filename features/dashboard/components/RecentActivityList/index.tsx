@@ -1,5 +1,6 @@
 import { CheckCircle2, History, Trophy } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 import { CARD } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
@@ -21,13 +22,15 @@ export const RecentActivityList = ({
   isUserShown,
   now,
 }: RecentActivityListProps) => {
+  const t = useTranslations("dashboard.recentActivity");
+
   if (!items.length) {
     return (
       <div
         className={`${CARD} flex items-center gap-3 px-4 py-5 text-sm text-muted`}
       >
         <History className="size-5 shrink-0" aria-hidden />
-        Chưa có ai đánh dấu đã tập bài nào.
+        {t("empty")}
       </div>
     );
   }
@@ -60,16 +63,23 @@ export const RecentActivityList = ({
                   >
                     {item.displayName ?? item.userName}
                   </Link>{" "}
-                  {item.kind === "personalBest" ? "lập kỷ lục" : "đã tập"}{" "}
+                  {item.kind === "personalBest"
+                    ? t("personalBest")
+                    : t("completed")}{" "}
                 </>
               )}
               <span className="font-medium">{item.exerciseTitle}</span>
             </p>
             <p className="mt-0.5 text-xs text-muted">
               {item.kind === "personalBest" &&
-                `Kỷ lục mới: ${formatSet(item.best)} (trước đó ${formatSet(item.previousBest)}) · `}
-              Lịch {formatFullDay(item.date)} · lúc{" "}
-              {formatClockTime(item.occurredAt, TIME_ZONE)}
+                t("bestPrefix", {
+                  best: formatSet(item.best),
+                  previous: formatSet(item.previousBest),
+                })}
+              {t("schedule", {
+                date: formatFullDay(item.date),
+                time: formatClockTime(item.occurredAt, TIME_ZONE),
+              })}
             </p>
           </div>
           <span className="shrink-0 text-xs text-muted">

@@ -1,6 +1,7 @@
 import { Eye } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { PAGE_CONTAINER } from "@/constants/styles";
@@ -15,13 +16,18 @@ import { getAdminPreviewPath, getAdminUserPath } from "@/utils/routes";
 import { readSearchParam } from "@/utils/search-params";
 import { buildScheduleHref, getTodayDate, resolveSchedule } from "@/utils/week";
 
-export const metadata: Metadata = { title: "Xem như user" };
+export const generateMetadata = async (): Promise<Metadata> => {
+  const t = await getTranslations("adminPages.userPreview");
+
+  return { title: t("metaTitle") };
+};
 
 const AdminPreviewPage = async ({
   params,
   searchParams,
 }: PageProps<"/admin/users/[id]/preview">) => {
   const admin = await requireAdmin();
+  const t = await getTranslations("adminPages.userPreview");
 
   const { id } = await params;
   const user = await findUserById(Number(id));
@@ -42,7 +48,7 @@ const AdminPreviewPage = async ({
   return (
     <>
       <AppHeader
-        eyebrow="Xem như user"
+        eyebrow={t("eyebrow")}
         title={displayName}
         backHref={buildScheduleHref(getAdminUserPath(user.id), schedule)}
       />
@@ -51,7 +57,7 @@ const AdminPreviewPage = async ({
       >
         <p className="flex items-center gap-2 rounded-xl bg-accent/12 px-3 py-2.5 text-sm font-medium text-accent">
           <Eye className="size-4 shrink-0" aria-hidden />
-          Đây là màn hình user sẽ thấy
+          {t("notice")}
         </p>
         <WorkoutWeek
           basePath={getAdminPreviewPath(user.id)}
