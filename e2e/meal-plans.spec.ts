@@ -118,7 +118,10 @@ test("Q1: the trainee asks for 4 meals and a food note; both are kept", async ({
   const mealCount = page.getByLabel("Số bữa mong muốn");
   const note = page.getByLabel("Món thích hoặc không ăn được");
 
-  // Nothing asked yet.
+  // Nothing asked yet: the card starts open.
+  await expect(
+    page.getByRole("button", { name: "Yêu cầu bữa ăn" }),
+  ).toHaveAttribute("aria-expanded", "true");
   await expect(mealCount).toHaveValue("");
   await expect(note).toHaveValue("");
 
@@ -138,6 +141,12 @@ test("Q1: the trainee asks for 4 meals and a food note; both are kept", async ({
   expect(saved.food_note).toBe("Không ăn hải sản");
 
   await page.reload();
+  // A saved request starts collapsed; the header opens it again.
+  const toggle = page.getByRole("button", { name: "Yêu cầu bữa ăn" });
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByLabel("Số bữa mong muốn")).toBeHidden();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByLabel("Số bữa mong muốn")).toHaveValue("4");
   await expect(page.getByLabel("Món thích hoặc không ăn được")).toHaveValue(
     "Không ăn hải sản",
