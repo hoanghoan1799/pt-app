@@ -37,5 +37,16 @@
   },
   "avatarLightbox": { "label": "Ảnh của {name}" },
   "verified": "Đã xác minh",
-  "loading": "Đang tải…"
+  "loading": "Đang tải…",
+  "alias": {
+    "saving": "Đang lưu…",
+    "save": "Lưu",
+    "clear": "Xoá biệt danh",
+    "privateHint": "Chỉ bạn nhìn thấy biệt danh này",
+    "failed": "Không lưu được. Thử lại nhé.",
+    "fieldLabel": "Biệt danh của {name}",
+    "setAlias": "Đặt biệt danh",
+    "editAlias": "Sửa biệt danh",
+    "sheetTitle": "Biệt danh cho {name}"
+  }
 }

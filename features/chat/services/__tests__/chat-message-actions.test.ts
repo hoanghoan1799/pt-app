@@ -312,6 +312,7 @@ describe("reaction push", () => {
     expect(push.scheduleReactionPush).toHaveBeenCalledExactlyOnceWith({
       recipient: { role: "admin", adminId: 1 },
       reactorName: "An",
+      reactorKey: "user:1",
       emoji: "❤️",
       traineeUserId: userId,
       conversationId,
@@ -329,6 +330,7 @@ describe("reaction push", () => {
     expect(push.scheduleReactionPush).toHaveBeenCalledExactlyOnceWith({
       recipient: { role: "user", userId },
       reactorName: "pt2",
+      reactorKey: "admin:2",
       emoji: "💪",
       traineeUserId: userId,
       conversationId,

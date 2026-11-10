@@ -693,7 +693,7 @@ export const senderLabel = (
 };
 
 // Name above a quoted snippet inside a bubble (only the role is known, so the
-// PT side uses the shared "pt" nickname).
+// PT side uses the viewer's "pt" nickname).
 export const quoteLabel = (
   replyTo: SerializedReplyTo,
   viewer: ThreadViewer,

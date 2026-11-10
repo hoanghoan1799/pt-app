@@ -37,5 +37,16 @@
   },
   "avatarLightbox": { "label": "{name} 的头像" },
   "verified": "已认证",
-  "loading": "加载中…"
+  "loading": "加载中…",
+  "alias": {
+    "saving": "保存中…",
+    "save": "保存",
+    "clear": "删除昵称",
+    "privateHint": "只有你能看到这个昵称",
+    "failed": "无法保存，请重试。",
+    "fieldLabel": "{name} 的昵称",
+    "setAlias": "设置昵称",
+    "editAlias": "修改昵称",
+    "sheetTitle": "{name} 的昵称"
+  }
 }

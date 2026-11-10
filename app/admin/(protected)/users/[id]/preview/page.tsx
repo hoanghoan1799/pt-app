@@ -35,7 +35,7 @@ const AdminPreviewPage = async ({
   if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
     notFound();
   }
-  const displayName = await getTraineeDisplayName(user);
+  const displayName = await getTraineeDisplayName(admin.id, user);
 
   const query = await searchParams;
   const today = getTodayDate(TIME_ZONE);

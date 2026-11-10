@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
-import { admins, chatNicknames, users } from "@/db/schema";
+import { admins, contactAliases, users } from "@/db/schema";
 
 const state = vi.hoisted(() => ({ db: null as unknown }));
 
@@ -264,33 +264,34 @@ describe("listAdminInbox", () => {
   });
 
   it("shows the trainee nickname as displayName, real name as fallback", async () => {
-    const an = await q.getOrCreateConversation(await addUser("An"));
-    const binh = await q.getOrCreateConversation(await addUser("Binh"));
+    const anId = await addUser("An");
+    const binhId = await addUser("Binh");
+    const an = await q.getOrCreateConversation(anId);
+    const binh = await q.getOrCreateConversation(binhId);
     const updatedAt = new Date();
 
     await send(an.id, "user", "hi");
     await send(binh.id, "user", "hi");
-    await db.insert(chatNicknames).values([
+    await db.insert(contactAliases).values([
       {
-        conversationId: an.id,
-        targetKey: "user",
-        nickname: "Bé Na",
-        setByKey: "admin:1",
+        ownerKey: "admin:1",
+        targetKey: `user:${anId}`,
+        alias: "Bé Na",
         updatedAt,
       },
-      // Other targets and blank nicknames never become the trainee's name.
+      // Another admin's nickname, the trainee's own "pt" nickname and a blank
+      // one never become the name this admin sees.
       {
-        conversationId: an.id,
-        targetKey: "pt",
-        nickname: "Thầy",
-        setByKey: "user",
+        ownerKey: "admin:2",
+        targetKey: `user:${binhId}`,
+        alias: "Của admin 2",
         updatedAt,
       },
+      { ownerKey: `user:${anId}`, targetKey: "pt", alias: "Thầy", updatedAt },
       {
-        conversationId: binh.id,
-        targetKey: "user",
-        nickname: "   ",
-        setByKey: "user",
+        ownerKey: "admin:1",
+        targetKey: `user:${binhId}`,
+        alias: "   ",
         updatedAt,
       },
     ]);
@@ -322,23 +323,25 @@ describe("listAdminInbox", () => {
 });
 
 describe("getTraineeDisplayName", () => {
-  it("returns the trainee nickname when an admin set one, else the real name", async () => {
+  it("returns this admin's own nickname for the trainee, else the real name", async () => {
     const anId = await addUser("An");
     const binhId = await addUser("Bình");
-    const an = await q.getOrCreateConversation(anId);
 
-    await db.insert(chatNicknames).values({
-      conversationId: an.id,
-      targetKey: "user",
-      nickname: "Bé Na",
-      setByKey: "admin:1",
+    await db.insert(contactAliases).values({
+      ownerKey: "admin:1",
+      targetKey: `user:${anId}`,
+      alias: "Bé Na",
       updatedAt: new Date(),
     });
 
-    expect(await q.getTraineeDisplayName({ id: anId, name: "An" })).toBe(
+    expect(await q.getTraineeDisplayName(1, { id: anId, name: "An" })).toBe(
       "Bé Na",
     );
-    expect(await q.getTraineeDisplayName({ id: binhId, name: "Bình" })).toBe(
+    // Another admin sees the real name.
+    expect(await q.getTraineeDisplayName(2, { id: anId, name: "An" })).toBe(
+      "An",
+    );
+    expect(await q.getTraineeDisplayName(1, { id: binhId, name: "Bình" })).toBe(
       "Bình",
     );
   });

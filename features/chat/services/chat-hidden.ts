@@ -10,9 +10,9 @@ import {
   type InboxItem,
   type InboxWithoutConversation,
   listHiddenInboxForAdmin,
-  listTraineeNicknames,
 } from "@/features/chat/services/chat-queries";
 import { resolveDisplayName } from "@/features/chat/utils/display-name";
+import { loadTraineeAliases } from "@/features/contact-aliases/services/contact-aliases";
 import { adminScopeFilter } from "@/services/admin-scope";
 import { findAdminSecrets } from "@/services/admins";
 import { isUserHidden } from "@/services/hidden-users";
@@ -154,7 +154,10 @@ const listHiddenUsers = async (adminId: number): Promise<HiddenUser[]> => {
     .where(eq(adminHiddenUsers.adminId, adminId))
     .orderBy(asc(users.nameKey));
 
-  const nicknames = await listTraineeNicknames(rows.map((row) => row.userId));
+  const nicknames = await loadTraineeAliases(
+    adminId,
+    rows.map((row) => row.userId),
+  );
 
   return rows.map(({ avatarUpdatedAt, ...row }) => ({
     ...row,

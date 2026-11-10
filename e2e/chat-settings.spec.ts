@@ -7,9 +7,10 @@ import { fillTraineeLogin } from "./auth";
 import { E2E_ADMIN, E2E_CHAT_NAME, E2E_DB_URL, e2eEmail } from "./config";
 import { shot } from "./shots";
 
-// Conversation settings (KAN-142, docs/specs/chat-ux-v2.md D1, D4): nicknames
-// and bubble colour, on the polling transport (no Ably key in e2e). The spec
-// owns E2E_CHAT_NAME and resets its chat rows first and last.
+// Conversation settings (KAN-142, docs/specs/chat-ux-v2.md D1, D4): private
+// nicknames (docs/specs/private-nicknames.md) and bubble colour, on the
+// polling transport (no Ably key in e2e). The spec owns E2E_CHAT_NAME and
+// resets its chat rows first and last.
 const DB_ATTEMPTS = 5;
 const SEND_TIMEOUT_MS = 60_000;
 const SYNC_TIMEOUT_MS = 20_000;
@@ -56,6 +57,10 @@ const setChatState = (name: string, enabled: boolean) =>
         args: [userId],
       });
     }
+    await client.execute({
+      sql: "DELETE FROM contact_aliases WHERE owner_key = ? OR target_key = ?",
+      args: [`user:${userId}`, `user:${userId}`],
+    });
     await client.execute({
       sql: "DELETE FROM chat_conversations WHERE user_id = ?",
       args: [userId],
@@ -208,9 +213,12 @@ test.describe("chat settings", () => {
       timeout: SYNC_TIMEOUT_MS,
     });
 
-    // Trainee: nickname for the PT, own nickname, own colour.
+    // Trainee: private nickname for the PT, own colour. No field to rename
+    // yourself.
     await openSheet(t, "Cài đặt cuộc trò chuyện");
     await expect(t.locator("#chat-nickname-other")).toBeVisible();
+    await expect(t.locator("#chat-nickname-self")).toHaveCount(0);
+    await expect(t.getByText("Chỉ bạn nhìn thấy biệt danh này")).toBeVisible();
     await expect(
       t.getByRole("radiogroup", { name: "Màu tin nhắn" }).getByRole("radio"),
     ).toHaveCount(8);
@@ -222,7 +230,6 @@ test.describe("chat settings", () => {
       .scrollIntoViewIfNeeded();
     await shoot(t, "trainee-settings-sheet-colours");
     await saveNickname(t, "chat-nickname-other", "Coach Hoan");
-    await saveNickname(t, "chat-nickname-self", "Bé Na");
     await t
       .getByRole("radiogroup", { name: "Màu tin nhắn" })
       .getByRole("radio", { name: "Xanh dương" })
@@ -248,19 +255,22 @@ test.describe("chat settings", () => {
         hasText: "Chào PT, hôm nay tập gì ạ?",
       }),
     ).toBeVisible({ timeout: SYNC_TIMEOUT_MS });
-    // The admin title carries the trainee's nickname, not the real name.
+    // The trainee's nickname for the PT is private: the admin title still
+    // carries the trainee's real name and never "Coach Hoan".
     await expect(
-      a.getByRole("heading", { level: 1, name: "Nhắn tin với Bé Na" }),
+      a.getByRole("heading", {
+        level: 1,
+        name: `Nhắn tin với ${E2E_CHAT_NAME}`,
+      }),
     ).toBeVisible();
-    await expect(a.getByRole("heading", { level: 1 })).not.toContainText(
-      E2E_CHAT_NAME,
-    );
+    await expect(a.getByText("Coach Hoan")).toHaveCount(0);
     // The gear is an icon only: named for screen readers, no visible text.
     await expect(
       a.getByRole("button", { name: "Biệt danh và màu" }),
     ).toHaveText("");
 
-    // Admin: nickname for the trainee, conversation colour and account colour.
+    // Admin: private nickname for the trainee, conversation colour and
+    // account colour. No field to rename yourself.
     await openSheet(a, "Biệt danh và màu");
     await expect(
       a.getByRole("radiogroup", { name: "Màu cho cuộc trò chuyện này" }),
@@ -284,8 +294,8 @@ test.describe("chat settings", () => {
       .getByRole("radiogroup", { name: "Màu tài khoản" })
       .scrollIntoViewIfNeeded();
     await shoot(a, "admin-settings-sheet-colours");
+    await expect(a.locator("#chat-nickname-self")).toHaveCount(0);
     await saveNickname(a, "chat-nickname-other", "Na nhỏ");
-    await saveNickname(a, "chat-nickname-self", "Thầy Hoan");
     await a
       .getByRole("radiogroup", { name: "Màu cho cuộc trò chuyện này" })
       .getByRole("radio", { name: "Xanh ngọc" })
@@ -301,13 +311,15 @@ test.describe("chat settings", () => {
       }),
     ).toBeVisible();
 
-    // The trainee sees the PT in teal, labelled with the PT nickname.
+    // The trainee sees the PT in teal, labelled with the trainee's own
+    // nickname for the PT side, never the admin's view of themselves.
     await expect(
       t.locator('[data-bubble-color="teal"]').filter({
         hasText: "Chào em, hôm nay tập chân nhé.",
       }),
     ).toBeVisible({ timeout: SYNC_TIMEOUT_MS });
-    await expect(t.getByText("Thầy Hoan").first()).toBeVisible();
+    await expect(t.getByText("Coach Hoan").first()).toBeVisible();
+    await expect(t.getByText("Na nhỏ")).toHaveCount(0);
     // Reactions and replies carry the nicknames and colours too.
     const ptText = "Chào em, hôm nay tập chân nhé.";
     const traineeText = "Chào PT, hôm nay tập gì ạ?";
@@ -351,7 +363,7 @@ test.describe("chat settings", () => {
       a.getByRole("link").filter({ hasText: E2E_CHAT_NAME }),
     ).toHaveCount(0);
 
-    // Clearing a nickname goes back to the real name.
+    // Clearing a nickname goes back to the real name, for that viewer only.
     await openSheet(t, "Cài đặt cuộc trò chuyện");
     await t
       .locator("[data-nickname-target='pt']")
@@ -383,8 +395,9 @@ test.describe("chat settings", () => {
 
     await t.reload();
     await openSheet(t, "Cài đặt cuộc trò chuyện");
-    await expect(t.locator("#chat-nickname-other")).toBeDisabled();
-    await expect(t.locator("#chat-nickname-self")).toBeDisabled();
+    // A private nickname changes nobody else's view, so the lock does not
+    // apply to it; the colours stay read-only.
+    await expect(t.locator("#chat-nickname-other")).toBeEnabled();
     await expect(
       t
         .getByRole("radiogroup", { name: "Màu tin nhắn" })
@@ -396,7 +409,7 @@ test.describe("chat settings", () => {
     await logInAsAdmin(a);
     await a.goto(`/admin/users/${userId}/messages`);
     await openSheet(a, "Biệt danh và màu");
-    await expect(a.locator("#chat-nickname-other")).toBeDisabled();
+    await expect(a.locator("#chat-nickname-other")).toBeEnabled();
     await expect(
       a
         .getByRole("radiogroup", { name: "Màu cho cuộc trò chuyện này" })

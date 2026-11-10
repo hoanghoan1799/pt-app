@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -19,6 +19,7 @@ import {
   chatPhotos,
   chatReactions,
   chatReads,
+  contactAliases,
   exerciseCompletions,
   exercises,
   exerciseSets,
@@ -31,6 +32,7 @@ import {
   workoutDays,
 } from "@/db/schema";
 import { userOwnerKey } from "@/features/chat/utils/push-rules";
+import { userActorKey } from "@/features/contact-aliases/utils/alias-rules";
 import { deleteDays } from "@/features/meal-plans/services/meal-plan-store";
 import { createMemberWithLogin } from "@/features/members/services/create-member-with-login";
 import { resolveTraineePt } from "@/features/members/services/resolve-trainee-pt";
@@ -116,6 +118,15 @@ export const deleteMemberAction = withResultErrorHandling(
 
     await db.transaction(async (tx) => {
       await tx.delete(adminHiddenUsers).where(eq(adminHiddenUsers.userId, id));
+      // Private nicknames the member set and the ones set for them.
+      await tx
+        .delete(contactAliases)
+        .where(
+          or(
+            eq(contactAliases.ownerKey, userActorKey(id)),
+            eq(contactAliases.targetKey, userActorKey(id)),
+          ),
+        );
       // Children first: foreign keys are not enforced (D10).
       if (conversationIds.length) {
         await tx

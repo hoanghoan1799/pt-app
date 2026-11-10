@@ -15,7 +15,7 @@ import { canGoBackInApp } from "@/features/chat/utils/chat-back";
 import type { PresenceView } from "@/features/chat/utils/presence-status";
 
 interface ChatHeaderProps {
-  // The shown name (nickname first); also feeds the avatar initials.
+  // The shown name (the viewer's private nickname first); also feeds the avatar initials.
   name: string;
   // Heading text when it differs from the name ("Nhắn tin với ...").
   title?: string;

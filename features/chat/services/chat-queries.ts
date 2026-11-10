@@ -22,7 +22,6 @@ import {
   chatConversations,
   chatMessageEdits,
   chatMessages,
-  chatNicknames,
   chatPhotos,
   chatReactions,
   chatReads,
@@ -49,6 +48,7 @@ import {
   stickerPreview,
   toChatSticker,
 } from "@/features/chat/utils/sticker-rules";
+import { loadTraineeAliases } from "@/features/contact-aliases/services/contact-aliases";
 import { loadReplyPostViews } from "@/features/social/services/dm-reply-post";
 import type { DmReplyPostView } from "@/features/social/types/dm";
 import type { SocialActor } from "@/features/social/types/social";
@@ -809,43 +809,15 @@ export const findLatestAdminSender = async (conversationId: number) => {
 export const findLatestAdminSenderName = async (conversationId: number) =>
   (await findLatestAdminSender(conversationId))?.name ?? null;
 
-// The nickname an admin set for each trainee (the same row the inbox reads:
-// target "user" of the trainee's conversation), by user id. Trainees without
-// one are absent.
-export const listTraineeNicknames = async (
-  userIds: readonly number[],
-): Promise<Map<number, string>> => {
-  if (userIds.length === 0) {
-    return new Map();
-  }
-  const rows = await db
-    .select({
-      userId: chatConversations.userId,
-      nickname: chatNicknames.nickname,
-    })
-    .from(chatNicknames)
-    .innerJoin(
-      chatConversations,
-      eq(chatConversations.id, chatNicknames.conversationId),
-    )
-    .where(
-      and(
-        eq(chatNicknames.targetKey, USER_READER_KEY),
-        inArray(chatConversations.userId, [...userIds]),
-      ),
-    );
-
-  return new Map(rows.map((row) => [row.userId, row.nickname]));
-};
-
-// The name admin pages show for one trainee: the chat nickname if an admin
-// set one, else the real name (same rule as the inbox and dashboard).
-export const getTraineeDisplayName = async (user: {
-  id: number;
-  name: string;
-}) =>
+// The name admin pages show for one trainee to this admin: their private
+// nickname for the trainee if they set one, else the real name (same rule as
+// the inbox and dashboard).
+export const getTraineeDisplayName = async (
+  adminId: number,
+  user: { id: number; name: string },
+) =>
   resolveDisplayName(
-    (await listTraineeNicknames([user.id])).get(user.id),
+    (await loadTraineeAliases(adminId, [user.id])).get(user.id),
     user.name,
   );
 
@@ -853,7 +825,7 @@ export interface InboxItem {
   conversationId: number;
   userId: number;
   userName: string;
-  // The nickname an admin set for the trainee, else the real name (KAN-154).
+  // This admin's private nickname for the trainee, else the real name.
   displayName: string;
   chatEnabled: boolean;
   preview: string;
@@ -944,26 +916,9 @@ const loadInbox = async (
       )
       .orderBy(asc(users.name)),
   ]);
-  const nicknameRows =
-    rows.length === 0
-      ? []
-      : await db
-          .select({
-            conversationId: chatNicknames.conversationId,
-            nickname: chatNicknames.nickname,
-          })
-          .from(chatNicknames)
-          .where(
-            and(
-              eq(chatNicknames.targetKey, USER_READER_KEY),
-              inArray(
-                chatNicknames.conversationId,
-                rows.map((row) => row.conversationId),
-              ),
-            ),
-          );
-  const nicknameById = new Map(
-    nicknameRows.map((row) => [row.conversationId, row.nickname]),
+  const nicknameByUserId = await loadTraineeAliases(
+    adminId,
+    rows.map((row) => row.userId),
   );
   const unreadById = new Map(
     unreadRows.map((row) => [row.conversationId, row.unread]),
@@ -973,7 +928,7 @@ const loadInbox = async (
     userId: row.userId,
     userName: row.userName,
     displayName: resolveDisplayName(
-      nicknameById.get(row.conversationId),
+      nicknameByUserId.get(row.userId),
       row.userName,
     ),
     chatEnabled: row.chatEnabled === true,

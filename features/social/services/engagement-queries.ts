@@ -113,8 +113,12 @@ export const listReactors = async (
     .from(socialReactions)
     .where(eq(socialReactions.postId, postId))
     .orderBy(asc(socialReactions.createdAt));
-  const accounts = await loadAccounts(rows.map((row) => row.reactorKey));
   const myKey = actorKey(actor);
+  // The viewer's own nicknames for the reactors, nobody else's.
+  const accounts = await loadAccounts(
+    rows.map((row) => row.reactorKey),
+    myKey,
+  );
 
   return rows.map((row) => ({
     name: accounts.get(row.reactorKey)?.name ?? DELETED_ACCOUNT_NAME,
@@ -148,7 +152,10 @@ export const listComments = async (
       ),
     )
     .orderBy(asc(socialComments.createdAt), asc(socialComments.id));
-  const accounts = await loadAccounts(rows.map((row) => row.authorKey));
+  const accounts = await loadAccounts(
+    rows.map((row) => row.authorKey),
+    actorKey(actor),
+  );
   const postRef = { kind: post.authorKind, id: post.authorId };
   const toPath = mode === "admin" ? adminProfilePath : profilePath;
 

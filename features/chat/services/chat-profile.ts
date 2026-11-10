@@ -7,7 +7,6 @@ import {
   admins,
   chatColorOverrides,
   chatConversations,
-  chatNicknames,
   users,
 } from "@/db/schema";
 import { CHAT_MESSAGES } from "@/features/chat/constants/messages";
@@ -23,17 +22,23 @@ import {
 import {
   adminReaderKey,
   colorSchema,
-  nicknameSchema,
-  parseAdminTarget,
   USER_READER_KEY,
 } from "@/features/chat/utils/chat-rules";
+import { loadAllAliases } from "@/features/contact-aliases/services/contact-aliases";
+import {
+  adminActorKey,
+  aliasesToConversationNicknames,
+  userActorKey,
+} from "@/features/contact-aliases/utils/alias-rules";
 
 // Nicknames and bubble colours (KAN-141). The callers have already checked
 // the session, that the caller is in the conversation and the chat lock.
 
-// What both clients get with the thread. Keys are "user", "pt" and
-// "admin:<id>"; entries exist only when set. `colors` is already resolved:
-// an admin's per-conversation override wins over their account colour.
+// What a client gets with the thread. Keys are "user", "pt" and "admin:<id>";
+// entries exist only when set. `nicknames` are the VIEWER'S private aliases
+// (contact-aliases) for the other people here, never anybody else's, and
+// never one for the viewer. `colors` is already resolved: an admin's
+// per-conversation override wins over their account colour.
 export interface ChatProfile {
   nicknames: Record<string, string>;
   colors: Record<string, ChatColorKey>;
@@ -50,17 +55,14 @@ const fail = (message: string): ProfileResult => ({
   message,
 });
 
+// `viewerKey` is the signed-in actor ("user:<id>" / "admin:<id>"), taken from
+// the session by the caller.
 export const loadChatProfile = async (
   conversationId: number,
+  viewerKey: string,
 ): Promise<ChatProfile> => {
-  const [nicknameRows, overrideRows, adminRows, [trainee]] = await Promise.all([
-    db
-      .select({
-        targetKey: chatNicknames.targetKey,
-        nickname: chatNicknames.nickname,
-      })
-      .from(chatNicknames)
-      .where(eq(chatNicknames.conversationId, conversationId)),
+  const [aliases, overrideRows, adminRows, [trainee]] = await Promise.all([
+    loadAllAliases(viewerKey),
     db
       .select({
         adminId: chatColorOverrides.adminId,
@@ -73,17 +75,19 @@ export const loadChatProfile = async (
       .from(admins)
       .where(isNotNull(admins.chatColor)),
     db
-      .select({ color: users.chatColor })
+      .select({ userId: users.id, color: users.chatColor })
       .from(chatConversations)
       .innerJoin(users, eq(users.id, chatConversations.userId))
       .where(eq(chatConversations.id, conversationId)),
   ]);
-  const nicknames: Record<string, string> = {};
   const colors: Record<string, ChatColorKey> = {};
+  const nicknames = trainee
+    ? aliasesToConversationNicknames(aliases, {
+        viewerKey,
+        traineeUserId: trainee.userId,
+      })
+    : {};
 
-  for (const row of nicknameRows) {
-    nicknames[row.targetKey] = row.nickname;
-  }
   if (isChatColorKey(trainee?.color)) {
     colors[USER_READER_KEY] = trainee.color;
   }
@@ -100,82 +104,16 @@ export const loadChatProfile = async (
   return { nicknames, colors };
 };
 
-const done = async (conversationId: number): Promise<ProfileResult> => {
+const done = async (
+  conversationId: number,
+  viewerKey: string,
+): Promise<ProfileResult> => {
   await bumpConversationChange(conversationId);
   await publishProfileUpdate(conversationId);
-  return { status: "success", profile: await loadChatProfile(conversationId) };
-};
-
-const unchanged = async (conversationId: number): Promise<ProfileResult> => ({
-  status: "success",
-  profile: await loadChatProfile(conversationId),
-});
-
-// Anyone in the conversation may set or clear any of its nicknames, their own
-// included (D1). An empty nickname clears it; saving the same value is a
-// no-op (no cursor bump, no event).
-export const setConversationNickname = async (
-  conversationId: number,
-  setByKey: string,
-  input: unknown,
-): Promise<ProfileResult> => {
-  const parsed = nicknameSchema.safeParse(input);
-
-  if (!parsed.success) {
-    return fail(CHAT_MESSAGES.NICKNAME_INVALID);
-  }
-  const { target, nickname } = parsed.data;
-  const adminId = parseAdminTarget(target);
-
-  if (adminId !== null) {
-    const [admin] = await db
-      .select({ id: admins.id })
-      .from(admins)
-      .where(eq(admins.id, adminId))
-      .limit(1);
-
-    if (!admin) {
-      return fail(CHAT_MESSAGES.ADMIN_NOT_FOUND);
-    }
-  }
-  const [existing] = await db
-    .select({ nickname: chatNicknames.nickname })
-    .from(chatNicknames)
-    .where(
-      and(
-        eq(chatNicknames.conversationId, conversationId),
-        eq(chatNicknames.targetKey, target),
-      ),
-    );
-
-  if ((existing?.nickname ?? "") === nickname) {
-    return unchanged(conversationId);
-  }
-  if (nickname === "") {
-    await db
-      .delete(chatNicknames)
-      .where(
-        and(
-          eq(chatNicknames.conversationId, conversationId),
-          eq(chatNicknames.targetKey, target),
-        ),
-      );
-  } else {
-    await db
-      .insert(chatNicknames)
-      .values({
-        conversationId,
-        targetKey: target,
-        nickname,
-        setByKey,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: [chatNicknames.conversationId, chatNicknames.targetKey],
-        set: { nickname, setByKey, updatedAt: new Date() },
-      });
-  }
-  return done(conversationId);
+  return {
+    status: "success",
+    profile: await loadChatProfile(conversationId, viewerKey),
+  };
 };
 
 // The trainee's own colour. Nobody can set it for them.
@@ -198,7 +136,7 @@ export const setTraineeColor = async (
   if (rows.length === 0) {
     return fail(CHAT_MESSAGES.USER_NOT_FOUND);
   }
-  return done(conversationId);
+  return done(conversationId, userActorKey(userId));
 };
 
 // An admin's account colour: shows in every conversation without an override,
@@ -258,7 +196,7 @@ export const setAdminConversationColor = async (
         set: { color },
       });
   }
-  return done(conversationId);
+  return done(conversationId, adminActorKey(adminId));
 };
 
 // The admin's saved account colour (null when never picked or unknown), so

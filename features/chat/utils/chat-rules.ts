@@ -3,6 +3,10 @@ import { z } from "zod";
 import { CHAT_COLOR_KEYS } from "@/features/chat/utils/chat-palette";
 import { photoIdSchema } from "@/features/chat/utils/photo-rules";
 import { stickerInputSchema } from "@/features/chat/utils/sticker-rules";
+import {
+  ALIAS_MAX_LENGTH,
+  PT_ALIAS_TARGET,
+} from "@/features/contact-aliases/utils/alias-rules";
 
 export const CHAT_PAGE_SIZE = 30;
 export const CHAT_BODY_MAX_LENGTH = 2000;
@@ -64,10 +68,11 @@ export const editSchema = z.object({
 
 export const unsendSchema = z.object({ messageId: messageIdSchema });
 
-// Nicknames and colours (KAN-141). Targets: the trainee ("user"), the PT side
-// as a whole ("pt") or one admin ("admin:<id>").
-export const CHAT_NICKNAME_MAX_LENGTH = 30;
-export const PT_TARGET_KEY = "pt";
+// Nicknames are private aliases (contact-aliases); the chat keeps their keys:
+// the trainee ("user"), the PT side as a whole ("pt") or one admin
+// ("admin:<id>").
+export const CHAT_NICKNAME_MAX_LENGTH = ALIAS_MAX_LENGTH;
+export const PT_TARGET_KEY = PT_ALIAS_TARGET;
 
 const ADMIN_TARGET = /^admin:([1-9]\d{0,14})$/;
 
@@ -76,28 +81,6 @@ export const parseAdminTarget = (target: string) => {
 
   return match ? Number(match[1]) : null;
 };
-
-export const nicknameTargetSchema = z
-  .string()
-  .refine(
-    (value) =>
-      value === USER_READER_KEY ||
-      value === PT_TARGET_KEY ||
-      ADMIN_TARGET.test(value),
-  );
-
-// Trimmed, whitespace collapsed; empty clears. The limit counts characters,
-// not UTF-16 units, so emoji and Vietnamese diacritics are not penalised.
-export const nicknameValueSchema = z
-  .string()
-  .transform((value) => value.trim().replace(/\s+/g, " "))
-  .refine((value) => Array.from(value).length <= CHAT_NICKNAME_MAX_LENGTH)
-  .refine((value) => !/\p{Cc}/u.test(value));
-
-export const nicknameSchema = z.object({
-  target: nicknameTargetSchema,
-  nickname: nicknameValueSchema,
-});
 
 // null = back to the default colour (or, for an override, no override).
 export const colorSchema = z.object({

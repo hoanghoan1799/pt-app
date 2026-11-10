@@ -21,6 +21,10 @@ import {
   unsendSchema,
   USER_READER_KEY,
 } from "@/features/chat/utils/chat-rules";
+import {
+  adminActorKey,
+  userActorKey,
+} from "@/features/contact-aliases/utils/alias-rules";
 import type { SocialActor } from "@/features/social/types/social";
 import type { AdminRole } from "@/services/admin-scope";
 
@@ -55,6 +59,12 @@ const viewerOf = (actor: ChatActor): SocialActor =>
 
 const reactorKeyOf = (actor: ChatActor) =>
   actor.role === "user" ? USER_READER_KEY : adminReaderKey(actor.adminId);
+
+// The actor's account key, for looking up the recipient's private nickname.
+const globalKeyOf = (actor: ChatActor) =>
+  actor.role === "user"
+    ? userActorKey(actor.userId)
+    : adminActorKey(actor.adminId);
 
 // A message id from another conversation answers "not found", never "not
 // yours", so ids cannot be probed across conversations.
@@ -114,6 +124,7 @@ const notifyAuthor = (
     scheduleReactionPush({
       recipient: { role: "user", userId: conversation.userId },
       reactorName: actor.name,
+      reactorKey: globalKeyOf(actor),
       emoji,
       traineeUserId: conversation.userId,
       conversationId: conversation.id,
@@ -129,6 +140,7 @@ const notifyAuthor = (
   scheduleReactionPush({
     recipient: { role: "admin", adminId: stored.senderAdminId },
     reactorName: actor.name,
+    reactorKey: globalKeyOf(actor),
     emoji,
     traineeUserId: conversation.userId,
     conversationId: conversation.id,

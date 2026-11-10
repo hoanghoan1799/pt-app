@@ -269,5 +269,9 @@
     "memberAdded": "Added {name}",
     "weekCopied": "Copied {count, plural, one {# day} other {# days}} to the week of {range}",
     "weekCopiedTo": "Copied {count, plural, one {# day} other {# days}} to {name}''s week of {range}"
+  },
+  "alias": {
+    "SELF": "You cannot set a nickname for yourself",
+    "TARGET_NOT_FOUND": "This person was not found"
   }
 }

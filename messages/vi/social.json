@@ -72,6 +72,7 @@
     "save": "Lưu"
   },
   "profile": {
+    "realName": "Tên thật: {name}",
     "friendCount": "{count, plural, other {# bạn bè}}",
     "posts": "Bài viết",
     "noPosts": "Chưa có bài viết nào."

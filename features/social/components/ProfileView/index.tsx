@@ -3,6 +3,7 @@ import { useTranslations } from "next-intl";
 import { Avatar } from "@/components/common/Avatar";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { CARD, SECTION_TITLE } from "@/constants/styles";
+import { AliasEditor } from "@/features/contact-aliases/components/AliasEditor";
 import { BioEditor } from "@/features/social/components/BioEditor";
 import { PostComposer } from "@/features/social/components/PostComposer";
 import { PostList } from "@/features/social/components/PostList";
@@ -56,6 +57,11 @@ export const ProfileView = ({
           <span className="break-words">{profile.name}</span>
           {profile.verified && <VerifiedBadge className="size-5" />}
         </h2>
+        {profile.alias && (
+          <p className="-mt-2 text-sm text-muted">
+            {t("realName", { name: profile.realName })}
+          </p>
+        )}
         {friendCount !== null && (
           <p className="text-sm font-medium text-muted">
             {t("friendCount", { count: friendCount })}
@@ -70,8 +76,14 @@ export const ProfileView = ({
             </p>
           )
         )}
-        {!isOwn && (relationship || canBlock || canReport) && (
+        {!isOwn && (
           <div className="flex items-center gap-2">
+            <AliasEditor
+              mode={mode}
+              targetKey={`${profile.kind}:${profile.id}`}
+              realName={profile.realName}
+              alias={profile.alias}
+            />
             {relationship && (
               <RelationshipButton
                 userId={profile.id}

@@ -5,6 +5,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
+import { userActorKey } from "@/features/contact-aliases/utils/alias-rules";
 import { ProfileView } from "@/features/social/components/ProfileView";
 import { actorOfUser } from "@/features/social/services/post-context";
 import { listProfilePosts } from "@/features/social/services/post-queries";
@@ -38,7 +39,9 @@ const ProfilePage = async ({ params }: PageProps<"/profile/[kind]/[id]">) => {
   }
   const { kind: rawKind, id: rawId } = await params;
   const kind = parseProfileKind(rawKind);
-  const profile = kind ? await getProfile(kind, Number(rawId)) : null;
+  const profile = kind
+    ? await getProfile(kind, Number(rawId), userActorKey(user.id))
+    : null;
 
   if (!kind || !profile) {
     notFound();

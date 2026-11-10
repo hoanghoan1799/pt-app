@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
-import { admins, chatConversations, chatNicknames, users } from "@/db/schema";
+import { admins, contactAliases, users } from "@/db/schema";
 
 const state = vi.hoisted(() => ({ db: null as unknown }));
 
@@ -39,16 +39,11 @@ describe("getMemberProgress names and avatars", () => {
         { name: "An", nameKey: "an" },
       ])
       .returning({ id: users.id });
-    const [conversation] = await db
-      .insert(chatConversations)
-      .values({ userId: binh.id })
-      .returning({ id: chatConversations.id });
 
-    await db.insert(chatNicknames).values({
-      conversationId: conversation.id,
-      targetKey: "user",
-      nickname: "Bé Bình",
-      setByKey: "admin:1",
+    await db.insert(contactAliases).values({
+      ownerKey: "admin:1",
+      targetKey: `user:${binh.id}`,
+      alias: "Bé Bình",
       updatedAt: new Date(),
     });
 

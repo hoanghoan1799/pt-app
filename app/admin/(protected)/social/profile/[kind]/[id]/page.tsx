@@ -5,6 +5,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
+import { adminActorKey } from "@/features/contact-aliases/utils/alias-rules";
 import { ProfileView } from "@/features/social/components/ProfileView";
 import { actorOfAdmin } from "@/features/social/services/post-context";
 import { listProfilePosts } from "@/features/social/services/post-queries";
@@ -35,7 +36,7 @@ const AdminProfilePage = async ({
   const admin =
     kind === "user" ? await requireAdminForUser(id) : await requireAdmin();
   const locale = await getLocale();
-  const profile = await getProfile(kind, id);
+  const profile = await getProfile(kind, id, adminActorKey(admin.id));
 
   if (!profile) {
     notFound();

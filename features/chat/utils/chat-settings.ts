@@ -3,17 +3,15 @@ import {
   DEFAULT_CHAT_COLOR,
   isChatColorKey,
 } from "@/features/chat/utils/chat-palette";
-import {
-  CHAT_NICKNAME_MAX_LENGTH,
-  parseAdminTarget,
-} from "@/features/chat/utils/chat-rules";
+import { parseAdminTarget } from "@/features/chat/utils/chat-rules";
 import type { ThreadViewer } from "@/features/chat/utils/chat-thread-rules";
 import { displayNameFor } from "@/features/chat/utils/display-name";
 
 // Pure rules behind the conversation settings sheet and the coloured bubbles
 // (KAN-142, spec D1, D2, D4). Keys are "user", "pt" and "admin:<id>".
 
-// Nicknames and resolved bubble colours as the thread payload carries them.
+// The viewer's private nicknames and the resolved bubble colours as the thread
+// payload carries them.
 export interface ChatProfileView {
   nicknames: Record<string, string>;
   colors: Record<string, string>;
@@ -32,32 +30,23 @@ export interface NicknameTarget {
   realName: string;
 }
 
-// The two nicknames the sheet edits: the other person and the viewer.
-// Trainee: the PT side as a whole ("pt") and themselves ("user"). Admin: the
-// trainee ("user") and themselves ("admin:<id>").
+// What the settings sheet edits. `other` is the one person the viewer may
+// give a PRIVATE nickname (nobody names themselves): for a trainee the PT side
+// as a whole ("pt"), for an admin the trainee ("user"). `self` is whose bubble
+// colour the sheet picks.
 export const settingsTargets = (
   viewer: ThreadViewer,
-  names: { peerName: string; selfName: string },
-): { other: NicknameTarget; self: NicknameTarget } =>
+  names: { peerName: string },
+): { other: NicknameTarget; self: { key: string } } =>
   viewer.role === "admin"
     ? {
         other: { key: "user", realName: names.peerName },
-        self: { key: adminKey(viewer.adminId), realName: names.selfName },
+        self: { key: adminKey(viewer.adminId) },
       }
     : {
         other: { key: "pt", realName: names.peerName },
-        self: { key: "user", realName: names.selfName },
+        self: { key: "user" },
       };
-
-export const nicknameLength = (value: string) => Array.from(value).length;
-
-export const isNicknameTooLong = (value: string) =>
-  nicknameLength(value.trim()) > CHAT_NICKNAME_MAX_LENGTH;
-
-// Save is offered only for a real change (a no-op save is pointless) that
-// fits the limit.
-export const canSaveNickname = (draft: string, saved: string | undefined) =>
-  draft.trim() !== (saved ?? "") && !isNicknameTooLong(draft);
 
 // The key a message's bubble colour is looked up under.
 export const senderColorKey = (message: {
@@ -88,8 +77,9 @@ export const bubbleColorFor = (
   return mine ? DEFAULT_CHAT_COLOR : null;
 };
 
-// Name of a PT sender label: their own nickname, else the shared PT one (for
-// the trainee), else the real name (D2).
+// Name of a PT sender label: the viewer's nickname for that admin, else for
+// the trainee their nickname for the PT side, else the real name. The
+// nicknames are the viewer's own private ones.
 export const adminLabel = (
   nicknames: Readonly<Record<string, string>>,
   adminId: number | null,
@@ -107,8 +97,8 @@ export const adminLabel = (
     : realName;
 };
 
-// Name of a reactor in the reactors sheet: their nickname (an admin's own,
-// else for the trainee the shared PT one), else the real name (D2).
+// Name of a reactor in the reactors sheet: the viewer's nickname for them (for
+// an admin, else for the trainee the one for the PT side), else the real name.
 export const reactorLabel = (
   nicknames: Readonly<Record<string, string>>,
   reactorKey: string,

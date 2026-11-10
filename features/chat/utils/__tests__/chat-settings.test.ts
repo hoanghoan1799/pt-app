@@ -3,8 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   adminLabel,
   bubbleColorFor,
-  canSaveNickname,
-  isNicknameTooLong,
   settingsTargets,
 } from "@/features/chat/utils/chat-settings";
 
@@ -16,42 +14,26 @@ const admin = {
 };
 
 describe("settingsTargets", () => {
-  it("gives the trainee the PT side and themselves", () => {
-    expect(
-      settingsTargets({ role: "user" }, { peerName: "PT", selfName: "An" }),
-    ).toEqual({
+  it("lets the trainee name the PT side, and picks their own colour", () => {
+    expect(settingsTargets({ role: "user" }, { peerName: "PT" })).toEqual({
       other: { key: "pt", realName: "PT" },
-      self: { key: "user", realName: "An" },
+      self: { key: "user" },
     });
   });
 
-  it("gives the admin the trainee and their own admin key", () => {
-    expect(
-      settingsTargets(admin, { peerName: "An", selfName: "hoan" }),
-    ).toEqual({
+  it("lets the admin name the trainee, and picks their own colour", () => {
+    expect(settingsTargets(admin, { peerName: "An" })).toEqual({
       other: { key: "user", realName: "An" },
-      self: { key: "admin:7", realName: "hoan" },
+      self: { key: "admin:7" },
     });
   });
-});
 
-describe("canSaveNickname", () => {
-  it("is off when nothing changed", () => {
-    expect(canSaveNickname("Bé Na", "Bé Na")).toBe(false);
-    expect(canSaveNickname("  ", undefined)).toBe(false);
-  });
+  it("never offers a nickname for yourself", () => {
+    for (const viewer of [{ role: "user" as const }, admin]) {
+      const { other, self } = settingsTargets(viewer, { peerName: "x" });
 
-  it("is on for a new, changed or cleared nickname", () => {
-    expect(canSaveNickname("Bé Na", undefined)).toBe(true);
-    expect(canSaveNickname("Na", "Bé Na")).toBe(true);
-    expect(canSaveNickname("", "Bé Na")).toBe(true);
-  });
-
-  it("is off over 30 characters and counts code points", () => {
-    expect(isNicknameTooLong("a".repeat(30))).toBe(false);
-    expect(isNicknameTooLong("a".repeat(31))).toBe(true);
-    expect(isNicknameTooLong("💪".repeat(30))).toBe(false);
-    expect(canSaveNickname("a".repeat(31), undefined)).toBe(false);
+      expect(other.key).not.toBe(self.key);
+    }
   });
 });
 

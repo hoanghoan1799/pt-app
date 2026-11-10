@@ -5,7 +5,7 @@ import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
 import {
   adminHiddenUsers,
   admins,
-  chatNicknames,
+  contactAliases,
   pushSubscriptions,
   users,
 } from "@/db/schema";
@@ -165,33 +165,50 @@ describe("sendChatPush", () => {
     expect(sender.mock.calls[0][1].body).toBe("Mai tập ngực");
   });
 
-  it("titles pushes with the conversation nicknames when set", async () => {
-    const [admin] = await db
-      .insert(admins)
-      .values({
-        username: "Hoan",
-        usernameKey: "hoan-nick",
-        passwordHash: "x",
-        role: "super_admin",
-      })
-      .returning({ id: admins.id });
-    const nickRow = (targetKey: string, nickname: string) => ({
-      conversationId: 3,
+  it("titles each push with the RECIPIENT's own nickname for the sender", async () => {
+    const addAdmin = async (username: string) =>
+      (
+        await db
+          .insert(admins)
+          .values({
+            username,
+            usernameKey: `${username}-nick`,
+            passwordHash: "x",
+            role: "super_admin",
+          })
+          .returning({ id: admins.id })
+      )[0].id;
+    const hoan = await addAdmin("Hoan");
+    const minh = await addAdmin("Minh");
+    const alias = (ownerKey: string, targetKey: string, value: string) => ({
+      ownerKey,
       targetKey,
-      nickname,
-      setByKey: "user",
+      alias: value,
       updatedAt: new Date(),
     });
 
     await db
-      .insert(chatNicknames)
-      .values([nickRow("user", "Lan béo"), nickRow("pt", "Thầy")]);
+      .insert(contactAliases)
+      .values([
+        alias(`admin:${hoan}`, `user:${traineeId}`, "Lan béo"),
+        alias(`user:${traineeId}`, "pt", "Thầy"),
+      ]);
     await addSub(`user:${traineeId}`, "t");
-    await addSub(`admin:${admin.id}`, "a");
+    await addSub(`admin:${hoan}`, "hoan");
+    await addSub(`admin:${minh}`, "minh");
     const sender = vi.fn<
       import("@/features/chat/services/chat-push").PushSender
     >(async () => undefined);
+    const titles = () =>
+      Object.fromEntries(
+        sender.mock.calls.map((call) => [
+          call[0].endpoint.replace("https://push.example/", ""),
+          call[1].title,
+        ]),
+      );
 
+    // Trainee writes: Hoan sees his nickname, Minh (who set none) the real
+    // name; the nickname is not leaked to him.
     await push.sendChatPush(
       {
         senderRole: "user",
@@ -201,43 +218,45 @@ describe("sendChatPush", () => {
       },
       sender,
     );
-    await push.sendChatPush(
-      {
-        senderRole: "admin",
-        senderAdminId: admin.id,
-        traineeUserId: traineeId,
-        conversationId: 3,
-        body: "hi",
-      },
-      sender,
-    );
-    expect(sender.mock.calls.map((call) => call[1].title)).toEqual([
-      "Lan béo",
-      "Thầy",
-    ]);
+    expect(titles()).toEqual({ hoan: "Lan béo", minh: "Lan" });
 
-    await db
-      .insert(chatNicknames)
-      .values(nickRow(`admin:${admin.id}`, "Coach Hoan"));
+    // Admin writes: the trainee's nickname for the PT side applies.
+    sender.mockClear();
     await push.sendChatPush(
       {
         senderRole: "admin",
-        senderAdminId: admin.id,
+        senderAdminId: hoan,
         traineeUserId: traineeId,
         conversationId: 3,
         body: "hi",
       },
       sender,
     );
-    expect(sender.mock.calls[2][1].title).toBe("Coach Hoan");
+    expect(titles()).toEqual({ t: "Thầy" });
+
+    // A nickname for that very admin wins over the PT-side one.
+    await db
+      .insert(contactAliases)
+      .values(alias(`user:${traineeId}`, `admin:${hoan}`, "Coach Hoan"));
+    sender.mockClear();
+    await push.sendChatPush(
+      {
+        senderRole: "admin",
+        senderAdminId: hoan,
+        traineeUserId: traineeId,
+        conversationId: 3,
+        body: "hi",
+      },
+      sender,
+    );
+    expect(titles()).toEqual({ t: "Coach Hoan" });
   });
 
-  it("ignores nicknames of another conversation", async () => {
-    await db.insert(chatNicknames).values({
-      conversationId: 99,
-      targetKey: "user",
-      nickname: "Other",
-      setByKey: "user",
+  it("ignores nicknames other people set for the sender", async () => {
+    await db.insert(contactAliases).values({
+      ownerKey: "admin:2",
+      targetKey: `user:${traineeId}`,
+      alias: "Other",
       updatedAt: new Date(),
     });
     await addSub("admin:1", "a1");

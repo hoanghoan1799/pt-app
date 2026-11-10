@@ -8,7 +8,7 @@ import {
   admins,
   chatConversations,
   chatMessages,
-  chatNicknames,
+  contactAliases,
   nutritionTargets,
   users,
   workoutDays,
@@ -58,6 +58,8 @@ const memberActions =
 const chatAdmin = await import("@/features/chat/services/chat-admin-actions");
 const chatProfile =
   await import("@/features/chat/services/chat-profile-actions");
+const contactAliasActions =
+  await import("@/features/contact-aliases/services/contact-alias-actions");
 const chatActions = await import("@/features/chat/services/chat-actions");
 const chatHidden = await import("@/features/chat/services/chat-hidden");
 const ablyRoute = await import("@/app/api/chat/ably-token/route");
@@ -285,17 +287,24 @@ describe("chat", () => {
     ).toBe("denied");
   });
 
-  it("nickname and colour overrides are refused for another workspace", async () => {
+  it("private nicknames are refused for another workspace's trainee", async () => {
     expect(
-      await outcome(() =>
-        chatProfile.adminSetNicknameAction({
-          conversationId: theirConversation,
-          target: "user",
-          nickname: "Bé",
-        }),
-      ),
-    ).toBe("denied");
-    expect(await db.select().from(chatNicknames)).toHaveLength(0);
+      await contactAliasActions.adminSetContactAliasAction({
+        targetKey: `user:${theirs}`,
+        alias: "Bé",
+      }),
+    ).toMatchObject({ status: "error" });
+    expect(await db.select().from(contactAliases)).toHaveLength(0);
+    expect(
+      await contactAliasActions.adminSetContactAliasAction({
+        targetKey: `user:${mine}`,
+        alias: "Bé",
+      }),
+    ).toMatchObject({ status: "success", alias: "Bé" });
+    expect(await db.select().from(contactAliases)).toHaveLength(1);
+  });
+
+  it("colour overrides are refused for another workspace", async () => {
     expect(
       await outcome(() =>
         chatProfile.adminSetConversationColorAction({

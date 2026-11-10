@@ -621,9 +621,10 @@ export const chatMessageEdits = sqliteTable(
   (table) => [index("chat_message_edits_message_id").on(table.messageId)],
 );
 
-// Nicknames per conversation (KAN-141). targetKey is "user", "pt" (the PT side
-// as a whole) or "admin:<id>"; setByKey is the reader key of who set it. A
-// cleared nickname deletes the row.
+// Legacy (KAN-141): shared nicknames per conversation, replaced by the private
+// contact_aliases. App code no longer reads or writes it; the setup script
+// copies its rows into contactAliases once. A member's removal still clears
+// the rows of their conversation.
 export const chatNicknames = sqliteTable(
   "chat_nicknames",
   {
@@ -634,6 +635,24 @@ export const chatNicknames = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [primaryKey({ columns: [table.conversationId, table.targetKey] })],
+);
+
+// Private nicknames (Zalo style): owner_key renamed target_key for the owner's
+// own eyes only. Both are actor keys "user:<id>" / "admin:<id>"; the target
+// "pt" (a trainee owner only) means the PT side as a whole in the trainee's
+// chat header. A cleared alias deletes the row.
+export const contactAliases = sqliteTable(
+  "contact_aliases",
+  {
+    ownerKey: text("owner_key").notNull(),
+    targetKey: text("target_key").notNull(),
+    alias: text("alias").notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.ownerKey, table.targetKey] }),
+    index("contact_aliases_owner_key").on(table.ownerKey),
+  ],
 );
 
 // An admin's bubble colour for one conversation only (KAN-141, Q7); it wins
