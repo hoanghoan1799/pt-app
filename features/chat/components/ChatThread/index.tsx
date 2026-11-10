@@ -16,11 +16,11 @@ import {
 import { toast } from "sonner";
 
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
+import { ScrollJumpButton } from "@/components/common/ScrollJumpButton";
 import { Spinner } from "@/components/common/Spinner";
 import { Composer } from "@/features/chat/components/Composer";
 import { LockedBanner } from "@/features/chat/components/LockedBanner";
 import { MessageBubble } from "@/features/chat/components/MessageBubble";
-import { NewMessagesChip } from "@/features/chat/components/NewMessagesChip";
 import { PushOptInCard } from "@/features/chat/components/PushOptInCard";
 import { ReplyBar } from "@/features/chat/components/ReplyBar";
 import { ReplyPostBar } from "@/features/chat/components/ReplyPostBar";
@@ -57,6 +57,8 @@ import type { PreparedPhoto } from "@/features/chat/utils/encode-photo";
 import type { PresenceView } from "@/features/chat/utils/presence-status";
 import { useIsEmbedded } from "@/features/chat-bubbles/hooks/use-is-embedded";
 import type { DmReplyPostView } from "@/features/social/types/dm";
+import { useScrollAway } from "@/hooks/use-scroll-away";
+import { scrollBehaviorFor } from "@/utils/scroll-rules";
 
 export interface ChatThreadProps {
   initial: ThreadSnapshot;
@@ -253,6 +255,9 @@ export const ChatThread = ({
     null,
   );
   const [showNewChip, setShowNewChip] = useState(false);
+  const [newCount, setNewCount] = useState(0);
+  const { isAway } = useScrollAway({ edge: "bottom", container: scroller });
+  const tJump = useTranslations("common.scrollJump");
   const confirm = useConfirm();
   // The open sheet and the message it is about; kept after closing so the
   // content does not vanish during the exit animation.
@@ -306,9 +311,13 @@ export const ChatThread = ({
     const node = scroller.current;
 
     if (node) {
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+
       node.scrollTo({
         top: node.scrollHeight,
-        behavior: smooth ? "smooth" : "auto",
+        behavior: smooth ? scrollBehaviorFor(reduceMotion) : "auto",
       });
     }
   }, []);
@@ -358,6 +367,7 @@ export const ChatThread = ({
       scrollToBottom(true);
     } else {
       setShowNewChip(true);
+      setNewCount((n) => n + 1);
     }
   }, [lastKey, last, scrollToBottom, viewer.role]);
 
@@ -612,6 +622,7 @@ export const ChatThread = ({
     );
     if (wasNearBottom.current) {
       setShowNewChip(false);
+      setNewCount(0);
     }
   };
 
@@ -769,9 +780,18 @@ export const ChatThread = ({
             )}
           </div>
         </div>
-        {showNewChip && (
-          <NewMessagesChip onClick={() => scrollToBottom(true)} />
-        )}
+        <ScrollJumpButton
+          direction="down"
+          visible={showNewChip || isAway}
+          label={
+            newCount > 0
+              ? tJump("newCount", { count: newCount })
+              : tJump("toLatest")
+          }
+          count={newCount}
+          onClick={() => scrollToBottom(true)}
+          className="absolute bottom-2 left-1/2 -translate-x-1/2"
+        />
       </div>
       <div
         className={clsx(
@@ -829,6 +849,7 @@ export const ChatThread = ({
             onSaveEdit={handleSaveEdit}
             replyId={replyMessage?.id ?? null}
             onOpenStickers={openStickers}
+            onSendSticker={handleStickerPick}
             onTyping={sendTyping}
             placeholder={
               viewer.role === "admin" && viewer.peerName

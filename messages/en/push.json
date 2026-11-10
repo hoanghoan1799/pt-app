@@ -14,6 +14,9 @@
     "postComment": "{name} commented on your post",
     "commented": "{name} commented: {preview}",
     "friendRequest": "{name} sent you a friend request",
-    "friendAccepted": "{name} accepted your friend request"
+    "friendAccepted": "{name} accepted your friend request",
+    "adminPostList": "{name} posted something new",
+    "adminPost": "{name} posted: {preview}",
+    "adminPostPhoto": "{name} posted a new photo"
   }
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
+import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { CARD, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
@@ -132,6 +133,7 @@ const FriendsPage = async ({ searchParams }: PageProps<"/friends">) => {
         )}
         {tab === "search" && <FriendSearch />}
       </main>
+      <ScrollToTopButton aboveTabBar />
     </>
   );
 };

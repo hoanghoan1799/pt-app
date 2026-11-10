@@ -5,6 +5,7 @@ import { ChevronLeft, Settings } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -34,6 +35,8 @@ interface ChatHeaderProps {
   infoHref: string;
   // Shows the "minimize to a bubble" button: the bubble key of this chat.
   bubble?: { role: BubbleRole; key: string };
+  // Extra controls before the gear (admin: the neutral colours switch).
+  actions?: ReactNode;
 }
 
 // The thread header (both sides): Back, avatar, the name with the settings
@@ -48,6 +51,7 @@ export const ChatHeader = ({
   infoHref,
   verified = false,
   bubble,
+  actions,
 }: ChatHeaderProps) => {
   const t = useTranslations("chat.chatHeader");
   const router = useRouter();
@@ -115,6 +119,7 @@ export const ChatHeader = ({
             onMinimized={handleBack}
           />
         )}
+        {actions}
         <Link
           href={infoHref}
           className={clsx(ICON_BUTTON, "-mr-3")}

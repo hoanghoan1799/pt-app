@@ -139,6 +139,8 @@ export const notificationText = (
       return t("social.postReaction", { name: actorName });
     case "post_comment":
       return t("social.postComment", { name: actorName });
+    case "admin_post":
+      return t("social.adminPostList", { name: actorName });
     case "friend_request":
       return t("social.friendRequest", { name: actorName });
     case "friend_accepted":
@@ -194,6 +196,28 @@ export const buildCommentPush = (
   url: postPathFor(recipientKey, postId),
   tag: `social-comment-${postId}`,
 });
+
+// A new admin post: the caption preview, or a photo line when it has none.
+export const buildAdminPostPush = (
+  actorName: string,
+  recipientKey: string,
+  postId: number,
+  caption: string | null,
+  locale: Locale = DEFAULT_LOCALE,
+): SocialPushPayload => {
+  const t = getPushTranslator(locale);
+  const preview = previewComment(caption ?? "");
+
+  return {
+    title: "PT App",
+    body:
+      preview === ""
+        ? t("social.adminPostPhoto", { name: actorName })
+        : t("social.adminPost", { name: actorName, preview }),
+    url: postPathFor(recipientKey, postId),
+    tag: `social-post-${postId}`,
+  };
+};
 
 export const FRIENDS_PATH = "/friends";
 export const FRIEND_REQUESTS_PATH = "/friends?tab=requests";

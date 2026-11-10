@@ -48,5 +48,10 @@
     "setAlias": "Đặt biệt danh",
     "editAlias": "Sửa biệt danh",
     "sheetTitle": "Biệt danh cho {name}"
+  },
+  "scrollJump": {
+    "toTop": "Lên đầu trang",
+    "toLatest": "Xem tin nhắn mới nhất",
+    "newCount": "{count} tin nhắn mới"
   }
 }

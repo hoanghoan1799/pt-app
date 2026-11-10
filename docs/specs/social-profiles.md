@@ -27,7 +27,7 @@ A small social layer on top of pt-app (profiles, photo posts, reactions, comment
 - R4 Six reactions, one per person per post, long-press to pick, tap = ❤️. Same emoji set as chat (`CHAT_REACTION_EMOJIS`).
 - R5 Comments are flat and text only. The author edits or deletes their comment; the post author deletes comments on their post. Anyone who can see a post can comment on it.
 - R6 Home feed, newest first: own posts, friends' posts (everyone + friends), admins' posts visible to the viewer. Strangers' "everyone" posts appear only on their profile.
-- R7 Push + unread dot + a "Thông báo" page for: friend request, request accepted, reaction, comment. Reaction pushes are batched (at most one per post per hour).
+- R7 Push + unread dot + a "Thông báo" page for: friend request, request accepted, reaction, comment, and a new post by an admin (sent to the trainees who can see it; nothing for `only_me`). Reaction pushes are batched (at most one per post per hour).
 
 ### Round 3: badge, PT, moderation, profile
 

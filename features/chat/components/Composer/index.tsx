@@ -20,6 +20,9 @@ import {
 import { toast } from "sonner";
 
 import { Spinner } from "@/components/common/Spinner";
+import type { PickedSticker } from "@/features/chat/components/StickerPanel";
+import { StickerSuggestions } from "@/features/chat/components/StickerSuggestions";
+import { useStickerSuggestSetting } from "@/features/chat/hooks/use-sticker-suggest-setting";
 import {
   type ChatCommand,
   composeCommandMessage,
@@ -52,6 +55,9 @@ interface ComposerProps {
   replyId?: number | null;
   // Shows the sticker button (hidden while editing); the owner opens the panel.
   onOpenStickers?: () => void;
+  // Sends a sticker picked from the typing suggestions; the box is cleared.
+  // Without it no suggestions are shown.
+  onSendSticker?: (sticker: PickedSticker) => void;
 }
 
 const MAX_HEIGHT_PX = 120;
@@ -77,6 +83,7 @@ export const Composer = ({
   onSaveEdit,
   replyId = null,
   onOpenStickers,
+  onSendSticker,
 }: ComposerProps) => {
   const t = useTranslations("chat.composer");
   const localize = useLocalizeMessage();
@@ -103,6 +110,21 @@ export const Composer = ({
   const canSend =
     !isPreparing && (value.trim().length > 0 || (photo !== null && !editing));
   const editId = editing?.id ?? null;
+  // Sticker suggestions while typing: the text they were hidden for ("Ẩn" or
+  // Escape), and the per-device switches.
+  const [dismissedFor, setDismissedFor] = useState<string | null>(null);
+  const [suggestStickers] = useStickerSuggestSetting("stickers");
+  const [suggestGifs] = useStickerSuggestSetting("gifs");
+  const trimmed = value.trim();
+  const showStickerSuggestions =
+    Boolean(onSendSticker) &&
+    suggestStickers &&
+    !editing &&
+    !activeChip &&
+    photo === null &&
+    trimmed !== "" &&
+    !trimmed.startsWith("/") &&
+    dismissedFor !== trimmed;
 
   // Entering or leaving edit mode swaps the box content (state adjusted while
   // rendering, so there is no frame with the wrong text).
@@ -211,6 +233,14 @@ export const Composer = ({
     inputRef.current?.focus();
   };
 
+  const pickSticker = (sticker: PickedSticker) => {
+    onSendSticker?.(sticker);
+    setValue("");
+    setDismissedFor(null);
+    requestAnimationFrame(resize);
+    inputRef.current?.focus();
+  };
+
   const pickCommand = (command: ChatCommand) => {
     setChip(command);
     setValue("");
@@ -232,6 +262,10 @@ export const Composer = ({
         pickCommand(suggestions[active]);
         return;
       }
+    }
+    if (event.key === "Escape" && showStickerSuggestions) {
+      setDismissedFor(trimmed);
+      return;
     }
     if (event.key === "Backspace" && activeChip && value === "") {
       event.preventDefault();
@@ -318,6 +352,17 @@ export const Composer = ({
             </li>
           ))}
         </ul>
+      )}
+      {showStickerSuggestions && (
+        <StickerSuggestions
+          text={value}
+          withGifs={suggestGifs}
+          onPick={pickSticker}
+          onDismiss={() => {
+            setDismissedFor(trimmed);
+            inputRef.current?.focus();
+          }}
+        />
       )}
       <form
         onSubmit={(event) => {

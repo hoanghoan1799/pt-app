@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
@@ -46,6 +47,7 @@ const NotificationsPage = async () => {
       >
         <NotificationList notifications={notifications} />
       </main>
+      <ScrollToTopButton aboveTabBar />
     </>
   );
 };

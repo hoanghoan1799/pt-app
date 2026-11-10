@@ -10,5 +10,9 @@
   },
   "offlineRetry": {
     "retry": "Thử lại"
+  },
+  "newVersion": {
+    "message": "Đã có bản mới của PT App",
+    "reload": "Tải lại"
   }
 }

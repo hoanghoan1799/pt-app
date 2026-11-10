@@ -47,7 +47,11 @@ export interface ReactorView {
 }
 
 export type NotificationKind =
-  "friend_request" | "friend_accepted" | "post_reaction" | "post_comment";
+  | "friend_request"
+  | "friend_accepted"
+  | "post_reaction"
+  | "post_comment"
+  | "admin_post";
 
 export interface NotificationView {
   id: number;

@@ -10,5 +10,9 @@
   },
   "offlineRetry": {
     "retry": "Try again"
+  },
+  "newVersion": {
+    "message": "A new version of PT App is ready",
+    "reload": "Reload"
   }
 }

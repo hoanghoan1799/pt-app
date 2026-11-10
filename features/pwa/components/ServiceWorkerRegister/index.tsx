@@ -2,16 +2,17 @@
 
 import { useEffect } from "react";
 
-// Dev keeps hot reload free of a worker unless NEXT_PUBLIC_ENABLE_SW=1 (e2e).
-const isEnabled =
-  process.env.NODE_ENV === "production" ||
-  process.env.NEXT_PUBLIC_ENABLE_SW === "1";
+import { BUILD_ID, IS_PWA_ENABLED } from "@/features/pwa/constants";
+import { useNewVersionCheck } from "@/features/pwa/hooks/use-new-version-check";
 
-const BUILD_ID = process.env.NEXT_PUBLIC_BUILD_ID ?? "dev";
-
+// The worker version lives only in the `?v=` URL (sw.js bytes never change), so
+// update() from an old page cannot find a new worker. A page resumed from
+// memory never re-registers, hence useNewVersionCheck asks /api/version.
 export const ServiceWorkerRegister = () => {
+  useNewVersionCheck();
+
   useEffect(() => {
-    if (!isEnabled || !("serviceWorker" in navigator)) {
+    if (!IS_PWA_ENABLED || !("serviceWorker" in navigator)) {
       return;
     }
     navigator.serviceWorker

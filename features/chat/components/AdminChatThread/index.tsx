@@ -9,6 +9,7 @@ import {
   ChatThread,
   type ChatThreadProps,
 } from "@/features/chat/components/ChatThread";
+import { NeutralColorsSwitch } from "@/features/chat/components/NeutralColorsSwitch";
 import { chatPaths } from "@/features/chat/utils/chat-links";
 import { displayNameFor } from "@/features/chat/utils/display-name";
 import { bubbleKeyFor } from "@/features/chat-bubbles/utils/bubble-links";
@@ -63,6 +64,7 @@ export const AdminChatThread = ({
               presence={presence}
               avatarSrc={peerAvatar}
               infoHref={infoHref}
+              actions={<NeutralColorsSwitch />}
               bubble={{
                 role: "admin",
                 key: bubbleKeyFor("admin", thread.userId),

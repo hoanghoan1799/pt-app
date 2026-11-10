@@ -14,7 +14,11 @@ import {
 import { after } from "next/server";
 
 import { db } from "@/db";
-import { pushSubscriptions, socialNotifications } from "@/db/schema";
+import {
+  pushSubscriptions,
+  socialNotifications,
+  socialPosts,
+} from "@/db/schema";
 import {
   deliverLocalized,
   getVapid,
@@ -34,6 +38,7 @@ import type {
   NotificationView,
 } from "@/features/social/types/social";
 import {
+  buildAdminPostPush,
   buildCommentPush,
   buildFriendPush,
   buildReactionPush,
@@ -228,6 +233,7 @@ const buildPayload = (
   actorName: string,
   commentBody: string | undefined,
   locale: Locale,
+  postCaption: string | null = null,
 ) => {
   if (
     notification.kind === "friend_request" ||
@@ -237,6 +243,15 @@ const buildPayload = (
   }
   const postId = notification.postId ?? 0;
 
+  if (notification.kind === "admin_post") {
+    return buildAdminPostPush(
+      actorName,
+      notification.recipientKey,
+      postId,
+      postCaption,
+      locale,
+    );
+  }
   return notification.kind === "post_comment"
     ? buildCommentPush(
         actorName,
@@ -305,6 +320,24 @@ export const sendSocialPush = async (
         return;
       }
     }
+    let postCaption: string | null = null;
+
+    if (notification.kind === "admin_post" && notification.postId !== null) {
+      const [post] = await db
+        .select({
+          caption: socialPosts.caption,
+          deletedAt: socialPosts.deletedAt,
+        })
+        .from(socialPosts)
+        .where(eq(socialPosts.id, notification.postId))
+        .limit(1);
+
+      // The post was deleted before the push went out.
+      if (!post || post.deletedAt !== null) {
+        return;
+      }
+      postCaption = post.caption;
+    }
     const targets = await db
       .select()
       .from(pushSubscriptions)
@@ -325,7 +358,8 @@ export const sendSocialPush = async (
       .where(eq(socialNotifications.id, notification.id));
     await deliverLocalized(
       targets,
-      (locale) => buildPayload(notification, actorName, commentBody, locale),
+      (locale) =>
+        buildPayload(notification, actorName, commentBody, locale, postCaption),
       vapid,
       sender,
     );
