@@ -2,17 +2,17 @@
 
 import clsx from "clsx";
 import { Heart, MessageCircle } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useOptimistic, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { PostReactorsSheet } from "@/features/social/components/PostReactorsSheet";
-import { ReactionPicker } from "@/features/social/components/ReactionPicker";
 import { reactAction } from "@/features/social/services/engagement-actions";
 import type { ReactionSummary } from "@/features/social/types/social";
 import { applyReaction } from "@/features/social/utils/engagement-rules";
+import { useHasOpened } from "@/hooks/use-has-opened";
 import { describeErrorReference } from "@/utils/errors";
 
 interface ReactionBarProps {
@@ -23,6 +23,23 @@ interface ReactionBarProps {
   // Link to the post page; null when already on it.
   detailHref: string | null;
 }
+
+// Every post in the feed has a bar, but the picker and the reactors list open
+// only on a tap or long press, so their code loads on first open.
+const ReactionPicker = dynamic(
+  () =>
+    import("@/features/social/components/ReactionPicker").then(
+      (module) => module.ReactionPicker,
+    ),
+  { ssr: false },
+);
+const PostReactorsSheet = dynamic(
+  () =>
+    import("@/features/social/components/PostReactorsSheet").then(
+      (module) => module.PostReactorsSheet,
+    ),
+  { ssr: false },
+);
 
 const LONG_PRESS_MS = 450;
 const HAPTIC_MS = 10;
@@ -49,6 +66,8 @@ export const ReactionBar = ({
   );
   const [isPickerOpen, setPickerOpen] = useState(false);
   const [isReactorsOpen, setReactorsOpen] = useState(false);
+  const hasPickerOpened = useHasOpened(isPickerOpen);
+  const hasReactorsOpened = useHasOpened(isReactorsOpen);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPress = useRef(false);
 
@@ -159,18 +178,22 @@ export const ReactionBar = ({
         </span>
       )}
 
-      <ReactionPicker
-        isOpen={isPickerOpen}
-        onOpenChange={setPickerOpen}
-        mine={summary.mine}
-        onPick={react}
-      />
-      <PostReactorsSheet
-        isOpen={isReactorsOpen}
-        onOpenChange={setReactorsOpen}
-        postId={postId}
-        mode={mode}
-      />
+      {hasPickerOpened && (
+        <ReactionPicker
+          isOpen={isPickerOpen}
+          onOpenChange={setPickerOpen}
+          mine={summary.mine}
+          onPick={react}
+        />
+      )}
+      {hasReactorsOpened && (
+        <PostReactorsSheet
+          isOpen={isReactorsOpen}
+          onOpenChange={setReactorsOpen}
+          postId={postId}
+          mode={mode}
+        />
+      )}
     </div>
   );
 };

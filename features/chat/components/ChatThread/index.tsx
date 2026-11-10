@@ -18,13 +18,10 @@ import { toast } from "sonner";
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { Spinner } from "@/components/common/Spinner";
 import { Composer } from "@/features/chat/components/Composer";
-import { EditHistorySheet } from "@/features/chat/components/EditHistorySheet";
 import { LockedBanner } from "@/features/chat/components/LockedBanner";
-import { MessageActionsSheet } from "@/features/chat/components/MessageActionsSheet";
 import { MessageBubble } from "@/features/chat/components/MessageBubble";
 import { NewMessagesChip } from "@/features/chat/components/NewMessagesChip";
 import { PushOptInCard } from "@/features/chat/components/PushOptInCard";
-import { ReactorsSheet } from "@/features/chat/components/ReactorsSheet";
 import { ReplyBar } from "@/features/chat/components/ReplyBar";
 import { ReplyPostBar } from "@/features/chat/components/ReplyPostBar";
 import { TypingIndicator } from "@/features/chat/components/TypingIndicator";
@@ -113,6 +110,31 @@ const StickerPanel = dynamic(
   () =>
     import("@/features/chat/components/StickerPanel").then(
       (module) => module.StickerPanel,
+    ),
+  { ssr: false },
+);
+
+// The message sheets mount only after a long-press or tap on a message, so
+// their code loads on demand. Nothing is shown while the chunk loads: the sheet
+// is an overlay, and it opens as soon as the module arrives.
+const MessageActionsSheet = dynamic(
+  () =>
+    import("@/features/chat/components/MessageActionsSheet").then(
+      (module) => module.MessageActionsSheet,
+    ),
+  { ssr: false },
+);
+const ReactorsSheet = dynamic(
+  () =>
+    import("@/features/chat/components/ReactorsSheet").then(
+      (module) => module.ReactorsSheet,
+    ),
+  { ssr: false },
+);
+const EditHistorySheet = dynamic(
+  () =>
+    import("@/features/chat/components/EditHistorySheet").then(
+      (module) => module.EditHistorySheet,
     ),
   { ssr: false },
 );

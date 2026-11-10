@@ -12,6 +12,7 @@ import {
   Settings,
   UserRound,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -30,18 +31,16 @@ import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { Spinner } from "@/components/common/Spinner";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON } from "@/constants/styles";
-import { PasscodeSettingsSheet } from "@/features/auth/components/PasscodeSettingsSheet";
 import {
   logoutAdminAction,
   logoutUserAction,
 } from "@/features/auth/services/auth-actions";
 import { lockNow } from "@/features/auth/services/passcode-actions";
 import { buildLockUrl } from "@/features/auth/utils/lock-redirect";
-import { AvatarSheet } from "@/features/avatar/components/AvatarSheet";
-import { AccountColorSheet } from "@/features/chat/components/AccountColorSheet";
 import { PushToggle } from "@/features/chat/components/PushToggle";
 import { setPresenceHiddenAction } from "@/features/chat/services/presence-actions";
 import type { ChatColorKey } from "@/features/chat/utils/chat-palette";
+import { useHasOpened } from "@/hooks/use-has-opened";
 import { setLocaleAction } from "@/services/locale-actions";
 import { setThemeAction } from "@/services/theme-actions";
 import {
@@ -52,6 +51,30 @@ import {
   parseLocale,
 } from "@/utils/locale";
 import { parseTheme, type Theme } from "@/utils/theme";
+
+// Closed on every page load and opened by a tap in the menu, so their code
+// loads on first open (see useHasOpened below). Overlays: no loading fallback.
+const AvatarSheet = dynamic(
+  () =>
+    import("@/features/avatar/components/AvatarSheet").then(
+      (module) => module.AvatarSheet,
+    ),
+  { ssr: false },
+);
+const PasscodeSettingsSheet = dynamic(
+  () =>
+    import("@/features/auth/components/PasscodeSettingsSheet").then(
+      (module) => module.PasscodeSettingsSheet,
+    ),
+  { ssr: false },
+);
+const AccountColorSheet = dynamic(
+  () =>
+    import("@/features/chat/components/AccountColorSheet").then(
+      (module) => module.AccountColorSheet,
+    ),
+  { ssr: false },
+);
 
 type Role = "user" | "admin";
 type MenuId = "gear" | "avatar";
@@ -100,6 +123,9 @@ export const HeaderMenus = ({
   const [isPasscodeOpen, setIsPasscodeOpen] = useState(false);
   const [isAvatarOpen, setIsAvatarOpen] = useState(false);
   const [isColorOpen, setIsColorOpen] = useState(false);
+  const hasAvatarOpened = useHasOpened(isAvatarOpen);
+  const hasPasscodeOpened = useHasOpened(isPasscodeOpen);
+  const hasColorOpened = useHasOpened(isColorOpen);
   const [isHidden, setIsHidden] = useState(isPresenceHidden);
   const [theme, setTheme] = useState<Theme>("system");
   const [isPending, startTransition] = useTransition();
@@ -511,25 +537,31 @@ export const HeaderMenus = ({
           )}
         </div>
       )}
-      <AvatarSheet
-        isOpen={isAvatarOpen}
-        onOpenChange={setIsAvatarOpen}
-        role={role}
-        name={name}
-        savedUrl={avatarUrl}
-      />
+      {hasAvatarOpened && (
+        <AvatarSheet
+          isOpen={isAvatarOpen}
+          onOpenChange={setIsAvatarOpen}
+          role={role}
+          name={name}
+          savedUrl={avatarUrl}
+        />
+      )}
       {role === "admin" && (
         <>
-          <PasscodeSettingsSheet
-            isOpen={isPasscodeOpen}
-            onOpenChange={setIsPasscodeOpen}
-            hasPasscode={hasPasscode}
-          />
-          <AccountColorSheet
-            isOpen={isColorOpen}
-            onOpenChange={setIsColorOpen}
-            savedColor={accountColor}
-          />
+          {hasPasscodeOpened && (
+            <PasscodeSettingsSheet
+              isOpen={isPasscodeOpen}
+              onOpenChange={setIsPasscodeOpen}
+              hasPasscode={hasPasscode}
+            />
+          )}
+          {hasColorOpened && (
+            <AccountColorSheet
+              isOpen={isColorOpen}
+              onOpenChange={setIsColorOpen}
+              savedColor={accountColor}
+            />
+          )}
         </>
       )}
     </div>

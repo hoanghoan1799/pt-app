@@ -1,6 +1,7 @@
 "use client";
 
 import { Send } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -18,7 +19,6 @@ import {
   TEXTAREA,
 } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
-import { ReportSheet } from "@/features/social/components/ReportSheet";
 import { COMMENT_MAX_LENGTH } from "@/features/social/constants/social";
 import {
   addCommentAction,
@@ -34,6 +34,15 @@ interface CommentSectionProps {
   mode: "user" | "admin";
   comments: CommentView[];
 }
+
+// Mounted only once a comment is being reported, so its code loads on demand.
+const ReportSheet = dynamic(
+  () =>
+    import("@/features/social/components/ReportSheet").then(
+      (module) => module.ReportSheet,
+    ),
+  { ssr: false },
+);
 
 const LINK_BUTTON =
   "min-h-8 text-xs font-semibold text-muted active:text-fg disabled:opacity-50";

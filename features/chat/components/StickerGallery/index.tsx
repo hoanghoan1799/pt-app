@@ -5,7 +5,8 @@ import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
-import { PhotoViewer, type ViewerPhoto } from "@/components/common/PhotoViewer";
+import { LazyPhotoViewer } from "@/components/common/LazyPhotoViewer";
+import type { ViewerPhoto } from "@/components/common/PhotoViewer";
 import { GalleryFooter } from "@/features/chat/components/GalleryFooter";
 import { useGalleryPager } from "@/features/chat/hooks/use-gallery-pager";
 import { jumpHref } from "@/features/chat/utils/chat-links";
@@ -99,7 +100,7 @@ export const StickerGallery = ({
         error={error}
         onRetry={() => void loadMore()}
       />
-      <PhotoViewer
+      <LazyPhotoViewer
         photos={viewerPhotos}
         index={openIndex}
         onIndexChange={setOpenIndex}
