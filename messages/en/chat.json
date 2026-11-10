@@ -179,7 +179,15 @@
     "loading": "Loading stickers…",
     "rateLimited": "You're searching a little fast. Wait a moment and try again.",
     "giphyError": "Couldn't load GIPHY stickers. Please try again.",
-    "giphyEmpty": "No stickers found."
+    "giphyEmpty": "No stickers found.",
+    "suggestStickers": "Suggest stickers as I type",
+    "suggestGifs": "Suggest GIFs from GIPHY"
+  },
+  "stickerSuggest": {
+    "title": "Sticker suggestions",
+    "label": "Suggested stickers",
+    "hide": "Hide",
+    "send": "Send sticker {alt}"
   },
   "customStickers": {
     "done": "Done",

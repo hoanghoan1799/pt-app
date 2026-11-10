@@ -822,6 +822,7 @@ export const ChatThread = ({
             onSaveEdit={handleSaveEdit}
             replyId={replyMessage?.id ?? null}
             onOpenStickers={openStickers}
+            onSendSticker={handleStickerPick}
             onTyping={sendTyping}
             placeholder={
               viewer.role === "admin" && viewer.peerName

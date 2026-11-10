@@ -179,7 +179,15 @@
     "loading": "正在加载贴纸…",
     "rateLimited": "你搜索得太快了，请稍等片刻再试。",
     "giphyError": "无法加载 GIPHY 贴纸，请重试。",
-    "giphyEmpty": "未找到贴纸。"
+    "giphyEmpty": "未找到贴纸。",
+    "suggestStickers": "输入时推荐贴纸",
+    "suggestGifs": "推荐 GIPHY 的 GIF"
+  },
+  "stickerSuggest": {
+    "title": "贴纸推荐",
+    "label": "推荐贴纸",
+    "hide": "隐藏",
+    "send": "发送贴纸 {alt}"
   },
   "customStickers": {
     "done": "完成",

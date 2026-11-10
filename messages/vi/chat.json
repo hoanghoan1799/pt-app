@@ -179,7 +179,15 @@
     "loading": "Đang tải sticker…",
     "rateLimited": "Bạn tìm hơi nhanh. Chờ một chút rồi thử lại nhé.",
     "giphyError": "Không tải được sticker GIPHY. Thử lại nhé.",
-    "giphyEmpty": "Không tìm thấy sticker nào."
+    "giphyEmpty": "Không tìm thấy sticker nào.",
+    "suggestStickers": "Gợi ý sticker khi gõ",
+    "suggestGifs": "Gợi ý GIF từ GIPHY"
+  },
+  "stickerSuggest": {
+    "title": "Gợi ý sticker",
+    "label": "Sticker gợi ý",
+    "hide": "Ẩn",
+    "send": "Gửi sticker {alt}"
   },
   "customStickers": {
     "done": "Xong",
