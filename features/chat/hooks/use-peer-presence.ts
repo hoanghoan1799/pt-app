@@ -13,6 +13,7 @@ import {
   serverClockNow,
   shouldRunPresence,
 } from "@/features/chat/utils/presence-status";
+import { startVisibleInterval } from "@/utils/visible-interval";
 
 const LABEL_TICK_MS = 30_000;
 
@@ -43,10 +44,10 @@ export const usePeerPresence = ({
 
   useEffect(() => {
     const tick = () => setNow(new Date());
-    const timer = setInterval(tick, LABEL_TICK_MS);
 
     tick();
-    return () => clearInterval(timer);
+    // No label ticks while hidden; one tick when the tab returns.
+    return startVisibleInterval(tick, LABEL_TICK_MS);
   }, []);
 
   useEffect(() => {
@@ -83,15 +84,16 @@ export const usePeerPresence = ({
         setSkewMs((current) => current ?? 0);
       }
     };
-    const onVisibility = () => void refresh();
-    const timer = setInterval(() => void refresh(), PRESENCE_HEARTBEAT_MS);
+    // Stops while hidden; fetches once when the tab returns.
+    const stopTimer = startVisibleInterval(
+      () => void refresh(),
+      PRESENCE_HEARTBEAT_MS,
+    );
 
-    document.addEventListener("visibilitychange", onVisibility);
     void refresh();
     return () => {
       cancelled = true;
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisibility);
+      stopTimer();
     };
   }, [role, userId]);
 
