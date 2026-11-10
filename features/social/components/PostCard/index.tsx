@@ -252,6 +252,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
             width={post.photo.width}
             height={post.photo.height}
             loading="lazy"
+            decoding="async"
             className="size-full object-cover"
           />
         </button>

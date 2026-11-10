@@ -40,7 +40,7 @@ export const GET = async (_request: NextRequest, { params }: Context) => {
         status: 200,
         headers: {
           "Content-Type": found.mime,
-          "Cache-Control": "private, max-age=3600",
+          "Cache-Control": "private, max-age=31536000, immutable",
           "X-Content-Type-Options": "nosniff",
           "Content-Security-Policy": "default-src 'none'; sandbox",
         },
