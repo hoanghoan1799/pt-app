@@ -1,6 +1,8 @@
-// PT App service worker. Deliberately tiny: it makes the app installable and
-// shows a friendly page when the network is down. It never caches HTML pages,
-// /api, server actions or any user data.
+// PT App service worker. Deliberately tiny: it makes the app installable,
+// shows a friendly page when the network is down and keeps the immutable build
+// files (/_next/static/, /stickers/, /icons/) so a reopened app does not
+// download them again. It never caches HTML pages, /api, server actions or any
+// user data.
 // The page registers /sw.js?v=<build id>, so every deploy installs a fresh
 // worker with its own cache (re-fetching anything that failed before).
 const BUILD_ID = new URL(self.location.href).searchParams.get("v") || "dev";
@@ -13,6 +15,41 @@ const ICON_URLS = [
   "/icons/apple-touch-icon.png",
 ];
 const PRECACHE_URLS = [OFFLINE_URL, ...ICON_URLS];
+
+// The only requests the worker answers from its cache: same-origin GETs of
+// files that never change under the same URL. /_next/static/ files are hashed
+// by the build, and /stickers/ and /icons/ are public images. Everything else
+// (HTML, /api, server actions, photos and any other user data) goes to the
+// network untouched.
+const IMMUTABLE_PREFIXES = ["/_next/static/", "/stickers/", "/icons/"];
+
+const isImmutableAsset = (url) =>
+  url.origin === self.location.origin &&
+  IMMUTABLE_PREFIXES.some((prefix) => url.pathname.startsWith(prefix));
+
+// Cache first, so reopening the installed app does not download the same JS,
+// CSS and images again. A miss goes to the network and only a complete 200
+// response is stored (never an error page or a partial 206); the cache is the
+// per-deploy CACHE_NAME, so a new deploy starts empty and drops the old one.
+// A failed fetch while offline is a plain network error, like before.
+const cacheFirst = async (event, request) => {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+
+  if (cached) {
+    return cached;
+  }
+  try {
+    const response = await fetch(request);
+
+    if (response.status === 200 && response.type === "basic") {
+      event.waitUntil(cache.put(request, response.clone()));
+    }
+    return response;
+  } catch {
+    return Response.error();
+  }
+};
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -71,23 +108,10 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  const { pathname } = new URL(request.url);
+  const url = new URL(request.url);
 
-  if (ICON_URLS.includes(pathname)) {
-    event.respondWith(
-      caches.match(request).then((cached) => cached || fetch(request)),
-    );
-    return;
-  }
-
-  if (pathname.startsWith("/_next/static/")) {
-    // Network first so online loads and dev chunks are never stale; the cache
-    // is used only when the fetch throws (offline).
-    event.respondWith(
-      fetch(request).catch(() =>
-        caches.match(request).then((cached) => cached || Response.error()),
-      ),
-    );
+  if (isImmutableAsset(url) && !request.headers.has("range")) {
+    event.respondWith(cacheFirst(event, request));
   }
 });
 
