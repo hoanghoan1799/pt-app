@@ -16,6 +16,7 @@ import {
 } from "@/features/chat/services/chat-queries";
 import { chatPaths } from "@/features/chat/utils/chat-links";
 import { INFO_PREVIEW_COUNT } from "@/features/chat/utils/gallery-rules";
+import { adminActorKey } from "@/features/contact-aliases/utils/alias-rules";
 import { requireAdmin } from "@/services/auth-guard";
 import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
@@ -45,7 +46,9 @@ const AdminMessagesInfoPage = async ({
     ? await getOrCreateConversation(user.id)
     : await findConversationByUserId(user.id);
   const [profile, traineeAvatar, gallery] = await Promise.all([
-    conversation ? loadChatProfile(conversation.id) : undefined,
+    conversation
+      ? loadChatProfile(conversation.id, adminActorKey(admin.id))
+      : undefined,
     getAvatarUrl("user", user.id),
     conversation
       ? listGalleryPhotos(conversation.id, {
@@ -67,7 +70,6 @@ const AdminMessagesInfoPage = async ({
       userId={user.id}
       conversationId={conversation?.id ?? null}
       peerName={user.name}
-      selfName={admin.username}
       initialProfile={profile ?? { nicknames: {}, colors: {} }}
       chatEnabled={chatEnabled}
       peerAvatarUrl={traineeAvatar}

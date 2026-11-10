@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
-import { pushSubscriptions, users } from "@/db/schema";
+import { contactAliases, pushSubscriptions, users } from "@/db/schema";
 
 const state = vi.hoisted(() => ({ db: null as unknown }));
 
@@ -85,6 +85,47 @@ describe("sendReactionPush", () => {
     );
 
     expect(sender.mock.calls[0][1].url).toBe("/messages/coach");
+  });
+
+  it("names the reactor by the author's own nickname, not anyone else's", async () => {
+    await db.insert(contactAliases).values([
+      {
+        ownerKey: `user:${traineeId}`,
+        targetKey: "pt",
+        alias: "Thầy",
+        updatedAt: new Date(),
+      },
+      {
+        ownerKey: "admin:2",
+        targetKey: "admin:1",
+        alias: "Sếp",
+        updatedAt: new Date(),
+      },
+    ]);
+    await addSub(`user:${traineeId}`, "t1");
+    await addSub("admin:2", "a2");
+    await addSub("admin:3", "a3");
+    const sender = vi.fn<Sender>(async () => undefined);
+    const body = () => sender.mock.calls.at(-1)?.[1].body;
+
+    // Trainee author, admin reactor: the nickname for the PT side applies.
+    await push.sendReactionPush(
+      { ...input({ role: "user", userId: traineeId }), reactorKey: "admin:1" },
+      sender,
+    );
+    expect(body()).toBe("Thầy đã thả ❤️ vào tin nhắn của bạn");
+
+    // Admin author with a nickname for the reactor; another admin without.
+    await push.sendReactionPush(
+      { ...input({ role: "admin", adminId: 2 }), reactorKey: "admin:1" },
+      sender,
+    );
+    expect(body()).toBe("Sếp đã thả ❤️ vào tin nhắn của bạn");
+    await push.sendReactionPush(
+      { ...input({ role: "admin", adminId: 3 }), reactorKey: "admin:1" },
+      sender,
+    );
+    expect(body()).toBe("Hoan đã thả ❤️ vào tin nhắn của bạn");
   });
 
   it("drops a dead subscription and does not throw", async () => {

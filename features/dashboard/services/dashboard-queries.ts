@@ -27,8 +27,8 @@ import {
   workoutDays,
 } from "@/db/schema";
 import { avatarUrl } from "@/features/avatar/utils/avatar-rules";
-import { listTraineeNicknames } from "@/features/chat/services/chat-queries";
 import { resolveDisplayName } from "@/features/chat/utils/display-name";
+import { loadTraineeAliases } from "@/features/contact-aliases/services/contact-aliases";
 import type {
   ActivityItem,
   MemberProgress,
@@ -126,7 +126,10 @@ export const getMemberProgress = async (
         .groupBy(foodEntries.userId),
     ]);
 
-  const nicknames = await listTraineeNicknames(members.map((row) => row.id));
+  const nicknames = await loadTraineeAliases(
+    adminId,
+    members.map((row) => row.id),
+  );
 
   return members.map(({ avatarUpdatedAt, ...member }) => {
     const assigned = assignedRows.find((row) => row.userId === member.id);

@@ -26,6 +26,7 @@ import { loadCoachReplyPostFor } from "@/features/chat/services/chat-reply-post"
 import { parseJumpId } from "@/features/chat/utils/chat-links";
 import { serializeMessage } from "@/features/chat/utils/chat-thread-rules";
 import { serializeLastSeen } from "@/features/chat/utils/presence";
+import { adminActorKey } from "@/features/contact-aliases/utils/alias-rules";
 import { actorOfAdmin } from "@/features/social/services/post-context";
 import { parseDmId } from "@/features/social/utils/dm-rules";
 import { toAdminRole } from "@/services/admin-scope";
@@ -115,7 +116,7 @@ const AdminMessagesPage = async ({
   ] = await Promise.all([
     around ?? listMessages(conversation.id, {}, viewer),
     getPeerReadCursor(conversation.id, "admin"),
-    loadChatProfile(conversation.id),
+    loadChatProfile(conversation.id, adminActorKey(admin.id)),
     listAdminAvatarUrls(),
     getAvatarUrl("user", user.id),
   ]);

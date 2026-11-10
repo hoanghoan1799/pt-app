@@ -5,6 +5,11 @@ import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { db } from "@/db";
 import { socialBlocks, socialFriendships, users } from "@/db/schema";
 import { avatarUrl } from "@/features/avatar/utils/avatar-rules";
+import { loadAliases } from "@/features/contact-aliases/services/contact-aliases";
+import {
+  overlayName,
+  userActorKey,
+} from "@/features/contact-aliases/utils/alias-rules";
 import {
   getRelationship,
   isBlockedBetween,
@@ -26,8 +31,11 @@ export interface SearchResult extends PersonView {
   relationship: Relationship;
 }
 
+// With `viewerId`, the names are that viewer's private nicknames where they
+// set one (their own never); the real name otherwise.
 export const loadPeople = async (
   ids: number[],
+  viewerId?: number,
 ): Promise<Map<number, PersonView>> => {
   if (ids.length === 0) {
     return new Map();
@@ -40,13 +48,23 @@ export const loadPeople = async (
     })
     .from(users)
     .where(inArray(users.id, ids));
+  const aliases =
+    viewerId === undefined
+      ? new Map<string, string>()
+      : await loadAliases(
+          userActorKey(viewerId),
+          rows.map((row) => userActorKey(row.id)),
+        );
 
   return new Map(
     rows.map((row) => [
       row.id,
       {
         id: row.id,
-        name: row.name,
+        name:
+          row.id === viewerId
+            ? row.name
+            : overlayName(aliases, userActorKey(row.id), row.name),
         avatarUrl: avatarUrl("user", row.id, row.avatarUpdatedAt),
       },
     ]),
@@ -95,7 +113,7 @@ export const searchTraineeByEmail = async (
   }
   return {
     id: row.id,
-    name: row.name,
+    name: (await loadPeople([row.id], meId)).get(row.id)?.name ?? row.name,
     avatarUrl: avatarUrl("user", row.id, row.avatarUpdatedAt),
     relationship: await getRelationship(meId, row.id),
   };
@@ -123,7 +141,7 @@ export const listFriends = async (meId: number): Promise<PersonView[]> => {
     .map((row) => (row.userLow === meId ? row.userHigh : row.userLow))
     .filter((id) => !blocked.has(id));
 
-  return inOrder(ids, await loadPeople(ids));
+  return inOrder(ids, await loadPeople(ids, meId));
 };
 
 export interface FriendRequests {
@@ -149,7 +167,7 @@ export const listFriendRequests = async (
     .orderBy(desc(socialFriendships.createdAt));
   const otherOf = (row: (typeof rows)[number]) =>
     row.userLow === meId ? row.userHigh : row.userLow;
-  const people = await loadPeople(rows.map(otherOf));
+  const people = await loadPeople(rows.map(otherOf), meId);
 
   return {
     received: inOrder(
@@ -172,7 +190,7 @@ export const listBlockedByMe = async (meId: number): Promise<PersonView[]> => {
     .orderBy(desc(socialBlocks.createdAt));
   const ids = rows.map((row) => row.blockedId);
 
-  return inOrder(ids, await loadPeople(ids));
+  return inOrder(ids, await loadPeople(ids, meId));
 };
 
 export const countPendingReceived = async (meId: number) =>

@@ -11,7 +11,7 @@ interface HiddenUserListProps {
   users: {
     userId: number;
     userName: string;
-    // Nickname if an admin set one; falls back to userName.
+    // The viewing admin's private nickname if they set one; else userName.
     displayName?: string;
     avatarUrl: string | null;
   }[];

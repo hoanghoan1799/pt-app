@@ -16,6 +16,8 @@ import {
 import { db } from "@/db";
 import { admins, socialPostPhotos, socialPosts, users } from "@/db/schema";
 import { avatarUrl } from "@/features/avatar/utils/avatar-rules";
+import { loadAliases } from "@/features/contact-aliases/services/contact-aliases";
+import { overlayName } from "@/features/contact-aliases/utils/alias-rules";
 import { POSTS_PAGE_SIZE } from "@/features/social/constants/social";
 import {
   emptyEngagement,
@@ -31,6 +33,7 @@ import type {
   SocialActor,
 } from "@/features/social/types/social";
 import {
+  actorKey,
   canDeletePost,
   canEditPost,
   socialPhotoUrl,
@@ -91,6 +94,15 @@ const toPostViews = async (
     rows.map((row) => row.post.id),
     viewer,
   );
+  // The viewer's own nicknames for the authors, nobody else's; their own
+  // posts keep their real name.
+  const viewerKey = actorKey(viewer);
+  const aliases = await loadAliases(
+    viewerKey,
+    rows.map((row) =>
+      actorKey({ kind: row.post.authorKind, id: row.post.authorId }),
+    ),
+  );
   const usersById = new Map(userRows.map((row) => [row.id, row]));
   const adminsById = new Map(adminRows.map((row) => [row.id, row]));
   const t = getFormatTranslator(locale);
@@ -105,7 +117,13 @@ const toPostViews = async (
       id: post.id,
       authorKind: post.authorKind,
       authorId: post.authorId,
-      authorName: author?.name ?? t("fallback.deletedAccount"),
+      authorName: author
+        ? overlayName(
+            actorKey(ref) === viewerKey ? null : aliases,
+            actorKey(ref),
+            author.name,
+          )
+        : t("fallback.deletedAccount"),
       authorAvatarUrl: author
         ? avatarUrl(post.authorKind, post.authorId, author.avatarUpdatedAt)
         : null,

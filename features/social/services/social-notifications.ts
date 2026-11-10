@@ -99,7 +99,11 @@ export const listNotifications = async (
     .where(eq(socialNotifications.recipientKey, recipientKey))
     .orderBy(desc(socialNotifications.createdAt), desc(socialNotifications.id))
     .limit(NOTIFICATIONS_PAGE_SIZE);
-  const accounts = await loadAccounts(rows.map((row) => row.actorKey));
+  // The recipient's own nicknames for the people who acted.
+  const accounts = await loadAccounts(
+    rows.map((row) => row.actorKey),
+    recipientKey,
+  );
 
   return rows.map((row) => {
     const actor = accounts.get(row.actorKey);
@@ -309,9 +313,10 @@ export const sendSocialPush = async (
     if (targets.length === 0) {
       return;
     }
-    const actor = (await loadAccounts([notification.actorKey])).get(
-      notification.actorKey,
-    );
+    // The push says the actor's name as the recipient calls them.
+    const actor = (
+      await loadAccounts([notification.actorKey], notification.recipientKey)
+    ).get(notification.actorKey);
     const actorName = actor?.name ?? DELETED_ACCOUNT_NAME;
 
     await db

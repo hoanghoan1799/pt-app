@@ -21,6 +21,11 @@ import {
   users,
 } from "@/db/schema";
 import { avatarUrl } from "@/features/avatar/utils/avatar-rules";
+import { loadAliases } from "@/features/contact-aliases/services/contact-aliases";
+import {
+  overlayName,
+  userActorKey,
+} from "@/features/contact-aliases/utils/alias-rules";
 import { DM_PAGE_SIZE } from "@/features/social/constants/dm";
 import { loadReplyPostViews } from "@/features/social/services/dm-reply-post";
 import { listBlockedBetweenIds } from "@/features/social/services/relationships";
@@ -270,6 +275,11 @@ export const listDmInbox = async (
     ),
   ]);
   const personById = new Map(people.map((person) => [person.id, person]));
+  // My own nicknames for the people I talk to, nobody else's.
+  const aliases = await loadAliases(
+    userActorKey(userId),
+    otherIds.map(userActorKey),
+  );
   const lastById = new Map(lasts.map((message) => [message.id, message]));
 
   return conversations
@@ -293,7 +303,7 @@ export const listDmInbox = async (
         {
           conversationId: row.id,
           otherId,
-          name: person.name,
+          name: overlayName(aliases, userActorKey(person.id), person.name),
           avatarUrl: avatarUrl("user", person.id, person.avatarUpdatedAt),
           preview: `${last.senderId === userId ? getFormatTranslator(locale)("inbox.you") : ""}${dmPreview(
             {

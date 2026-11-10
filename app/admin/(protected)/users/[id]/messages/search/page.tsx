@@ -6,6 +6,7 @@ import { ChatSearch } from "@/features/chat/components/ChatSearch";
 import { loadChatProfile } from "@/features/chat/services/chat-profile";
 import { findConversationByUserId } from "@/features/chat/services/chat-queries";
 import { chatPaths } from "@/features/chat/utils/chat-links";
+import { adminActorKey } from "@/features/contact-aliases/utils/alias-rules";
 import { requireAdmin } from "@/services/auth-guard";
 import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
@@ -29,7 +30,9 @@ const AdminMessagesSearchPage = async ({
     notFound();
   }
   const conversation = await findConversationByUserId(user.id);
-  const profile = conversation ? await loadChatProfile(conversation.id) : null;
+  const profile = conversation
+    ? await loadChatProfile(conversation.id, adminActorKey(admin.id))
+    : null;
 
   return (
     <ChatSearch

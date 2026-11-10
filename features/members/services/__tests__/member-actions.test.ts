@@ -9,6 +9,7 @@ import {
   chatMessages,
   chatNicknames,
   chatReads,
+  contactAliases,
   pushSubscriptions,
   users,
 } from "@/db/schema";
@@ -119,7 +120,7 @@ describe("deleteMemberAction chat cleanup", () => {
     ).toEqual([kept.conversationId, kept.conversationId]);
   });
 
-  it("removes the trainee's nicknames and colour overrides only", async () => {
+  it("removes the trainee's legacy nicknames, private nicknames and colour overrides only", async () => {
     const gone = await seedTrainee("An");
     const kept = await seedTrainee("Binh");
 
@@ -139,9 +140,25 @@ describe("deleteMemberAction chat cleanup", () => {
         color: "green",
       })),
     );
+    await db.insert(contactAliases).values(
+      [
+        // Set by and for the removed member, and an unrelated pair.
+        ["user:" + gone.userId, "pt"],
+        ["admin:1", "user:" + gone.userId],
+        ["admin:1", "user:" + kept.userId],
+      ].map(([ownerKey, targetKey]) => ({
+        ownerKey,
+        targetKey,
+        alias: "Coach",
+        updatedAt: new Date(),
+      })),
+    );
 
     await deleteMemberAction(gone.userId);
 
+    expect(
+      (await db.select().from(contactAliases)).map((r) => r.targetKey),
+    ).toEqual(["user:" + kept.userId]);
     expect(
       (await db.select().from(chatNicknames)).map((r) => r.conversationId),
     ).toEqual([kept.conversationId]);

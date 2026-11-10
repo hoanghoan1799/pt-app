@@ -7,23 +7,19 @@ import { isChatEnabled } from "@/features/chat/services/chat-permission";
 import {
   setAdminAccountColor,
   setAdminConversationColor,
-  setConversationNickname,
   setTraineeColor,
 } from "@/features/chat/services/chat-profile";
 import {
   findConversationById,
   getOrCreateConversation,
 } from "@/features/chat/services/chat-queries";
-import {
-  adminReaderKey,
-  USER_READER_KEY,
-} from "@/features/chat/utils/chat-rules";
 import { withResultErrorHandling } from "@/services/action-errors";
 import { requireAdminForUser } from "@/services/admin-access";
 import { requireAdmin, requireUser } from "@/services/auth-guard";
 import { findUserById } from "@/services/users";
 
-// Nicknames and bubble colours (KAN-141, spec D1-D4). Results are
+// Bubble colours (KAN-141, spec D2-D4); nicknames are private aliases now
+// (contact-aliases). Results are
 // `{ status: "success", profile } | { status: "error", message }`. Like
 // sending, a locked chat is read-only for everything scoped to a
 // conversation; an admin's account colour is not.
@@ -70,23 +66,6 @@ const withAdminConversation = async <T>(
   }
   return run(admin, conversation.id);
 };
-
-// target: "user" | "pt" | "admin:<id>"; nickname "" clears it.
-export const setNicknameAction = withResultErrorHandling(
-  "setChatNickname",
-  async (input: { target: string; nickname: string }) =>
-    withTraineeConversation((_user, conversationId) =>
-      setConversationNickname(conversationId, USER_READER_KEY, input),
-    ),
-);
-
-export const adminSetNicknameAction = withResultErrorHandling(
-  "adminSetChatNickname",
-  async (input: { conversationId: number; target: string; nickname: string }) =>
-    withAdminConversation(input?.conversationId, (admin, conversationId) =>
-      setConversationNickname(conversationId, adminReaderKey(admin.id), input),
-    ),
-);
 
 // color: a palette key, or null for the default.
 export const setChatColorAction = withResultErrorHandling(

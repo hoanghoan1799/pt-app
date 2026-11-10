@@ -44,7 +44,7 @@ const DmPage = async ({
   );
   const [thread, people, replyPost] = await Promise.all([
     listDmThread(id, { otherId: view.otherId, viewer: actor }),
-    loadPeople([view.otherId]),
+    loadPeople([view.otherId], user.id),
     replyPostId !== null && view.readOnlyReason === null
       ? loadReplyPostFor(actor, replyPostId, view.otherId)
       : null,

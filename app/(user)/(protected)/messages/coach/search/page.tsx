@@ -8,6 +8,7 @@ import {
 } from "@/features/chat/services/chat-profile";
 import { findConversationByUserId } from "@/features/chat/services/chat-queries";
 import { chatPaths } from "@/features/chat/utils/chat-links";
+import { userActorKey } from "@/features/contact-aliases/utils/alias-rules";
 import { requireUser } from "@/services/auth-guard";
 
 export const generateMetadata = async (): Promise<Metadata> => {
@@ -21,7 +22,7 @@ const MessagesSearchPage = async () => {
   const user = await requireUser();
   const conversation = await findConversationByUserId(user.id);
   const profile = conversation
-    ? await loadChatProfile(conversation.id)
+    ? await loadChatProfile(conversation.id, userActorKey(user.id))
     : EMPTY_CHAT_PROFILE;
 
   return (

@@ -18,6 +18,7 @@ import {
 } from "@/features/chat/services/chat-queries";
 import { getAdminTeamLastSeen } from "@/features/chat/services/presence";
 import { serializeLastSeen } from "@/features/chat/utils/presence";
+import { userActorKey } from "@/features/contact-aliases/utils/alias-rules";
 import { actorOfUser } from "@/features/social/services/post-context";
 import type { SocialActor } from "@/features/social/types/social";
 
@@ -121,7 +122,7 @@ export const loadTraineeThread = async (
       listMessages(conversation.id, query, viewer),
       loadChanges(conversation.id, known.changedSince, lastChangeAt, viewer),
       getAdminTeamLastSeen(),
-      loadChatProfile(conversation.id),
+      loadChatProfile(conversation.id, userActorKey(user.id)),
     ]);
 
   return {

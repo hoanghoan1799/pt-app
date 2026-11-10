@@ -72,6 +72,7 @@
     "save": "保存"
   },
   "profile": {
+    "realName": "真实姓名：{name}",
     "friendCount": "{count, plural, other {# 位好友}}",
     "posts": "动态",
     "noPosts": "暂无动态。"

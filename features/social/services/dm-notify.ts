@@ -18,6 +18,8 @@ import {
   dmEvent,
 } from "@/features/chat/utils/ably-capabilities";
 import { userOwnerKey } from "@/features/chat/utils/push-rules";
+import { loadAliases } from "@/features/contact-aliases/services/contact-aliases";
+import { userActorKey } from "@/features/contact-aliases/utils/alias-rules";
 import { buildDmPushPayload } from "@/features/social/utils/dm-rules";
 import { getPushTranslator } from "@/i18n/push-translator";
 import { logServerError } from "@/services/logger";
@@ -77,12 +79,21 @@ export const sendDmPush = async (
       .where(eq(users.id, senderId))
       .limit(1);
 
+    // The recipient's own nickname for the sender wins over the real name.
+    const alias = (
+      await loadAliases(userActorKey(recipientId), [userActorKey(senderId)])
+    )
+      .get(userActorKey(senderId))
+      ?.trim();
+
     await deliverLocalized(
       targets,
       (locale) =>
         buildDmPushPayload({
           senderName:
-            person?.name ?? getPushTranslator(locale)("friendFallback"),
+            alias ||
+            person?.name ||
+            getPushTranslator(locale)("friendFallback"),
           conversationId,
           body,
           photo,

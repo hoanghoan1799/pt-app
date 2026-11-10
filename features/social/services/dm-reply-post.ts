@@ -5,10 +5,12 @@ import { inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { admins, socialPostPhotos, users } from "@/db/schema";
 import { avatarUrl } from "@/features/avatar/utils/avatar-rules";
+import { loadAliases } from "@/features/contact-aliases/services/contact-aliases";
+import { overlayName } from "@/features/contact-aliases/utils/alias-rules";
 import { loadVisiblePost } from "@/features/social/services/post-access";
 import type { DmReplyPostView } from "@/features/social/types/dm";
 import type { SocialActor } from "@/features/social/types/social";
-import { socialPhotoUrl } from "@/features/social/utils/post-rules";
+import { actorKey, socialPhotoUrl } from "@/features/social/utils/post-rules";
 
 // The quoted-post previews of a chat, computed per viewer: a post the viewer
 // may no longer see (deleted, privacy changed, block) comes back as
@@ -68,6 +70,14 @@ export const loadReplyPostViews = async (
   const names = new Map(people.map((row) => [row.id, row]));
   const adminNames = new Map(adminPeople.map((row) => [row.id, row]));
   const photos = new Map(photoRows.map((row) => [row.id, row]));
+  // The viewer's own nicknames for the quoted authors, nobody else's.
+  const viewerKey = actorKey(viewer);
+  const aliases = await loadAliases(
+    viewerKey,
+    posts.flatMap((post) =>
+      post ? [actorKey({ kind: post.authorKind, id: post.authorId })] : [],
+    ),
+  );
 
   ids.forEach((id, index) => {
     const post = posts[index];
@@ -82,7 +92,14 @@ export const loadReplyPostViews = async (
         ? {
             id,
             available: true,
-            authorName: author.name,
+            authorName:
+              actorKey({ kind: post.authorKind, id: author.id }) === viewerKey
+                ? author.name
+                : overlayName(
+                    aliases,
+                    actorKey({ kind: post.authorKind, id: author.id }),
+                    author.name,
+                  ),
             authorAvatarUrl: avatarUrl(
               post.authorKind,
               author.id,

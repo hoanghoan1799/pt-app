@@ -49,9 +49,8 @@ export interface ChatInfoProps {
   // The trainee's id: the presence line of either side is looked up with it.
   userId: number;
   conversationId: number | null;
-  // Real names, shown when there is no nickname.
+  // The other person's real name, shown when there is no nickname.
   peerName: string;
-  selfName: string;
   initialProfile: ChatProfileView;
   chatEnabled: boolean;
   // The other person's photo (versioned URL) or null for initials.
@@ -73,7 +72,6 @@ export const ChatInfo = ({
   userId,
   conversationId,
   peerName,
-  selfName,
   initialProfile,
   chatEnabled,
   peerAvatarUrl,
@@ -168,9 +166,9 @@ export const ChatInfo = ({
           >
             <ChatCustomizePanel
               viewer={viewer}
+              traineeUserId={userId}
               conversationId={conversationId}
               peerName={peerName}
-              selfName={selfName}
               profile={profile}
               onProfileChange={setProfile}
               chatEnabled={chatEnabled}

@@ -24,7 +24,7 @@ interface AdminChatThreadProps extends Pick<
   | "avatars"
   | "replyPost"
 > {
-  // The trainee's real name; the admin's nickname for them wins in the title.
+  // The trainee's real name; the admin's private nickname for them wins in the title.
   userName: string;
   // Server-rendered rows under the header (section tabs, lock switch).
   below: ReactNode;

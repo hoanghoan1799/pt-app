@@ -162,7 +162,7 @@ export interface SearchPage {
 }
 
 // Who wrote it, as the viewer sees names: their own messages are "Bạn",
-// nicknames apply (a trainee sees the shared PT nickname).
+// the viewer's private nicknames apply (a trainee uses their nickname for the PT side).
 export const searchSenderLabel = (
   result: Pick<SearchResult, "senderRole" | "senderAdminId" | "senderName">,
   viewer:

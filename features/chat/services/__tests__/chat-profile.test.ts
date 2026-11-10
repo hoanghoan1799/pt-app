@@ -7,11 +7,10 @@ import {
   admins,
   chatColorOverrides,
   chatConversations,
-  chatNicknames,
+  contactAliases,
   users,
 } from "@/db/schema";
 import { CHAT_MESSAGES } from "@/features/chat/constants/messages";
-import { CHAT_NICKNAME_MAX_LENGTH } from "@/features/chat/utils/chat-rules";
 
 const state = vi.hoisted(() => ({
   db: null as unknown,
@@ -138,217 +137,6 @@ beforeEach(async () => {
   conversationId = (await queries.getOrCreateConversation(userId)).id;
   otherConversationId = (await queries.getOrCreateConversation(otherUserId)).id;
   asUser();
-});
-
-describe("nicknames", () => {
-  it("lets the trainee set nicknames for themself, the PT side and an admin", async () => {
-    for (const [target, nickname] of [
-      ["user", "Bé Na"],
-      ["pt", "Coach"],
-      ["admin:2", "Thầy Hai"],
-    ]) {
-      const result = await actions.setNicknameAction({ target, nickname });
-
-      expect(result.status).toBe("success");
-    }
-    const rows = await db.select().from(chatNicknames);
-
-    expect(
-      Object.fromEntries(rows.map((row) => [row.targetKey, row.nickname])),
-    ).toEqual({ user: "Bé Na", pt: "Coach", "admin:2": "Thầy Hai" });
-    expect(rows.every((row) => row.setByKey === "user")).toBe(true);
-    expect(rows.every((row) => row.conversationId === conversationId)).toBe(
-      true,
-    );
-  });
-
-  it("lets an admin set and clear nicknames in a conversation, recording who", async () => {
-    asAdmin(2);
-    await actions.adminSetNicknameAction({
-      conversationId,
-      target: "user",
-      nickname: "Bé Na",
-    });
-    const [row] = await db.select().from(chatNicknames);
-
-    expect(row).toMatchObject({
-      conversationId,
-      targetKey: "user",
-      nickname: "Bé Na",
-      setByKey: "admin:2",
-    });
-
-    const cleared = await actions.adminSetNicknameAction({
-      conversationId,
-      target: "user",
-      nickname: "",
-    });
-
-    expect(cleared).toEqual({
-      status: "success",
-      profile: { nicknames: {}, colors: {} },
-    });
-    expect(await db.select().from(chatNicknames)).toEqual([]);
-  });
-
-  it("trims, collapses whitespace and replaces the previous value", async () => {
-    await actions.setNicknameAction({
-      target: "pt",
-      nickname: "  Big   Coach ",
-    });
-    const result = await actions.setNicknameAction({
-      target: "pt",
-      nickname: "Coach",
-    });
-
-    expect(result).toMatchObject({
-      status: "success",
-      profile: { nicknames: { pt: "Coach" } },
-    });
-    expect(await db.select().from(chatNicknames)).toHaveLength(1);
-  });
-
-  it("stores the trimmed form", async () => {
-    await actions.setNicknameAction({
-      target: "pt",
-      nickname: "  Big   Coach ",
-    });
-
-    expect((await db.select().from(chatNicknames))[0].nickname).toBe(
-      "Big Coach",
-    );
-  });
-
-  it("accepts exactly the max length and rejects one more (characters, not bytes)", async () => {
-    const ok = "ê".repeat(CHAT_NICKNAME_MAX_LENGTH);
-    const okResult = await actions.setNicknameAction({
-      target: "user",
-      nickname: ok,
-    });
-
-    expect(okResult.status).toBe("success");
-    const tooLong = await actions.setNicknameAction({
-      target: "user",
-      nickname: `${ok}x`,
-    });
-
-    expect(tooLong).toEqual({
-      status: "error",
-      message: CHAT_MESSAGES.NICKNAME_INVALID,
-    });
-    expect((await db.select().from(chatNicknames))[0].nickname).toBe(ok);
-  });
-
-  it.each([
-    ["unknown target", { target: "everyone", nickname: "x" }],
-    ["admin target without id", { target: "admin:", nickname: "x" }],
-    ["admin target with junk id", { target: "admin:1abc", nickname: "x" }],
-    ["admin id 0", { target: "admin:0", nickname: "x" }],
-    ["control characters", { target: "user", nickname: "a\u0000b" }],
-    ["non-string nickname", { target: "user", nickname: 5 }],
-    ["missing input", undefined],
-    ["null input", null],
-  ])("rejects bad input: %s", async (_label, input) => {
-    const result = await actions.setNicknameAction(
-      input as { target: string; nickname: string },
-    );
-
-    expect(result.status).toBe("error");
-    expect(await db.select().from(chatNicknames)).toEqual([]);
-  });
-
-  it("rejects a nickname for an admin that does not exist", async () => {
-    const result = await actions.setNicknameAction({
-      target: "admin:99",
-      nickname: "Ghost",
-    });
-
-    expect(result).toEqual({
-      status: "error",
-      message: CHAT_MESSAGES.ADMIN_NOT_FOUND,
-    });
-  });
-
-  it("keeps nicknames per conversation, even for trainees with the same name", async () => {
-    await actions.setNicknameAction({ target: "pt", nickname: "Coach" });
-    state.userId = otherUserId;
-    await actions.setNicknameAction({ target: "pt", nickname: "Thầy" });
-    asAdmin();
-
-    const first = await actions.adminSetNicknameAction({
-      conversationId,
-      target: "pt",
-      nickname: "Coach",
-    });
-    const rows = await db.select().from(chatNicknames);
-
-    expect(first.status).toBe("success");
-    expect(
-      rows
-        .map((row) => [row.conversationId, row.nickname])
-        .sort((a, b) => Number(a[0]) - Number(b[0])),
-    ).toEqual([
-      [conversationId, "Coach"],
-      [otherConversationId, "Thầy"],
-    ]);
-  });
-
-  it("answers not found for an admin on an unknown conversation and rejects a bad id", async () => {
-    asAdmin();
-
-    expect(
-      await actions.adminSetNicknameAction({
-        conversationId: 9999,
-        target: "user",
-        nickname: "x",
-      }),
-    ).toEqual({
-      status: "error",
-      message: CHAT_MESSAGES.CONVERSATION_NOT_FOUND,
-    });
-    expect(
-      await actions.adminSetNicknameAction({
-        conversationId: -1,
-        target: "user",
-        nickname: "x",
-      }),
-    ).toEqual({ status: "error", message: CHAT_MESSAGES.INVALID_INPUT });
-    expect(await db.select().from(chatNicknames)).toEqual([]);
-  });
-
-  it("is read-only while the chat is locked", async () => {
-    await db.update(users).set({ chatEnabled: false });
-
-    expect(
-      await actions.setNicknameAction({ target: "pt", nickname: "x" }),
-    ).toEqual({ status: "error", message: CHAT_MESSAGES.CHAT_LOCKED });
-    asAdmin();
-    expect(
-      await actions.adminSetNicknameAction({
-        conversationId,
-        target: "pt",
-        nickname: "x",
-      }),
-    ).toEqual({ status: "error", message: CHAT_MESSAGES.CHAT_LOCKED });
-  });
-
-  it("bumps the change cursor and publishes once per real change", async () => {
-    expect(await cursor()).toBeNull();
-    await actions.setNicknameAction({ target: "pt", nickname: "Coach" });
-    const first = (await cursor())?.getTime() ?? 0;
-
-    expect(first).toBeGreaterThan(0);
-    expect(realtime.publishProfileUpdate).toHaveBeenCalledWith(conversationId);
-
-    await actions.setNicknameAction({ target: "pt", nickname: "Coach" });
-    await actions.setNicknameAction({ target: "user", nickname: "" });
-    expect((await cursor())?.getTime()).toBe(first);
-    expect(realtime.publishProfileUpdate).toHaveBeenCalledTimes(1);
-
-    await actions.setNicknameAction({ target: "pt", nickname: "Boss" });
-    expect((await cursor())?.getTime()).toBeGreaterThan(first);
-    expect(await cursor(otherConversationId)).toBeNull();
-  });
 });
 
 describe("loadAdminAccountColor", () => {
@@ -519,8 +307,26 @@ describe("payload", () => {
     });
   });
 
-  it("gives both sides the same nicknames and colours", async () => {
-    await actions.setNicknameAction({ target: "admin:1", nickname: "Coach" });
+  it("gives both sides the same colours but each its OWN nicknames", async () => {
+    const alias = (ownerKey: string, targetKey: string, value: string) => ({
+      ownerKey,
+      targetKey,
+      alias: value,
+      updatedAt: new Date(),
+    });
+
+    await db.insert(contactAliases).values([
+      // Trainee: the PT side as a whole, one admin, and (ignored) themselves.
+      alias(`user:${userId}`, "pt", "Thầy"),
+      alias(`user:${userId}`, "admin:2", "Thầy Hai"),
+      alias(`user:${userId}`, `user:${userId}`, "Tự gọi"),
+      // Admin 1: the trainee, a colleague, and (ignored) themselves.
+      alias("admin:1", `user:${userId}`, "Bé Na"),
+      alias("admin:1", "admin:2", "Đồng nghiệp"),
+      alias("admin:1", "admin:1", "Tôi"),
+      // Admin 2 named the trainee of the other conversation only.
+      alias("admin:2", `user:${otherUserId}`, "Bé Bình"),
+    ]);
     await actions.setChatColorAction({ color: "blue" });
     asAdmin(1);
     await actions.adminSetChatColorAction({ color: "red" });
@@ -529,19 +335,28 @@ describe("payload", () => {
       conversationId,
       color: "green",
     });
-    const expected = {
-      nicknames: { "admin:1": "Coach" },
-      colors: { user: "blue", "admin:1": "red", "admin:2": "green" },
+    const colors = { user: "blue", "admin:1": "red", "admin:2": "green" };
+    const viewAsAdmin = async (id: number) => {
+      asAdmin(id);
+      const response = await adminRoute.GET(
+        get(`/api/admin/chat/${conversationId}/messages`),
+        { params: Promise.resolve({ conversationId: String(conversationId) }) },
+      );
+
+      return (await response.json()).profile;
     };
 
     asUser();
-    expect((await thread()).body.profile).toEqual(expected);
-    const admin = await adminRoute.GET(
-      get(`/api/admin/chat/${conversationId}/messages`),
-      { params: Promise.resolve({ conversationId: String(conversationId) }) },
-    );
-
-    expect((await admin.json()).profile).toEqual(expected);
+    expect((await thread()).body.profile).toEqual({
+      nicknames: { pt: "Thầy", "admin:2": "Thầy Hai" },
+      colors,
+    });
+    expect(await viewAsAdmin(1)).toEqual({
+      nicknames: { user: "Bé Na", "admin:2": "Đồng nghiệp" },
+      colors,
+    });
+    // Admin 2 set nothing for this conversation: real names everywhere.
+    expect(await viewAsAdmin(2)).toEqual({ nicknames: {}, colors });
   });
 
   it("ignores a stored colour key that is no longer in the palette", async () => {
@@ -550,22 +365,23 @@ describe("payload", () => {
     expect((await thread()).body.profile.colors).toEqual({});
   });
 
-  it("defeats the 204 fast path once, for polling-only clients", async () => {
+  it("does not move the change cursor when a nickname changes", async () => {
     const first = await thread();
     const known = `after=1&readUpTo=${first.body.peerReadUpTo}&enabled=1&changedSince=${first.body.lastChangeAt}`;
 
     expect((await thread(known)).status).toBe(204);
-    await actions.setNicknameAction({ target: "pt", nickname: "Coach" });
+    await db.insert(contactAliases).values({
+      ownerKey: `user:${userId}`,
+      targetKey: "pt",
+      alias: "Coach",
+      updatedAt: new Date(),
+    });
 
-    const changed = await thread(known);
-
-    expect(changed.status).toBe(200);
-    expect(changed.body.profile.nicknames).toEqual({ pt: "Coach" });
-    expect(changed.body.lastChangeAt).toBeGreaterThan(first.body.lastChangeAt);
-    expect(changed.body.changes).toEqual([]);
-
-    const next = `after=1&readUpTo=${first.body.peerReadUpTo}&enabled=1&changedSince=${changed.body.lastChangeAt}`;
-
-    expect((await thread(next)).status).toBe(204);
+    // Nobody else's view changed, so nothing is announced; the owner's next
+    // full payload (or a page refresh) carries the nickname.
+    expect((await thread(known)).status).toBe(204);
+    expect((await thread()).body.profile.nicknames).toEqual({ pt: "Coach" });
+    expect(await cursor()).toBeNull();
+    expect(realtime.publishProfileUpdate).not.toHaveBeenCalled();
   });
 });

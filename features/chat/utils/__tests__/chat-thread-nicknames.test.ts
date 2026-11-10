@@ -41,8 +41,8 @@ const firstItem = (
     item.kind === "message" ? [item] : [],
   )[0];
 
-describe("nicknames in the thread (KAN-142)", () => {
-  it("labels a PT with their own nickname, then the shared PT one, then the name", () => {
+describe("private nicknames in the thread (KAN-142)", () => {
+  it("labels a PT with the viewer's nickname for them, then for the PT side, then the name", () => {
     const list = mergeMessages([], [msg(1)]);
     const user: ThreadViewer = { role: "user" };
 

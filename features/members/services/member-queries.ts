@@ -4,8 +4,8 @@ import { and, asc, eq, notInArray, or } from "drizzle-orm";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { listTraineeNicknames } from "@/features/chat/services/chat-queries";
 import { resolveDisplayName } from "@/features/chat/utils/display-name";
+import { loadTraineeAliases } from "@/features/contact-aliases/services/contact-aliases";
 import type { Member } from "@/features/members/types/member";
 import { outOfScopeUserIdsOf } from "@/services/admin-scope";
 import { hiddenUserIdsOf } from "@/services/hidden-users";
@@ -28,9 +28,12 @@ export const listMembers = async (
         : or(and(eq(users.id, keepUserId), inScope), visible),
     )
     .orderBy(asc(users.nameKey));
-  const nicknames = await listTraineeNicknames(rows.map((row) => row.id));
+  const nicknames = await loadTraineeAliases(
+    adminId,
+    rows.map((row) => row.id),
+  );
 
-  // `name` is what the admin sees: the nickname if one is set.
+  // `name` is what the admin sees: this admin's private nickname if one is set.
   return rows.map((row) => ({
     ...row,
     name: resolveDisplayName(nicknames.get(row.id), row.name),
