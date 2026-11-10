@@ -8,7 +8,7 @@ import {
   DM_EVENTS,
   dmConversationChannel,
 } from "@/features/chat/utils/ably-capabilities";
-import { DM_MESSAGES, DM_POLL_MS } from "@/features/social/constants/dm";
+import { DM_MESSAGES } from "@/features/social/constants/dm";
 import {
   markDmReadAction,
   sendDmAction,
@@ -19,6 +19,11 @@ import type {
   DmReplyPostView,
   DmThreadPage,
 } from "@/features/social/types/dm";
+import {
+  dmPollDelayMs,
+  dmPollHadActivity,
+  nextEmptyPolls,
+} from "@/features/social/utils/dm-poll-rules";
 import {
   type DmThreadItem,
   lastServerId,
@@ -44,7 +49,8 @@ interface Options {
 const messagesUrl = (conversationId: number, query: string) =>
   `/api/dm/${conversationId}/messages${query}`;
 
-// The thread of one trainee chat: polls every DM_POLL_MS (and on tab focus),
+// The thread of one trainee chat: polls every DM_POLL_MS (backing off to 20 s
+// while quiet, paused while the tab is hidden, and on tab focus),
 // subscribes to the Ably channel when the server hands out a token (an event
 // only triggers a fetch), sends optimistically and retries by clientId.
 export const useDmThread = ({ conversationId, meId, initial }: Options) => {
@@ -55,6 +61,13 @@ export const useDmThread = ({ conversationId, meId, initial }: Options) => {
   const [readOnlyReason, setReadOnlyReason] = useState(initial.readOnlyReason);
   const itemsRef = useRef(items);
   const inFlight = useRef(false);
+  // Consecutive polls that brought nothing; drives the poll back-off.
+  const emptyPolls = useRef(0);
+  const otherReadRef = useRef(initial.otherReadUpTo);
+  // Set by the poll loop below: wake() resets the back-off and syncs now;
+  // speedUp() only resets the back-off (next poll comes at the fast rate).
+  const wakeRef = useRef<() => void>(() => undefined);
+  const speedUpRef = useRef<() => void>(() => undefined);
 
   useEffect(() => {
     itemsRef.current = items;
@@ -86,6 +99,15 @@ export const useDmThread = ({ conversationId, meId, initial }: Options) => {
       setItems((current) =>
         mergeThread(current, data.messages, data.deletedIds),
       );
+      emptyPolls.current = nextEmptyPolls(
+        emptyPolls.current,
+        dmPollHadActivity(
+          data.messages.length,
+          data.deletedIds.length,
+          data.otherReadUpTo !== otherReadRef.current,
+        ),
+      );
+      otherReadRef.current = data.otherReadUpTo;
       setOtherReadUpTo(data.otherReadUpTo);
       setReadOnlyReason(data.isReadOnly ? (data.readOnlyReason ?? "") : null);
       if (data.messages.some((message) => message.senderId !== meId)) {
@@ -99,15 +121,57 @@ export const useDmThread = ({ conversationId, meId, initial }: Options) => {
   }, [conversationId, markRead, meId]);
 
   useEffect(() => {
-    const timer = setInterval(() => void sync(), DM_POLL_MS);
-    const onVisible = () => void sync();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let stopped = false;
 
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", onVisible);
+    const clear = () => {
+      if (timer !== null) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+    // One timeout at a time; none while hidden (the next wake restarts it).
+    const schedule = () => {
+      clear();
+      if (stopped || document.visibilityState === "hidden") {
+        return;
+      }
+      timer = setTimeout(
+        () => void sync().then(schedule),
+        dmPollDelayMs(emptyPolls.current),
+      );
+    };
+    const wake = () => {
+      emptyPolls.current = 0;
+      clear();
+      if (document.visibilityState === "hidden") {
+        return;
+      }
+      void sync().then(schedule);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        clear();
+        return;
+      }
+      wake();
+    };
+
+    wakeRef.current = wake;
+    speedUpRef.current = () => {
+      emptyPolls.current = 0;
+      schedule();
+    };
+    schedule();
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", wake);
     return () => {
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", onVisible);
+      stopped = true;
+      clear();
+      wakeRef.current = () => undefined;
+      speedUpRef.current = () => undefined;
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", wake);
     };
   }, [sync]);
 
@@ -149,7 +213,7 @@ export const useDmThread = ({ conversationId, meId, initial }: Options) => {
               message.name === DM_EVENTS.MESSAGE ||
               message.name === DM_EVENTS.UPDATE
             ) {
-              void sync();
+              wakeRef.current();
             }
           })
           .catch(() => undefined);
@@ -232,6 +296,8 @@ export const useDmThread = ({ conversationId, meId, initial }: Options) => {
       };
 
       setItems((current) => [...current, item]);
+      // A reply is likely soon: poll at the fast rate again.
+      speedUpRef.current();
       void deliver(item, photo?.id ?? null);
     },
     [deliver, meId],

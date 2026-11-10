@@ -3,27 +3,20 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-import { DM_POLL_MS } from "@/features/social/constants/dm";
+import { startVisibleInterval } from "@/utils/visible-interval";
 
-// Keeps the inbox fresh while it is open: refetches the server data every few
-// seconds and when the tab comes back to the front.
+// router.refresh() re-renders the whole server tree, so keep it slow.
+export const DM_INBOX_REFRESH_MS = 30_000;
+
+// Keeps the inbox fresh while it is open: refetches the server data every 30 s
+// while the tab is visible, and once when the tab comes back to the front.
 export const DmInboxRefresh = () => {
   const router = useRouter();
 
-  useEffect(() => {
-    const refresh = () => {
-      if (document.visibilityState === "visible") {
-        router.refresh();
-      }
-    };
-    const timer = setInterval(refresh, DM_POLL_MS * 3);
-
-    document.addEventListener("visibilitychange", refresh);
-    return () => {
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", refresh);
-    };
-  }, [router]);
+  useEffect(
+    () => startVisibleInterval(() => router.refresh(), DM_INBOX_REFRESH_MS),
+    [router],
+  );
 
   return null;
 };

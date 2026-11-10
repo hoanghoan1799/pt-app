@@ -2,13 +2,18 @@
 
 import { useEffect, useState } from "react";
 
+import { useInboxRealtimeConnected } from "@/features/chat/hooks/inbox-realtime";
+import { unreadPollMs } from "@/features/chat/utils/polling-rules";
+import { startVisibleInterval } from "@/utils/visible-interval";
+
 const USER_UNREAD_URL = "/api/chat/unread";
 const ADMIN_UNREAD_URL = "/api/chat/unread?as=admin";
-const UNREAD_POLL_MS = 15_000;
 // Dispatched on window by live inbox events so badges refetch right away.
 export const UNREAD_REFRESH_EVENT = "chat:unread-refresh";
 
-// Badge: polls the cheap unread endpoint, refreshes on focus and on
+// Badge: polls the cheap unread endpoint (15 s, or a 60 s safety net while the
+// admin inbox has a live Ably connection; never while the tab is hidden, with
+// one fetch when it comes back), refreshes on focus and on
 // UNREAD_REFRESH_EVENT. Trainee: the tab-bar badge; `paused` (on /messages
 // itself) stops all requests, the thread is live there. Admin: the total from
 // `?as=admin`; `initialCount` is the server-rendered value shown until the
@@ -20,6 +25,8 @@ export const useChatUnread = (
 ) => {
   const [count, setCount] = useState(initialCount);
   const url = role === "admin" ? ADMIN_UNREAD_URL : USER_UNREAD_URL;
+  const realtimeConnected = useInboxRealtimeConnected();
+  const pollMs = unreadPollMs(role === "admin" && realtimeConnected);
 
   useEffect(() => {
     if (paused) {
@@ -50,20 +57,19 @@ export const useChatUnread = (
     };
 
     void refresh();
-    const timer = setInterval(() => void refresh(), UNREAD_POLL_MS);
+    // Ticks only while visible; coming back to the front refreshes at once.
+    const stopTimer = startVisibleInterval(() => void refresh(), pollMs);
     const onVisible = () => void refresh();
 
-    document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onVisible);
     window.addEventListener(UNREAD_REFRESH_EVENT, onVisible);
     return () => {
       cancelled = true;
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisible);
+      stopTimer();
       window.removeEventListener("focus", onVisible);
       window.removeEventListener(UNREAD_REFRESH_EVENT, onVisible);
     };
-  }, [paused, url]);
+  }, [paused, url, pollMs]);
 
   return paused ? 0 : count;
 };
