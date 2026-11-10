@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
@@ -53,6 +54,7 @@ const PostPage = async ({ params }: PageProps<"/post/[id]">) => {
         <PostCard post={post} mode="user" isDetail />
         <CommentSection postId={post.id} mode="user" comments={comments} />
       </main>
+      <ScrollToTopButton aboveTabBar />
     </>
   );
 };

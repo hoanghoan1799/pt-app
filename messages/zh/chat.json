@@ -43,9 +43,6 @@
   "unreadBadge": {
     "label": "{count} 条未读消息"
   },
-  "newMessages": {
-    "label": "新消息"
-  },
   "typing": {
     "label": "{name} 正在输入…"
   },

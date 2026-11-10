@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Avatar } from "@/components/common/Avatar";
+import { ScrollJumpButton } from "@/components/common/ScrollJumpButton";
 import { Spinner } from "@/components/common/Spinner";
 import { ROUTES } from "@/constants/routes";
 import {
@@ -31,6 +32,7 @@ import { useDmThread } from "@/features/social/hooks/use-dm-thread";
 import type { DmReplyPostView, DmThreadPage } from "@/features/social/types/dm";
 import { lastSeenOwnId } from "@/features/social/utils/dm-thread-rules";
 import { profilePath } from "@/features/social/utils/post-rules";
+import { useScrollAway } from "@/hooks/use-scroll-away";
 import { useLocalizeMessage } from "@/i18n/use-localize-message";
 
 interface DmThreadProps {
@@ -71,6 +73,12 @@ export const DmThread = ({
   const [isLoadingOlder, setLoadingOlder] = useState(false);
   const [quote, setQuote] = useState(replyPost);
   const endRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const tJump = useTranslations("common.scrollJump");
+  const { isAway, scrollToEdge } = useScrollAway({
+    edge: "bottom",
+    container: mainRef,
+  });
   const fileRef = useRef<HTMLInputElement>(null);
   const lastCount = thread.items.length;
   const isReadOnly = thread.readOnlyReason !== null;
@@ -190,34 +198,43 @@ export const DmThread = ({
           </Link>
         </div>
       </header>
-      <main className="min-h-0 flex-1 overflow-y-auto">
-        <div className={clsx(PAGE_CONTAINER, "space-y-3 py-4")}>
-          {thread.hasMore && (
-            <button
-              type="button"
-              onClick={() => void loadOlder()}
-              disabled={isLoadingOlder}
-              aria-busy={isLoadingOlder}
-              className={clsx(BUTTON_SECONDARY, "w-full")}
-            >
-              {isLoadingOlder && <Spinner size="md" />}
-              {t("loadOlder")}
-            </button>
-          )}
-          {thread.items.length === 0 ? (
-            <p className="py-10 text-center text-muted">{t("noMessages")}</p>
-          ) : (
-            <DmBubbleList
-              items={thread.items}
-              meId={meId}
-              seenId={lastSeenOwnId(thread.items, meId, thread.otherReadUpTo)}
-              onUnsend={(id) => void thread.unsend(id)}
-              onRetry={thread.retry}
-            />
-          )}
-          <div ref={endRef} />
-        </div>
-      </main>
+      <div className="relative min-h-0 flex-1">
+        <main ref={mainRef} className="h-full overflow-y-auto">
+          <div className={clsx(PAGE_CONTAINER, "space-y-3 py-4")}>
+            {thread.hasMore && (
+              <button
+                type="button"
+                onClick={() => void loadOlder()}
+                disabled={isLoadingOlder}
+                aria-busy={isLoadingOlder}
+                className={clsx(BUTTON_SECONDARY, "w-full")}
+              >
+                {isLoadingOlder && <Spinner size="md" />}
+                {t("loadOlder")}
+              </button>
+            )}
+            {thread.items.length === 0 ? (
+              <p className="py-10 text-center text-muted">{t("noMessages")}</p>
+            ) : (
+              <DmBubbleList
+                items={thread.items}
+                meId={meId}
+                seenId={lastSeenOwnId(thread.items, meId, thread.otherReadUpTo)}
+                onUnsend={(id) => void thread.unsend(id)}
+                onRetry={thread.retry}
+              />
+            )}
+            <div ref={endRef} />
+          </div>
+        </main>
+        <ScrollJumpButton
+          direction="down"
+          visible={isAway}
+          label={tJump("toLatest")}
+          onClick={scrollToEdge}
+          className="absolute bottom-2 left-1/2 -translate-x-1/2"
+        />
+      </div>
       <footer className="shrink-0 border-t border-line bg-bg pb-[env(safe-area-inset-bottom)]">
         {isReadOnly ? (
           <p

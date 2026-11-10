@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
@@ -39,6 +40,7 @@ const AdminNotificationsPage = async () => {
       >
         <NotificationList notifications={notifications} />
       </main>
+      <ScrollToTopButton />
     </>
   );
 };

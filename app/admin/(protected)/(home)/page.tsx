@@ -9,6 +9,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { WeekNavigator } from "@/components/common/WeekNavigator";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { HeaderMenus } from "@/components/layout/HeaderMenus";
@@ -229,6 +230,7 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
           <RecentActivityList items={namedActivity} isUserShown now={now} />
         </section>
       </main>
+      <ScrollToTopButton />
     </>
   );
 };

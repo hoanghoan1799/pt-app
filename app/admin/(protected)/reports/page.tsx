@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { CARD, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
@@ -90,6 +91,7 @@ const AdminReportsPage = async () => {
           </ul>
         )}
       </main>
+      <ScrollToTopButton />
     </>
   );
 };
