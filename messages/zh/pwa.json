@@ -10,5 +10,9 @@
   },
   "offlineRetry": {
     "retry": "重试"
+  },
+  "newVersion": {
+    "message": "PT App 有新版本",
+    "reload": "重新加载"
   }
 }
