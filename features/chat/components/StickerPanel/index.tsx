@@ -17,6 +17,7 @@ import {
 import type { SendContent } from "@/features/chat/hooks/use-chat-messages";
 import { useCustomStickers } from "@/features/chat/hooks/use-custom-stickers";
 import { useGiphyStickers } from "@/features/chat/hooks/use-giphy-stickers";
+import { useStickerSuggestSetting } from "@/features/chat/hooks/use-sticker-suggest-setting";
 import {
   customStickerUrl,
   STICKER_ALT_CUSTOM,
@@ -30,7 +31,10 @@ import {
   saveRecentStickers,
 } from "@/features/chat/utils/recent-stickers";
 
-type PickedSticker = Extract<SendContent, { sticker: unknown }>["sticker"];
+export type PickedSticker = Extract<
+  SendContent,
+  { sticker: unknown }
+>["sticker"];
 
 interface StickerPanelProps {
   isOpen: boolean;
@@ -48,6 +52,27 @@ const TAB =
   "min-h-10 shrink-0 rounded-full border px-3.5 text-sm font-semibold transition active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100";
 const CELL =
   "flex aspect-square items-center justify-center rounded-xl p-1.5 transition active:scale-90 active:bg-line motion-reduce:transition-none motion-reduce:active:scale-100";
+
+// A small checkbox row for a per-device suggestion switch.
+const SuggestSwitch = ({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) => (
+  <label className="flex min-h-8 cursor-pointer items-center gap-2 text-xs text-muted">
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={(event) => onChange(event.target.checked)}
+      className="size-4 accent-accent"
+    />
+    {label}
+  </label>
+);
 
 const StateText = ({ children }: { children: string }) => (
   <p
@@ -84,6 +109,9 @@ export const StickerPanel = ({
   const isLoading = giphy.status === "loading" || giphy.isSearching;
 
   const showRecent = recent.length > 0;
+  const [suggestStickers, setSuggestStickers] =
+    useStickerSuggestSetting("stickers");
+  const [suggestGifs, setSuggestGifs] = useStickerSuggestSetting("gifs");
 
   const pick = (sticker: PickedSticker) => {
     const { input } = sticker;
@@ -350,6 +378,18 @@ export const StickerPanel = ({
           Powered by GIPHY
         </p>
       )}
+      <div className="mt-2 flex flex-wrap gap-x-4 border-t border-line pt-2">
+        <SuggestSwitch
+          label={t("suggestStickers")}
+          checked={suggestStickers}
+          onChange={setSuggestStickers}
+        />
+        <SuggestSwitch
+          label={t("suggestGifs")}
+          checked={suggestGifs}
+          onChange={setSuggestGifs}
+        />
+      </div>
     </BottomSheet>
   );
 };
