@@ -9,6 +9,7 @@ import {
   ChatThread,
   type ChatThreadProps,
 } from "@/features/chat/components/ChatThread";
+import { NeutralColorsSwitch } from "@/features/chat/components/NeutralColorsSwitch";
 import { chatPaths } from "@/features/chat/utils/chat-links";
 import { displayNameFor } from "@/features/chat/utils/display-name";
 
@@ -60,6 +61,7 @@ export const AdminChatThread = ({
               presence={presence}
               avatarSrc={peerAvatar}
               infoHref={infoHref}
+              actions={<NeutralColorsSwitch />}
             />
             {below}
           </>
