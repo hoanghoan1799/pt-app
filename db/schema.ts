@@ -825,6 +825,7 @@ export const socialNotifications = sqliteTable(
         "friend_accepted",
         "post_reaction",
         "post_comment",
+        "admin_post",
       ],
     }).notNull(),
     actorKey: text("actor_key").notNull(),

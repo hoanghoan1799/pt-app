@@ -9,6 +9,7 @@ import {
   traineeActor,
   type Who,
 } from "@/features/social/services/actor-guard";
+import { notifyAdminPost } from "@/features/social/services/admin-post-notify";
 import { actorOfAdmin } from "@/features/social/services/post-context";
 import {
   createPost,
@@ -85,6 +86,12 @@ export const createPostAction = withResultErrorHandling(
 
     if (!result.ok) {
       return fail(MESSAGES[result.error]);
+    }
+    if (actor.kind === "admin") {
+      await notifyAdminPost(actor, {
+        postId: result.postId,
+        privacy: parsed.data.privacy,
+      });
     }
     refresh();
   },
