@@ -9,6 +9,7 @@ import { AppToaster } from "@/components/common/AppToaster";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ServiceWorkerRegister } from "@/features/pwa/components/ServiceWorkerRegister";
 import { INSTALL_CAPTURE_SCRIPT } from "@/features/pwa/constants/capture-script";
+import { pickClientMessages } from "@/i18n/client-namespaces";
 import { parseTheme, THEME_COOKIE } from "@/utils/theme";
 
 export const generateMetadata = async (): Promise<Metadata> => {
@@ -52,6 +53,7 @@ export const generateViewport = async (): Promise<Viewport> => {
 const RootLayout = async ({ children }: LayoutProps<"/">) => {
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
   const locale = await getLocale();
+  // Only the namespaces browser code reads; the rest stays on the server.
   const messages = await getMessages();
 
   return (
@@ -60,7 +62,10 @@ const RootLayout = async ({ children }: LayoutProps<"/">) => {
         <script dangerouslySetInnerHTML={{ __html: INSTALL_CAPTURE_SCRIPT }} />
       </head>
       <body className="min-h-dvh antialiased">
-        <NextIntlClientProvider locale={locale} messages={messages}>
+        <NextIntlClientProvider
+          locale={locale}
+          messages={pickClientMessages(messages)}
+        >
           {children}
           <AppToaster />
           <ConfirmDialog />

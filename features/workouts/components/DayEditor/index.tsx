@@ -102,7 +102,7 @@ export const DayEditor = ({
         />
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/90 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur-xl">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
         <div className={PAGE_CONTAINER}>
           <button
             type="button"

@@ -66,7 +66,7 @@ export const AppToaster = () => (
       unstyled: true,
       classNames: {
         toast:
-          "flex w-full items-center gap-3 rounded-2xl border border-line bg-surface/95 p-3 pr-4 text-fg shadow-[0_16px_40px_-12px_rgb(0_0_0/0.35)] backdrop-blur-xl",
+          "flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-3 pr-4 text-fg shadow-[0_16px_40px_-12px_rgb(0_0_0/0.35)]",
         success: "border-success/30",
         error: "border-danger/35",
         icon: "shrink-0",

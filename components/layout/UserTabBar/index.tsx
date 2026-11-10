@@ -68,7 +68,7 @@ export const UserTabBar = () => {
     >
       <ul
         className={clsx(
-          "pointer-events-auto mx-auto grid max-w-md gap-1 rounded-[1.75rem] border border-line bg-surface/90 p-1.5 shadow-[0_10px_30px_-8px_rgb(0_0_0/0.35)] backdrop-blur-xl",
+          "pointer-events-auto mx-auto grid max-w-md gap-1 rounded-[1.75rem] border border-line bg-surface p-1.5 shadow-[0_10px_30px_-8px_rgb(0_0_0/0.35)]",
           "grid-cols-5",
         )}
       >

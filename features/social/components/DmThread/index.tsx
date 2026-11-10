@@ -164,7 +164,7 @@ export const DmThread = ({
 
   return (
     <div className="flex h-dvh flex-col bg-bg">
-      <header className="sticky top-0 z-30 shrink-0 border-b border-line bg-bg/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
+      <header className="sticky top-0 z-30 shrink-0 border-b border-line bg-bg/95 pt-[env(safe-area-inset-top)]">
         <div
           className={clsx(PAGE_CONTAINER, "flex min-h-14 items-center gap-2")}
         >

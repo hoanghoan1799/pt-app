@@ -7,6 +7,7 @@ import {
   heartbeatUrl,
   shouldRunPresence,
 } from "@/features/chat/utils/presence-status";
+import { startVisibleInterval } from "@/utils/visible-interval";
 
 // Tells the server this person has the app open (KAN-129): once on mount, then
 // every minute, and again when the tab comes back. Nothing is sent while the
@@ -22,15 +23,9 @@ export const usePresenceHeartbeat = (role: "user" | "admin") => {
         () => undefined,
       );
     };
-    const onVisibility = () => beat();
 
     beat();
-    const timer = setInterval(beat, PRESENCE_HEARTBEAT_MS);
-
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
+    // The timer stops while hidden and beats once when the tab returns.
+    return startVisibleInterval(beat, PRESENCE_HEARTBEAT_MS);
   }, [role]);
 };

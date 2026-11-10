@@ -49,6 +49,7 @@ export const ChatPhotoImage = ({
         width={photo.width}
         height={photo.height}
         draggable={false}
+        loading="lazy"
         decoding="async"
         onLoad={() => setIsLoaded(true)}
         className={clsx(

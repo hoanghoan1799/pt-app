@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { setInboxRealtimeConnected } from "@/features/chat/hooks/inbox-realtime";
 import { UNREAD_REFRESH_EVENT } from "@/features/chat/hooks/use-chat-unread";
 import { INBOX_CHANNEL } from "@/features/chat/utils/ably-capabilities";
 import {
@@ -12,12 +13,12 @@ import {
 
 const TOKEN_URL = "/api/chat/ably-token?as=admin";
 // Without a live channel the inbox is refreshed on this slow tick.
-export const INBOX_FALLBACK_REFRESH_MS = 15_000;
+export const INBOX_FALLBACK_REFRESH_MS = 30_000;
 // Several events in a burst (a read plus a message) become one refresh.
 const COALESCE_MS = 300;
 
 // Renders nothing. Keeps the server-rendered inbox fresh: refreshes the route
-// on every inbox event from Ably, and on a 15 s tick while Ably is not
+// on every inbox event from Ably, and on a 30 s tick while Ably is not
 // connected (no key, failed, or still connecting). A hidden tab pauses and
 // refreshes once when it returns.
 export const InboxLiveRefresh = () => {
@@ -121,6 +122,12 @@ export const InboxLiveRefresh = () => {
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
+
+  // Lets the unread badge slow its poll while this connection is live.
+  useEffect(() => {
+    setInboxRealtimeConnected(state === "connected");
+    return () => setInboxRealtimeConnected(false);
+  }, [state]);
 
   const shouldTick = !isHidden && state !== "connected";
 

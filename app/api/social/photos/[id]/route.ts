@@ -15,7 +15,8 @@ const reply = (body: unknown, status: number) =>
 
 // GET: the photo of a post. 404 unless the post is visible to the signed-in
 // viewer (canSeePost), never 403, so ids reveal nothing. The bytes of an id
-// never change, but visibility can, so only a short private cache.
+// never change. Visibility can, but only a viewer who already saw the photo
+// holds a copy, in their own private cache, so it may keep it for good.
 export const GET = async (_request: NextRequest, { params }: Context) => {
   const id = parsePhotoId((await params).id);
 
@@ -40,7 +41,7 @@ export const GET = async (_request: NextRequest, { params }: Context) => {
         status: 200,
         headers: {
           "Content-Type": found.mime,
-          "Cache-Control": "private, max-age=3600",
+          "Cache-Control": "private, max-age=31536000, immutable",
           "X-Content-Type-Options": "nosniff",
           "Content-Security-Policy": "default-src 'none'; sandbox",
         },

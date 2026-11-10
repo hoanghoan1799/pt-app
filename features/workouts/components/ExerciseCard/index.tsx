@@ -71,7 +71,7 @@ export const ExerciseCard = ({
             <span className="absolute top-1/2 left-1/2 flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-black shadow-lg transition group-active:scale-95">
               <Play className="ml-1 size-7 fill-current" aria-hidden />
             </span>
-            <span className="absolute top-3 left-3 flex size-8 items-center justify-center rounded-full bg-black/60 text-sm font-bold text-white backdrop-blur">
+            <span className="absolute top-3 left-3 flex size-8 items-center justify-center rounded-full bg-black/70 text-sm font-bold text-white">
               {index + 1}
             </span>
           </button>
