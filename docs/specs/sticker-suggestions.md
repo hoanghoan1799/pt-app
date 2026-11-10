@@ -18,11 +18,11 @@ Source: Hoan asked for Zalo/Telegram-style suggestions: while typing in the chat
 
 ## Test matrix
 
-| Case | Expected |
-| --- | --- |
-| `cố lên` / `co len` | same stickers (flexed biceps first) |
-| `💪` only | flexed biceps, no GIPHY call |
-| 5+ words or 31+ characters | no row |
-| text starting with `/` | no row |
-| `xyz` with GIPHY off | no row |
-| tap a tile | sticker sent, text cleared, recent updated |
+| Case                       | Expected                                   |
+| -------------------------- | ------------------------------------------ |
+| `cố lên` / `co len`        | same stickers (flexed biceps first)        |
+| `💪` only                  | flexed biceps, no GIPHY call               |
+| 5+ words or 31+ characters | no row                                     |
+| text starting with `/`     | no row                                     |
+| `xyz` with GIPHY off       | no row                                     |
+| tap a tile                 | sticker sent, text cleared, recent updated |
