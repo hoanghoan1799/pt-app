@@ -1,5 +1,6 @@
 "use client";
 
+import clsx from "clsx";
 import {
   Flag,
   MessageCircle,
@@ -66,6 +67,16 @@ const ReportSheet = dynamic(
     ),
   { ssr: false },
 );
+
+// Feed rows below the fold skip layout and paint (content-visibility: auto).
+// "auto <px>" in contain-intrinsic-size is only the first guess: once a card
+// has been on screen the browser remembers its real height, so the scroll
+// position does not shift when it is skipped again. Not used on the post page,
+// where the card is the whole page and always on screen.
+const OFFSCREEN_WITH_PHOTO =
+  "[content-visibility:auto] [contain-intrinsic-size:auto_480px]";
+const OFFSCREEN_TEXT_ONLY =
+  "[content-visibility:auto] [contain-intrinsic-size:auto_180px]";
 
 const MENU_ITEM =
   "flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-base font-medium active:bg-line/70";
@@ -158,7 +169,11 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
 
   return (
     <article
-      className={`${CARD} space-y-3 p-4`}
+      className={clsx(
+        CARD,
+        "space-y-3 p-4",
+        !isDetail && (post.photo ? OFFSCREEN_WITH_PHOTO : OFFSCREEN_TEXT_ONLY),
+      )}
       aria-label={t("postOf", { name: post.authorName })}
     >
       <header className="flex items-center gap-3">
