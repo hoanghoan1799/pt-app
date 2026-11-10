@@ -5,7 +5,8 @@
 //      database has no admin yet (an existing admin is never overwritten)
 //   3. adds the starter food library when the foods table is empty
 //   4. moves legacy hidden conversations to hidden trainees (KAN-163)
-//   5. gives pre-roles admins the super_admin role and the blue tick (P1)
+//   5. moves the shared chat nicknames to private contact aliases
+//   6. gives pre-roles admins the super_admin role and the blue tick (P1)
 //
 // Runs automatically before `next build` on Vercel (see "build" in
 // package.json); run `pnpm db:setup` to do the same by hand.
@@ -21,6 +22,7 @@ import { db } from "@/db";
 import { admins, foods } from "@/db/schema";
 import { verifyExistingSuperAdmins } from "@/features/auth/services/verify-existing-admins";
 import { moveHiddenConversationsToUsers } from "@/features/chat/services/hidden-users-migration";
+import { moveChatNicknamesToAliases } from "@/features/contact-aliases/services/legacy-nicknames-migration";
 import { insertMissingSeedFoods } from "@/features/foods/services/seed-foods-service";
 import {
   describeDatabaseConfig,
@@ -102,6 +104,14 @@ const migrateHiddenConversations = async () => {
   }
 };
 
+const migrateChatNicknames = async () => {
+  const moved = await moveChatNicknamesToAliases(db);
+
+  if (moved > 0) {
+    console.log(`✔ Đã chuyển ${moved} biệt danh chung sang biệt danh riêng`);
+  }
+};
+
 const verifyLegacyAdmins = async () => {
   const changed = await verifyExistingSuperAdmins(db);
 
@@ -120,6 +130,7 @@ const setupDatabase = async () => {
   await createFirstAdmin();
   await seedFoodLibrary();
   await migrateHiddenConversations();
+  await migrateChatNicknames();
   await verifyLegacyAdmins();
 };
 

@@ -269,5 +269,9 @@
     "memberAdded": "已添加 {name}",
     "weekCopied": "已将 {count} 天复制到 {range} 这一周",
     "weekCopiedTo": "已将 {count} 天复制到 {name} 的 {range} 这一周"
+  },
+  "alias": {
+    "SELF": "你不能给自己设置昵称",
+    "TARGET_NOT_FOUND": "找不到此人"
   }
 }

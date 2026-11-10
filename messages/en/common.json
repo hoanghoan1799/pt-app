@@ -37,5 +37,16 @@
   },
   "avatarLightbox": { "label": "Photo of {name}" },
   "verified": "Verified",
-  "loading": "Loading…"
+  "loading": "Loading…",
+  "alias": {
+    "saving": "Saving…",
+    "save": "Save",
+    "clear": "Remove nickname",
+    "privateHint": "Only you can see this nickname",
+    "failed": "Could not save. Please try again.",
+    "fieldLabel": "Nickname for {name}",
+    "setAlias": "Set nickname",
+    "editAlias": "Edit nickname",
+    "sheetTitle": "Nickname for {name}"
+  }
 }
