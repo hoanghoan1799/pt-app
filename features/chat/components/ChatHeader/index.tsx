@@ -5,6 +5,7 @@ import { ChevronLeft, Settings } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -30,6 +31,8 @@ interface ChatHeaderProps {
   verified?: boolean;
   // The chat info page (KAN-160): the avatar, the name and the gear go there.
   infoHref: string;
+  // Extra controls before the gear (admin: the neutral colours switch).
+  actions?: ReactNode;
 }
 
 // The thread header (both sides): Back, avatar, the name with the settings
@@ -43,6 +46,7 @@ export const ChatHeader = ({
   presence,
   infoHref,
   verified = false,
+  actions,
 }: ChatHeaderProps) => {
   const t = useTranslations("chat.chatHeader");
   const router = useRouter();
@@ -99,6 +103,7 @@ export const ChatHeader = ({
           </h1>
           <PresenceStatus presence={presence} />
         </Link>
+        {actions}
         <Link
           href={infoHref}
           className={clsx(ICON_BUTTON, "-mr-3")}
