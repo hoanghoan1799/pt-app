@@ -14,6 +14,9 @@
     "postComment": "{name} đã bình luận về bài viết của bạn",
     "commented": "{name} đã bình luận: {preview}",
     "friendRequest": "{name} đã gửi lời mời kết bạn",
-    "friendAccepted": "{name} đã chấp nhận lời mời kết bạn"
+    "friendAccepted": "{name} đã chấp nhận lời mời kết bạn",
+    "adminPostList": "{name} vừa đăng bài mới",
+    "adminPost": "{name} vừa đăng bài mới: {preview}",
+    "adminPostPhoto": "{name} vừa đăng một ảnh mới"
   }
 }

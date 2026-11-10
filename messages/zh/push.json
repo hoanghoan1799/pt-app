@@ -14,6 +14,9 @@
     "postComment": "{name} 评论了你的帖子",
     "commented": "{name} 评论：{preview}",
     "friendRequest": "{name} 向你发送了好友请求",
-    "friendAccepted": "{name} 接受了你的好友请求"
+    "friendAccepted": "{name} 接受了你的好友请求",
+    "adminPostList": "{name} 发布了新帖子",
+    "adminPost": "{name} 发布了新帖子：{preview}",
+    "adminPostPhoto": "{name} 发布了一张新照片"
   }
 }
