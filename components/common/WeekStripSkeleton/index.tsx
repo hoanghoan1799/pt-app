@@ -1,7 +1,6 @@
 import { useTranslations } from "next-intl";
 
-import { DayStatusLegend } from "@/components/common/DayStatusLegend";
-import { Skeleton } from "@/components/common/Skeleton";
+import { InlineSkeleton, Skeleton } from "@/components/common/Skeleton";
 import { CARD } from "@/constants/styles";
 
 interface WeekStripSkeletonProps {
@@ -12,9 +11,12 @@ interface WeekStripSkeletonProps {
   hasProgress?: boolean;
 }
 
+// Widths of the two legend text placeholders.
+const LEGEND_BAR_WIDTHS = ["w-20", "w-24"] as const;
+
 // The selected week comes from the URL, which loading.tsx cannot read, so the
-// week title, arrows and day cells stay placeholders. The legend is static
-// and renders for real.
+// week title, arrows and day cells stay placeholders. The legend is a neutral
+// placeholder too: while loading, nothing renders in status colours.
 export const WeekStripSkeleton = ({
   variant = "calendar",
   hasProgress = false,
@@ -39,7 +41,14 @@ export const WeekStripSkeleton = ({
           ))}
         </div>
         <div className="border-t border-line pt-3">
-          <DayStatusLegend />
+          <div className="flex gap-x-4" aria-hidden>
+            {LEGEND_BAR_WIDTHS.map((width) => (
+              <div key={width} className="flex items-center gap-2">
+                <Skeleton className="size-2 rounded-full" />
+                <InlineSkeleton className={`h-3 ${width}`} />
+              </div>
+            ))}
+          </div>
         </div>
       </section>
       {hasProgress && <Skeleton className="h-2 w-full rounded-full" />}
