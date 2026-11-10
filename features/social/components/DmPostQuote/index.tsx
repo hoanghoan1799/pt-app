@@ -54,6 +54,8 @@ export const DmPostQuote = ({
           <img
             src={post.photo.url}
             alt=""
+            loading="lazy"
+            decoding="async"
             className="size-10 shrink-0 rounded-lg bg-line object-cover"
           />
         )}
@@ -102,6 +104,7 @@ export const DmPostQuote = ({
           width={post.photo.width}
           height={post.photo.height}
           loading="lazy"
+          decoding="async"
           className="w-full rounded-lg bg-line object-cover"
           style={{ aspectRatio: `${post.photo.width} / ${post.photo.height}` }}
         />

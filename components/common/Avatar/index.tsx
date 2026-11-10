@@ -47,6 +47,8 @@ export const Avatar = ({
         <img
           src={src}
           alt=""
+          loading="lazy"
+          decoding="async"
           data-avatar-image
           draggable={false}
           onError={() => setFailedSrc(src)}
