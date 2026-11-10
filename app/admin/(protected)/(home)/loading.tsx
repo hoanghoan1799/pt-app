@@ -16,7 +16,8 @@ import { ICON_BUTTON, SECTION_TITLE } from "@/constants/styles";
 
 // Dashboard. Real: title, messages link, section titles. Placeholders: the
 // admin name, account menus, tiles (they depend on the role), week and lists.
-// Also the fallback for admin pages without their own loading.tsx.
+// Lives in the (home) route group so it covers the dashboard only, never a
+// page opened from it (a chat would otherwise flash this dashboard skeleton).
 export default async function Loading() {
   const t = await getTranslations("adminPages.home");
 
