@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
@@ -84,6 +85,7 @@ const FeedPage = async () => {
           </>
         )}
       </main>
+      <ScrollToTopButton aboveTabBar />
     </>
   );
 };

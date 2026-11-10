@@ -43,9 +43,6 @@
   "unreadBadge": {
     "label": "{count} unread messages"
   },
-  "newMessages": {
-    "label": "New messages"
-  },
   "typing": {
     "label": "{name} is typing…"
   },

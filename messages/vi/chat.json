@@ -43,9 +43,6 @@
   "unreadBadge": {
     "label": "{count} tin nhắn chưa đọc"
   },
-  "newMessages": {
-    "label": "Tin nhắn mới"
-  },
   "typing": {
     "label": "{name} đang nhập…"
   },

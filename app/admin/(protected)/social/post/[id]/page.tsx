@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
@@ -49,6 +50,7 @@ const AdminPostPage = async ({
         <PostCard post={post} mode="admin" isDetail />
         <CommentSection postId={post.id} mode="admin" comments={comments} />
       </main>
+      <ScrollToTopButton />
     </>
   );
 };

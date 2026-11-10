@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
+import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { ROUTES } from "@/constants/routes";
@@ -122,6 +123,7 @@ const AdminPtsPage = async () => {
           </div>
         </section>
       </main>
+      <ScrollToTopButton />
     </>
   );
 };

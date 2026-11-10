@@ -48,5 +48,10 @@
     "setAlias": "设置昵称",
     "editAlias": "修改昵称",
     "sheetTitle": "{name} 的昵称"
+  },
+  "scrollJump": {
+    "toTop": "回到顶部",
+    "toLatest": "跳到最新消息",
+    "newCount": "{count} 条新消息"
   }
 }

@@ -48,5 +48,10 @@
     "setAlias": "Set nickname",
     "editAlias": "Edit nickname",
     "sheetTitle": "Nickname for {name}"
+  },
+  "scrollJump": {
+    "toTop": "Back to top",
+    "toLatest": "Jump to latest message",
+    "newCount": "{count, plural, one {# new message} other {# new messages}}"
   }
 }

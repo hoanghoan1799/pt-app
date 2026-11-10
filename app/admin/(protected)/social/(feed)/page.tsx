@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON, PAGE_CONTAINER } from "@/constants/styles";
@@ -72,6 +73,7 @@ const AdminSocialPage = async () => {
           emptyText={t("feedEmpty")}
         />
       </main>
+      <ScrollToTopButton />
     </>
   );
 };
