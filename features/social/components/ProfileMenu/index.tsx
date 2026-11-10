@@ -1,6 +1,7 @@
 "use client";
 
 import { Ban, Flag, MoreHorizontal } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -9,9 +10,9 @@ import { BottomSheet } from "@/components/common/BottomSheet";
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { Spinner } from "@/components/common/Spinner";
 import { ROUTES } from "@/constants/routes";
-import { ReportSheet } from "@/features/social/components/ReportSheet";
 import { useSocialAction } from "@/features/social/hooks/use-social-action";
 import { blockUserAction } from "@/features/social/services/friend-actions";
+import { useHasOpened } from "@/hooks/use-has-opened";
 
 interface ProfileMenuProps {
   mode: "user" | "admin";
@@ -22,6 +23,15 @@ interface ProfileMenuProps {
   // Admin accounts are not reportable.
   canReport: boolean;
 }
+
+// Opened from a menu item, so its code loads on first open.
+const ReportSheet = dynamic(
+  () =>
+    import("@/features/social/components/ReportSheet").then(
+      (module) => module.ReportSheet,
+    ),
+  { ssr: false },
+);
 
 const MENU_ITEM =
   "flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-base font-medium active:bg-line/70";
@@ -39,6 +49,7 @@ export const ProfileMenu = ({
   const confirm = useConfirm();
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [isReportOpen, setReportOpen] = useState(false);
+  const hasReportOpened = useHasOpened(isReportOpen);
   const { isPending, run } = useSocialAction();
 
   const handleBlock = async () => {
@@ -101,7 +112,7 @@ export const ProfileMenu = ({
           )}
         </div>
       </BottomSheet>
-      {canReport && (
+      {canReport && hasReportOpened && (
         <ReportSheet
           isOpen={isReportOpen}
           onOpenChange={setReportOpen}

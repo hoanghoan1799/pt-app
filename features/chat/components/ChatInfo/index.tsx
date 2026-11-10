@@ -2,15 +2,16 @@
 
 import clsx from "clsx";
 import { ChevronRight, Search, SlidersHorizontal } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
 import { AvatarLightbox } from "@/components/common/AvatarLightbox";
+import { Spinner } from "@/components/common/Spinner";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
-import { ChatCustomizePanel } from "@/features/chat/components/ChatCustomizePanel";
 import { HideConversationButton } from "@/features/chat/components/HideConversationButton";
 import { NeutralColorsSwitch } from "@/features/chat/components/NeutralColorsSwitch";
 import { PresenceStatus } from "@/features/chat/components/PresenceStatus";
@@ -26,6 +27,22 @@ import {
   type GalleryPhoto,
   photoLabel,
 } from "@/features/chat/utils/gallery-rules";
+
+// Mounted only after the "Tuỳ chỉnh" tap, so its code loads on demand.
+const ChatCustomizePanel = dynamic(
+  () =>
+    import("@/features/chat/components/ChatCustomizePanel").then(
+      (module) => module.ChatCustomizePanel,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex justify-center py-6">
+        <Spinner />
+      </div>
+    ),
+  },
+);
 
 export interface ChatInfoProps {
   viewer: ThreadViewer;

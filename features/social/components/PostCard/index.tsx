@@ -7,6 +7,7 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -16,7 +17,7 @@ import { toast } from "sonner";
 import { Avatar } from "@/components/common/Avatar";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
-import { PhotoViewer } from "@/components/common/PhotoViewer";
+import { LazyPhotoViewer } from "@/components/common/LazyPhotoViewer";
 import { Spinner } from "@/components/common/Spinner";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import {
@@ -32,7 +33,6 @@ import {
   PrivacySelect,
 } from "@/features/social/components/PrivacySelect";
 import { ReactionBar } from "@/features/social/components/ReactionBar";
-import { ReportSheet } from "@/features/social/components/ReportSheet";
 import { CAPTION_MAX_LENGTH } from "@/features/social/constants/social";
 import {
   deletePostAction,
@@ -47,6 +47,7 @@ import {
   adminProfilePath,
   profilePath,
 } from "@/features/social/utils/post-rules";
+import { useHasOpened } from "@/hooks/use-has-opened";
 import { describeErrorReference } from "@/utils/errors";
 import { formatRelativeTime } from "@/utils/time";
 
@@ -56,6 +57,15 @@ interface PostCardProps {
   // On the post page itself the comment count is not a link.
   isDetail?: boolean;
 }
+
+// Opened from a menu item, so its code loads on first open.
+const ReportSheet = dynamic(
+  () =>
+    import("@/features/social/components/ReportSheet").then(
+      (module) => module.ReportSheet,
+    ),
+  { ssr: false },
+);
 
 const MENU_ITEM =
   "flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-base font-medium active:bg-line/70";
@@ -68,6 +78,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
   const confirm = useConfirm();
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [isReportOpen, setReportOpen] = useState(false);
+  const hasReportOpened = useHasOpened(isReportOpen);
   const [isEditing, setEditing] = useState(false);
   const [caption, setCaption] = useState(post.caption);
   const [privacy, setPrivacy] = useState<PostPrivacy>(post.privacy);
@@ -258,7 +269,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
       )}
 
       {post.photo && (
-        <PhotoViewer
+        <LazyPhotoViewer
           photos={[
             {
               id: post.photo.id,
@@ -350,7 +361,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
           )}
         </div>
       </BottomSheet>
-      {canReport && (
+      {canReport && hasReportOpened && (
         <ReportSheet
           isOpen={isReportOpen}
           onOpenChange={setReportOpen}
