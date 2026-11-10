@@ -624,7 +624,7 @@ describe("photo routes", () => {
 
     expect(ok.status).toBe(200);
     expect(ok.headers.get("Content-Type")).toBe("image/png");
-    expect(ok.headers.get("Cache-Control")).toBe("private, max-age=3600");
+    expect(ok.headers.get("Cache-Control")).toBe("private, max-age=31536000, immutable");
     signInAs(carol);
     expect((await getPhoto(photoId)).status).toBe(404);
     signInAdmin(ptId, "pt");
