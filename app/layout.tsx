@@ -7,6 +7,7 @@ import { getLocale, getMessages, getTranslations } from "next-intl/server";
 
 import { AppToaster } from "@/components/common/AppToaster";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { EMBED_MARKER_SCRIPT } from "@/features/chat-bubbles/constants/embed-script";
 import { ServiceWorkerRegister } from "@/features/pwa/components/ServiceWorkerRegister";
 import { INSTALL_CAPTURE_SCRIPT } from "@/features/pwa/constants/capture-script";
 import { pickClientMessages } from "@/i18n/client-namespaces";
@@ -57,9 +58,10 @@ const RootLayout = async ({ children }: LayoutProps<"/">) => {
   const messages = await getMessages();
 
   return (
-    <html lang={locale} data-theme={theme}>
+    <html lang={locale} data-theme={theme} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: INSTALL_CAPTURE_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: EMBED_MARKER_SCRIPT }} />
       </head>
       <body className="min-h-dvh antialiased">
         <NextIntlClientProvider

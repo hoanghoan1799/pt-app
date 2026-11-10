@@ -14,6 +14,8 @@ import {
 } from "@/features/chat/utils/chat-inbox";
 import { isOnline } from "@/features/chat/utils/presence";
 import { shortLastSeen } from "@/features/chat/utils/presence-status";
+import { BubbleRowTrigger } from "@/features/chat-bubbles/components/BubbleRowTrigger";
+import { bubbleKeyFor } from "@/features/chat-bubbles/utils/bubble-links";
 import { getAdminMessagesPath } from "@/utils/routes";
 
 interface ChatInboxListProps {
@@ -152,12 +154,19 @@ export const ChatInboxList = ({
             {isSelecting ? (
               <label className={clsx(rowClass, "cursor-pointer")}>{row}</label>
             ) : (
-              <Link
-                href={getAdminMessagesPath(item.userId)}
-                className={rowClass}
+              <BubbleRowTrigger
+                role="admin"
+                bubbleKey={bubbleKeyFor("admin", item.userId)}
+                name={item.displayName}
+                disabled={!item.chatEnabled}
               >
-                {row}
-              </Link>
+                <Link
+                  href={getAdminMessagesPath(item.userId)}
+                  className={rowClass}
+                >
+                  {row}
+                </Link>
+              </BubbleRowTrigger>
             )}
             {onUnhide && !isSelecting && (
               <button

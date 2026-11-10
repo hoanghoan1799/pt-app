@@ -277,5 +277,29 @@
       "all": "All",
       "unread": "Unread"
     }
+  },
+  "bubbles": {
+    "minimize": "Minimize to a bubble",
+    "minimized": "Minimized to a bubble",
+    "openBubble": "Open chat bubble",
+    "opened": "Chat bubble opened",
+    "bubbleLabel": "Chat bubble {name}",
+    "unreadLabel": "{count} unread messages",
+    "panelLabel": "Chat with {name}",
+    "loading": "Loading the conversation",
+    "more": "More options",
+    "collapse": "Collapse",
+    "openFull": "Open full screen",
+    "closeZone": "Drag here to close",
+    "muteFor": "Don't show bubbles for {name}",
+    "muteThis": "Don't show bubbles for this person",
+    "unmuteThis": "Show bubbles for this person again",
+    "muted": "Bubbles off for {name}",
+    "unmuted": "Bubbles back on for {name}",
+    "closeThis": "Close this bubble",
+    "closed": "Closed the bubble for {name}",
+    "closedAll": "Closed all bubbles",
+    "popLabel": "Show a chat bubble on new messages",
+    "popHelp": "When a new message arrives and you are not in that chat, a bubble pops up. This device only."
   }
 }

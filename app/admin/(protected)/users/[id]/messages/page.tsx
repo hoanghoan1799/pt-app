@@ -26,6 +26,7 @@ import { loadCoachReplyPostFor } from "@/features/chat/services/chat-reply-post"
 import { parseJumpId } from "@/features/chat/utils/chat-links";
 import { serializeMessage } from "@/features/chat/utils/chat-thread-rules";
 import { serializeLastSeen } from "@/features/chat/utils/presence";
+import { isEmbedParam } from "@/features/chat-bubbles/utils/bubble-links";
 import { adminActorKey } from "@/features/contact-aliases/utils/alias-rules";
 import { actorOfAdmin } from "@/features/social/services/post-context";
 import { parseDmId } from "@/features/social/utils/dm-rules";
@@ -65,7 +66,9 @@ const AdminMessagesPage = async ({
   const conversation = chatEnabled
     ? await getOrCreateConversation(user.id)
     : await findConversationByUserId(user.id);
-  const below = (
+  const isEmbed = isEmbedParam(query.embed);
+  // The bubble panel has its own header; no section tabs or lock row there.
+  const below = isEmbed ? undefined : (
     <>
       <MemberSectionTabs
         userId={user.id}
@@ -134,6 +137,7 @@ const AdminMessagesPage = async ({
       // lock state at once instead of on the next poll.
       key={chatEnabled ? "enabled" : "locked"}
       below={below}
+      isEmbed={isEmbed}
       userName={user.name}
       userId={user.id}
       conversationId={conversation.id}

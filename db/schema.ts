@@ -533,6 +533,9 @@ export const chatMessages = sqliteTable(
     // The social post this message replies to ("Trả lời qua tin nhắn"). Nullable
     // like every new column; cleared when the message is unsent.
     replyPostId: integer("reply_post_id"),
+    // True for a /imlang message: no push, and no bubble pop. Nullable like
+    // every new column (null = loud).
+    silent: integer("silent", { mode: "boolean" }),
     editedAt: integer("edited_at", { mode: "timestamp_ms" }),
     // Null until the first edit, unsend or reaction.
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }),

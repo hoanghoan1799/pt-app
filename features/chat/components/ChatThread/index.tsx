@@ -55,6 +55,7 @@ import { chatNotificationTags } from "@/features/chat/utils/clear-notifications"
 import { displayNameFor } from "@/features/chat/utils/display-name";
 import type { PreparedPhoto } from "@/features/chat/utils/encode-photo";
 import type { PresenceView } from "@/features/chat/utils/presence-status";
+import { useIsEmbedded } from "@/features/chat-bubbles/hooks/use-is-embedded";
 import type { DmReplyPostView } from "@/features/social/types/dm";
 
 export interface ChatThreadProps {
@@ -97,6 +98,8 @@ export interface ChatThreadProps {
   // A post to reply to, opened from a post card (`?replyPost=`); sent with the
   // next text message. Attaching it replaces a message reply and vice versa.
   replyPost?: (DmReplyPostView & { available: true }) | null;
+  // Shown inside the bubble panel (`?embed=1`): no header, the panel has one.
+  isEmbed?: boolean;
 }
 
 const NO_VERIFIED: number[] = [];
@@ -217,8 +220,10 @@ export const ChatThread = ({
   ariaLabel,
   avatars = NO_AVATARS,
   replyPost = null,
+  isEmbed = false,
 }: ChatThreadProps) => {
   const router = useRouter();
+  const isFramed = useIsEmbedded();
   const pathname = usePathname();
   const locale = useLocale();
   const t = useTranslations("chat.chatThread");
@@ -630,14 +635,16 @@ export const ChatThread = ({
       : (avatars[`admin:${latestAdminId(messages)}`] ?? null);
   const verifiedIds = new Set(verifiedAdminIds);
   const headerNode =
-    typeof header === "function"
-      ? header(latestPeerName, presence, {
-          profile,
-          infoHref,
-          peerAvatar,
-          peerVerified: verifiedIds.has(latestAdminId(messages) ?? -1),
-        })
-      : header;
+    isEmbed || isFramed
+      ? null
+      : typeof header === "function"
+        ? header(latestPeerName, presence, {
+            profile,
+            infoHref,
+            peerAvatar,
+            peerVerified: verifiedIds.has(latestAdminId(messages) ?? -1),
+          })
+        : header;
   const peerRealName =
     viewer.role === "admin"
       ? (viewer.peerName ?? t("traineeFallback"))

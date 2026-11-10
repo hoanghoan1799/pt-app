@@ -16,6 +16,7 @@ import { useTranslations } from "next-intl";
 import { ROUTES } from "@/constants/routes";
 import { UnreadBadge } from "@/features/chat/components/UnreadBadge";
 import { useChatUnread } from "@/features/chat/hooks/use-chat-unread";
+import { useIsEmbedded } from "@/features/chat-bubbles/hooks/use-is-embedded";
 
 const TABS: {
   href: string;
@@ -55,15 +56,17 @@ export const UserTabBar = () => {
   const inChat =
     isUnder(pathname, ROUTES.MESSAGES_COACH) ||
     isUnder(pathname, ROUTES.MESSAGES_DM);
-  const unread = useChatUnread(inChat);
+  const isEmbedded = useIsEmbedded();
+  const unread = useChatUnread(inChat || isEmbedded);
 
-  if (inChat) {
+  if (inChat || isEmbedded) {
     return null;
   }
 
   return (
     <nav
       aria-label={t("label")}
+      data-app-chrome
       className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
     >
       <ul

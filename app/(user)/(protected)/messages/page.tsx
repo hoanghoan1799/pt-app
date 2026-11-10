@@ -7,7 +7,10 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { CARD, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
+import { isChatEnabled } from "@/features/chat/services/chat-permission";
 import { countUnreadForUser } from "@/features/chat/services/chat-queries";
+import { BubbleRowTrigger } from "@/features/chat-bubbles/components/BubbleRowTrigger";
+import { bubbleKeyFor } from "@/features/chat-bubbles/utils/bubble-links";
 import { DmInboxRefresh } from "@/features/social/components/DmInboxRefresh";
 import { listDmInbox } from "@/features/social/services/dm-queries";
 import { hasAcceptedTerms } from "@/features/social/services/terms";
@@ -52,18 +55,25 @@ const MessagesInboxPage = async () => {
       >
         <ul className="space-y-2">
           <li>
-            <Link href={ROUTES.MESSAGES_COACH} className={ROW}>
-              <Avatar name="PT" className="size-12 shrink-0 text-base" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold text-fg">
-                  {dm("coachTitle")}
+            <BubbleRowTrigger
+              role="user"
+              bubbleKey={bubbleKeyFor("user", user.id)}
+              name={dm("coachTitle")}
+              disabled={!isChatEnabled(user)}
+            >
+              <Link href={ROUTES.MESSAGES_COACH} className={ROW}>
+                <Avatar name="PT" className="size-12 shrink-0 text-base" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold text-fg">
+                    {dm("coachTitle")}
+                  </span>
+                  <span className="block truncate text-sm text-muted">
+                    {t("coachSubtitle")}
+                  </span>
                 </span>
-                <span className="block truncate text-sm text-muted">
-                  {t("coachSubtitle")}
-                </span>
-              </span>
-              {coachUnread > 0 && <UnreadDot label={t("unreadDot")} />}
-            </Link>
+                {coachUnread > 0 && <UnreadDot label={t("unreadDot")} />}
+              </Link>
+            </BubbleRowTrigger>
           </li>
         </ul>
         {chats.length > 0 && (

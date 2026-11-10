@@ -27,6 +27,7 @@ import {
   type GalleryPhoto,
   photoLabel,
 } from "@/features/chat/utils/gallery-rules";
+import { BubblePopSwitch } from "@/features/chat-bubbles/components/BubblePopSwitch";
 
 // Mounted only after the "Tuỳ chỉnh" tap, so its code loads on demand.
 const ChatCustomizePanel = dynamic(
@@ -224,14 +225,13 @@ export const ChatInfo = ({
           </Link>
         </section>
 
-        {isAdmin && (
-          <section aria-labelledby="chat-info-display" className="space-y-3">
-            <h2 id="chat-info-display" className={SECTION_TITLE}>
-              {t("displaySection")}
-            </h2>
-            <NeutralColorsSwitch />
-          </section>
-        )}
+        <section aria-labelledby="chat-info-display" className="space-y-3">
+          <h2 id="chat-info-display" className={SECTION_TITLE}>
+            {t("displaySection")}
+          </h2>
+          {isAdmin && <NeutralColorsSwitch />}
+          <BubblePopSwitch />
+        </section>
 
         {isAdmin && (
           <section aria-labelledby="chat-info-actions" className="space-y-3">

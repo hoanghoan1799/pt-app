@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 
 import { ROUTES } from "@/constants/routes";
+import { useIsEmbedded } from "@/features/chat-bubbles/hooks/use-is-embedded";
 import { useInstallPrompt } from "@/features/pwa/hooks/use-install-prompt";
 
 const BUTTON_BASE =
@@ -19,7 +20,9 @@ export const InstallPrompt = () => {
   const t = useTranslations("pwa.installPrompt");
   const { visible: canShow, platform, install, dismiss } = useInstallPrompt();
   const pathname = usePathname();
-  const visible = canShow && !pathname.startsWith(ROUTES.MESSAGES);
+  const isEmbedded = useIsEmbedded();
+  const visible =
+    canShow && !isEmbedded && !pathname.startsWith(ROUTES.MESSAGES);
   const bannerRef = useRef<HTMLDivElement>(null);
   const spacerRef = useRef<HTMLDivElement>(null);
 
