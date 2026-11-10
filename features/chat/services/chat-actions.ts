@@ -221,6 +221,7 @@ export const sendMessageAction = withResultErrorHandling(
         clientId,
         replyToMessageId,
         replyPostId: postId ?? null,
+        silent: resolved.silent ? true : null,
       },
       sender,
     );
@@ -328,6 +329,7 @@ export const adminSendMessageAction = withResultErrorHandling(
         clientId,
         replyToMessageId,
         replyPostId: postId ?? null,
+        silent: resolved.silent ? true : null,
       },
       sender,
     );

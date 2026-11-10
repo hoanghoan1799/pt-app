@@ -16,6 +16,7 @@ import { loadCoachReplyPostFor } from "@/features/chat/services/chat-reply-post"
 import { loadTraineeThread } from "@/features/chat/services/chat-thread";
 import { parseJumpId } from "@/features/chat/utils/chat-links";
 import { serializeMessage } from "@/features/chat/utils/chat-thread-rules";
+import { isEmbedParam } from "@/features/chat-bubbles/utils/bubble-links";
 import { actorOfUser } from "@/features/social/services/post-context";
 import { parseDmId } from "@/features/social/utils/dm-rules";
 import { listVerifiedAdminIds } from "@/services/admins";
@@ -71,6 +72,7 @@ const CoachChatPage = async ({
       initialPeerName={peerName}
       verifiedAdminIds={await listVerifiedAdminIds()}
       userId={user.id}
+      isEmbed={isEmbedParam(query.embed)}
       avatars={Object.fromEntries(
         [...adminAvatars].map(([id, url]) => [`admin:${id}`, url]),
       )}

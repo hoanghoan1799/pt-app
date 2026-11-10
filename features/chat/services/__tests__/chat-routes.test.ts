@@ -47,6 +47,7 @@ const adminRoute =
 let db: TestDb;
 let userId: number;
 let conversationId: number;
+let firstId: number;
 let lastId: number;
 
 const get = (path: string) => new NextRequest(`http://localhost${path}`);
@@ -68,13 +69,15 @@ beforeEach(async () => {
   const conversation = await q.getOrCreateConversation(userId);
 
   conversationId = conversation.id;
-  await q.insertMessage({
-    conversationId,
-    senderRole: "user",
-    senderAdminId: null,
-    body: "một",
-    clientId: "00000000-0000-4000-8000-000000000001",
-  });
+  firstId = (
+    await q.insertMessage({
+      conversationId,
+      senderRole: "user",
+      senderAdminId: null,
+      body: "một",
+      clientId: "00000000-0000-4000-8000-000000000001",
+    })
+  ).id;
   lastId = (
     await q.insertMessage({
       conversationId,
@@ -230,7 +233,32 @@ describe("GET /api/chat/unread", () => {
       dmCount: 0,
       chatEnabled: true,
       hasHistory: true,
+      latestLoudIncomingId: lastId,
     });
+  });
+});
+
+describe("GET /api/chat/unread silent messages", () => {
+  it("counts a silent coach message but does not report it as loud", async () => {
+    await q.insertMessage({
+      conversationId,
+      senderRole: "admin",
+      senderAdminId: 1,
+      body: "im lặng",
+      clientId: "00000000-0000-4000-8000-000000000004",
+      silent: true,
+    });
+    const body = await (await unreadRoute.GET(get("/api/chat/unread"))).json();
+
+    expect(body.coachCount).toBe(2);
+    expect(body.latestLoudIncomingId).toBe(lastId);
+  });
+
+  it("is null when nothing loud is unread", async () => {
+    await q.saveReadCursor(conversationId, "user", lastId, lastId);
+    const body = await (await unreadRoute.GET(get("/api/chat/unread"))).json();
+
+    expect(body.latestLoudIncomingId).toBeNull();
   });
 });
 
@@ -279,11 +307,12 @@ describe("GET /api/chat/unread?as=admin", () => {
     expect(body.perTrainee).toHaveLength(2);
     expect(body.perTrainee).toEqual(
       expect.arrayContaining([
-        { userId, conversationId, unread: 1 },
+        { userId, conversationId, unread: 1, latestLoudIncomingId: firstId },
         {
           userId: other.id,
           conversationId: otherConversation.id,
           unread: 2,
+          latestLoudIncomingId: expect.any(Number),
         },
       ]),
     );
@@ -296,6 +325,22 @@ describe("GET /api/chat/unread?as=admin", () => {
     expect(body).toEqual({ count: 0, perTrainee: [] });
   });
 
+  it("leaves /imlang silent messages out of latestLoudIncomingId", async () => {
+    const silent = await q.insertMessage({
+      conversationId,
+      senderRole: "user",
+      senderAdminId: null,
+      body: "nhỏ tiếng",
+      clientId: "00000000-0000-4000-8000-000000000003",
+      silent: true,
+    });
+    const body = await (await adminUnread()).json();
+
+    expect(silent.id).toBeGreaterThan(firstId);
+    expect(body.count).toBe(2);
+    expect(body.perTrainee[0].latestLoudIncomingId).toBe(firstId);
+  });
+
   it("keeps the trainee shape without ?as=admin", async () => {
     state.admin = null;
     const body = await (await unreadRoute.GET(get("/api/chat/unread"))).json();
@@ -306,6 +351,7 @@ describe("GET /api/chat/unread?as=admin", () => {
       dmCount: 0,
       chatEnabled: true,
       hasHistory: true,
+      latestLoudIncomingId: lastId,
     });
   });
 });

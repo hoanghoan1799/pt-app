@@ -65,6 +65,7 @@
     "photoOf": "Ảnh của {label}",
     "galleryLink": "Ảnh, sticker và link",
     "noPhotos": "Chưa có ảnh",
+    "displaySection": "Hiển thị",
     "actionsSection": "Thao tác"
   },
   "chatHeader": {
@@ -281,5 +282,29 @@
       "all": "Tất cả",
       "unread": "Chưa đọc"
     }
+  },
+  "bubbles": {
+    "minimize": "Thu nhỏ thành bong bóng",
+    "minimized": "Đã thu nhỏ thành bong bóng",
+    "openBubble": "Mở bong bóng chat",
+    "opened": "Đã mở bong bóng chat",
+    "bubbleLabel": "Bong bóng chat {name}",
+    "unreadLabel": "{count} tin chưa đọc",
+    "panelLabel": "Chat với {name}",
+    "loading": "Đang tải cuộc trò chuyện",
+    "more": "Thêm tuỳ chọn",
+    "collapse": "Thu gọn",
+    "openFull": "Mở toàn màn hình",
+    "closeZone": "Kéo vào đây để đóng",
+    "muteFor": "Không hiện bong bóng cho {name}",
+    "muteThis": "Không hiện bong bóng cho người này",
+    "unmuteThis": "Hiện lại bong bóng cho người này",
+    "muted": "Không hiện bong bóng cho {name}",
+    "unmuted": "Hiện lại bong bóng cho {name}",
+    "closeThis": "Đóng bong bóng này",
+    "closed": "Đã đóng bong bóng {name}",
+    "closedAll": "Đã đóng tất cả bong bóng",
+    "popLabel": "Hiện bong bóng chat khi có tin mới",
+    "popHelp": "Khi có tin nhắn mới mà bạn không đang ở trong cuộc trò chuyện đó, một bong bóng sẽ hiện lên. Chỉ áp dụng trên máy này."
   }
 }

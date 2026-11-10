@@ -14,6 +14,8 @@ import { ICON_BUTTON, PAGE_CONTAINER } from "@/constants/styles";
 import { PresenceStatus } from "@/features/chat/components/PresenceStatus";
 import { canGoBackInApp } from "@/features/chat/utils/chat-back";
 import type { PresenceView } from "@/features/chat/utils/presence-status";
+import { MinimizeButton } from "@/features/chat-bubbles/components/MinimizeButton";
+import type { BubbleRole } from "@/features/chat-bubbles/types";
 
 interface ChatHeaderProps {
   // The shown name (the viewer's private nickname first); also feeds the avatar initials.
@@ -31,6 +33,8 @@ interface ChatHeaderProps {
   verified?: boolean;
   // The chat info page (KAN-160): the avatar, the name and the gear go there.
   infoHref: string;
+  // Shows the "minimize to a bubble" button: the bubble key of this chat.
+  bubble?: { role: BubbleRole; key: string };
   // Extra controls before the gear (admin: the neutral colours switch).
   actions?: ReactNode;
 }
@@ -46,12 +50,17 @@ export const ChatHeader = ({
   presence,
   infoHref,
   verified = false,
+  bubble,
   actions,
 }: ChatHeaderProps) => {
   const t = useTranslations("chat.chatHeader");
   const router = useRouter();
 
   const handleBack = () => {
+    if (backHref) {
+      router.push(backHref);
+      return;
+    }
     if (
       canGoBackInApp(
         window.history.length,
@@ -103,6 +112,13 @@ export const ChatHeader = ({
           </h1>
           <PresenceStatus presence={presence} />
         </Link>
+        {bubble && (
+          <MinimizeButton
+            role={bubble.role}
+            bubbleKey={bubble.key}
+            onMinimized={handleBack}
+          />
+        )}
         {actions}
         <Link
           href={infoHref}

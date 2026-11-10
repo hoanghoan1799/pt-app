@@ -9,6 +9,7 @@ import {
 } from "@/features/chat/components/ChatThread";
 import { chatPaths } from "@/features/chat/utils/chat-links";
 import { adminLabel } from "@/features/chat/utils/chat-settings";
+import { bubbleKeyFor } from "@/features/chat-bubbles/utils/bubble-links";
 
 interface TraineeChatThreadProps extends Pick<
   ChatThreadProps,
@@ -19,6 +20,7 @@ interface TraineeChatThreadProps extends Pick<
   | "jumpToId"
   | "verifiedAdminIds"
   | "replyPost"
+  | "isEmbed"
 > {
   // Username of the PT who wrote last, from the server; the live thread
   // takes over once a newer PT message arrives.
@@ -55,6 +57,7 @@ export const TraineeChatThread = ({
           avatarSrc={peerAvatar}
           verified={peerVerified}
           infoHref={infoHref}
+          bubble={{ role: "user", key: bubbleKeyFor("user", thread.userId) }}
         />
       )}
     />

@@ -12,6 +12,7 @@ import {
 import { NeutralColorsSwitch } from "@/features/chat/components/NeutralColorsSwitch";
 import { chatPaths } from "@/features/chat/utils/chat-links";
 import { displayNameFor } from "@/features/chat/utils/display-name";
+import { bubbleKeyFor } from "@/features/chat-bubbles/utils/bubble-links";
 
 interface AdminChatThreadProps extends Pick<
   ChatThreadProps,
@@ -24,11 +25,13 @@ interface AdminChatThreadProps extends Pick<
   | "ariaLabel"
   | "avatars"
   | "replyPost"
+  | "isEmbed"
 > {
   // The trainee's real name; the admin's private nickname for them wins in the title.
   userName: string;
   // Server-rendered rows under the header (section tabs, lock switch).
-  below: ReactNode;
+  // Not rendered inside the bubble panel.
+  below?: ReactNode;
 }
 
 // The admin conversation screen. A client component because the title follows
@@ -62,6 +65,10 @@ export const AdminChatThread = ({
               avatarSrc={peerAvatar}
               infoHref={infoHref}
               actions={<NeutralColorsSwitch />}
+              bubble={{
+                role: "admin",
+                key: bubbleKeyFor("admin", thread.userId),
+              }}
             />
             {below}
           </>

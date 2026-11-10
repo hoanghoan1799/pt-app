@@ -65,6 +65,7 @@
     "photoOf": "{label} 的照片",
     "galleryLink": "照片、贴纸和链接",
     "noPhotos": "暂无照片",
+    "displaySection": "显示",
     "actionsSection": "操作"
   },
   "chatHeader": {
@@ -281,5 +282,29 @@
       "all": "全部",
       "unread": "未读"
     }
+  },
+  "bubbles": {
+    "minimize": "缩小为气泡",
+    "minimized": "已缩小为气泡",
+    "openBubble": "打开聊天气泡",
+    "opened": "已打开聊天气泡",
+    "bubbleLabel": "{name}的聊天气泡",
+    "unreadLabel": "{count} 条未读消息",
+    "panelLabel": "与{name}的聊天",
+    "loading": "正在加载对话",
+    "more": "更多选项",
+    "collapse": "收起",
+    "openFull": "全屏打开",
+    "closeZone": "拖到这里关闭",
+    "muteFor": "不再为{name}显示气泡",
+    "muteThis": "不再为此人显示气泡",
+    "unmuteThis": "重新为此人显示气泡",
+    "muted": "已关闭{name}的气泡",
+    "unmuted": "已重新开启{name}的气泡",
+    "closeThis": "关闭此气泡",
+    "closed": "已关闭{name}的气泡",
+    "closedAll": "已关闭所有气泡",
+    "popLabel": "有新消息时显示聊天气泡",
+    "popHelp": "收到新消息而你不在该聊天中时，会弹出一个气泡。仅限本设备。"
   }
 }

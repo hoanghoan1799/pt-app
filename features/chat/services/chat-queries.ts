@@ -373,6 +373,8 @@ interface NewMessage {
   clientId: string;
   replyToMessageId?: number | null;
   replyPostId?: number | null;
+  // /imlang: stored so unread polls can tell loud from silent messages.
+  silent?: boolean | null;
 }
 
 // Idempotent insert: a retried send (same clientId) stores nothing and returns
@@ -727,6 +729,60 @@ const unreadByConversation = (
     )
     .groupBy(chatMessages.conversationId);
 
+// Newest unread incoming message that is neither /imlang silent nor unsent,
+// per conversation. The bubble host pops when this grows; absent when none.
+const latestLoudIncomingIds = async (
+  senderRole: "user" | "admin",
+  readerKey: string,
+  conversationIds: number[],
+) => {
+  if (conversationIds.length === 0) {
+    return new Map<number, number>();
+  }
+  const rows = await db
+    .select({
+      conversationId: chatMessages.conversationId,
+      latest: max(chatMessages.id),
+    })
+    .from(chatMessages)
+    .leftJoin(
+      chatReads,
+      and(
+        eq(chatReads.conversationId, chatMessages.conversationId),
+        eq(chatReads.readerKey, readerKey),
+      ),
+    )
+    .where(
+      and(
+        inArray(chatMessages.conversationId, conversationIds),
+        eq(chatMessages.senderRole, senderRole),
+        isNull(chatMessages.deletedAt),
+        sql`coalesce(${chatMessages.silent}, 0) = 0`,
+        gt(chatMessages.id, sql`coalesce(${chatReads.lastReadMessageId}, 0)`),
+      ),
+    )
+    .groupBy(chatMessages.conversationId);
+
+  return new Map(
+    rows.flatMap((row) =>
+      row.latest === null ? [] : [[row.conversationId, row.latest] as const],
+    ),
+  );
+};
+
+export const findLatestLoudIncomingForUser = async (userId: number) => {
+  const conversation = await findConversationByUserId(userId);
+
+  if (!conversation) {
+    return null;
+  }
+  const latest = await latestLoudIncomingIds("admin", USER_READER_KEY, [
+    conversation.id,
+  ]);
+
+  return latest.get(conversation.id) ?? null;
+};
+
 export const countUnreadForUser = async (userId: number) => {
   const conversation = await findConversationByUserId(userId);
 
@@ -776,12 +832,25 @@ export const listUnreadByTraineeForAdmin = async (adminId: number) => {
     );
   const userByConversation = new Map(owners.map((row) => [row.id, row.userId]));
 
+  const loud = await latestLoudIncomingIds(
+    "user",
+    adminReaderKey(adminId),
+    unreadRows.map((row) => row.conversationId),
+  );
+
   return unreadRows.flatMap((row) => {
     const userId = userByConversation.get(row.conversationId);
 
     return userId === undefined
       ? []
-      : [{ userId, conversationId: row.conversationId, unread: row.unread }];
+      : [
+          {
+            userId,
+            conversationId: row.conversationId,
+            unread: row.unread,
+            latestLoudIncomingId: loud.get(row.conversationId) ?? null,
+          },
+        ];
   });
 };
 
