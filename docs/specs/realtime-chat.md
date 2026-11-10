@@ -160,6 +160,7 @@ Polling details (fallback and e2e): fetch `after=<lastId>`, immediately on `focu
 - Attachments (phase 3): images only (jpeg/png/webp/heic), max 5 MB, re-encoded/resized server-side or validated by magic bytes; stored in Vercel Blob under unguessable keys; served through our route that checks the session (no public bucket listing).
 - Admin moderation: hide a message (kept for audit, shown as "Tin nhắn đã bị ẩn"), lock chat (S1). No automatic content filtering.
 - Locking chat does not delete history; deleting the member deletes it (section 4).
+- **Transport and DevTools (decided 2026-11-10, Hoan: keep as is).** All traffic is HTTPS, so bodies are encrypted in transit. The browser DevTools Network tab shows the signed-in user's own already-decrypted responses; that is not a leak, and encrypting the payload again in client JS would not help because the key would have to live in the same browser. Options weighed and not taken for now: AES-GCM encryption at rest for `chat_messages.body`, dropping the body from Ably events (signal only, client fetches), and end-to-end encryption (rejected: breaks super admin read access from the terms, server-side search, push previews, and loses history when a device loses its key). Revisit if the DB or a third party (Ably) becomes a concern.
 
 ## 8. UX
 
