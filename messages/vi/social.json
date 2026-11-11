@@ -80,7 +80,15 @@
     "realName": "Tên thật: {name}",
     "friendCount": "{count, plural, other {# bạn bè}}",
     "posts": "Bài viết",
-    "noPosts": "Chưa có bài viết nào."
+    "noPosts": "Chưa có bài viết nào.",
+    "changeAvatar": "Đổi ảnh đại diện",
+    "roleTrainee": "Học viên",
+    "rolePt": "PT",
+    "roleSuperAdmin": "Super admin",
+    "statsWorkouts": "Buổi tập",
+    "statsStreak": "Chuỗi ngày",
+    "statsSets": "Tổng set",
+    "statsLocked": "Kết bạn để xem thống kê tập luyện."
   },
   "reactionPicker": {
     "title": "Cảm xúc",

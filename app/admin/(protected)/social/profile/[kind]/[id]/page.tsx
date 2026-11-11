@@ -11,6 +11,7 @@ import { ProfileView } from "@/features/social/components/ProfileView";
 import { actorOfAdmin } from "@/features/social/services/post-context";
 import { listProfilePosts } from "@/features/social/services/post-queries";
 import { getProfile } from "@/features/social/services/profile-queries";
+import { getTrainingStats } from "@/features/social/services/profile-stats";
 import { countFriends } from "@/features/social/services/relationships";
 import { parseProfileKind } from "@/features/social/utils/post-rules";
 import { requireAdminForUser } from "@/services/admin-access";
@@ -43,9 +44,11 @@ const AdminProfilePage = async ({
     notFound();
   }
   const isOwn = kind === "admin" && admin.id === id;
-  const [posts, friendCount] = await Promise.all([
+  // Any admin viewer sees a trainee's stats (access was scoped above).
+  const [posts, friendCount, stats] = await Promise.all([
     listProfilePosts(actorOfAdmin(admin), { kind, id }, null, locale),
     kind === "user" ? countFriends(id) : null,
+    kind === "user" ? getTrainingStats(id) : null,
   ]);
 
   return (
@@ -64,6 +67,7 @@ const AdminProfilePage = async ({
           isOwn={isOwn}
           posts={posts}
           friendCount={friendCount}
+          stats={stats}
           canReport={kind === "user"}
           composerPrivacy={isOwn ? "everyone" : null}
         />
