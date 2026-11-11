@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, Send, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -13,8 +13,9 @@ import {
 } from "react";
 import { toast } from "sonner";
 
+import { Avatar } from "@/components/common/Avatar";
 import { SubmitButton } from "@/components/common/SubmitButton";
-import { BUTTON_PRIMARY, CARD, TEXTAREA } from "@/constants/styles";
+import { CARD } from "@/constants/styles";
 import {
   encodePhoto,
   PhotoImageError,
@@ -25,11 +26,15 @@ import { CAPTION_MAX_LENGTH } from "@/features/social/constants/social";
 import { createPostAction } from "@/features/social/services/social-actions";
 import type { PostPrivacy } from "@/features/social/types/social";
 import { useLocalizeMessage } from "@/i18n/use-localize-message";
+import { cn } from "@/utils/cn";
 import { describeErrorReference } from "@/utils/errors";
 
 interface PostComposerProps {
   mode: "user" | "admin";
   defaultPrivacy: PostPrivacy;
+  // The signed-in person, shown beside the caption; no avatar when omitted.
+  viewerName?: string;
+  viewerAvatarUrl?: string | null;
 }
 
 interface Attached {
@@ -61,7 +66,12 @@ const uploadPhoto = async (blob: Blob, mode: "user" | "admin") => {
 
 // Write a post: caption, at most one photo and the privacy (which starts from
 // the last one the person chose).
-export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
+export const PostComposer = ({
+  mode,
+  defaultPrivacy,
+  viewerName,
+  viewerAvatarUrl = null,
+}: PostComposerProps) => {
   const t = useTranslations("social.postComposer");
   const localize = useLocalizeMessage();
   const router = useRouter();
@@ -70,6 +80,8 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
   const [caption, setCaption] = useState("");
   const [privacy, setPrivacy] = useState<PostPrivacy>(defaultPrivacy);
   const [photo, setPhoto] = useState<Attached | null>(null);
+  const [isFocused, setFocused] = useState(false);
+  const isExpanded = isFocused || caption !== "";
   const [isPending, startTransition] = useTransition();
 
   useEffect(
@@ -139,17 +151,36 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
 
   return (
     <form onSubmit={handleSubmit} className={`${CARD} space-y-3 p-4`}>
-      <label htmlFor={captionId} className="sr-only">
-        {t("captionLabel")}
-      </label>
-      <textarea
-        id={captionId}
-        value={caption}
-        maxLength={CAPTION_MAX_LENGTH}
-        onChange={(event) => setCaption(event.target.value)}
-        placeholder={t("placeholder")}
-        className={TEXTAREA}
-      />
+      <div className="flex items-start gap-3">
+        {viewerName !== undefined && (
+          <Avatar
+            name={viewerName}
+            src={viewerAvatarUrl}
+            className="size-11 text-sm"
+          />
+        )}
+        <div className="min-w-0 flex-1">
+          <label htmlFor={captionId} className="sr-only">
+            {t("captionLabel")}
+          </label>
+          <textarea
+            id={captionId}
+            value={caption}
+            maxLength={CAPTION_MAX_LENGTH}
+            onChange={(event) => setCaption(event.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            placeholder={t("placeholder")}
+            rows={1}
+            className={cn(
+              "block w-full resize-none border border-line bg-bg px-4 text-base text-fg transition-[min-height,border-radius] placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/30 focus:outline-none",
+              isExpanded
+                ? "min-h-24 rounded-2xl py-3"
+                : "min-h-11 rounded-full py-2.5",
+            )}
+          />
+        </div>
+      </div>
       {photo && (
         <div className="relative">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -168,7 +199,7 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
           </button>
         </div>
       )}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <input
           ref={fileRef}
           type="file"
@@ -184,9 +215,10 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
           onClick={() => fileRef.current?.click()}
           disabled={isPending}
           aria-label={t("addPhoto")}
-          className="inline-flex size-11 items-center justify-center rounded-xl border border-line text-accent disabled:opacity-50"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-muted transition active:bg-line/70 disabled:opacity-50"
         >
-          <ImagePlus className="size-5" aria-hidden />
+          <ImagePlus className="size-5 text-accent" aria-hidden />
+          {t("photo")}
         </button>
         <PrivacySelect
           id={`${captionId}-privacy`}
@@ -196,8 +228,9 @@ export const PostComposer = ({ mode, defaultPrivacy }: PostComposerProps) => {
         />
         <SubmitButton
           isPending={isPending}
-          className={`${BUTTON_PRIMARY} ml-auto min-h-11`}
+          className="ml-auto inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-accent px-5 text-sm font-semibold text-accent-fg transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
         >
+          <Send className="size-4" aria-hidden />
           {t("submit")}
         </SubmitButton>
       </div>

@@ -7,6 +7,7 @@ import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON, PAGE_CONTAINER } from "@/constants/styles";
+import { getAvatarUrl } from "@/features/avatar/services/avatar";
 import { NotificationBell } from "@/features/social/components/NotificationBell";
 import { PostComposer } from "@/features/social/components/PostComposer";
 import { PostList } from "@/features/social/components/PostList";
@@ -26,9 +27,10 @@ const AdminSocialPage = async () => {
   const t = await getTranslations("social.adminPages");
   const admin = await requireAdmin();
   const locale = await getLocale();
-  const [posts, unreadCount] = await Promise.all([
+  const [posts, unreadCount, avatarUrl] = await Promise.all([
     listAdminFeed(admin, null, locale),
     countUnreadNotifications(`admin:${admin.id}`),
+    getAvatarUrl("admin", admin.id),
   ]);
 
   return (
@@ -65,7 +67,12 @@ const AdminSocialPage = async () => {
       <main
         className={`${PAGE_CONTAINER} space-y-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]`}
       >
-        <PostComposer mode="admin" defaultPrivacy="everyone" />
+        <PostComposer
+          mode="admin"
+          defaultPrivacy="everyone"
+          viewerName={admin.username}
+          viewerAvatarUrl={avatarUrl}
+        />
         <PostList
           mode="admin"
           source={{ type: "admin-feed" }}

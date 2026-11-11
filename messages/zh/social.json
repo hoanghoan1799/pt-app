@@ -21,7 +21,12 @@
     "label": "隐私",
     "everyone": "所有人",
     "friends": "好友",
-    "only_me": "仅自己"
+    "only_me": "仅自己",
+    "hint": {
+      "everyone": "所有人都能看到",
+      "friends": "你的好友和教练",
+      "only_me": "仅你(和教练)可见"
+    }
   },
   "terms": {
     "accept": "同意"
@@ -87,7 +92,10 @@
     "heart": "点赞爱心",
     "reacted": "已回应",
     "like": "赞",
-    "reactionsList": "{count, plural, other {# 个回应，查看列表}}"
+    "reactionsList": "{count, plural, other {# 个回应，查看列表}}",
+    "share": "分享",
+    "shareAria": "分享,通过私信回复",
+    "comment": "评论"
   },
   "reactorsSheet": {
     "title": "回应",
@@ -145,7 +153,8 @@
     "photoAlt": "将发布的照片",
     "removePhoto": "移除照片",
     "addPhoto": "添加照片",
-    "submit": "发布"
+    "submit": "发布",
+    "photo": "照片"
   },
   "postCard": {
     "deleteTitle": "删除这条动态？",

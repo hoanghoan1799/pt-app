@@ -8,6 +8,7 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { UserHeaderActions } from "@/features/auth/components/UserHeaderActions";
+import { getAvatarUrl } from "@/features/avatar/services/avatar";
 import { NotificationBell } from "@/features/social/components/NotificationBell";
 import { PostComposer } from "@/features/social/components/PostComposer";
 import { PostList } from "@/features/social/components/PostList";
@@ -30,13 +31,14 @@ const FeedPage = async () => {
   const user = await requireUser();
   const locale = await getLocale();
   const accepted = hasAcceptedTerms(user);
-  const [posts, defaultPrivacy, unreadCount] = accepted
+  const [posts, defaultPrivacy, unreadCount, avatarUrl] = accepted
     ? await Promise.all([
         listUserFeed(user.id, null, undefined, locale),
         getPostPrivacyDefault(user.id),
         countUnreadNotifications(`user:${user.id}`),
+        getAvatarUrl("user", user.id),
       ])
-    : [null, null, 0];
+    : [null, null, 0, null];
 
   return (
     <>
@@ -69,7 +71,12 @@ const FeedPage = async () => {
       >
         {posts && defaultPrivacy ? (
           <>
-            <PostComposer mode="user" defaultPrivacy={defaultPrivacy} />
+            <PostComposer
+              mode="user"
+              defaultPrivacy={defaultPrivacy}
+              viewerName={user.name}
+              viewerAvatarUrl={avatarUrl}
+            />
             <PostList
               mode="user"
               source={{ type: "feed" }}
