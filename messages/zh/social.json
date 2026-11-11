@@ -75,7 +75,15 @@
     "realName": "真实姓名：{name}",
     "friendCount": "{count, plural, other {# 位好友}}",
     "posts": "动态",
-    "noPosts": "暂无动态。"
+    "noPosts": "暂无动态。",
+    "changeAvatar": "更换头像",
+    "roleTrainee": "学员",
+    "rolePt": "PT",
+    "roleSuperAdmin": "超级管理员",
+    "statsWorkouts": "训练次数",
+    "statsStreak": "连续天数",
+    "statsSets": "总组数",
+    "statsLocked": "成为好友后可查看训练统计。"
   },
   "reactionPicker": {
     "title": "回应",

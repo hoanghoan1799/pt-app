@@ -20,11 +20,16 @@ export default async function Loading() {
         />
       }
     >
-      <div className="flex flex-col items-center gap-3">
-        <Skeleton className="size-24 rounded-full" />
-        <Skeleton className="h-5 w-40" />
-        <Skeleton className="h-4 w-56" />
+      <div className="flex items-center gap-4">
+        <Skeleton className="size-[88px] shrink-0 rounded-full" />
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-6 w-20 rounded-full" />
+        </div>
       </div>
+      <Skeleton className="h-4 w-56" />
+      <Skeleton className="h-16 w-full rounded-2xl" />
       <PostCardSkeleton />
     </PageSkeleton>
   );

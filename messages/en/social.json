@@ -75,7 +75,15 @@
     "realName": "Real name: {name}",
     "friendCount": "{count, plural, one {# friend} other {# friends}}",
     "posts": "Posts",
-    "noPosts": "No posts yet."
+    "noPosts": "No posts yet.",
+    "changeAvatar": "Change profile photo",
+    "roleTrainee": "Trainee",
+    "rolePt": "PT",
+    "roleSuperAdmin": "Super admin",
+    "statsWorkouts": "Workouts",
+    "statsStreak": "Day streak",
+    "statsSets": "Total sets",
+    "statsLocked": "Become friends to see training stats."
   },
   "reactionPicker": {
     "title": "Reactions",

@@ -14,6 +14,7 @@ import {
   getPostPrivacyDefault,
   getProfile,
 } from "@/features/social/services/profile-queries";
+import { getTrainingStats } from "@/features/social/services/profile-stats";
 import {
   countFriends,
   getRelationship,
@@ -21,6 +22,7 @@ import {
 } from "@/features/social/services/relationships";
 import { hasAcceptedTerms } from "@/features/social/services/terms";
 import { parseProfileKind } from "@/features/social/utils/post-rules";
+import { canViewTrainingStats } from "@/features/social/utils/streak-rules";
 import { requireUser } from "@/services/auth-guard";
 
 export const generateMetadata = async (): Promise<Metadata> => {
@@ -54,19 +56,18 @@ const ProfilePage = async ({ params }: PageProps<"/profile/[kind]/[id]">) => {
   if (isTrainee && !isOwn && (await isBlockedBetween(user.id, profile.id))) {
     notFound();
   }
-  const [posts, friendCount, relationship, composerPrivacy] = await Promise.all(
-    [
-      listProfilePosts(
-        actorOfUser(user),
-        { kind, id: profile.id },
-        null,
-        locale,
-      ),
-      isTrainee ? countFriends(profile.id) : null,
-      isTrainee && !isOwn ? getRelationship(user.id, profile.id) : null,
-      isOwn ? getPostPrivacyDefault(user.id) : null,
-    ],
-  );
+  const relationship =
+    isTrainee && !isOwn ? await getRelationship(user.id, profile.id) : null;
+  // Owner or accepted friend only; hidden stats are never queried.
+  const showStats =
+    isTrainee &&
+    canViewTrainingStats({ isOwn, isAdminViewer: false, relationship });
+  const [posts, friendCount, composerPrivacy, stats] = await Promise.all([
+    listProfilePosts(actorOfUser(user), { kind, id: profile.id }, null, locale),
+    isTrainee ? countFriends(profile.id) : null,
+    isOwn ? getPostPrivacyDefault(user.id) : null,
+    showStats ? getTrainingStats(profile.id) : null,
+  ]);
 
   return (
     <>
@@ -90,6 +91,7 @@ const ProfilePage = async ({ params }: PageProps<"/profile/[kind]/[id]">) => {
           canBlock={isTrainee && !isOwn}
           canReport={isTrainee && !isOwn}
           composerPrivacy={composerPrivacy}
+          stats={stats}
         />
       </main>
       <ScrollToTopButton aboveTabBar />

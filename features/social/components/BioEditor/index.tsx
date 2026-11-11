@@ -43,7 +43,7 @@ export const BioEditor = ({ mode, bio }: BioEditorProps) => {
 
   if (!isEditing) {
     return (
-      <div className="flex items-start justify-center gap-1">
+      <div className="flex items-start justify-start gap-1">
         <p className="text-sm break-words whitespace-pre-wrap text-muted">
           {bio || t("empty")}
         </p>

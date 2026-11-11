@@ -8,6 +8,7 @@ import { avatarUrl } from "@/features/avatar/utils/avatar-rules";
 import { loadAliases } from "@/features/contact-aliases/services/contact-aliases";
 import type { AuthorKind } from "@/features/social/types/social";
 import { actorKey } from "@/features/social/utils/post-rules";
+import { toAdminRole } from "@/services/admin-scope";
 
 export interface ProfileData {
   kind: AuthorKind;
@@ -22,6 +23,8 @@ export interface ProfileData {
   avatarUrl: string | null;
   verified: boolean;
   bio: string;
+  // Trainee, or the admin's actual role (null in the table = super admin).
+  role: "trainee" | "pt" | "super_admin";
 }
 
 // Public profile card data; null when the account does not exist. `viewerKey`
@@ -73,6 +76,7 @@ const loadProfile = async (
           avatarUrl: avatarUrl("user", id, row.avatarUpdatedAt),
           verified: false,
           bio: row.bio ?? "",
+          role: "trainee",
         }
       : null;
   }
@@ -82,6 +86,7 @@ const loadProfile = async (
       bio: admins.bio,
       avatarUpdatedAt: admins.avatarUpdatedAt,
       verifiedAt: admins.verifiedAt,
+      role: admins.role,
     })
     .from(admins)
     .where(eq(admins.id, id))
@@ -97,6 +102,7 @@ const loadProfile = async (
         avatarUrl: avatarUrl("admin", id, row.avatarUpdatedAt),
         verified: row.verifiedAt !== null,
         bio: row.bio ?? "",
+        role: toAdminRole(row.role),
       }
     : null;
 };
