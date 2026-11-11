@@ -25,6 +25,8 @@ export interface BubbleMeta {
   avatarSrc: string | null;
   href: string;
   embedHref: string;
+  // The other side's last heartbeat (ISO), null when never seen or hidden.
+  lastSeenAt: string | null;
 }
 
 export interface Point {

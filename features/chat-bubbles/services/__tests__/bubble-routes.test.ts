@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -108,6 +109,7 @@ describe("GET /api/chat/bubbles (trainee)", () => {
         userId,
         name: "pt",
         avatarSrc: null,
+        lastSeenAt: null,
         href: "/messages/coach",
         embedHref: "/messages/coach?embed=1",
       },
@@ -133,6 +135,42 @@ describe("GET /api/chat/bubbles (trainee)", () => {
     const body = await (await route.GET(get("/api/chat/bubbles"))).json();
 
     expect(body.bubbles[0].name).toBe("Thầy Hoan");
+  });
+
+  it("returns the newest last-seen of the PTs that show their status", async () => {
+    await db
+      .update(admins)
+      .set({ lastSeenAt: new Date("2026-01-01T10:00:00Z") })
+      .where(eq(admins.id, adminId));
+    await db.insert(admins).values({
+      username: "pt2",
+      usernameKey: "pt2",
+      passwordHash: "x",
+      lastSeenAt: new Date("2026-01-01T10:05:00Z"),
+    });
+    await db.insert(admins).values({
+      username: "pt3",
+      usernameKey: "pt3",
+      passwordHash: "x",
+      lastSeenAt: new Date("2026-01-01T11:00:00Z"),
+      presenceHidden: true,
+    });
+    const body = await (await route.GET(get("/api/chat/bubbles"))).json();
+
+    expect(body.bubbles[0].lastSeenAt).toBe("2026-01-01T10:05:00.000Z");
+  });
+
+  it("gives null last-seen when every PT hides their status", async () => {
+    await db
+      .update(admins)
+      .set({
+        lastSeenAt: new Date("2026-01-01T10:00:00Z"),
+        presenceHidden: true,
+      })
+      .where(eq(admins.id, adminId));
+    const body = await (await route.GET(get("/api/chat/bubbles"))).json();
+
+    expect(body.bubbles[0].lastSeenAt).toBeNull();
   });
 
   it("ignores ids and the admin switch, and gives nothing when chat is off", async () => {
@@ -176,10 +214,23 @@ describe("GET /api/chat/bubbles?as=admin", () => {
         userId,
         name: "Bé An",
         avatarSrc: null,
+        lastSeenAt: null,
         href: `/admin/users/${userId}/messages`,
         embedHref: `/admin/users/${userId}/messages?embed=1`,
       },
     ]);
+  });
+
+  it("returns the trainee's last-seen as an ISO string", async () => {
+    await db
+      .update(users)
+      .set({ lastSeenAt: new Date("2026-01-01T09:30:00Z") })
+      .where(eq(users.id, userId));
+    const body = await (
+      await route.GET(get(`/api/chat/bubbles?as=admin&ids=${userId}`))
+    ).json();
+
+    expect(body.bubbles[0].lastSeenAt).toBe("2026-01-01T09:30:00.000Z");
   });
 
   it("leaves out hidden or out-of-scope, unknown and chat-off trainees", async () => {

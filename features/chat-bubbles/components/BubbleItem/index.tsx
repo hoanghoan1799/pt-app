@@ -19,6 +19,7 @@ interface BubbleItemProps {
   label: string;
   badgeLabel: string;
   isActive: boolean;
+  isOnline?: boolean;
   isDragging: boolean;
   isExiting?: boolean;
   handlers?: {
@@ -42,6 +43,7 @@ export const BubbleItem = ({
   label,
   badgeLabel,
   isActive,
+  isOnline = false,
   isDragging,
   isExiting = false,
   handlers,
@@ -86,6 +88,12 @@ export const BubbleItem = ({
           isActive ? "ring-accent" : "ring-bg",
         )}
       />
+      {isOnline && (
+        <span
+          aria-hidden
+          className="absolute right-0.5 bottom-0.5 size-3 rounded-full bg-success ring-2 ring-bg"
+        />
+      )}
       {badge > 0 && (
         <span
           role="status"

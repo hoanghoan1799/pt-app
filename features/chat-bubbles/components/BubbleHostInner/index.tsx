@@ -13,6 +13,7 @@ import {
   USER_UNREAD_URL,
 } from "@/features/chat/hooks/use-chat-unread";
 import { unreadPollMs } from "@/features/chat/utils/polling-rules";
+import { isOnline, parseLastSeen } from "@/features/chat/utils/presence";
 import {
   parseAdminUnread,
   parseUserUnread,
@@ -50,12 +51,14 @@ import {
   type IncomingEntry,
   type SeenIds,
 } from "@/features/chat-bubbles/utils/incoming-rules";
+import { startVisibleInterval } from "@/utils/visible-interval";
 
 const MIN_PANEL_HEIGHT = 240;
 const PANEL_MAX_WIDTH = 512;
 const SIDE_GAP = 16;
 const PANEL_UNMOUNT_MS = 400;
 const EXIT_MS = 300;
+const ONLINE_TICK_MS = 30_000;
 const ZONE_BOTTOM = 36;
 const ZONE_SIZE = 64;
 
@@ -74,7 +77,19 @@ export const BubbleHostInner = ({ role }: { role: BubbleRole }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [state, dispatch] = useBubbleStore(role);
-  const metas = useBubbleMeta(role, state.keys, dispatch);
+  const metas = useBubbleMeta(role, state.keys, dispatch, state.expanded);
+  // Null until mounted (server and first client render agree); then re-checked
+  // so a dot turns off when the heartbeat stops.
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const tick = () => setNow(new Date());
+
+    tick();
+    return startVisibleInterval(tick, ONLINE_TICK_MS);
+  }, []);
+  const isMetaOnline = (meta: BubbleMeta) =>
+    now !== null && isOnline(parseLastSeen(meta.lastSeenAt), now);
   const [layerRef, size] = useElementSize<HTMLDivElement>();
   const visualViewport = useVisualViewport();
   const [popEnabled] = useBubblePopSetting();
@@ -395,6 +410,7 @@ export const BubbleHostInner = ({ role }: { role: BubbleRole }) => {
           />
           <BubblePanel
             box={box}
+            role={role}
             isOpen={expanded}
             meta={shownMeta}
             iframeRef={iframeRef}
@@ -452,6 +468,7 @@ export const BubbleHostInner = ({ role }: { role: BubbleRole }) => {
               label={t("bubbleLabel", { name: item.meta.name })}
               badgeLabel={t("unreadLabel", { count: item.badge })}
               isActive={expanded && item.meta.key === activeKey}
+              isOnline={isMetaOnline(item.meta)}
               isDragging={isMoving && drag?.key === item.meta.key}
               handlers={handlersFor(item.meta.key)}
               onActivate={() =>
@@ -480,6 +497,7 @@ export const BubbleHostInner = ({ role }: { role: BubbleRole }) => {
               label={item.meta.name}
               badgeLabel=""
               isActive={false}
+              isOnline={isMetaOnline(item.meta)}
               isDragging={false}
               isExiting
             />

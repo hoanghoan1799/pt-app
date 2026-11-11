@@ -12,8 +12,10 @@ import {
   findConversationByUserId,
   findLatestAdminSender,
 } from "@/features/chat/services/chat-queries";
+import { getAdminTeamLastSeen } from "@/features/chat/services/presence";
 import { adminLabel } from "@/features/chat/utils/chat-settings";
 import { displayNameFor } from "@/features/chat/utils/display-name";
+import { serializeLastSeen } from "@/features/chat/utils/presence";
 import type { BubbleMeta } from "@/features/chat-bubbles/types";
 import {
   bubbleHrefs,
@@ -39,10 +41,12 @@ export const loadCoachBubble = async (user: {
   }
   const key = bubbleKeyFor("user", user.id);
   const hrefs = bubbleHrefs("user", key);
-  const [t, profile, latest] = await Promise.all([
+  const [t, profile, latest, teamLastSeen] = await Promise.all([
     getTranslations("chat.shared"),
     loadChatProfile(conversation.id, userActorKey(user.id)),
     findLatestAdminSender(conversation.id),
+    // Respects each PT's "Trạng thái hoạt động" switch.
+    getAdminTeamLastSeen(),
   ]);
   const avatars = latest?.id ? await listAdminAvatarUrls() : null;
 
@@ -60,6 +64,7 @@ export const loadCoachBubble = async (user: {
         "pt",
       ),
       avatarSrc: (latest?.id ? avatars?.get(latest.id) : null) ?? null,
+      lastSeenAt: serializeLastSeen(teamLastSeen),
       ...hrefs,
     },
   ];
@@ -99,6 +104,7 @@ export const loadTraineeBubbles = async (
         userId: user.id,
         name: displayNameFor(profile.nicknames, "user", user.name),
         avatarSrc,
+        lastSeenAt: serializeLastSeen(user.lastSeenAt ?? null),
         ...hrefs,
       };
     }),
