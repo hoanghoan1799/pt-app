@@ -4,8 +4,8 @@ import {
   DEFAULT_LOCALE,
   getLocaleCookieOptions,
   isLocale,
-  LOCALE_FLAGS,
   LOCALE_MAX_AGE,
+  LOCALES,
   parseLocale,
 } from "@/utils/locale";
 
@@ -60,8 +60,8 @@ describe("getLocaleCookieOptions", () => {
   });
 });
 
-describe("LOCALE_FLAGS", () => {
-  it("has a flag for every locale", () => {
-    expect(LOCALE_FLAGS).toEqual({ vi: "🇻🇳", en: "🇺🇸", zh: "🇨🇳" });
+describe("LOCALES", () => {
+  it("lists the languages in menu order", () => {
+    expect([...LOCALES]).toEqual(["vi", "en", "zh"]);
   });
 });

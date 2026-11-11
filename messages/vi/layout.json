@@ -33,6 +33,11 @@
     "appearance": "Giao diện",
     "theme": { "light": "Sáng", "dark": "Tối", "system": "Hệ thống" },
     "language": "Ngôn ngữ",
+    "localeLabel": {
+      "vi": "Tiếng Việt",
+      "en": "Tiếng Anh",
+      "zh": "Tiếng Trung"
+    },
     "accountColor": "Màu tài khoản",
     "presence": "Trạng thái hoạt động",
     "presenceOn": "Đã bật trạng thái hoạt động",

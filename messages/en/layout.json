@@ -35,6 +35,7 @@
     "appearance": "Appearance",
     "theme": { "light": "Light", "dark": "Dark", "system": "System" },
     "language": "Language",
+    "localeLabel": { "vi": "Vietnamese", "en": "English", "zh": "Chinese" },
     "accountColor": "Account color",
     "presence": "Activity status",
     "presenceOn": "Activity status turned on",
