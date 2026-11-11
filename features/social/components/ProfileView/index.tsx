@@ -138,7 +138,12 @@ export const ProfileView = ({
           {t("posts")}
         </h2>
         {isOwn && composerPrivacy && (
-          <PostComposer mode={mode} defaultPrivacy={composerPrivacy} />
+          <PostComposer
+            mode={mode}
+            defaultPrivacy={composerPrivacy}
+            viewerName={profile.realName}
+            viewerAvatarUrl={profile.avatarUrl}
+          />
         )}
         <PostList
           mode={mode}
