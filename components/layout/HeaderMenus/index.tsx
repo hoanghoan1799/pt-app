@@ -4,12 +4,17 @@ import clsx from "clsx";
 import {
   Camera,
   CircleDot,
+  Globe,
   KeyRound,
   Lock,
   LockKeyhole,
   LogOut,
+  Monitor,
+  Moon,
   Palette,
   Settings,
+  Sun,
+  SunMedium,
   UserRound,
 } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -28,6 +33,7 @@ import { toast } from "sonner";
 
 import { Avatar } from "@/components/common/Avatar";
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
+import { LocaleFlag } from "@/components/common/LocaleFlag";
 import { Spinner } from "@/components/common/Spinner";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON } from "@/constants/styles";
@@ -45,7 +51,6 @@ import { setLocaleAction } from "@/services/locale-actions";
 import { setThemeAction } from "@/services/theme-actions";
 import {
   type Locale,
-  LOCALE_FLAGS,
   LOCALE_NAMES,
   LOCALES,
   parseLocale,
@@ -98,6 +103,11 @@ const ITEM =
   "flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-[15px] text-fg transition active:bg-line";
 
 const THEME_VALUES: Theme[] = ["light", "dark", "system"];
+
+const THEME_ICONS = { light: Sun, dark: Moon, system: Monitor } as const;
+
+const SECTION_HEADING =
+  "flex items-center gap-1.5 px-1.5 pb-1.5 text-xs font-semibold tracking-wide text-muted uppercase";
 
 const readCurrentTheme = () =>
   parseTheme(document.documentElement.dataset.theme);
@@ -328,27 +338,33 @@ export const HeaderMenus = ({
                 aria-label={t("appearance")}
                 className="px-1.5 py-1"
               >
-                <p className="px-1.5 pb-1.5 text-xs font-semibold tracking-wide text-muted uppercase">
+                <p className={SECTION_HEADING}>
+                  <SunMedium className="size-4 text-muted" aria-hidden />
                   {t("appearance")}
                 </p>
                 <div className="grid grid-cols-3 gap-1 rounded-xl bg-bg p-1">
-                  {THEME_VALUES.map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      role="menuitemradio"
-                      aria-checked={theme === value}
-                      onClick={() => chooseTheme(value)}
-                      className={clsx(
-                        "min-h-11 rounded-lg px-1 text-[13px] font-medium transition",
-                        theme === value
-                          ? "bg-surface text-fg shadow-sm ring-1 ring-line"
-                          : "text-muted",
-                      )}
-                    >
-                      {t(`theme.${value}`)}
-                    </button>
-                  ))}
+                  {THEME_VALUES.map((value) => {
+                    const ThemeIcon = THEME_ICONS[value];
+
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={theme === value}
+                        onClick={() => chooseTheme(value)}
+                        className={clsx(
+                          "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-1 text-[13px] font-medium transition",
+                          theme === value
+                            ? "bg-accent/10 text-accent ring-1 ring-accent"
+                            : "text-muted",
+                        )}
+                      >
+                        <ThemeIcon className="size-4" aria-hidden />
+                        {t(`theme.${value}`)}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               <div
@@ -356,35 +372,59 @@ export const HeaderMenus = ({
                 aria-label={t("language")}
                 className="px-1.5 py-1"
               >
-                <p className="px-1.5 pb-1.5 text-xs font-semibold tracking-wide text-muted uppercase">
+                <p className={SECTION_HEADING}>
+                  <Globe className="size-4 text-muted" aria-hidden />
                   {t("language")}
                 </p>
-                <div className="grid grid-cols-2 gap-1 rounded-xl bg-bg p-1">
-                  {LOCALES.map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      role="menuitemradio"
-                      lang={value}
-                      aria-checked={locale === value}
-                      onClick={() => chooseLocale(value)}
-                      disabled={isPending}
-                      aria-busy={isPending && locale !== value}
-                      className={clsx(
-                        "min-h-11 rounded-lg px-1 text-[13px] font-medium transition",
-                        locale === value
-                          ? "bg-surface text-fg shadow-sm ring-1 ring-line"
-                          : "text-muted",
-                      )}
-                    >
-                      {LOCALE_NAMES[value]}{" "}
-                      {isPending && locale !== value ? (
-                        <Spinner size="sm" className="inline-block" />
-                      ) : (
-                        <span aria-hidden="true">{LOCALE_FLAGS[value]}</span>
-                      )}
-                    </button>
-                  ))}
+                <div className="flex flex-col gap-1">
+                  {LOCALES.map((value) => {
+                    const isCurrent = locale === value;
+                    const isSwitching = isPending && !isCurrent;
+
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        role="menuitemradio"
+                        lang={value}
+                        aria-checked={isCurrent}
+                        onClick={() => chooseLocale(value)}
+                        disabled={isPending}
+                        aria-busy={isSwitching}
+                        className={clsx(
+                          "flex min-h-12 w-full items-center gap-3 rounded-xl px-2.5 text-left transition",
+                          isCurrent
+                            ? "bg-accent/10 ring-1 ring-accent"
+                            : "hover:bg-surface",
+                        )}
+                      >
+                        <LocaleFlag locale={value} />
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span className="text-[14px] font-semibold text-fg">
+                            {LOCALE_NAMES[value]}
+                          </span>
+                          <span className="text-xs text-muted" lang={locale}>
+                            {t(`localeLabel.${value}`)}
+                          </span>
+                        </span>
+                        {isSwitching ? (
+                          <Spinner size="sm" />
+                        ) : (
+                          <span
+                            aria-hidden="true"
+                            className={clsx(
+                              "flex size-5 shrink-0 items-center justify-center rounded-full border-2",
+                              isCurrent ? "border-accent" : "border-line",
+                            )}
+                          >
+                            {isCurrent && (
+                              <span className="size-2.5 rounded-full bg-accent" />
+                            )}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               <hr className="my-1 border-line" />
