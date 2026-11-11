@@ -1,13 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import {
-  Flag,
-  MessageCircle,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import { Flag, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -181,7 +175,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
           <Avatar
             name={post.authorName}
             src={post.authorAvatarUrl}
-            className="size-10 text-sm"
+            className="size-[46px] text-base"
           />
           <span className="min-w-0">
             <span className="flex items-center gap-1 font-semibold text-fg">
@@ -193,7 +187,7 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
               {post.edited && t("edited")}
               <span aria-hidden>·</span>
               <PrivacyIcon className="size-3.5" aria-hidden />
-              <span className="sr-only">{tPrivacy(post.privacy)}</span>
+              <span>{tPrivacy(post.privacy)}</span>
             </span>
           </span>
         </Link>
@@ -307,6 +301,8 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
         mode={mode}
         reactions={post.reactions}
         commentCount={post.commentCount}
+        onShare={canReplyInChat ? handleReplyInChat : undefined}
+        isSharePending={isPending}
         detailHref={
           isDetail
             ? null
@@ -315,23 +311,6 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
               : postPath(post.id)
         }
       />
-
-      {canReplyInChat && (
-        <button
-          type="button"
-          onClick={handleReplyInChat}
-          disabled={isPending}
-          aria-busy={isPending}
-          className={`${BUTTON_SECONDARY} min-h-11 w-full gap-2`}
-        >
-          {isPending ? (
-            <Spinner size="md" />
-          ) : (
-            <MessageCircle className="size-5" aria-hidden />
-          )}
-          {t("replyInChat")}
-        </button>
-      )}
 
       <BottomSheet
         isOpen={isMenuOpen}

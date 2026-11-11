@@ -21,7 +21,12 @@
     "label": "Quyền riêng tư",
     "everyone": "Mọi người",
     "friends": "Bạn bè",
-    "only_me": "Chỉ mình tôi"
+    "only_me": "Chỉ mình tôi",
+    "hint": {
+      "everyone": "Ai cũng xem được",
+      "friends": "Bạn bè và PT của bạn",
+      "only_me": "Chỉ bạn (và PT) xem được"
+    }
   },
   "terms": {
     "accept": "Đồng ý"
@@ -87,7 +92,10 @@
     "heart": "Thả tim",
     "reacted": "Đã thả",
     "like": "Thích",
-    "reactionsList": "{count, plural, other {# lượt cảm xúc, xem danh sách}}"
+    "reactionsList": "{count, plural, other {# lượt cảm xúc, xem danh sách}}",
+    "share": "Chia sẻ",
+    "shareAria": "Chia sẻ, trả lời qua tin nhắn",
+    "comment": "Bình luận"
   },
   "reactorsSheet": {
     "title": "Cảm xúc",
@@ -145,7 +153,8 @@
     "photoAlt": "Ảnh sẽ đăng",
     "removePhoto": "Bỏ ảnh",
     "addPhoto": "Thêm ảnh",
-    "submit": "Đăng"
+    "submit": "Đăng",
+    "photo": "Ảnh"
   },
   "postCard": {
     "deleteTitle": "Xóa bài viết này?",

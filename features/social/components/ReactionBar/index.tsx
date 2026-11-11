@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { Heart, MessageCircle } from "lucide-react";
+import { Heart, MessageCircle, Share2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl";
 import { useOptimistic, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { Spinner } from "@/components/common/Spinner";
 import { reactAction } from "@/features/social/services/engagement-actions";
 import type { ReactionSummary } from "@/features/social/types/social";
 import { applyReaction } from "@/features/social/utils/engagement-rules";
@@ -22,6 +23,10 @@ interface ReactionBarProps {
   commentCount: number;
   // Link to the post page; null when already on it.
   detailHref: string | null;
+  // Share = reply in chat; omitted when the viewer cannot do that, and then
+  // the action row has two columns.
+  onShare?: () => void;
+  isSharePending?: boolean;
 }
 
 // Every post in the feed has a bar, but the picker and the reactors list open
@@ -46,7 +51,8 @@ const HAPTIC_MS = 10;
 const HEART = "❤️";
 
 const ACTION =
-  "inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2 text-sm font-medium text-muted active:bg-line/70";
+  "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-2 text-sm font-medium text-muted active:bg-line/70";
+const SUMMARY_EMOJIS = 3;
 
 // Tap = toggle ❤️, long-press (or right click) = the six emoji. One reaction
 // per person; the summary and the count open the list of who reacted.
@@ -56,6 +62,8 @@ export const ReactionBar = ({
   reactions,
   commentCount,
   detailHref,
+  onShare,
+  isSharePending = false,
 }: ReactionBarProps) => {
   const t = useTranslations("social.reactionBar");
   const router = useRouter();
@@ -98,85 +106,129 @@ export const ReactionBar = ({
   };
 
   const commentLabel = t("comments", { count: commentCount });
+  const hasSummary = summary.total > 0 || commentCount > 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-1 border-t border-line pt-2">
-      <button
-        type="button"
-        aria-label={
-          summary.mine ? t("reactedAs", { emoji: summary.mine }) : t("heart")
-        }
-        aria-pressed={summary.mine !== null}
-        aria-haspopup="dialog"
-        onPointerDown={(event) => {
-          if (event.button !== 0) {
-            return;
-          }
-          didLongPress.current = false;
-          stopTimer();
-          timer.current = setTimeout(() => {
-            timer.current = null;
-            didLongPress.current = true;
-            openPicker();
-          }, LONG_PRESS_MS);
-        }}
-        onPointerUp={stopTimer}
-        onPointerLeave={stopTimer}
-        onPointerCancel={stopTimer}
-        onContextMenu={(event) => {
-          event.preventDefault();
-          stopTimer();
-          didLongPress.current = true;
-          setPickerOpen(true);
-        }}
-        onClick={() => {
-          if (didLongPress.current) {
-            didLongPress.current = false;
-            return;
-          }
-          react(summary.mine ? null : HEART);
-        }}
-        className={clsx(ACTION, "select-none", summary.mine && "text-fg")}
-      >
-        {summary.mine ? (
-          <span className="text-xl leading-none" aria-hidden>
-            {summary.mine}
-          </span>
-        ) : (
-          <Heart className="size-5" aria-hidden />
-        )}
-        <span>{summary.mine ? t("reacted") : t("like")}</span>
-      </button>
+    <div>
+      {hasSummary && (
+        <div className="flex items-center justify-between gap-2 pb-2 text-sm text-muted">
+          {summary.total > 0 ? (
+            <button
+              type="button"
+              onClick={() => setReactorsOpen(true)}
+              aria-label={t("reactionsList", { count: summary.total })}
+              className="-ml-1 inline-flex min-h-11 items-center gap-2 rounded-xl px-1 active:bg-line/70"
+            >
+              <span className="flex" aria-hidden>
+                {summary.counts.slice(0, SUMMARY_EMOJIS).map((item, index) => (
+                  <span
+                    key={item.emoji}
+                    className={clsx(
+                      "flex size-6 items-center justify-center rounded-full border-2 border-surface bg-line text-sm leading-none",
+                      index > 0 && "-ml-2",
+                    )}
+                  >
+                    {item.emoji}
+                  </span>
+                ))}
+              </span>
+              <span>{summary.total}</span>
+            </button>
+          ) : (
+            <span />
+          )}
+          {commentCount > 0 && (
+            <span className="inline-flex items-center gap-1.5">
+              <MessageCircle className="size-4" aria-hidden />
+              <span aria-label={commentLabel}>{commentCount}</span>
+            </span>
+          )}
+        </div>
+      )}
 
-      {summary.total > 0 && (
+      <div
+        className={clsx(
+          "grid gap-1 border-t border-line pt-1",
+          onShare ? "grid-cols-3" : "grid-cols-2",
+        )}
+      >
         <button
           type="button"
-          onClick={() => setReactorsOpen(true)}
-          aria-label={t("reactionsList", { count: summary.total })}
-          className={ACTION}
+          aria-label={
+            summary.mine ? t("reactedAs", { emoji: summary.mine }) : t("heart")
+          }
+          aria-pressed={summary.mine !== null}
+          aria-haspopup="dialog"
+          onPointerDown={(event) => {
+            if (event.button !== 0) {
+              return;
+            }
+            didLongPress.current = false;
+            stopTimer();
+            timer.current = setTimeout(() => {
+              timer.current = null;
+              didLongPress.current = true;
+              openPicker();
+            }, LONG_PRESS_MS);
+          }}
+          onPointerUp={stopTimer}
+          onPointerLeave={stopTimer}
+          onPointerCancel={stopTimer}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            stopTimer();
+            didLongPress.current = true;
+            setPickerOpen(true);
+          }}
+          onClick={() => {
+            if (didLongPress.current) {
+              didLongPress.current = false;
+              return;
+            }
+            react(summary.mine ? null : HEART);
+          }}
+          className={clsx(ACTION, "select-none", summary.mine && "text-fg")}
         >
-          <span className="flex" aria-hidden>
-            {summary.counts.map((item) => (
-              <span key={item.emoji} className="text-base leading-none">
-                {item.emoji}
-              </span>
-            ))}
-          </span>
-          <span>{summary.total}</span>
+          {summary.mine ? (
+            <span className="text-xl leading-none" aria-hidden>
+              {summary.mine}
+            </span>
+          ) : (
+            <Heart className="size-5" aria-hidden />
+          )}
+          <span>{summary.mine ? t("reacted") : t("like")}</span>
         </button>
-      )}
 
-      {detailHref ? (
-        <Link href={detailHref} className={clsx(ACTION, "ml-auto")}>
-          <MessageCircle className="size-5" aria-hidden />
-          {commentLabel}
-        </Link>
-      ) : (
-        <span className={clsx(ACTION, "ml-auto")}>
-          <MessageCircle className="size-5" aria-hidden />
-          {commentLabel}
-        </span>
-      )}
+        {detailHref ? (
+          <Link href={detailHref} className={ACTION}>
+            <MessageCircle className="size-5" aria-hidden />
+            {t("comment")}
+          </Link>
+        ) : (
+          <span className={ACTION}>
+            <MessageCircle className="size-5" aria-hidden />
+            {t("comment")}
+          </span>
+        )}
+
+        {onShare && (
+          <button
+            type="button"
+            onClick={onShare}
+            disabled={isSharePending}
+            aria-busy={isSharePending}
+            aria-label={t("shareAria")}
+            className={clsx(ACTION, "disabled:opacity-50")}
+          >
+            {isSharePending ? (
+              <Spinner size="md" />
+            ) : (
+              <Share2 className="size-5" aria-hidden />
+            )}
+            {t("share")}
+          </button>
+        )}
+      </div>
 
       {hasPickerOpened && (
         <ReactionPicker

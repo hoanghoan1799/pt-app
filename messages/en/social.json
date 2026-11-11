@@ -21,7 +21,12 @@
     "label": "Privacy",
     "everyone": "Everyone",
     "friends": "Friends",
-    "only_me": "Only me"
+    "only_me": "Only me",
+    "hint": {
+      "everyone": "Anyone can see it",
+      "friends": "Your friends and your PT",
+      "only_me": "Only you (and your PT) can see it"
+    }
   },
   "terms": {
     "accept": "Agree"
@@ -87,7 +92,10 @@
     "heart": "Heart",
     "reacted": "Reacted",
     "like": "Like",
-    "reactionsList": "{count, plural, one {# reaction, view list} other {# reactions, view list}}"
+    "reactionsList": "{count, plural, one {# reaction, view list} other {# reactions, view list}}",
+    "share": "Share",
+    "shareAria": "Share, reply in chat",
+    "comment": "Comment"
   },
   "reactorsSheet": {
     "title": "Reactions",
@@ -145,7 +153,8 @@
     "photoAlt": "Photo to post",
     "removePhoto": "Remove photo",
     "addPhoto": "Add photo",
-    "submit": "Post"
+    "submit": "Post",
+    "photo": "Photo"
   },
   "postCard": {
     "deleteTitle": "Delete this post?",
