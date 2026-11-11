@@ -7,7 +7,9 @@ import { type RefObject, useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/common/Avatar";
 import { Skeleton } from "@/components/common/Skeleton";
 import { ICON_BUTTON } from "@/constants/styles";
-import type { BubbleMeta } from "@/features/chat-bubbles/types";
+import { PresenceStatus } from "@/features/chat/components/PresenceStatus";
+import { usePeerPresence } from "@/features/chat/hooks/use-peer-presence";
+import type { BubbleMeta, BubbleRole } from "@/features/chat-bubbles/types";
 
 export interface PanelBox {
   left: number;
@@ -21,6 +23,7 @@ export interface PanelBox {
 
 interface BubblePanelProps {
   box: PanelBox;
+  role: BubbleRole;
   isOpen: boolean;
   // The chat to show; null once collapsed and unmounted.
   meta: BubbleMeta | null;
@@ -46,6 +49,7 @@ const MENU_ITEM =
 type Labels = BubblePanelProps["labels"];
 
 interface PanelContentProps {
+  role: BubbleRole;
   meta: BubbleMeta;
   iframeRef: RefObject<HTMLIFrameElement | null>;
   labels: Labels;
@@ -57,6 +61,7 @@ interface PanelContentProps {
 
 // Mounted per chat (keyed): the menu and the loading state start fresh.
 const PanelContent = ({
+  role,
   meta,
   iframeRef,
   labels,
@@ -68,6 +73,12 @@ const PanelContent = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  // Same source as the full chat header; seeded by the bubble's own fetch.
+  const presence = usePeerPresence({
+    role,
+    userId: meta.userId,
+    fromThread: meta.lastSeenAt,
+  });
 
   // A tap elsewhere closes the menu.
   useEffect(() => {
@@ -97,9 +108,12 @@ const PanelContent = ({
           src={meta.avatarSrc}
           className="size-8 text-xs"
         />
-        <h2 className="min-w-0 flex-1 truncate text-base font-bold text-fg">
-          {meta.name}
-        </h2>
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-base leading-tight font-bold text-fg">
+            {meta.name}
+          </h2>
+          <PresenceStatus presence={presence} />
+        </div>
         <div ref={menuRef} className="relative">
           <button
             type="button"

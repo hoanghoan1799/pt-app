@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { PRESENCE_HEARTBEAT_MS } from "@/features/chat/utils/presence";
 import { BUBBLES_URL } from "@/features/chat-bubbles/constants";
 import type { BubbleMeta, BubbleRole } from "@/features/chat-bubbles/types";
 import { adminKeyUserId } from "@/features/chat-bubbles/utils/bubble-links";
 import type { BubbleAction } from "@/features/chat-bubbles/utils/bubble-store";
+import { startVisibleInterval } from "@/utils/visible-interval";
 
 const metaUrl = (role: BubbleRole, keys: readonly string[]) => {
   if (role === "user") {
@@ -23,17 +25,29 @@ const isMeta = (value: unknown): value is BubbleMeta => {
     typeof item?.key === "string" &&
     typeof item.name === "string" &&
     typeof item.href === "string" &&
-    typeof item.embedHref === "string"
+    typeof item.embedHref === "string" &&
+    (item.lastSeenAt === undefined ||
+      item.lastSeenAt === null ||
+      typeof item.lastSeenAt === "string")
   );
 };
 
+// A missing field (older server) counts as never seen.
+const withLastSeen = (item: BubbleMeta): BubbleMeta => ({
+  ...item,
+  lastSeenAt: item.lastSeenAt ?? null,
+});
+
 // Name, photo and links of the open bubbles. Each key is fetched once per page
 // load (the first fetch refreshes what was stored); a key the server no longer
-// returns (hidden, out of scope, chat locked) is closed.
+// returns (hidden, out of scope, chat locked) is closed. While `isLive` (the
+// bubble row is expanded) the open keys are refetched every minute, and only
+// their last-seen value is merged in.
 export const useBubbleMeta = (
   role: BubbleRole,
   keys: readonly string[],
   dispatch: (action: BubbleAction) => void,
+  isLive = false,
 ) => {
   const [metas, setMetas] = useState<Readonly<Record<string, BubbleMeta>>>({});
   const requested = useRef(new Set<string>());
@@ -70,7 +84,9 @@ export const useBubbleMeta = (
         }
         setMetas((current) => ({
           ...current,
-          ...Object.fromEntries(found.map((item) => [item.key, item])),
+          ...Object.fromEntries(
+            found.map((item) => [item.key, withLastSeen(item)]),
+          ),
         }));
         missing
           .filter((key) => !found.some((item) => item.key === key))
@@ -86,6 +102,59 @@ export const useBubbleMeta = (
       cancelled = true;
     };
   }, [role, signature, dispatch]);
+
+  useEffect(() => {
+    if (!isLive || signature === "") {
+      return;
+    }
+    const wanted = signature.split("|");
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const response = await fetch(metaUrl(role, wanted), {
+          cache: "no-store",
+        });
+
+        if (!response.ok || cancelled) {
+          return;
+        }
+        const data: { bubbles?: unknown } = await response.json();
+        const fresh = new Map(
+          (Array.isArray(data.bubbles) ? data.bubbles : [])
+            .filter(
+              (item): item is BubbleMeta =>
+                isMeta(item) && wanted.includes(item.key),
+            )
+            .map((item) => [item.key, item.lastSeenAt ?? null] as const),
+        );
+
+        if (cancelled) {
+          return;
+        }
+        setMetas((current) =>
+          Object.fromEntries(
+            Object.entries(current).map(([key, meta]) => [
+              key,
+              fresh.has(key)
+                ? { ...meta, lastSeenAt: fresh.get(key) ?? null }
+                : meta,
+            ]),
+          ),
+        );
+      } catch {
+        // The next beat retries.
+      }
+    };
+    const stop = startVisibleInterval(
+      () => void refresh(),
+      PRESENCE_HEARTBEAT_MS,
+    );
+
+    return () => {
+      cancelled = true;
+      stop();
+    };
+  }, [isLive, role, signature]);
 
   return metas;
 };
