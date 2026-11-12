@@ -1,15 +1,16 @@
 "use server";
 
-import { MEAL_PLAN_MESSAGES } from "@pt/contracts";
-import { mealPreferencesSchema } from "@pt/contracts";
-import { toFieldErrors } from "@pt/contracts";
-import { eq } from "drizzle-orm";
+import {
+  MEAL_PLAN_MESSAGES,
+  mealPreferencesSchema,
+  toFieldErrors,
+} from "@pt/contracts";
 import { revalidatePath } from "next/cache";
 
 import { ROUTES } from "@/constants/routes";
-import { db } from "@/db";
-import { users } from "@/db/schema";
 import { withFormErrorHandling } from "@/services/action-errors";
+import { tryApi } from "@/services/api/call";
+import { apiErrorToFormState } from "@/services/api/errors";
 import { requireUser } from "@/services/auth-guard";
 import type { FormState } from "@/types/form";
 import {
@@ -25,23 +26,25 @@ export const saveMealPreferencesAction = withFormErrorHandling(
   "saveMealPreferences",
   async (_previousState: FormState, formData: FormData): Promise<FormState> => {
     const user = await requireUser();
-    const parsed = mealPreferencesSchema.safeParse(getFormValues(formData));
+    const values = getFormValues(formData);
+    const parsed = mealPreferencesSchema.safeParse(values);
 
     if (!parsed.success) {
       return createErrorState(MEAL_PLAN_MESSAGES.INVALID_INPUT, {
         fieldErrors: toFieldErrors(parsed.error),
-        values: getFormValues(formData),
+        values,
       });
     }
 
-    await db
-      .update(users)
-      .set({
-        preferredMealCount: parsed.data.mealCount,
-        foodNote: parsed.data.foodNote,
-      })
-      .where(eq(users.id, user.id));
+    const outcome = await tryApi("user", (api) =>
+      api.PUT("/v1/me/meal-preferences", {
+        body: { mealCount: values.mealCount, foodNote: values.foodNote },
+      }),
+    );
 
+    if (!outcome.ok) {
+      return apiErrorToFormState(outcome.error, { values });
+    }
     revalidatePath(ROUTES.NUTRITION);
     revalidatePath(getAdminNutritionPath(user.id));
     return createSuccessState(MEAL_PLAN_MESSAGES.PREFERENCES_SAVED);

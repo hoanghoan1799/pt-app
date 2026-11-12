@@ -1,4 +1,3 @@
-import { createClient } from "@libsql/client";
 import { expect, type Page, test } from "@playwright/test";
 import { addDays } from "@pt/contracts";
 
@@ -10,8 +9,9 @@ import {
   getWeekStart,
 } from "@/utils/week";
 
+import { archiveFoodByName, getUserId, queryApiDb } from "./api-seed-nutrition";
 import { fillTraineeLogin } from "./auth";
-import { E2E_ADMIN, E2E_DB_URL, E2E_PLANNER_NAME } from "./config";
+import { E2E_ADMIN, E2E_PLANNER_NAME } from "./config";
 import { getCopyDay, pickCopyDay } from "./copy-day";
 import { E2E_FOODS } from "./seed";
 import { shot } from "./shots";
@@ -33,26 +33,10 @@ const NEXT_WEDNESDAY = addDays(WEEK, 9);
 
 const getTodayMonth = (date: string) => date.slice(0, 7);
 
-const query = async <T>(sql: string, args: (string | number)[] = []) => {
-  const client = createClient({ url: E2E_DB_URL });
+// The plans, foods and the trainee's request live in the API's PostgreSQL.
+const query = queryApiDb;
 
-  try {
-    const result = await client.execute({ sql, args });
-
-    return result.rows as unknown as T[];
-  } finally {
-    client.close();
-  }
-};
-
-const getPlannerId = async () => {
-  const [row] = await query<{ id: number }>(
-    "SELECT id FROM users WHERE name = ?",
-    [E2E_PLANNER_NAME],
-  );
-
-  return Number(row.id);
-};
+const getPlannerId = () => getUserId(E2E_PLANNER_NAME);
 
 const getRiceGrams = async (date: string) => {
   const [row] = await query<{ grams: number }>(
@@ -616,9 +600,7 @@ test("Archived food: a plan keeps showing a food the PT deleted from the library
   page,
 }) => {
   await logInAsAdmin(page);
-  await query("UPDATE foods SET archived_at = unixepoch() WHERE name = ?", [
-    E2E_FOODS.OLIVE_OIL,
-  ]);
+  await archiveFoodByName(E2E_FOODS.OLIVE_OIL);
   await openDay(page, MONDAY);
   await expect(grams(page, E2E_FOODS.OLIVE_OIL)).toHaveValue("35");
   await expect(

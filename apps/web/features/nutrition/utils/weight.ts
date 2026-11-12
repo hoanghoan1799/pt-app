@@ -1,5 +1,3 @@
-import { addDays } from "@pt/contracts";
-
 import {
   WEIGHT_TICK_STEPS,
   WEIGHT_TICK_TARGET,
@@ -7,33 +5,10 @@ import {
 import type {
   ChartPoint,
   WeeklyWeight,
-  WeightLog,
 } from "@/features/nutrition/types/nutrition";
 import { DEFAULT_LOCALE, type Locale, toIntlLocale } from "@/utils/locale";
-import { getWeekStart } from "@/utils/week";
 
 const roundToTenth = (value: number) => Math.round(value * 10) / 10;
-
-// The `count` week starts ending with `lastWeekStart`, oldest first.
-export const getRecentWeekStarts = (lastWeekStart: string, count: number) =>
-  Array.from({ length: count }, (_, index) =>
-    addDays(lastWeekStart, (index - count + 1) * 7),
-  );
-
-export const groupWeightsByWeek = (
-  logs: WeightLog[],
-  weekStarts: string[],
-): WeeklyWeight[] =>
-  weekStarts.map((weekStart) => {
-    const inWeek = logs.filter((log) => getWeekStart(log.date) === weekStart);
-    const total = inWeek.reduce((sum, log) => sum + log.weightKg, 0);
-
-    return {
-      weekStart,
-      averageKg: inWeek.length ? roundToTenth(total / inWeek.length) : null,
-      count: inWeek.length,
-    };
-  });
 
 // Change between the last two weeks that have data, and over the whole range.
 export const getWeightChanges = (weeks: WeeklyWeight[]) => {

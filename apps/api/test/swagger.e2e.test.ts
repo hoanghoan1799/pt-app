@@ -38,6 +38,16 @@ describe("Swagger", () => {
     ).toHaveProperty("db");
   });
 
+  it("documents the trainee id of the PT nutrition routes as a path parameter", async () => {
+    const json = await request(devApp.getHttpServer()).get("/v1/docs-json");
+
+    expect(
+      json.body.paths["/v1/trainees/{userId}/nutrition"].get.parameters,
+    ).toContainEqual(
+      expect.objectContaining({ name: "userId", in: "path", required: true }),
+    );
+  });
+
   it("is not mounted in production", async () => {
     const ui = await request(prodApp.getHttpServer()).get("/v1/docs");
     const json = await request(prodApp.getHttpServer()).get("/v1/docs-json");

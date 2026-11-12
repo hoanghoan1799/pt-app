@@ -1,14 +1,12 @@
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { INITIAL_FORM_STATE } from "@/constants/form";
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
 import {
   adminHiddenUsers,
   admins,
   chatConversations,
   chatMessages,
-  nutritionTargets,
   users,
 } from "@/db/schema";
 
@@ -45,9 +43,6 @@ vi.mock("@/db", () => ({
   ),
 }));
 
-const nutrition =
-  await import("@/features/nutrition/services/nutrition-actions");
-const plans = await import("@/features/meal-plans/services/meal-plan-actions");
 const chatAdmin = await import("@/features/chat/services/chat-admin-actions");
 const chatProfile =
   await import("@/features/chat/services/chat-profile-actions");
@@ -103,14 +98,6 @@ const addTrainee = async (name: string, ptAdminId: number) => {
   return { userId: user.id, conversationId: conversation.id };
 };
 
-const form = (fields: Record<string, string>) => {
-  const data = new FormData();
-
-  for (const [key, value] of Object.entries(fields)) {
-    data.set(key, value);
-  }
-  return data;
-};
 
 // "denied" when the guard sent the admin to a 404; otherwise the action ran.
 const outcome = async (call: () => Promise<unknown>) => {
@@ -138,44 +125,6 @@ beforeEach(async () => {
     "theirs",
     ptB,
   ));
-});
-
-describe("nutrition", () => {
-  const save = (userId: number) =>
-    outcome(() =>
-      nutrition.saveNutritionTargetAction(
-        INITIAL_FORM_STATE,
-        form({
-          userId: String(userId),
-          carbs: "200",
-          protein: "120",
-          fat: "60",
-        }),
-      ),
-    );
-
-  it("saves targets only inside the workspace", async () => {
-    expect(await save(mine)).toBe("ran");
-    expect(await save(theirs)).toBe("denied");
-    const rows = await db.select().from(nutritionTargets);
-
-    expect(rows.map((row) => row.userId)).toEqual([mine]);
-  });
-});
-
-describe("meal plans", () => {
-  it("creates day plans only inside the workspace", async () => {
-    const create = (userId: number) =>
-      outcome(() => plans.createDayPlanAction({ userId, date: "2026-11-02" }));
-
-    expect(await create(theirs)).toBe("denied");
-    expect(await create(mine)).toBe("ran");
-    expect(
-      await outcome(() =>
-        plans.deleteDayPlanAction({ userId: theirs, dayId: 1 }),
-      ),
-    ).toBe("denied");
-  });
 });
 
 describe("chat", () => {

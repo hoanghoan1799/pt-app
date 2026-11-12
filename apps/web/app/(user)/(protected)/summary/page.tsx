@@ -8,16 +8,7 @@ import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
 import { UserHeaderActions } from "@/features/auth/components/UserHeaderActions";
 import { BodyProfileCard } from "@/features/nutrition/components/BodyProfileCard";
-import { WEIGHT_CHART_WEEKS } from "@/features/nutrition/constants/weight";
-import { getBodyProfile } from "@/features/nutrition/services/body-profile-queries";
-import {
-  getTodayWeight,
-  getWeightTrend,
-} from "@/features/nutrition/services/body-profile-service";
-import {
-  getLatestTarget,
-  getNutritionWeek,
-} from "@/features/nutrition/services/nutrition-queries";
+import { getNutritionOverview } from "@/features/nutrition/services/nutrition-queries";
 import { getMyWeekSchedule } from "@/features/workouts/services/workout-api";
 import { requireUser } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
@@ -38,20 +29,9 @@ const SummaryPage = async ({ searchParams }: PageProps<"/summary">) => {
     { week: readSearchParam(params.week), day: readSearchParam(params.day) },
     today,
   );
-  const [
-    workoutDays,
-    nutritionDays,
-    weightWeeks,
-    todayWeight,
-    bodyProfile,
-    latestTarget,
-  ] = await Promise.all([
+  const [workoutDays, overview] = await Promise.all([
     getMyWeekSchedule(schedule.weekStart),
-    getNutritionWeek(user.id, schedule.weekStart),
-    getWeightTrend(user.id, schedule.weekStart, WEIGHT_CHART_WEEKS),
-    getTodayWeight(user.id, today),
-    getBodyProfile(user.id),
-    getLatestTarget(user.id),
+    getNutritionOverview(schedule.weekStart),
   ]);
 
   return (
@@ -72,15 +52,15 @@ const SummaryPage = async ({ searchParams }: PageProps<"/summary">) => {
           selectedDate={schedule.selectedDate}
           today={today}
           workoutDays={workoutDays}
-          nutritionDays={nutritionDays}
-          weightWeeks={weightWeeks}
+          nutritionDays={overview.days}
+          weightWeeks={overview.weightWeeks}
           canLogWeight={true}
-          todayWeight={todayWeight}
+          todayWeight={overview.todayWeight}
           bodyProfile={
             <BodyProfileCard
               editor="user"
-              profile={bodyProfile}
-              isTargetManual={latestTarget?.source === "manual"}
+              profile={overview.bodyProfile?.profile ?? null}
+              isTargetManual={overview.latestTarget?.source === "manual"}
               today={today}
             />
           }

@@ -11,12 +11,7 @@ import { TIME_ZONE } from "@/constants/time";
 import { getTraineeDisplayName } from "@/features/chat/services/chat-queries";
 import { ExerciseProgressList } from "@/features/members/components/ExerciseProgressList";
 import { getExerciseProgress } from "@/features/members/services/progress-queries";
-import { WEIGHT_CHART_WEEKS } from "@/features/nutrition/constants/weight";
-import {
-  getTodayWeight,
-  getWeightTrend,
-} from "@/features/nutrition/services/body-profile-service";
-import { getNutritionWeek } from "@/features/nutrition/services/nutrition-queries";
+import { getNutritionOverview } from "@/features/nutrition/services/nutrition-queries";
 import { getTraineeWeekSchedule } from "@/features/workouts/services/workout-api";
 import { requireAdmin } from "@/services/auth-guard";
 import { canAdminAccessUser } from "@/services/hidden-users";
@@ -56,14 +51,11 @@ const AdminSummaryPage = async ({
     { week: readSearchParam(query.week), day: readSearchParam(query.day) },
     today,
   );
-  const [workoutDays, nutritionDays, weightWeeks, todayWeight, progressRows] =
-    await Promise.all([
-      getTraineeWeekSchedule(user.id, schedule.weekStart),
-      getNutritionWeek(user.id, schedule.weekStart),
-      getWeightTrend(user.id, schedule.weekStart, WEIGHT_CHART_WEEKS),
-      getTodayWeight(user.id, today),
-      getExerciseProgress(user.id, schedule.weekStart),
-    ]);
+  const [workoutDays, overview, progressRows] = await Promise.all([
+    getTraineeWeekSchedule(user.id, schedule.weekStart),
+    getNutritionOverview(schedule.weekStart, user.id),
+    getExerciseProgress(user.id, schedule.weekStart),
+  ]);
 
   return (
     <>
@@ -88,10 +80,10 @@ const AdminSummaryPage = async ({
           selectedDate={schedule.selectedDate}
           today={today}
           workoutDays={workoutDays}
-          nutritionDays={nutritionDays}
-          weightWeeks={weightWeeks}
+          nutritionDays={overview.days}
+          weightWeeks={overview.weightWeeks}
           canLogWeight={false}
-          todayWeight={todayWeight}
+          todayWeight={overview.todayWeight}
           progress={<ExerciseProgressList rows={progressRows} />}
         />
       </main>
