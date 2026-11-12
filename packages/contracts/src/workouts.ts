@@ -6,3 +6,69 @@ export const EXERCISE_LIMITS = {
   DAY_TITLE: 120,
   DAY_NOTE: 1000,
 } as const;
+
+// Time zone that decides what "today" is for workouts (due days, copy targets).
+export const WORKOUT_TIME_ZONE = "Asia/Ho_Chi_Minh";
+
+// Messages the API returns, same text the web showed.
+export const WORKOUT_MESSAGES = {
+  INVALID_INPUT: "Vui lòng kiểm tra lại thông tin",
+  DAY_SAVED: "Đã lưu thông tin ngày",
+  EXERCISE_CREATED: "Đã thêm bài tập",
+  EXERCISE_UPDATED: "Đã cập nhật bài tập",
+  LINK_CHANGE_NEEDS_CONFIRM: "Đổi link video cần xác nhận xóa số liệu đã ghi",
+  EXERCISE_NOT_FOUND: "Bài tập không còn tồn tại",
+  USER_NOT_FOUND: "Không tìm thấy user",
+  COPY_EMPTY: "Tuần này chưa có nội dung để sao chép",
+  COPY_SAME_WEEK: "Hãy chọn một tuần khác hoặc user khác",
+  COPY_TARGET_HAS_SETS: "Tuần đích đã có buổi tập được ghi, không thể ghi đè",
+  NO_TARGET_DAYS: "Chọn ít nhất một ngày",
+  PAST_TARGET_DAYS: "Không thể sao chép sang ngày đã qua",
+  COPY_DAY_EMPTY: "Ngày này chưa có bài tập để sao chép",
+  COPY_DAY_TARGET_HAS_SETS:
+    "Có ngày đích đã được ghi buổi tập, không thể ghi đè",
+  COMPLETION_TOO_EARLY: "Chưa tới ngày tập bài này",
+  SET_WEIGHT_RANGE: "Mức tạ từ 0,5 đến 500 kg",
+  SET_WEIGHT_STEP: "Mức tạ phải chia hết cho 0,5 kg",
+  SET_REPS_INTEGER: "Số lần phải là số nguyên",
+  SET_REPS_RANGE: "Số lần từ 1 đến 100",
+  SET_TOO_MANY: "Tối đa 10 hiệp",
+} as const;
+
+// Limits for logged sets (spec D3, Q14).
+export const SET_LIMITS = {
+  MAX_ROWS: 10,
+  MIN_WEIGHT_KG: 0.5,
+  MAX_WEIGHT_KG: 500,
+  MIN_REPS: 1,
+  MAX_REPS: 100,
+} as const;
+
+// What the PT is told before logged sets are deleted (OQ1).
+export const CONFIRM_MESSAGES = {
+  DELETE_EXERCISE: "Xóa bài tập này?",
+  DELETE_EXERCISE_WITH_SETS:
+    "Học viên đã ghi số liệu cho bài này. Xóa bài tập sẽ xóa luôn số liệu. Tiếp tục?",
+} as const;
+
+// A range read covers at most a month grid (6 weeks).
+export const WORKOUT_RANGE_MAX_DAYS = 42;
+
+// Recent-activity feed sizes: the admin dashboard and one trainee's page.
+export const RECENT_ACTIVITY_LIMIT = 15;
+export const MEMBER_ACTIVITY_LIMIT = 20;
+export const ACTIVITY_LIMIT_MAX = 50;
+
+export const MOVE_DIRECTIONS = ["up", "down"] as const;
+export type MoveDirection = (typeof MOVE_DIRECTIONS)[number];
+
+export const PROGRESS_TRENDS = ["first", "up", "same", "down"] as const;
+export type ProgressTrend = (typeof PROGRESS_TRENDS)[number];
+
+export const MEMBER_STATUSES = [
+  "no-plan",
+  "not-started",
+  "in-progress",
+  "done",
+] as const;
+export type MemberStatus = (typeof MEMBER_STATUSES)[number];
