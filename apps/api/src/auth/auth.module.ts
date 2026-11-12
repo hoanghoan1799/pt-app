@@ -47,14 +47,15 @@ import { TraineeScopeQueries } from "./trainee-scope.queries.js";
     { provide: APP_GUARD, useClass: PtScopeGuard },
   ],
   exports: [
+    // The PT scope rules, for modules whose URLs name a child resource.
+    PtScopePolicy,
+    TraineeScopeQueries,
     SessionsService,
     SessionQueries,
     LoginLimiter,
     PasswordHasher,
     AdminPasscodeStrategy,
     LoginThrottlerModule,
-    PtScopePolicy,
-    TraineeScopeQueries,
   ],
 })
 export class AuthModule {}

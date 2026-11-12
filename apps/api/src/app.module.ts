@@ -9,8 +9,11 @@ import { AppConfigModule } from "./config/app-config.module.js";
 import { ContactAliasesModule } from "./contact-aliases/contact-aliases.module.js";
 import { DatabaseModule } from "./database/database.module.js";
 import { FilesModule } from "./files/files.module.js";
+import { FoodsModule } from "./foods/foods.module.js";
 import { HealthController } from "./health/health.controller.js";
+import { NutritionModule } from "./nutrition/nutrition.module.js";
 import { UsersModule } from "./users/users.module.js";
+import { WorkoutsModule } from "./workouts/workouts.module.js";
 
 @Module({
   imports: [
@@ -23,6 +26,9 @@ import { UsersModule } from "./users/users.module.js";
     UsersModule,
     ContactAliasesModule,
     FilesModule,
+    WorkoutsModule,
+    FoodsModule,
+    NutritionModule,
   ],
   controllers: [HealthController],
   // Registered globally in configureApp(): APP_FILTER would miss the 404 of
