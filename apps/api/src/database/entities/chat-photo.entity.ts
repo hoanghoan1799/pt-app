@@ -15,6 +15,11 @@ import { ChatMessage } from "./chat-message.entity.js";
 @Entity("chat_photos")
 @Index("chat_photos_message", ["messageId"])
 @Index("chat_photos_conversation", ["conversationId"])
+@Index(
+  "chat_photos_uploader_client",
+  ["conversationId", "uploaderKey", "clientId"],
+  { unique: true },
+)
 @Check(`"mime" IN ('image/webp', 'image/jpeg', 'image/png')`)
 export class ChatPhoto {
   @PrimaryGeneratedColumn("identity", { generatedIdentity: "ALWAYS" })
@@ -36,6 +41,10 @@ export class ChatPhoto {
 
   @Column({ type: "text" })
   uploaderKey!: string;
+
+  // Idempotency-Key of the upload: a retry with the same key finds this row.
+  @Column({ type: "text", nullable: true })
+  clientId!: string | null;
 
   @Column({ type: "text" })
   mime!: "image/webp" | "image/jpeg" | "image/png";

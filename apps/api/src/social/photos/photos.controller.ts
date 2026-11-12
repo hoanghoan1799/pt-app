@@ -39,8 +39,17 @@ import { PhotosService } from "./photos.service.js";
 // client reads the 413 instead of a reset.
 const DRAIN_CAP = 8 * 1024 * 1024;
 
-const readBody = (request: Request, max: number): Promise<Buffer> =>
-  new Promise((resolve, reject) => {
+const readBody = (request: Request, max: number): Promise<Buffer> => {
+  // The global raw parser (app.setup.ts) has already read image/* bodies.
+  if (Buffer.isBuffer(request.body)) {
+    const body = request.body as Buffer;
+
+    return body.length > max
+      ? Promise.reject(photoTooLarge())
+      : Promise.resolve(body);
+  }
+
+  return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let size = 0;
 
@@ -57,6 +66,7 @@ const readBody = (request: Request, max: number): Promise<Buffer> =>
     );
     request.on("error", reject);
   });
+};
 
 @ApiTags("social")
 @ApiBearerAuth()
