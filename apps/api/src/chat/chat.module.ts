@@ -49,6 +49,12 @@ import { PostQuotesModule } from "./post-quotes.module.js";
     ChatGalleryService,
     ChatInboxService,
   ],
-  exports: [ChatPolicy, ChatEvents],
+  exports: [
+    ChatPolicy,
+    ChatEvents,
+    ChatAccess,
+    ChatQueries,
+    ChatProfileService,
+  ],
 })
 export class ChatModule {}

@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 
 import { AuthModule } from "../auth/auth.module.js";
+import { ChatModule } from "../chat/chat.module.js";
 import { ContactAliasesModule } from "../contact-aliases/contact-aliases.module.js";
 import { Admin } from "../database/entities/admin.entity.js";
 import { AdminHiddenUser } from "../database/entities/admin-hidden-user.entity.js";
@@ -20,6 +21,7 @@ import { HiddenUsersService } from "./hidden-users.service.js";
   imports: [
     TypeOrmModule.forFeature([Admin, AdminHiddenUser]),
     AuthModule,
+    ChatModule,
     ContactAliasesModule,
     FilesModule,
   ],

@@ -10,6 +10,7 @@ const DEFAULTS = {
   WEB_ORIGIN: "http://localhost:3000",
   DATABASE_URL,
   LOGIN_THROTTLE_LIMIT: 20,
+  REALTIME_RECHECK_SECONDS: 300,
   LOG_LEVEL: undefined,
 };
 
@@ -26,6 +27,10 @@ describe("loadEnv", () => {
         PORT: "",
         WEB_ORIGIN: "",
         LOGIN_THROTTLE_LIMIT: "",
+        VAPID_PUBLIC_KEY: "",
+        VAPID_PRIVATE_KEY: "",
+        VAPID_SUBJECT: "",
+        REALTIME_RECHECK_SECONDS: "",
         LOG_LEVEL: "",
       }),
     ).toEqual(DEFAULTS);
@@ -39,6 +44,10 @@ describe("loadEnv", () => {
         WEB_ORIGIN: "https://app.example.com",
         DATABASE_URL: "postgresql://pt:pw@db:5432/ptapp",
         LOGIN_THROTTLE_LIMIT: "50",
+        VAPID_PUBLIC_KEY: "pub",
+        VAPID_PRIVATE_KEY: "priv",
+        VAPID_SUBJECT: "mailto:coach@example.com",
+        REALTIME_RECHECK_SECONDS: "60",
         LOG_LEVEL: "debug",
       }),
     ).toEqual({
@@ -47,6 +56,10 @@ describe("loadEnv", () => {
       WEB_ORIGIN: "https://app.example.com",
       DATABASE_URL: "postgresql://pt:pw@db:5432/ptapp",
       LOGIN_THROTTLE_LIMIT: 50,
+      VAPID_PUBLIC_KEY: "pub",
+      VAPID_PRIVATE_KEY: "priv",
+      VAPID_SUBJECT: "mailto:coach@example.com",
+      REALTIME_RECHECK_SECONDS: 60,
       LOG_LEVEL: "debug",
     });
   });

@@ -54,13 +54,22 @@ export const acceptTerms = (ds: DataSource, userId: number) =>
     [userId],
   );
 
-export const createSocialWorld = async (): Promise<SocialWorld> => {
+export const createSocialWorld = async (
+  options: {
+    overrideProviders?: { token: unknown; value: unknown }[];
+    env?: Record<string, string>;
+  } = {},
+): Promise<SocialWorld> => {
   const db = await createTestDatabase();
   const clock = new FakeClock();
   const app = await createTestApp({
     databaseUrl: db.url,
     nodeEnv: "test",
-    overrideProviders: [{ token: Clock, value: clock }],
+    overrideProviders: [
+      { token: Clock, value: clock },
+      ...(options.overrideProviders ?? []),
+    ],
+    ...(options.env ? { env: options.env } : {}),
   });
   const ds = db.dataSource;
   const superAdmin = await seedAdmin(ds, { role: "super_admin" });

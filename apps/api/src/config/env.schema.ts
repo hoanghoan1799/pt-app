@@ -42,6 +42,24 @@ export const envSchema = z.object({
   // GIPHY sticker search. Optional: without a key the GIPHY tab switches off
   // (the endpoint answers `{ enabled: false }`).
   GIPHY_API_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  // Web push (VAPID). All three are optional: without them push is switched off
+  // and nothing is ever sent. Generate keys with `npx web-push generate-vapid-keys`.
+  VAPID_PUBLIC_KEY: z.preprocess(
+    emptyToUndefined,
+    z.string().min(1).optional(),
+  ),
+  VAPID_PRIVATE_KEY: z.preprocess(
+    emptyToUndefined,
+    z.string().min(1).optional(),
+  ),
+  // A mailto: or https: contact for the push services.
+  VAPID_SUBJECT: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  // Seconds between re-checks of every open socket's session (sign-out, expiry,
+  // lock). Unset means 300.
+  REALTIME_RECHECK_SECONDS: z.preprocess(
+    emptyToUndefined,
+    z.coerce.number().int().min(1).max(3600).default(300),
+  ),
   // Unset means "info" in development and "warn" in production.
   LOG_LEVEL: z.preprocess(emptyToUndefined, z.enum(LOG_LEVELS).optional()),
 });

@@ -9,6 +9,7 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter.js";
 import { APP_ENV } from "./config/app-config.module.js";
 import type { Env } from "./config/env.schema.js";
+import { RealtimeIoAdapter } from "./realtime/realtime.io-adapter.js";
 
 export const API_PREFIX = "v1";
 export const JSON_BODY_LIMIT = "256kb";
@@ -73,6 +74,7 @@ export const configureApp = (app: INestApplication) => {
   app.setGlobalPrefix(API_PREFIX);
   app.useGlobalFilters(app.get(AllExceptionsFilter));
   app.useGlobalPipes(validationPipe());
+  app.useWebSocketAdapter(new RealtimeIoAdapter(app, env.WEB_ORIGIN));
   app.enableShutdownHooks();
 
   if (env.NODE_ENV !== "production") {

@@ -58,6 +58,7 @@ const trainee: UserActor = {
 const contextOf = (
   request: Partial<AuthedRequest>,
   metadata: Record<string, unknown> = {},
+  type = "http",
 ) => {
   const handler = () => undefined;
   const controller = class {};
@@ -68,12 +69,36 @@ const contextOf = (
   return {
     getHandler: () => handler,
     getClass: () => controller,
+    getType: () => type,
     switchToHttp: () => ({ getRequest: () => request }),
   } as unknown as ExecutionContext;
 };
 
 const asRequest = (actor?: AuthActor, params: Record<string, string> = {}) =>
   ({ actor, params, headers: {} }) as unknown as AuthedRequest;
+
+// Socket.IO events are authenticated by the handshake, not by these HTTP guards.
+describe("the HTTP guards on a socket event", () => {
+  const socket = () => contextOf({}, { [ROLES_KEY]: ["pt"] }, "ws");
+
+  it("let it through without a session", async () => {
+    const authenticate = vi.fn();
+    const session = new SessionGuard(new Reflector(), {
+      authenticate,
+    } as unknown as SessionsService);
+    const roles = new RolesGuard(new Reflector());
+    const scope = new PtScopeGuard(
+      new Reflector(),
+      new PtScopePolicy(),
+      {} as unknown as TraineeScopeQueries,
+    );
+
+    expect(await session.canActivate(socket())).toBe(true);
+    expect(roles.canActivate(socket())).toBe(true);
+    expect(await scope.canActivate(socket())).toBe(true);
+    expect(authenticate).not.toHaveBeenCalled();
+  });
+});
 
 describe("SessionGuard", () => {
   const build = (actor: AuthActor | null) => {

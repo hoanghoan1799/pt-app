@@ -19,6 +19,7 @@ import {
   SocialPhotoStorage,
 } from "./photos/social-photo-storage.js";
 import { PostAccess } from "./post-access.service.js";
+import { SocialPostQuotes } from "./post-quotes.adapter.js";
 import { PostsController } from "./posts.controller.js";
 import { PostQueries } from "./posts.queries.js";
 import { PostsService } from "./posts.service.js";
@@ -62,9 +63,10 @@ import { SocialTermsGuard } from "./terms.guard.js";
     PhotosService,
     SocialTermsGuard,
     SocialCleanupService,
+    SocialPostQuotes,
     // Swap for the shared FilesModule FileStorage at merge time.
     { provide: SocialPhotoStorage, useClass: ByteaSocialPhotoStorage },
   ],
-  exports: [SocialCleanupService],
+  exports: [SocialCleanupService, SocialPostQuotes],
 })
 export class SocialModule {}
