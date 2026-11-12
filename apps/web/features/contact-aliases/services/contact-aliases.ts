@@ -10,6 +10,10 @@ import {
   userActorKey,
 } from "@/features/contact-aliases/utils/alias-rules";
 
+// READ side only, kept for the areas still on Drizzle (chat, social,
+// dashboard). Saving an alias goes through PUT /v1/contact-aliases/{targetKey}
+// (contact-alias-actions.ts); delete this file with the last of those readers.
+//
 // Private nicknames. Everything here is keyed by the OWNER, who always comes
 // from the session and never from the request, so one person's aliases can
 // never be read or written through another's account.
@@ -75,49 +79,6 @@ export const loadTraineeAliases = async (
       return alias ? [[id, alias] as const] : [];
     }),
   );
-};
-
-export type SetAliasOutcome = "changed" | "unchanged";
-
-// The input is already validated (target allowed, alias normalised). An empty
-// alias clears it; saving the value that is already stored changes nothing.
-export const setAlias = async (
-  ownerKey: string,
-  targetKey: string,
-  alias: string,
-): Promise<SetAliasOutcome> => {
-  const [existing] = await db
-    .select({ alias: contactAliases.alias })
-    .from(contactAliases)
-    .where(
-      and(
-        eq(contactAliases.ownerKey, ownerKey),
-        eq(contactAliases.targetKey, targetKey),
-      ),
-    );
-
-  if ((existing?.alias ?? "") === alias) {
-    return "unchanged";
-  }
-  if (alias === "") {
-    await db
-      .delete(contactAliases)
-      .where(
-        and(
-          eq(contactAliases.ownerKey, ownerKey),
-          eq(contactAliases.targetKey, targetKey),
-        ),
-      );
-    return "changed";
-  }
-  await db
-    .insert(contactAliases)
-    .values({ ownerKey, targetKey, alias, updatedAt: new Date() })
-    .onConflictDoUpdate({
-      target: [contactAliases.ownerKey, contactAliases.targetKey],
-      set: { alias, updatedAt: new Date() },
-    });
-  return "changed";
 };
 
 // Several owners at once (a push goes to many people, each with their own

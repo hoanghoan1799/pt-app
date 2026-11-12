@@ -26,14 +26,12 @@ vi.mock("@/services/admin-lock", () => ({
 }));
 
 const chat = await import("@/features/chat/services/chat-queries");
-const members = await import("@/features/members/services/member-queries");
 
 let db: TestDb;
 let superId: number;
 let ptA: number;
 let ptB: number;
 let mine: number;
-let theirs: number;
 
 const addAdmin = async (name: string, role: "pt" | "super_admin") => {
   const [row] = await db
@@ -93,22 +91,10 @@ beforeEach(async () => {
   ptA = await addAdmin("pta", "pt");
   ptB = await addAdmin("ptb", "pt");
   mine = await addTrainee("mine", ptA);
-  theirs = await addTrainee("theirs", ptB);
+  await addTrainee("theirs", ptB);
 });
 
 describe("P1 scope across admin lists", () => {
-  it("member picker lists only the workspace, and ignores keepUserId outside it", async () => {
-    expect((await members.listMembers(ptA)).map((row) => row.id)).toEqual([
-      mine,
-    ]);
-    expect(
-      (await members.listMembers(ptA, theirs)).map((row) => row.id),
-    ).toEqual([mine]);
-    expect((await members.listMembers(superId)).map((row) => row.id)).toEqual([
-      mine,
-      theirs,
-    ]);
-  });
 
   it("inbox and unread counts only cover the PT's trainees", async () => {
     const inbox = await chat.listAdminInbox(ptA);

@@ -5,15 +5,13 @@ import { z } from "zod";
 import { HIDDEN_CHAT_MESSAGES } from "@/features/chat/constants/messages";
 import {
   hideConversations,
-  hideUsers,
   isConversationHidden,
   listRevealedHidden,
   noMatch,
   unhideConversation,
-  unhideUser,
 } from "@/features/chat/services/chat-hidden";
 import { withResultErrorHandling } from "@/services/action-errors";
-import { tryApi } from "@/services/api/call";
+import { callApi, tryApi } from "@/services/api/call";
 import { requireAdmin } from "@/services/auth-guard";
 import { getActiveLocale } from "@/services/localize-message";
 
@@ -58,26 +56,38 @@ export const unhideConversationAction = withResultErrorHandling(
 export const hideUsersAction = withResultErrorHandling(
   "hideUsers",
   async (userIds: number[]) => {
-    const admin = await requireAdmin();
+    await requireAdmin();
     const parsed = idsSchema.safeParse(userIds);
 
     if (!parsed.success) {
       return invalid();
     }
-    return hideUsers(admin.id, parsed.data);
+    // The API needs a passcode (PASSCODE_REQUIRED) and ignores unknown ids and
+    // trainees outside this admin's workspace.
+    const { hidden } = await callApi("admin", (api) =>
+      api.POST("/v1/admins/me/hidden-users", {
+        body: { userIds: parsed.data },
+      }),
+    );
+
+    return { status: "success" as const, hidden };
   },
 );
 
 export const unhideUserAction = withResultErrorHandling(
   "unhideUser",
   async (userId: number) => {
-    const admin = await requireAdmin();
+    await requireAdmin();
     const parsed = idSchema.safeParse(userId);
 
     if (!parsed.success) {
       return invalid();
     }
-    await unhideUser(admin.id, parsed.data);
+    await callApi("admin", (api) =>
+      api.DELETE("/v1/admins/me/hidden-users/{userId}", {
+        params: { path: { userId: parsed.data } },
+      }),
+    );
     return { status: "success" as const };
   },
 );

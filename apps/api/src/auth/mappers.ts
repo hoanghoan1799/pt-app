@@ -46,6 +46,10 @@ export const toActorResponse = (actor: AuthActor): ActorResponse =>
         email: actor.email,
         locale: actor.locale,
         ptAdminId: actor.ptAdminId,
+        chatEnabled: actor.chatEnabled,
+        termsVersion: actor.termsVersion,
+        preferredMealCount: actor.preferredMealCount,
+        foodNote: actor.foodNote,
       }
     : {
         kind: "admin",

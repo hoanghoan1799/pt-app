@@ -5,6 +5,7 @@ import { type Browser, expect, type Page, test } from "@playwright/test";
 
 import { toEmailKey } from "@/utils/email";
 
+import { clearAvatarsViaApi } from "./api-seed-users";
 import { fillTraineeLogin } from "./auth";
 import { E2E_ADMIN, E2E_CHAT_NAME, E2E_DB_URL, e2eEmail } from "./config";
 
@@ -31,7 +32,12 @@ const withDb = async <T>(
   }
 };
 
-const resetState = (enabled: boolean) =>
+const resetState = async (enabled: boolean) => {
+  await clearAvatarsViaApi(E2E_CHAT_NAME);
+  return resetLegacyState(enabled);
+};
+
+const resetLegacyState = (enabled: boolean) =>
   withDb(async (client) => {
     const found = await client.execute({
       sql: "SELECT id FROM users WHERE email_key = ?",
@@ -61,6 +67,8 @@ const resetState = (enabled: boolean) =>
     await client.execute(
       "UPDATE admins SET avatar = NULL, avatar_updated_at = NULL",
     );
+    // Photos live in the API now; the legacy columns above only keep the pages
+    // that still read SQLite in step.
     if (enabled) {
       await client.execute({
         sql: "INSERT INTO chat_conversations (user_id) VALUES (?)",

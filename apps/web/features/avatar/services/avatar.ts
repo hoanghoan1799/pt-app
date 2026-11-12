@@ -9,58 +9,12 @@ import {
   avatarUrl,
 } from "@/features/avatar/utils/avatar-rules";
 
+// READ side only, kept for the pages still on Drizzle (chat threads, bubbles).
+// Saving, removing and serving photos goes through the API
+// (avatar-actions.ts, app/api/avatar). Delete this file with the last of those
+// pages: the API's chat and trainee payloads carry `avatarUrl` themselves.
+
 const table = (kind: AvatarKind) => (kind === "admin" ? admins : users);
-
-// Timestamp columns hold whole seconds.
-const nowInSeconds = () => new Date(Math.floor(Date.now() / 1000) * 1000);
-
-export interface StoredAvatar {
-  avatar: string;
-  updatedAt: Date;
-}
-
-// The image itself. Only the avatar route reads it, so the bulky column
-// never rides along with sessions, chat payloads or lists.
-export const getStoredAvatar = async (
-  kind: AvatarKind,
-  id: number,
-): Promise<StoredAvatar | null> => {
-  const target = table(kind);
-  const [row] = await db
-    .select({ avatar: target.avatar, updatedAt: target.avatarUpdatedAt })
-    .from(target)
-    .where(eq(target.id, id))
-    .limit(1);
-
-  return row?.avatar && row.updatedAt
-    ? { avatar: row.avatar, updatedAt: row.updatedAt }
-    : null;
-};
-
-// Callers validated the data URL (decodeAvatarDataUrl) first.
-export const saveAvatar = async (
-  kind: AvatarKind,
-  id: number,
-  dataUrl: string,
-) => {
-  const target = table(kind);
-  const updatedAt = nowInSeconds();
-
-  await db
-    .update(target)
-    .set({ avatar: dataUrl, avatarUpdatedAt: updatedAt })
-    .where(eq(target.id, id));
-  return avatarUrl(kind, id, updatedAt);
-};
-
-export const clearAvatar = async (kind: AvatarKind, id: number) => {
-  const target = table(kind);
-
-  await db
-    .update(target)
-    .set({ avatar: null, avatarUpdatedAt: null })
-    .where(eq(target.id, id));
-};
 
 // Versioned URL of one person's photo, or null.
 export const getAvatarUrl = async (kind: AvatarKind, id: number) => {

@@ -26,6 +26,10 @@ export type UserActor = {
   email: string | null;
   locale: string | null;
   ptAdminId: number | null;
+  chatEnabled: boolean;
+  termsVersion: number | null;
+  preferredMealCount: number | null;
+  foodNote: string | null;
   session: SessionInfo;
 };
 
@@ -56,6 +60,10 @@ export type UserSubjectRow = {
   email: string | null;
   locale: string | null;
   ptAdminId: number | null;
+  chatEnabled: boolean | null;
+  termsVersion: number | null;
+  preferredMealCount: number | null;
+  foodNote: string | null;
 };
 
 export type AdminSubjectRow = {
@@ -88,6 +96,10 @@ export const buildUserActor = (
   email: row.email,
   locale: row.locale,
   ptAdminId: row.ptAdminId,
+  chatEnabled: row.chatEnabled === true,
+  termsVersion: row.termsVersion,
+  preferredMealCount: row.preferredMealCount,
+  foodNote: row.foodNote,
   session: pickInfo(state),
 });
 
