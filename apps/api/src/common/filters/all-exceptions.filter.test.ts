@@ -95,3 +95,41 @@ describe("AllExceptionsFilter", () => {
     expect(status).not.toHaveBeenCalled();
   });
 });
+
+describe("AllExceptionsFilter details", () => {
+  it("passes flat primitive details of a 4xx and nothing nested", () => {
+    const { body } = run(
+      "production",
+      new BadRequestException({
+        code: "PASSCODE_WRONG",
+        message: "Mã khoá không đúng",
+        details: {
+          attemptsLeft: 3,
+          signedOut: false,
+          nested: { a: 1 },
+          list: [1],
+        },
+      }),
+    );
+
+    expect(body).toMatchObject({
+      code: "PASSCODE_WRONG",
+      details: { attemptsLeft: 3, signedOut: false },
+    });
+    expect(body?.details).not.toHaveProperty("nested");
+    expect(body?.details).not.toHaveProperty("list");
+  });
+
+  it("never passes details on a 5xx", () => {
+    const { body } = run(
+      "production",
+      new ServiceUnavailableException({
+        code: "X",
+        message: "boom",
+        details: { secret: "scrypt$1$a$b" },
+      }),
+    );
+
+    expect(body).not.toHaveProperty("details");
+  });
+});

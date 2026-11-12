@@ -7,7 +7,21 @@ import type { Env } from "../../config/env.schema.js";
 
 // Field names that must never reach a log line, at any of the first four
 // nesting levels (pino wildcards match one level each).
-const SECRET_FIELDS = ["password", "passcode", "token", "secret"] as const;
+const SECRET_FIELDS = [
+  "password",
+  "passcode",
+  "token",
+  "secret",
+  // Auth request bodies, stored hashes and the Authorization header value.
+  "currentPassword",
+  "newPassword",
+  "currentPasscode",
+  "newPasscode",
+  "passwordHash",
+  "passcodeHash",
+  "tokenHash",
+  "authorization",
+] as const;
 
 const nested = (field: string) => [
   field,

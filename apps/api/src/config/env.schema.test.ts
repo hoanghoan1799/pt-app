@@ -9,6 +9,7 @@ const DEFAULTS = {
   PORT: 4000,
   WEB_ORIGIN: "http://localhost:3000",
   DATABASE_URL,
+  LOGIN_THROTTLE_LIMIT: 20,
   LOG_LEVEL: undefined,
 };
 
@@ -24,6 +25,7 @@ describe("loadEnv", () => {
         NODE_ENV: "",
         PORT: "",
         WEB_ORIGIN: "",
+        LOGIN_THROTTLE_LIMIT: "",
         LOG_LEVEL: "",
       }),
     ).toEqual(DEFAULTS);
@@ -36,6 +38,7 @@ describe("loadEnv", () => {
         PORT: "4100",
         WEB_ORIGIN: "https://app.example.com",
         DATABASE_URL: "postgresql://pt:pw@db:5432/ptapp",
+        LOGIN_THROTTLE_LIMIT: "50",
         LOG_LEVEL: "debug",
       }),
     ).toEqual({
@@ -43,6 +46,7 @@ describe("loadEnv", () => {
       PORT: 4100,
       WEB_ORIGIN: "https://app.example.com",
       DATABASE_URL: "postgresql://pt:pw@db:5432/ptapp",
+      LOGIN_THROTTLE_LIMIT: 50,
       LOG_LEVEL: "debug",
     });
   });
@@ -63,6 +67,7 @@ describe("loadEnv", () => {
         WEB_ORIGIN: "nope",
         DATABASE_URL: "mysql://x",
         NODE_ENV: "staging",
+        LOGIN_THROTTLE_LIMIT: "0",
         LOG_LEVEL: "loud",
       });
     } catch (error) {
@@ -74,6 +79,7 @@ describe("loadEnv", () => {
       "WEB_ORIGIN",
       "DATABASE_URL",
       "NODE_ENV",
+      "LOGIN_THROTTLE_LIMIT",
       "LOG_LEVEL",
     ]) {
       expect(message).toContain(name);

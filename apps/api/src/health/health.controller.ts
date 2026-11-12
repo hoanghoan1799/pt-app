@@ -9,6 +9,7 @@ import type { Response } from "express";
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
 import { DataSource } from "typeorm";
 
+import { Public } from "../auth/decorators/index.js";
 import { toOpenApiSchema } from "../common/openapi/zod-schema.js";
 import { type HealthResponse, healthResponseSchema } from "./health.schema.js";
 
@@ -17,6 +18,7 @@ const DB_PING_TIMEOUT_MS = 2000;
 const healthSchema = toOpenApiSchema(healthResponseSchema);
 
 @ApiTags("health")
+@Public()
 @Controller("health")
 export class HealthController {
   constructor(

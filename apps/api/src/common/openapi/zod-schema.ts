@@ -5,8 +5,12 @@ type OpenApiSchema = ApiResponseSchemaHost["schema"];
 
 // Turns a Zod schema into the JSON Schema object Swagger decorators accept,
 // so the contract is written once in Zod and documented from the same source.
-export const toOpenApiSchema = (schema: z.ZodType) =>
+// `io: "input"` for request bodies (defaulted fields are optional there).
+export const toOpenApiSchema = (
+  schema: z.ZodType,
+  io: "input" | "output" = "output",
+) =>
   z.toJSONSchema(schema, {
     target: "openapi-3.0",
-    io: "output",
+    io,
   }) as OpenApiSchema;

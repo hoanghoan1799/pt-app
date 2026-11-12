@@ -1,3 +1,4 @@
+export * from "./auth/index.js";
 export * from "./date.js";
 export * from "./decimal.js";
 export * from "./food-groups.js";

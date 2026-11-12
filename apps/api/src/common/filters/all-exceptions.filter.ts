@@ -24,6 +24,8 @@ export type ErrorBody = {
   message: string;
   // Id of the log line that holds the real cause.
   ref: string;
+  // Extra facts the application chose to expose on a 4xx (e.g. attemptsLeft).
+  details?: Record<string, string | number | boolean>;
   // Development only: the real error.
   debug?: { name: string; message: string; stack?: string };
 };
@@ -49,6 +51,24 @@ const textOf = (value: unknown) => {
     : undefined;
 };
 
+// Only flat primitives pass: a nested object or a stack can never ride along.
+const primitiveDetails = (value: unknown) => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const entries = Object.entries(value).filter(
+    ([, item]) =>
+      typeof item === "string" ||
+      typeof item === "number" ||
+      typeof item === "boolean",
+  );
+
+  return entries.length > 0
+    ? (Object.fromEntries(entries) as Record<string, string | number | boolean>)
+    : undefined;
+};
+
 // What a client may read from an HttpException below 500: the message and code
 // the application chose. Anything else (and every 5xx) becomes the generic text.
 const describeHttpException = (exception: HttpException) => {
@@ -64,7 +84,7 @@ const describeHttpException = (exception: HttpException) => {
       : (STATUS_CODES[status] ?? `HTTP_${status}`);
   const message = textOf(response) ?? textOf(fields.message);
 
-  return { status, code, message };
+  return { status, code, message, details: primitiveDetails(fields.details) };
 };
 
 // The single place errors become responses: `{ code, message, ref }`. Production
@@ -118,6 +138,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     const body: ErrorBody = { code, message, ref };
+
+    if (isClientError && http?.details) {
+      body.details = http.details;
+    }
 
     if (!this.isProduction && exception instanceof Error) {
       body.debug = {
