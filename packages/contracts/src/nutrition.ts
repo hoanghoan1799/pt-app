@@ -17,6 +17,22 @@ export const BODY_LIMITS = {
   WEIGHT_KG: { min: 30, max: 250 },
 } as const;
 
+export const NUTRITION_MESSAGES = {
+  INVALID_INPUT: "Vui lòng kiểm tra lại thông tin",
+  TARGET_SAVED: "Đã lưu mục tiêu dinh dưỡng",
+  PROFILE_SAVED: "Đã lưu chỉ số cơ thể",
+  WEIGHT_SAVED: "Đã ghi cân nặng hôm nay",
+  WEIGHT_SAVED_TARGET: "Đã ghi cân nặng và cập nhật mục tiêu theo TDEE",
+  PROFILE_APPLIED: "Đã lưu chỉ số và cập nhật mục tiêu theo TDEE",
+  PROFILE_KEPT_MANUAL:
+    "Đã lưu chỉ số. PT đang đặt mục tiêu riêng nên mục tiêu giữ nguyên.",
+  ENTRY_CREATED: "Đã ghi bữa ăn",
+  ENTRY_UPDATED: "Đã cập nhật bữa ăn",
+  ENTRY_EMPTY: "Nhập món đã ăn hoặc số gram",
+  ENTRY_NOT_FOUND: "Bữa ăn không còn tồn tại",
+  FUTURE_DATE: "Chưa tới ngày này",
+} as const;
+
 export const NUTRITION_LIMITS = {
   MAX_GRAMS: 2000,
   DESCRIPTION: 300,
