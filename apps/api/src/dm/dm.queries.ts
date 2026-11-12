@@ -14,9 +14,9 @@ import {
   CHAT_POST_QUOTES,
   type ChatPostQuoteReader,
 } from "../chat/post-quote.port.js";
+import { previewTexts } from "../chat/preview-text.js";
 import { ContactAliasesService } from "../contact-aliases/contact-aliases.service.js";
 import { avatarUrl } from "../files/image-rules.js";
-import { previewTexts } from "../chat/preview-text.js";
 import { dmAccessOf, dmPreviewText, otherMember } from "./dm.rules.js";
 
 // Trainees have accepted the terms of the social network (spec T1).

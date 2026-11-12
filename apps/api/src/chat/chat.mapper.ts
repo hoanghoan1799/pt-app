@@ -5,8 +5,8 @@ import {
   stickerToView,
 } from "@pt/contracts";
 
-import { previewTexts } from "./preview-text.js";
 import type { ChatPostQuote } from "./post-quote.port.js";
+import { previewTexts } from "./preview-text.js";
 
 // Rows -> contract DTOs. Entities and raw rows never leave the API; every
 // response goes through here. Unsent messages lose their body, quote, photo,
