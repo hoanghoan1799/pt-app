@@ -80,9 +80,9 @@ export const GROUP_GAP_MS = 30 * 60 * 1000;
 export const NEAR_BOTTOM_PX = 120;
 
 export const POLL_INTERVAL_MS = {
-  // No realtime channel at all (no key, locked, or Ably failed).
+  // No realtime channel at all (no ticket, locked, or the socket failed).
   POLLING_ONLY: 3000,
-  // Ably configured but suspended/disconnected: keep it slow, it is a backup.
+  // Socket configured but dropped: keep it slow, it is a backup.
   DEGRADED: 5000,
 } as const;
 
@@ -242,7 +242,7 @@ export type RealtimeState =
   "unavailable" | "connecting" | "connected" | "degraded";
 
 // How often to poll, or null for "do not poll". A hidden tab never polls (it
-// fetches once on becoming visible); a healthy Ably connection needs no poll.
+// fetches once on becoming visible); a healthy socket needs no poll.
 export const pollIntervalFor = (
   state: RealtimeState,
   isHidden: boolean,
@@ -255,16 +255,16 @@ export const pollIntervalFor = (
     : POLL_INTERVAL_MS.POLLING_ONLY;
 };
 
-// Maps an Ably connection state name to ours.
-export const realtimeStateFor = (ablyState: string): RealtimeState => {
-  switch (ablyState) {
-    case "connected":
+// Maps a Socket.IO connection event to our state: a live socket, a dropped one
+// that is retrying (polling backs it up), or one that was closed on purpose.
+export const realtimeStateFor = (event: string): RealtimeState => {
+  switch (event) {
+    case "connect":
       return "connected";
-    case "suspended":
-    case "disconnected":
-    case "failed":
+    case "connect_error":
+    case "disconnect":
       return "degraded";
-    case "closed":
+    case "io client disconnect":
       return "unavailable";
     default:
       return "connecting";

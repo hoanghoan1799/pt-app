@@ -251,6 +251,15 @@ export const chatThreadResponseSchema = z.object({
   peerLastSeenAt: z.string().nullable(),
   // Admin view only: the conversation's trainee.
   userId: z.number().int().optional(),
+  // Null until the trainee's first message creates the conversation. The
+  // realtime rooms are named after it.
+  conversationId: z.number().int().nullable(),
+  // The PT who wrote the newest admin message (the trainee's header and chat
+  // info page); `name` is null once that account was deleted. Null before any
+  // PT wrote.
+  latestPt: z
+    .object({ id: z.number().int().nullable(), name: z.string().nullable() })
+    .nullable(),
 });
 export type ChatThreadResponse = z.infer<typeof chatThreadResponseSchema>;
 

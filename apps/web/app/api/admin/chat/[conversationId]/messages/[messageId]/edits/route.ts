@@ -1,45 +1,34 @@
-import { type NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { z } from "zod";
 
-import { findConversationById } from "@/features/chat/services/chat-queries";
-import { loadEditHistory } from "@/features/chat/services/chat-thread";
-import { getApiAdmin } from "@/services/auth-guard";
-import { canAdminAccessUser } from "@/services/hidden-users";
-
-const NO_STORE = { "Cache-Control": "no-store" };
+import {
+  askApi,
+  routeData,
+  routeInvalid,
+} from "@/features/chat/services/chat-api";
 
 const idSchema = z.coerce.number().int().positive();
 
-const json = (body: unknown, status = 200) =>
-  NextResponse.json(body, { status, headers: NO_STORE });
-
-// Any admin may read the edit history of any conversation (KAN-138, C4).
+// Previous bodies of a message (spec C4). The API finds the conversation from
+// the message and checks the admin may read it. In Next 16 `params` is a
+// Promise.
 export const GET = async (
   _request: NextRequest,
   {
     params,
   }: { params: Promise<{ conversationId: string; messageId: string }> },
 ) => {
-  const admin = await getApiAdmin();
+  const ids = await params;
+  const messageId = idSchema.safeParse(ids.messageId);
 
-  if (!admin) {
-    return json({ error: "unauthorized" }, 401);
+  if (!idSchema.safeParse(ids.conversationId).success || !messageId.success) {
+    return routeInvalid();
   }
-  const raw = await params;
-  const conversationId = idSchema.safeParse(raw.conversationId);
-  const messageId = idSchema.safeParse(raw.messageId);
-
-  if (!conversationId.success || !messageId.success) {
-    return json({ error: "invalid_query" }, 400);
-  }
-  const conversation = await findConversationById(conversationId.data);
-  const edits =
-    conversation && (await canAdminAccessUser(admin.id, conversation.userId))
-      ? await loadEditHistory(conversation.id, messageId.data)
-      : null;
-
-  if (!edits) {
-    return json({ error: "not_found" }, 404);
-  }
-  return json({ edits });
+  return routeData(
+    await askApi("admin", (api) =>
+      api.GET("/v1/chat/messages/{mid}/edits", {
+        params: { path: { mid: messageId.data } },
+      }),
+    ),
+  );
 };

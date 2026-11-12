@@ -1,38 +1,31 @@
-import { historyCursorSchema } from "@/features/chat/utils/chat-rules";
+// What the polling client sends, as the API's query: only numbers that look
+// like numbers go on, so a malformed value is dropped (the client then gets
+// the full payload, never an error) and an absent one stays undefined.
 
-// Only the params that are present go to Zod, so an absent one stays
-// undefined instead of coercing to NaN.
-export const parseHistoryQuery = (params: URLSearchParams) => {
-  const raw: Record<string, string> = {};
+const DIGITS = /^\d{1,15}$/;
 
-  for (const key of ["after", "before"]) {
-    const value = params.get(key);
+const numberOf = (params: URLSearchParams, key: string) => {
+  const value = params.get(key);
 
-    if (value !== null) {
-      raw[key] = value;
-    }
-  }
-  return historyCursorSchema.safeParse(raw);
+  return value !== null && DIGITS.test(value) ? Number(value) : undefined;
 };
 
-// `readUpTo` (non-negative int) and `enabled` (0 | 1) from the poller; a
-// missing or malformed value just disables the 204 fast path.
-export const parseKnownState = (params: URLSearchParams) => {
-  const readUpTo = params.get("readUpTo");
+export const threadQueryOf = (params: URLSearchParams) => {
   const enabled = params.get("enabled");
-  const changedSince = params.get("changedSince");
 
   return {
-    readUpTo:
-      readUpTo !== null && /^\d+$/.test(readUpTo)
-        ? Number(readUpTo)
-        : undefined,
-    enabled: enabled === "1" ? true : enabled === "0" ? false : undefined,
-    changedSince: parseChangedSince(changedSince),
+    after: numberOf(params, "after"),
+    before: numberOf(params, "before"),
+    around: numberOf(params, "around"),
+    readUpTo: numberOf(params, "readUpTo"),
+    enabled: enabled === "1" || enabled === "0" ? enabled : undefined,
+    changedSince: numberOf(params, "changedSince"),
+  } as {
+    after?: number;
+    before?: number;
+    around?: number;
+    readUpTo?: number;
+    enabled?: "0" | "1";
+    changedSince?: number;
   };
 };
-
-// Epoch ms of the last change the client has seen (KAN-138); malformed or
-// missing = undefined, so the client gets today's behaviour.
-export const parseChangedSince = (value: string | null) =>
-  value !== null && /^\d{1,15}$/.test(value) ? Number(value) : undefined;

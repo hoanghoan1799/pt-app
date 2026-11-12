@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { UNREAD_REFRESH_EVENT } from "@/features/chat/hooks/use-chat-unread";
 import {
-  DM_EVENTS,
-  dmConversationChannel,
-} from "@/features/chat/utils/ably-capabilities";
+  conversationIdOf,
+  subscribeChatSocket,
+} from "@/features/chat/hooks/chat-socket";
+import { UNREAD_REFRESH_EVENT } from "@/features/chat/hooks/use-chat-unread";
 import { DM_MESSAGES } from "@/features/social/constants/dm";
 import {
   markDmReadAction,
@@ -51,8 +51,8 @@ const messagesUrl = (conversationId: number, query: string) =>
 
 // The thread of one trainee chat: polls every DM_POLL_MS (backing off to 20 s
 // while quiet, paused while the tab is hidden, and on tab focus),
-// subscribes to the Ably channel when the server hands out a token (an event
-// only triggers a fetch), sends optimistically and retries by clientId.
+// listens on the shared Socket.IO connection when the API hands out a ticket
+// (an event only triggers a fetch), sends optimistically and retries by clientId.
 export const useDmThread = ({ conversationId, meId, initial }: Options) => {
   const localize = useLocalizeMessage();
   const [items, setItems] = useState<DmThreadItem[]>(initial.messages);
@@ -175,59 +175,22 @@ export const useDmThread = ({ conversationId, meId, initial }: Options) => {
     };
   }, [sync]);
 
-  // Optional realtime: no key (204) or a locked coach chat (403) keeps polling.
-  useEffect(() => {
-    let cancelled = false;
-    let close: (() => void) | undefined;
-
-    const connect = async () => {
-      try {
-        const Ably = await import("ably");
-
-        if (cancelled) {
-          return;
-        }
-        const client = new Ably.Realtime({
-          autoConnect: true,
-          authCallback: (_params, callback) => {
-            fetch("/api/chat/ably-token", { cache: "no-store" })
-              .then(async (response) => {
-                if (response.status === 200) {
-                  callback(null, await response.json());
-                  return;
-                }
-                if (response.status === 204 || response.status === 403) {
-                  client.close();
-                }
-                callback(`token request failed (${response.status})`, null);
-              })
-              .catch(() => callback("token request failed", null));
-          },
-        });
-
-        close = () => client.close();
-        client.channels
-          .get(dmConversationChannel(conversationId))
-          .subscribe((message) => {
-            if (
-              message.name === DM_EVENTS.MESSAGE ||
-              message.name === DM_EVENTS.UPDATE
-            ) {
-              wakeRef.current();
-            }
-          })
-          .catch(() => undefined);
-      } catch {
-        // Polling covers it.
-      }
-    };
-
-    void connect();
-    return () => {
-      cancelled = true;
-      close?.();
-    };
-  }, [conversationId, sync]);
+  // Optional realtime over the shared socket: without a ticket (or while it is
+  // down) the poll above carries on. Events only wake a fetch.
+  useEffect(
+    () =>
+      subscribeChatSocket("user", {
+        onEvent: (name, data) => {
+          if (
+            (name === "dm:update" || name === "dm:read") &&
+            conversationIdOf(data) === conversationId
+          ) {
+            wakeRef.current();
+          }
+        },
+      }),
+    [conversationId],
+  );
 
   const loadOlder = useCallback(async () => {
     const first = itemsRef.current.find((item) => !item.pending);

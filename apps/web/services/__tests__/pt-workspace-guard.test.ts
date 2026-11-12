@@ -1,10 +1,8 @@
-import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { INITIAL_FORM_STATE } from "@/constants/form";
 import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
 import {
-  adminHiddenUsers,
   admins,
   chatConversations,
   chatMessages,
@@ -21,18 +19,6 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/services/logger", () => ({ logServerError: vi.fn() }));
 vi.mock("@/services/admin-lock", () => ({
   canSeeHiddenUsers: vi.fn(async () => false),
-}));
-vi.mock("@/features/chat/services/chat-realtime", () => ({
-  publishNewMessage: vi.fn(async () => undefined),
-  publishRead: vi.fn(async () => undefined),
-  publishChatStatus: vi.fn(async () => undefined),
-  publishMessageUpdate: vi.fn(async () => undefined),
-  isRealtimeConfigured: () => true,
-  createChatTokenRequest: vi.fn(async (input: unknown) => ({ signed: input })),
-}));
-vi.mock("@/features/chat/services/chat-push", () => ({
-  schedulePush: vi.fn(),
-  scheduleReactionPush: vi.fn(),
 }));
 vi.mock("@/services/auth-guard", () => ({
   requireAdmin: vi.fn(async () => ({ id: state.adminId, username: "x" })),
@@ -55,22 +41,14 @@ const memberLogin =
   await import("@/features/members/services/member-login-actions");
 const memberActions =
   await import("@/features/members/services/member-actions");
-const chatAdmin = await import("@/features/chat/services/chat-admin-actions");
-const chatProfile =
-  await import("@/features/chat/services/chat-profile-actions");
 const contactAliasActions =
   await import("@/features/contact-aliases/services/contact-alias-actions");
-const chatActions = await import("@/features/chat/services/chat-actions");
-const chatHidden = await import("@/features/chat/services/chat-hidden");
-const ablyRoute = await import("@/app/api/chat/ably-token/route");
 
 let db: TestDb;
 let ptA: number;
 let ptB: number;
 let mine: number;
 let theirs: number;
-let mineConversation: number;
-let theirConversation: number;
 
 const addAdmin = async (name: string) =>
   (
@@ -139,14 +117,8 @@ beforeEach(async () => {
   ptA = await addAdmin("pta");
   ptB = await addAdmin("ptb");
   state.adminId = ptA;
-  ({ userId: mine, conversationId: mineConversation } = await addTrainee(
-    "mine",
-    ptA,
-  ));
-  ({ userId: theirs, conversationId: theirConversation } = await addTrainee(
-    "theirs",
-    ptB,
-  ));
+  ({ userId: mine } = await addTrainee("mine", ptA));
+  ({ userId: theirs } = await addTrainee("theirs", ptB));
 });
 
 describe("workouts", () => {
@@ -254,39 +226,11 @@ describe("members", () => {
   });
 });
 
+// Chat rules (set chat on/off, read marks, sending, colours, hiding and the
+// realtime scope) are the API's now: apps/api/test/chat.e2e.test.ts,
+// realtime.e2e.test.ts and passcode.e2e.test.ts cover the workspace and hidden
+// trainee cases. What stays here is the contact-alias scope.
 describe("chat", () => {
-  it("setChatEnabled, read marks and nicknames are scoped", async () => {
-    expect(
-      await outcome(() => chatAdmin.setChatEnabledAction(theirs, false)),
-    ).toBe("denied");
-    expect(
-      (await db.select().from(users).where(eq(users.id, theirs)))[0]
-        .chatEnabled,
-    ).toBe(true);
-    await chatAdmin.setChatEnabledAction(mine, false);
-    expect(
-      (await db.select().from(users).where(eq(users.id, mine)))[0].chatEnabled,
-    ).toBe(false);
-
-    expect(
-      await outcome(() =>
-        chatActions.adminMarkReadAction({
-          conversationId: theirConversation,
-          lastReadMessageId: 1,
-        }),
-      ),
-    ).toBe("denied");
-    expect(
-      await outcome(() =>
-        chatActions.adminSendMessageAction({
-          userId: theirs,
-          clientId: "00000000-0000-4000-8000-000000000009",
-          body: "hello",
-        }),
-      ),
-    ).toBe("denied");
-  });
-
   it("private nicknames are refused for another workspace's trainee", async () => {
     expect(
       await contactAliasActions.adminSetContactAliasAction({
@@ -302,47 +246,5 @@ describe("chat", () => {
       }),
     ).toMatchObject({ status: "success", alias: "Bé" });
     expect(await db.select().from(contactAliases)).toHaveLength(1);
-  });
-
-  it("colour overrides are refused for another workspace", async () => {
-    expect(
-      await outcome(() =>
-        chatProfile.adminSetConversationColorAction({
-          conversationId: theirConversation,
-          color: null,
-        }),
-      ),
-    ).toBe("denied");
-    expect(mineConversation).toBeGreaterThan(0);
-  });
-
-  it("hiding ignores trainees outside the workspace", async () => {
-    await db
-      .update(admins)
-      .set({ passcodeHash: "hash" })
-      .where(eq(admins.id, ptA));
-    const result = await chatHidden.hideUsers(ptA, [mine, theirs]);
-
-    expect(result).toEqual({ status: "success", hidden: 1 });
-    expect(
-      (await db.select().from(adminHiddenUsers)).map((row) => row.userId),
-    ).toEqual([mine]);
-  });
-});
-
-describe("realtime token", () => {
-  it("scopes a PT's Ably capability to their conversations", async () => {
-    const { NextRequest } = await import("next/server");
-    const response = await ablyRoute.GET(
-      new NextRequest("http://localhost/api/chat/ably-token?as=admin"),
-    );
-
-    expect(response.status).toBe(200);
-    const { signed } = await response.json();
-
-    expect(signed.capability).toEqual({
-      [`chat:conversation:${mineConversation}`]: ["subscribe"],
-      "chat:inbox": ["subscribe"],
-    });
   });
 });

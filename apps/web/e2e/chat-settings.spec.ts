@@ -1,91 +1,17 @@
-import { createClient } from "@libsql/client";
 import { type Browser, expect, type Page, test } from "@playwright/test";
 
-import { toEmailKey } from "@/utils/email";
-
+import { setChatState, setLocked } from "./api-seed-chat";
 import { fillTraineeLogin } from "./auth";
-import { E2E_ADMIN, E2E_CHAT_NAME, E2E_DB_URL, e2eEmail } from "./config";
+import { E2E_ADMIN, E2E_CHAT_NAME } from "./config";
 import { shot } from "./shots";
 
 // Conversation settings (KAN-142, docs/specs/chat-ux-v2.md D1, D4): private
 // nicknames (docs/specs/private-nicknames.md) and bubble colour, on the
 // polling transport (no Ably key in e2e). The spec owns E2E_CHAT_NAME and
 // resets its chat rows first and last.
-const DB_ATTEMPTS = 5;
 const SEND_TIMEOUT_MS = 60_000;
 const SYNC_TIMEOUT_MS = 20_000;
 const SHOT_VIEWPORT = { width: 390, height: 844 };
-
-const withDb = async <T>(
-  run: (client: ReturnType<typeof createClient>) => Promise<T>,
-) => {
-  for (let attempt = 1; ; attempt += 1) {
-    const client = createClient({ url: E2E_DB_URL });
-
-    try {
-      await client.execute("PRAGMA busy_timeout = 5000");
-      return await run(client);
-    } catch (error) {
-      if (attempt >= DB_ATTEMPTS || !String(error).includes("SQLITE_BUSY")) {
-        throw error;
-      }
-    } finally {
-      client.close();
-    }
-  }
-};
-
-const setChatState = (name: string, enabled: boolean) =>
-  withDb(async (client) => {
-    const found = await client.execute({
-      sql: "SELECT id FROM users WHERE email_key = ?",
-      args: [toEmailKey(e2eEmail(name))],
-    });
-    const userId = Number(found.rows[0].id);
-
-    const conversations =
-      "(SELECT id FROM chat_conversations WHERE user_id = ?)";
-
-    for (const table of [
-      "chat_messages",
-      "chat_reads",
-      "chat_nicknames",
-      "chat_color_overrides",
-    ]) {
-      await client.execute({
-        sql: `DELETE FROM ${table} WHERE conversation_id IN ${conversations}`,
-        args: [userId],
-      });
-    }
-    await client.execute({
-      sql: "DELETE FROM contact_aliases WHERE owner_key = ? OR target_key = ?",
-      args: [`user:${userId}`, `user:${userId}`],
-    });
-    await client.execute({
-      sql: "DELETE FROM chat_conversations WHERE user_id = ?",
-      args: [userId],
-    });
-    await client.execute({
-      sql: "UPDATE users SET chat_enabled = ?, chat_color = NULL WHERE id = ?",
-      args: [enabled ? 1 : null, userId],
-    });
-    await client.execute("UPDATE admins SET chat_color = NULL");
-    if (enabled) {
-      await client.execute({
-        sql: "INSERT INTO chat_conversations (user_id) VALUES (?)",
-        args: [userId],
-      });
-    }
-    return userId;
-  });
-
-const setLocked = (userId: number) =>
-  withDb((client) =>
-    client.execute({
-      sql: "UPDATE users SET chat_enabled = NULL WHERE id = ?",
-      args: [userId],
-    }),
-  );
 
 const newSession = async (browser: Browser) => {
   const context = await browser.newContext({

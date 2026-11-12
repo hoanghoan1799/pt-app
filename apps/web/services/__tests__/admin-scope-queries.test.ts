@@ -25,7 +25,6 @@ vi.mock("@/services/admin-lock", () => ({
   canSeeHiddenUsers: vi.fn(async () => false),
 }));
 
-const chat = await import("@/features/chat/services/chat-queries");
 const members = await import("@/features/members/services/member-queries");
 const dashboard =
   await import("@/features/dashboard/services/dashboard-queries");
@@ -134,14 +133,5 @@ describe("P1 scope across admin lists", () => {
     ]);
   });
 
-  it("inbox and unread counts only cover the PT's trainees", async () => {
-    const inbox = await chat.listAdminInbox(ptA);
-
-    expect(inbox.conversations.map((item) => item.userId)).toEqual([mine]);
-    expect(await chat.countUnreadForAdmin(ptA)).toBe(1);
-    expect(
-      (await chat.listUnreadByTraineeForAdmin(ptA)).map((row) => row.userId),
-    ).toEqual([mine]);
-    expect(await chat.countUnreadForAdmin(superId)).toBe(2);
-  });
+  // Inbox and unread counts per PT are the API's now (apps/api/test/chat.e2e.test.ts).
 });

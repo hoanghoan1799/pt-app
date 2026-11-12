@@ -3,7 +3,9 @@ import { resolve } from "node:path";
 // Single source of truth for the e2e database. Everything the e2e touches
 // (Next server, drizzle-kit push, seed) gets this URL, never one from the
 // shell or `.env.local`.
-export const E2E_PORT = 3100;
+// Overridable per run (E2E_PORT, E2E_API_PORT, E2E_PG_PORT) so several suites can
+// run side by side on one machine.
+export const E2E_PORT = Number(process.env.E2E_PORT ?? 3100);
 export const E2E_BASE_URL = `http://localhost:${E2E_PORT}`;
 export const E2E_TMP_DIR = resolve(__dirname, ".tmp");
 export const E2E_DB_PATH = resolve(E2E_TMP_DIR, "e2e.db");
@@ -14,10 +16,11 @@ export const E2E_DB_URL = `file:${E2E_DB_PATH.replaceAll("\\", "/")}`;
 // script (e2e/api-server.mjs) starts a throwaway PostgreSQL 17 container on
 // E2E_PG_PORT; CI starts a service container and sets E2E_DATABASE_URL. The
 // database name must contain "e2e": nothing else is ever wiped.
-export const E2E_API_PORT = 4100;
+export const E2E_API_PORT = Number(process.env.E2E_API_PORT ?? 4100);
 export const E2E_API_URL = `http://localhost:${E2E_API_PORT}`;
-export const E2E_PG_PORT = 55432;
-export const E2E_PG_CONTAINER = "pt-e2e-pg";
+export const E2E_PG_PORT = Number(process.env.E2E_PG_PORT ?? 55432);
+export const E2E_PG_CONTAINER =
+  process.env.E2E_PG_CONTAINER ?? `pt-e2e-pg-${E2E_PG_PORT}`;
 export const E2E_DATABASE_URL =
   process.env.E2E_DATABASE_URL ||
   `postgres://pt:pt_e2e_only@localhost:${E2E_PG_PORT}/ptapp_e2e`;
@@ -34,13 +37,10 @@ export const E2E_ENV = {
   VERCEL: "",
   // Registers public/sw.js under `next dev` (the worker is production-only otherwise).
   NEXT_PUBLIC_ENABLE_SW: "1",
-  // Public half of a throwaway P-256 key so the push opt-in card renders (KAN-104); no private key exists.
-  NEXT_PUBLIC_VAPID_PUBLIC_KEY:
-    "BAJsAp4wk0Cxz0Iys4LFcY5E1Mc_wHsarOMSC5zGuuYn81Ueki43JyI0Ui3R2C9j4LADRP5CFBh2JlsnW8O9b1Q",
+  // The address the browser opens the realtime socket to (the API above).
+  NEXT_PUBLIC_API_URL: E2E_API_URL,
   // Skips the image optimizer so no thumbnail is fetched server-side (KAN-95).
   E2E_UNOPTIMIZED_IMAGES: "1",
-  // No GIPHY key: the sticker tab stays hidden and no spec reaches GIPHY (KAN-146).
-  GIPHY_API_KEY: "",
 } as const;
 
 export const E2E_USER_NAME = "E2E Trainee";

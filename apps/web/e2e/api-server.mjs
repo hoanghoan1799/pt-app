@@ -9,6 +9,7 @@
 //
 // Refuses any database whose name does not contain "e2e".
 import { spawn, spawnSync } from "node:child_process";
+import { generateKeyPairSync } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,8 +20,8 @@ const apiDir = resolve(here, "../../api");
 
 const PORT = process.env.E2E_API_PORT ?? "4100";
 const WEB_ORIGIN = process.env.E2E_BASE_URL ?? "http://localhost:3100";
-const CONTAINER = process.env.E2E_PG_CONTAINER ?? "pt-e2e-pg";
 const PG_PORT = process.env.E2E_PG_PORT ?? "55432";
+const CONTAINER = process.env.E2E_PG_CONTAINER ?? `pt-e2e-pg-${PG_PORT}`;
 const external = process.env.E2E_DATABASE_URL;
 const databaseUrl =
   external || `postgres://pt:pt_e2e_only@localhost:${PG_PORT}/ptapp_e2e`;
@@ -36,6 +37,26 @@ if (!databaseName.includes("e2e")) {
   );
   process.exit(1);
 }
+
+// A throwaway VAPID key pair (P-256) so GET /v1/push/config says web push is on
+// and the opt-in card renders. No subscription of a spec reaches a push service.
+const vapidKeys = () => {
+  const { privateKey } = generateKeyPairSync("ec", {
+    namedCurve: "prime256v1",
+  });
+  const jwk = privateKey.export({ format: "jwk" });
+  const point = Buffer.concat([
+    Buffer.from([4]),
+    Buffer.from(jwk.x, "base64url"),
+    Buffer.from(jwk.y, "base64url"),
+  ]);
+
+  return {
+    VAPID_PUBLIC_KEY: point.toString("base64url"),
+    VAPID_PRIVATE_KEY: jwk.d,
+    VAPID_SUBJECT: "mailto:e2e@example.test",
+  };
+};
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
@@ -118,6 +139,7 @@ const main = async () => {
     // The suite logs in a lot from one address.
     LOGIN_THROTTLE_LIMIT: "100000",
     LOG_LEVEL: "warn",
+    ...vapidKeys(),
   };
 
   await run("node", ["dist/migrate.js"], env);

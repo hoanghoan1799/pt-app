@@ -11,12 +11,6 @@ import {
   type PushSender,
   sendWithWebPush,
 } from "@/features/chat/services/chat-push";
-import { publishChatEvent } from "@/features/chat/services/chat-realtime";
-import {
-  DM_EVENTS,
-  dmConversationChannel,
-  dmEvent,
-} from "@/features/chat/utils/ably-capabilities";
 import { userOwnerKey } from "@/features/chat/utils/push-rules";
 import { loadAliases } from "@/features/contact-aliases/services/contact-aliases";
 import { userActorKey } from "@/features/contact-aliases/utils/alias-rules";
@@ -24,25 +18,8 @@ import { buildDmPushPayload } from "@/features/social/utils/dm-rules";
 import { getPushTranslator } from "@/i18n/push-translator";
 import { logServerError } from "@/services/logger";
 
-// Realtime and push for trainee chats. Both are best effort and never throw:
-// the database is the source of truth and the thread polls every 5 s anyway.
-
-export const publishDmEvent = async (
-  kind: keyof typeof DM_EVENTS,
-  conversationId: number,
-  messageId: number,
-  senderId: number,
-) => {
-  try {
-    await publishChatEvent(
-      dmConversationChannel(conversationId),
-      DM_EVENTS[kind],
-      dmEvent(conversationId, messageId, senderId),
-    );
-  } catch (error) {
-    logServerError("publishDmEvent", error, { conversationId });
-  }
-};
+// Push for trainee chats; best effort and never throws. (Realtime events are
+// sent by the API.)
 
 export interface SendDmPushInput {
   senderId: number;

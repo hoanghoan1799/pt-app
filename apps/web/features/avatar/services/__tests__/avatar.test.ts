@@ -18,6 +18,18 @@ vi.mock("@/db", () => ({
     { get: (_target, property) => Reflect.get(state.db as object, property) },
   ),
 }));
+// Whether the trainee has a conversation is the chat API's answer now; the
+// route only asks. Here the answer comes from the test database.
+vi.mock("@/features/chat/services/chat-queries", () => ({
+  hasMyConversation: vi.fn(async () => {
+    const rows = await (state.db as TestDb)
+      .select()
+      .from(chatConversations)
+      .where(eq(chatConversations.userId, state.user?.id ?? 0));
+
+    return rows.length > 0;
+  }),
+}));
 vi.mock("@/services/auth-guard", () => ({
   getApiUser: vi.fn(async () => state.user),
   getApiAdmin: vi.fn(async () => state.admin),

@@ -12,7 +12,6 @@ import { detectInstallPlatform } from "@/features/pwa/utils/detect-install-platf
 
 export type PushRole = "user" | "admin";
 
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 const DISMISS_KEY_PREFIX = "pt-push-optin-dismissed:";
 
 // Browsers that already subscribed re-register once per page session so the
@@ -25,6 +24,28 @@ interface Environment {
   standalone: boolean;
   isIos: boolean;
 }
+
+// The VAPID public key comes from the API (GET /v1/push/config, through this
+// app); empty when push is switched off there.
+const configUrl = (role: PushRole) =>
+  role === "admin" ? "/api/push/config?as=admin" : "/api/push/config";
+
+const fetchPublicKey = async (role: PushRole) => {
+  try {
+    const response = await fetch(configUrl(role), { cache: "no-store" });
+
+    if (!response.ok) {
+      return "";
+    }
+    const data = (await response.json()) as {
+      web?: { enabled?: boolean; publicKey?: string | null };
+    };
+
+    return data.web?.enabled ? (data.web.publicKey ?? "") : "";
+  } catch {
+    return "";
+  }
+};
 
 const subscribeUrl = (role: PushRole) =>
   role === "admin" ? "/api/push/subscribe?as=admin" : "/api/push/subscribe";
@@ -98,6 +119,7 @@ export const usePushSubscription = (role: PushRole) => {
   const [environment, setEnvironment] = useState<Environment | null>(null);
   const [dismissed, setDismissed] = useState(true);
   const [subscribed, setSubscribed] = useState(false);
+  const [publicKey, setPublicKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const busyRef = useRef(false);
@@ -110,11 +132,20 @@ export const usePushSubscription = (role: PushRole) => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setEnvironment(env);
     setDismissed(readDismissed(role));
-    if (!VAPID_PUBLIC_KEY || !env.supported) {
-      return;
-    }
     let cancelled = false;
 
+    // Also where push cannot work yet (iOS in a Safari tab): the card explains
+    // the install steps, but only when push is on at all.
+    void fetchPublicKey(role).then((key) => {
+      if (!cancelled) {
+        setPublicKey(key);
+      }
+    });
+    if (!env.supported) {
+      return () => {
+        cancelled = true;
+      };
+    }
     navigator.serviceWorker.ready
       .then((registration) => registration.pushManager.getSubscription())
       .then(async (existing) => {
@@ -141,7 +172,7 @@ export const usePushSubscription = (role: PushRole) => {
         ...environment,
         dismissed,
         subscribed,
-        hasVapidKey: VAPID_PUBLIC_KEY.length > 0,
+        hasVapidKey: publicKey.length > 0,
       })
     : "hidden";
 
@@ -173,7 +204,7 @@ export const usePushSubscription = (role: PushRole) => {
         (await registration.pushManager.getSubscription()) ??
         (await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
         }));
 
       await postSubscription(role, subscription.toJSON());
@@ -185,7 +216,7 @@ export const usePushSubscription = (role: PushRole) => {
       busyRef.current = false;
       setBusy(false);
     }
-  }, [role, t]);
+  }, [role, t, publicKey]);
 
   // Turns push off for this browser: drops the server row, then the browser
   // subscription, so no message can reach it any more.
@@ -219,7 +250,7 @@ export const usePushSubscription = (role: PushRole) => {
   const isReady = environment !== null;
   const isAvailable =
     isReady &&
-    VAPID_PUBLIC_KEY.length > 0 &&
+    publicKey.length > 0 &&
     (environment.supported || (environment.isIos && !environment.standalone));
   const needsInstall =
     isAvailable && environment.isIos && !environment.standalone;

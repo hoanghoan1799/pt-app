@@ -4797,6 +4797,11 @@ export interface operations {
                         peerReadUpTo: number;
                         peerLastSeenAt: string | null;
                         userId?: number;
+                        conversationId: number | null;
+                        latestPt: {
+                            id: number | null;
+                            name: string | null;
+                        } | null;
                     };
                 };
             };
@@ -5566,6 +5571,11 @@ export interface operations {
                         peerReadUpTo: number;
                         peerLastSeenAt: string | null;
                         userId?: number;
+                        conversationId: number | null;
+                        latestPt: {
+                            id: number | null;
+                            name: string | null;
+                        } | null;
                     };
                 };
             };

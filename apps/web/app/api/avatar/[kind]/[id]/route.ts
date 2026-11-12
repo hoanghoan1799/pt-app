@@ -7,7 +7,7 @@ import {
   decodeAvatarDataUrl,
   isAvatarKind,
 } from "@/features/avatar/utils/avatar-rules";
-import { findConversationByUserId } from "@/features/chat/services/chat-queries";
+import { hasMyConversation } from "@/features/chat/services/chat-queries";
 import { getApiAdmin, getApiUser } from "@/services/auth-guard";
 
 const idSchema = z.coerce.number().int().positive();
@@ -33,7 +33,7 @@ const canView = async (kind: AvatarKind, id: number) => {
   if (kind === "user") {
     return user.id === id;
   }
-  return (await findConversationByUserId(user.id)) !== null;
+  return hasMyConversation();
 };
 
 // The profile photo (KAN-157). Payloads carry `?v=<updatedAt>` URLs, not the

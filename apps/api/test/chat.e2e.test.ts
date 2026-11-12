@@ -649,6 +649,25 @@ describe("reading a thread", () => {
       chatEnabled: true,
       peerReadUpTo: 0,
       peerLastSeenAt: null,
+      conversationId: null,
+      latestPt: null,
+    });
+  });
+
+  it("names the conversation and the PT who wrote last", async () => {
+    const pt = await admin("pt");
+    const me = await trainee({ ptAdminId: pt.id });
+
+    await sendAs(me.token, { body: "chào PT" });
+    const conversation = await conversationOf(me.id);
+    const before = await thread(me.token);
+
+    expect(before.body.conversationId).toBe(conversation.id);
+    expect(before.body.latestPt).toBeNull();
+    await ptSend(pt, me.id, { body: "chào bạn" });
+    expect((await thread(me.token)).body.latestPt).toEqual({
+      id: pt.id,
+      name: pt.username,
     });
   });
 

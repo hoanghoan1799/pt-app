@@ -6497,6 +6497,33 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "conversationId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "latestPt": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "name": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -6507,7 +6534,9 @@
                     "profile",
                     "chatEnabled",
                     "peerReadUpTo",
-                    "peerLastSeenAt"
+                    "peerLastSeenAt",
+                    "conversationId",
+                    "latestPt"
                   ],
                   "additionalProperties": false
                 }
@@ -9054,6 +9083,33 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "conversationId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "latestPt": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "name": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -9064,7 +9120,9 @@
                     "profile",
                     "chatEnabled",
                     "peerReadUpTo",
-                    "peerLastSeenAt"
+                    "peerLastSeenAt",
+                    "conversationId",
+                    "latestPt"
                   ],
                   "additionalProperties": false
                 }

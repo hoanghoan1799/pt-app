@@ -7,33 +7,20 @@ import { MemberSectionTabs } from "@/components/layout/MemberSectionTabs";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
-import {
-  getAvatarUrl,
-  listAdminAvatarUrls,
-} from "@/features/avatar/services/avatar";
+import { listAdminAvatarUrls } from "@/features/avatar/services/avatar";
 import { AdminChatThread } from "@/features/chat/components/AdminChatThread";
 import { ChatLockSwitch } from "@/features/chat/components/ChatLockSwitch";
-import { isChatEnabled } from "@/features/chat/services/chat-permission";
-import { loadChatProfile } from "@/features/chat/services/chat-profile";
 import {
-  findConversationByUserId,
-  getOrCreateConversation,
-  getPeerReadCursor,
-  listMessages,
-  listMessagesAround,
+  findTraineeChatHeader,
+  loadConversationThread,
+  loadConversationThreadAround,
 } from "@/features/chat/services/chat-queries";
 import { loadCoachReplyPostFor } from "@/features/chat/services/chat-reply-post";
 import { parseJumpId } from "@/features/chat/utils/chat-links";
 import { serializeMessage } from "@/features/chat/utils/chat-thread-rules";
-import { serializeLastSeen } from "@/features/chat/utils/presence";
 import { isEmbedParam } from "@/features/chat-bubbles/utils/bubble-links";
-import { adminActorKey } from "@/features/contact-aliases/utils/alias-rules";
-import { actorOfAdmin } from "@/features/social/services/post-context";
 import { parseDmId } from "@/features/social/utils/dm-rules";
-import { toAdminRole } from "@/services/admin-scope";
 import { requireAdmin } from "@/services/auth-guard";
-import { canAdminAccessUser } from "@/services/hidden-users";
-import { findUserById } from "@/services/users";
 import { readSearchParam } from "@/utils/search-params";
 import { getTodayDate, resolveSchedule } from "@/utils/week";
 
@@ -51,9 +38,14 @@ const AdminMessagesPage = async ({
   const t = await getTranslations("adminPages.messages");
 
   const { id } = await params;
-  const user = await findUserById(Number(id));
+  const userId = Number(id);
+  // The API answers "not found" for a trainee outside this admin's workspace
+  // and for one they hid and have not revealed (KAN-163, R2).
+  const header = Number.isSafeInteger(userId)
+    ? await findTraineeChatHeader(userId)
+    : null;
 
-  if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
+  if (!header) {
     notFound();
   }
   const query = await searchParams;
@@ -61,31 +53,29 @@ const AdminMessagesPage = async ({
     { week: readSearchParam(query.week) },
     getTodayDate(TIME_ZONE),
   );
-  const chatEnabled = isChatEnabled(user);
-  // The realtime token and the messages route need a conversation to exist.
-  const conversation = chatEnabled
-    ? await getOrCreateConversation(user.id)
-    : await findConversationByUserId(user.id);
+  const chatEnabled = header.chatEnabled;
+  const conversationId = header.conversationId;
   const isEmbed = isEmbedParam(query.embed);
   // The bubble panel has its own header; no section tabs or lock row there.
   const below = isEmbed ? undefined : (
     <>
       <MemberSectionTabs
-        userId={user.id}
+        userId={header.userId}
         active="messages"
         weekStart={schedule.weekStart}
       />
       <div className={`${PAGE_CONTAINER} pt-1`}>
-        <ChatLockSwitch userId={user.id} enabled={chatEnabled} />
+        <ChatLockSwitch userId={header.userId} enabled={chatEnabled} />
       </div>
     </>
   );
 
-  if (!conversation) {
+  // Locked chat and nothing said yet: there is nothing to open.
+  if (conversationId === null && !chatEnabled) {
     return (
       <>
         <AppHeader
-          title={t("threadTitle", { name: user.name })}
+          title={t("threadTitle", { name: header.userName })}
           backHref={ROUTES.ADMIN_MESSAGES}
         />
         {below}
@@ -97,38 +87,29 @@ const AdminMessagesPage = async ({
       </>
     );
   }
-  const viewer = actorOfAdmin({ id: admin.id, role: toAdminRole(admin.role) });
   const jumpId = parseJumpId(query.m);
   // `?replyPost=<id>`: this trainee's post quoted above the composer; only when
   // the chat is open for writing and the admin may see that post.
   const replyPostId = parseDmId(readSearchParam(query.replyPost) ?? "");
   const replyPost =
     replyPostId !== null && chatEnabled
-      ? await loadCoachReplyPostFor(viewer, replyPostId, user.id)
+      ? await loadCoachReplyPostFor("admin", replyPostId, header.userId)
       : null;
   const around =
-    jumpId === null
+    jumpId === null || conversationId === null
       ? null
-      : await listMessagesAround(conversation.id, jumpId, viewer);
-  const [
-    { messages, hasMore },
-    peerReadUpTo,
-    profile,
-    adminAvatars,
-    traineeAvatarUrl,
-  ] = await Promise.all([
-    around ?? listMessages(conversation.id, {}, viewer),
-    getPeerReadCursor(conversation.id, "admin"),
-    loadChatProfile(conversation.id, adminActorKey(admin.id)),
+      : await loadConversationThreadAround(conversationId, jumpId);
+  const [thread, adminAvatars] = await Promise.all([
+    around ??
+      (conversationId === null ? null : loadConversationThread(conversationId)),
     listAdminAvatarUrls(),
-    getAvatarUrl("user", user.id),
   ]);
   const avatars: Record<string, string> = Object.fromEntries(
-    [...adminAvatars].map(([id, url]) => [`admin:${id}`, url]),
+    [...adminAvatars].map(([adminId, url]) => [`admin:${adminId}`, url]),
   );
 
-  if (traineeAvatarUrl) {
-    avatars.user = traineeAvatarUrl;
+  if (header.avatarUrl) {
+    avatars.user = header.avatarUrl;
   }
 
   return (
@@ -138,30 +119,28 @@ const AdminMessagesPage = async ({
       key={chatEnabled ? "enabled" : "locked"}
       below={below}
       isEmbed={isEmbed}
-      userName={user.name}
-      userId={user.id}
-      conversationId={conversation.id}
+      userName={header.userName}
+      userId={header.userId}
+      conversationId={conversationId}
       replyPost={replyPost}
       jumpToId={around ? jumpId : null}
       viewer={{
         role: "admin",
         adminId: admin.id,
         adminName: admin.username,
-        peerName: user.name,
+        peerName: header.userName,
       }}
       avatars={avatars}
       emptyText={t("emptyText")}
-      ariaLabel={t("threadAriaLabel", { name: user.name })}
+      ariaLabel={t("threadAriaLabel", { name: header.userName })}
       initial={{
-        messages: messages.map(serializeMessage),
-        // Read before the messages: a change made in between is fetched again,
-        // never missed.
-        lastChangeAt: conversation.lastChangeAt?.getTime() ?? 0,
-        hasMore,
+        messages: (thread?.messages ?? []).map(serializeMessage),
+        lastChangeAt: thread?.lastChangeAt ?? 0,
+        hasMore: thread?.hasMore ?? false,
         chatEnabled,
-        peerReadUpTo,
-        peerLastSeenAt: serializeLastSeen(user.lastSeenAt),
-        profile,
+        peerReadUpTo: thread?.peerReadUpTo ?? 0,
+        peerLastSeenAt: header.lastSeenAt,
+        profile: thread?.profile ?? header.profile,
       }}
     />
   );

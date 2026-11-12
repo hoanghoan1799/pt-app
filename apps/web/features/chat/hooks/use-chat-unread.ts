@@ -14,7 +14,7 @@ export const ADMIN_UNREAD_URL = "/api/chat/unread?as=admin";
 export { UNREAD_REFRESH_EVENT };
 
 // Badge: reads the shared unread poller (15 s, or a 60 s safety net while the
-// admin inbox has a live Ably connection; never while the tab is hidden, with
+// admin inbox has a live socket connection; never while the tab is hidden, with
 // one fetch when it comes back), refreshed on focus and on
 // UNREAD_REFRESH_EVENT. Trainee: the tab-bar badge; `paused` (on /messages
 // itself) stops this subscriber, the thread is live there. Admin: the total

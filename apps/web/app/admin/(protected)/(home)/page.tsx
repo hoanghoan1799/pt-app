@@ -24,10 +24,7 @@ import { TIME_ZONE } from "@/constants/time";
 import { getAvatarUrl } from "@/features/avatar/services/avatar";
 import { AdminUnreadBadge } from "@/features/chat/components/UnreadBadge";
 import { loadAdminAccountColor } from "@/features/chat/services/chat-profile";
-import {
-  countUnreadForAdmin,
-  listUnreadByTraineeForAdmin,
-} from "@/features/chat/services/chat-queries";
+import { loadAdminUnread } from "@/features/chat/services/chat-queries";
 import { MemberProgressList } from "@/features/dashboard/components/MemberProgressList";
 import { PtFilterSelect } from "@/features/dashboard/components/PtFilterSelect";
 import { RecentActivityList } from "@/features/dashboard/components/RecentActivityList";
@@ -83,8 +80,7 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     ptOptions,
     members,
     activity,
-    unreadMessages,
-    unreadByTrainee,
+    unread,
     avatarUrl,
     accountColor,
     openReports,
@@ -92,12 +88,13 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     isSuper ? listPtOptions() : Promise.resolve([]),
     getMemberProgress(schedule.weekStart, admin.id, ptFilter),
     getRecentActivity({ limit: RECENT_ACTIVITY_LIMIT, adminId: admin.id }),
-    countUnreadForAdmin(admin.id),
-    listUnreadByTraineeForAdmin(admin.id),
+    loadAdminUnread(),
     getAvatarUrl("admin", admin.id),
-    loadAdminAccountColor(admin.id),
+    loadAdminAccountColor(),
     isSuperAdmin(admin) ? countOpenReports() : 0,
   ]);
+  const unreadMessages = unread.count;
+  const unreadByTrainee = unread.perTrainee;
   const displayNames = new Map(
     members.map((member) => [member.id, member.displayName]),
   );

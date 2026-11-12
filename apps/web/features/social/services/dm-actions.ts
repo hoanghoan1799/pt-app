@@ -3,43 +3,23 @@
 import { revalidatePath } from "next/cache";
 
 import { ROUTES } from "@/constants/routes";
+import { webizeUrls } from "@/features/chat/utils/api-urls";
 import { DM_MESSAGES } from "@/features/social/constants/dm";
-import { SOCIAL_MESSAGES } from "@/features/social/constants/social";
-import { traineeActor } from "@/features/social/services/actor-guard";
-import { resolveDmView } from "@/features/social/services/dm-access";
-import {
-  type DmError,
-  getOrCreateDmConversation,
-  markDmConversationRead,
-  sendDmMessage,
-  unsendDmMessage,
-} from "@/features/social/services/dm-mutations";
-import {
-  publishDmEvent,
-  scheduleDmPush,
-} from "@/features/social/services/dm-notify";
 import type { DmMessageView } from "@/features/social/types/dm";
 import { dmIdSchema, dmSendSchema } from "@/features/social/utils/dm-rules";
 import { withResultErrorHandling } from "@/services/action-errors";
+import { tryApi } from "@/services/api/call";
+import { requireUser } from "@/services/auth-guard";
 import type { ActionErrorResult } from "@/types/error";
 
-// Trainee chat actions: the actor comes from the session (accepted terms
-// required), input is validated with Zod and the services re-check access.
+// Trainee chat actions: the session comes from the cookie, input is validated
+// with Zod and the API decides everything else (members only, accepted terms,
+// sending switched off). Realtime events and the read marks are the API's.
 
 const fail = (message: string): ActionErrorResult => ({
   status: "error",
   message,
 });
-
-const MESSAGES: Record<DmError, string> = {
-  not_found: DM_MESSAGES.NOT_FOUND,
-  read_only: DM_MESSAGES.READ_ONLY,
-  disabled: DM_MESSAGES.DISABLED,
-  empty: DM_MESSAGES.EMPTY,
-  too_long: DM_MESSAGES.TOO_LONG,
-  photo_not_found: DM_MESSAGES.PHOTO_NOT_FOUND,
-  post_not_found: DM_MESSAGES.POST_NOT_FOUND,
-};
 
 export type OpenDmResult =
   { status: "success"; conversationId: number } | ActionErrorResult;
@@ -48,80 +28,59 @@ export type OpenDmResult =
 export const openDmAction = withResultErrorHandling(
   "openDm",
   async (otherId: unknown): Promise<OpenDmResult> => {
-    const actor = await traineeActor();
-
-    if (!actor) {
-      return fail(SOCIAL_MESSAGES.TERMS_REQUIRED);
-    }
+    await requireUser();
     const id = dmIdSchema.safeParse(otherId);
 
     if (!id.success) {
       return fail(DM_MESSAGES.NOT_FOUND);
     }
-    const result = await getOrCreateDmConversation(actor.id, id.data);
+    const outcome = await tryApi("user", (api) =>
+      api.POST("/v1/dm/conversations", { body: { otherId: id.data } }),
+    );
 
-    return result.ok
-      ? { status: "success", conversationId: result.conversationId }
-      : fail(MESSAGES[result.error]);
+    return outcome.ok
+      ? { status: "success", conversationId: outcome.data.conversationId }
+      : fail(outcome.error.message);
   },
 );
 
 export type SendDmActionResult =
   { status: "success"; message: DmMessageView } | ActionErrorResult;
 
+// Sending is switched off: the API answers 403 DM_DISABLED for a member, and
+// its text is shown.
 export const sendDmAction = withResultErrorHandling(
   "sendDm",
   async (input: unknown): Promise<SendDmActionResult> => {
-    const actor = await traineeActor();
-
-    if (!actor) {
-      return fail(SOCIAL_MESSAGES.TERMS_REQUIRED);
-    }
+    await requireUser();
     const parsed = dmSendSchema.safeParse(input);
 
     if (!parsed.success) {
       return fail(DM_MESSAGES.SEND_FAILED);
     }
-    const result = await sendDmMessage({
-      conversationId: parsed.data.conversationId,
-      senderId: actor.id,
-      clientId: parsed.data.clientId,
-      body: parsed.data.body,
-      photoId: parsed.data.photoId,
-      postId: parsed.data.postId,
-    });
+    const { conversationId, ...body } = parsed.data;
+    const outcome = await tryApi("user", (api) =>
+      api.POST("/v1/dm/conversations/{cid}/messages", {
+        params: { path: { cid: conversationId } },
+        body,
+      }),
+    );
 
-    if (!result.ok) {
-      return fail(result.message ?? MESSAGES[result.error]);
+    if (!outcome.ok) {
+      return fail(outcome.error.message);
     }
-    if (result.created) {
-      await publishDmEvent(
-        "MESSAGE",
-        parsed.data.conversationId,
-        result.message.id,
-        actor.id,
-      );
-      scheduleDmPush({
-        senderId: actor.id,
-        recipientId: result.recipientId,
-        conversationId: parsed.data.conversationId,
-        body: result.message.body,
-        photo: result.message.photo !== null,
-      });
-      revalidatePath(ROUTES.MESSAGES);
-    }
-    return { status: "success", message: result.message };
+    revalidatePath(ROUTES.MESSAGES);
+    return {
+      status: "success",
+      message: webizeUrls(outcome.data) as unknown as DmMessageView,
+    };
   },
 );
 
 export const unsendDmAction = withResultErrorHandling(
   "unsendDm",
   async (conversationId: unknown, messageId: unknown) => {
-    const actor = await traineeActor();
-
-    if (!actor) {
-      return fail(SOCIAL_MESSAGES.TERMS_REQUIRED);
-    }
+    await requireUser();
     const ids = [
       dmIdSchema.safeParse(conversationId),
       dmIdSchema.safeParse(messageId),
@@ -130,12 +89,14 @@ export const unsendDmAction = withResultErrorHandling(
     if (!ids[0].success || !ids[1].success) {
       return fail(DM_MESSAGES.NOT_FOUND);
     }
-    const result = await unsendDmMessage(ids[0].data, ids[1].data, actor.id);
+    const mid = ids[1].data;
+    const outcome = await tryApi("user", (api) =>
+      api.DELETE("/v1/dm/messages/{mid}", { params: { path: { mid } } }),
+    );
 
-    if (!result.ok) {
-      return fail(MESSAGES[result.error]);
+    if (!outcome.ok) {
+      return fail(outcome.error.message);
     }
-    await publishDmEvent("UPDATE", ids[0].data, ids[1].data, actor.id);
     revalidatePath(ROUTES.MESSAGES);
   },
 );
@@ -143,17 +104,21 @@ export const unsendDmAction = withResultErrorHandling(
 export const markDmReadAction = withResultErrorHandling(
   "markDmRead",
   async (conversationId: unknown) => {
-    const actor = await traineeActor();
+    await requireUser();
     const id = dmIdSchema.safeParse(conversationId);
 
-    if (!actor || !id.success) {
+    if (!id.success) {
       return fail(DM_MESSAGES.NOT_FOUND);
     }
-    const view = await resolveDmView(id.data, actor);
+    const outcome = await tryApi("user", (api) =>
+      api.POST("/v1/dm/conversations/{cid}/read", {
+        params: { path: { cid: id.data } },
+        body: {} as never,
+      }),
+    );
 
-    if (!view || view.access !== "member") {
+    if (!outcome.ok) {
       return fail(DM_MESSAGES.NOT_FOUND);
     }
-    await markDmConversationRead(id.data, actor.id);
   },
 );

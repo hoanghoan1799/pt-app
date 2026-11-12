@@ -40,6 +40,8 @@ export class ChatThreadService {
           peerReadUpTo: 0,
           peerLastSeenAt:
             (await this.queries.adminTeamLastSeen())?.toISOString() ?? null,
+          conversationId: null,
+          latestPt: null,
         },
       };
     }
@@ -78,12 +80,14 @@ export class ChatThreadService {
             query.changedSince,
             lastChangeAt,
           );
-    const [messages, changes, profile, teamLastSeen] = await Promise.all([
-      this.views.many(page.rows, actor),
-      this.views.many(changed.rows, actor),
-      this.profiles.load(conversation.id, actor, trainee.traineeId),
-      isTrainee ? this.queries.adminTeamLastSeen() : trainee.lastSeenAt,
-    ]);
+    const [messages, changes, profile, teamLastSeen, latestPt] =
+      await Promise.all([
+        this.views.many(page.rows, actor),
+        this.views.many(changed.rows, actor),
+        this.profiles.load(conversation.id, actor, trainee.traineeId),
+        isTrainee ? this.queries.adminTeamLastSeen() : trainee.lastSeenAt,
+        this.queries.latestAdminSender(conversation.id),
+      ]);
 
     return {
       notModified: false,
@@ -96,6 +100,8 @@ export class ChatThreadService {
         chatEnabled: trainee.chatEnabled,
         peerReadUpTo,
         peerLastSeenAt: teamLastSeen?.toISOString() ?? null,
+        conversationId: conversation.id,
+        latestPt,
         ...(isTrainee ? {} : { userId: trainee.traineeId }),
       },
     };
