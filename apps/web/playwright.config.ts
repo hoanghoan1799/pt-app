@@ -5,6 +5,8 @@ import {
   E2E_API_URL,
   E2E_BASE_URL,
   E2E_ENV,
+  E2E_PG_CONTAINER,
+  E2E_PG_PORT,
   E2E_PORT,
 } from "./e2e/config";
 
@@ -53,6 +55,8 @@ export default defineConfig({
       stdout: "pipe",
       env: {
         E2E_API_PORT: String(E2E_API_PORT),
+        E2E_PG_CONTAINER,
+        E2E_PG_PORT: String(E2E_PG_PORT),
         E2E_BASE_URL,
       },
     },

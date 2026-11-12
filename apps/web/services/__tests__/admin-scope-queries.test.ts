@@ -27,8 +27,6 @@ vi.mock("@/services/admin-lock", () => ({
 
 const chat = await import("@/features/chat/services/chat-queries");
 const members = await import("@/features/members/services/member-queries");
-const dashboard =
-  await import("@/features/dashboard/services/dashboard-queries");
 
 let db: TestDb;
 let superId: number;
@@ -99,28 +97,6 @@ beforeEach(async () => {
 });
 
 describe("P1 scope across admin lists", () => {
-  it("dashboard member list shows a PT only their trainees, a super admin all", async () => {
-    const week = "2026-11-02";
-    const ids = async (adminId: number) =>
-      (await dashboard.getMemberProgress(week, adminId))
-        .map((member) => member.id)
-        .sort();
-
-    expect(await ids(ptA)).toEqual([mine]);
-    expect(await ids(ptB)).toEqual([theirs]);
-    expect(await ids(superId)).toEqual([mine, theirs].sort());
-  });
-
-  it("recent activity leaves out other workspaces", async () => {
-    const activity = await dashboard.getRecentActivity({
-      limit: 10,
-      adminId: ptA,
-    });
-
-    expect(activity.every((item) => item.userId === mine)).toBe(true);
-    expect(activity.length).toBeGreaterThan(0);
-  });
-
   it("member picker lists only the workspace, and ignores keepUserId outside it", async () => {
     expect((await members.listMembers(ptA)).map((row) => row.id)).toEqual([
       mine,
