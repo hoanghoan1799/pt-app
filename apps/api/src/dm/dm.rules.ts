@@ -1,6 +1,5 @@
-import { DM_MESSAGES } from "@pt/contracts";
-
 import type { AuthActor } from "../auth/actor.js";
+import { previewTexts } from "../chat/preview-text.js";
 
 // Pure rules of the trainee-to-trainee chat (P5). No database in here.
 
@@ -27,16 +26,23 @@ export const otherMember = (
 ) => (members.low === userId ? members.high : members.low);
 
 // Inbox preview line of the last message.
-export const dmPreviewText = (message: {
-  body: string | null;
-  photoId: number | null;
-  deletedAt: Date | null;
-}) => {
+export const dmPreviewText = (
+  message: {
+    body: string | null;
+    photoId: number | null;
+    deletedAt: Date | null;
+  },
+  locale?: string | null,
+) => {
+  const texts = previewTexts(locale);
+
   if (message.deletedAt !== null) {
-    return DM_MESSAGES.UNSENT;
+    return texts.unsent;
   }
   if (message.photoId !== null) {
-    return message.body ? `📷 Ảnh ${message.body}` : "📷 Ảnh";
+    return message.body
+      ? `📷 ${texts.photo} ${message.body}`
+      : `📷 ${texts.photo}`;
   }
   return message.body ?? "";
 };

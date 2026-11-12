@@ -16,6 +16,7 @@ import {
 } from "../chat/post-quote.port.js";
 import { ContactAliasesService } from "../contact-aliases/contact-aliases.service.js";
 import { avatarUrl } from "../files/image-rules.js";
+import { previewTexts } from "../chat/preview-text.js";
 import { dmAccessOf, dmPreviewText, otherMember } from "./dm.rules.js";
 
 // Trainees have accepted the terms of the social network (spec T1).
@@ -70,6 +71,18 @@ export class DmQueries {
     );
 
     return rows[0] ?? null;
+  }
+
+  // Real names of the given trainees, in the order asked; null for a deleted
+  // account. For the super admin's read-only thread header.
+  async memberNames(ids: number[]) {
+    const rows: { id: number; name: string }[] = await this.dataSource.query(
+      `SELECT id, name FROM users WHERE id = ANY($1::int[])`,
+      [ids],
+    );
+    const names = new Map(rows.map((row) => [row.id, row.name]));
+
+    return ids.map((id) => ({ id, name: names.get(id) ?? null }));
   }
 
   private async isBlockedBetween(a: number, b: number) {
@@ -282,7 +295,7 @@ export class DmQueries {
 
   // Only conversations with a message are listed; an empty one would just be
   // clutter. The other member's name is my private nickname for them if any.
-  async inbox(userId: number) {
+  async inbox(userId: number, locale?: string | null) {
     const conversations = await this.visibleConversations(userId);
 
     if (conversations.length === 0) {
@@ -355,7 +368,7 @@ export class DmQueries {
               person.name,
             ),
             avatarUrl: avatarUrl("user", person.id, person.avatarUpdatedAt),
-            preview: `${last.senderId === userId ? "Bạn: " : ""}${dmPreviewText(last)}`,
+            preview: `${last.senderId === userId ? previewTexts(locale).you : ""}${dmPreviewText(last, locale)}`,
             lastMessageAt: row.lastMessageAt?.toISOString() ?? null,
             unread: unread.get(row.id) ?? 0,
           },
@@ -367,7 +380,7 @@ export class DmQueries {
   }
 
   // Super admin, read-only: every conversation, newest first.
-  async adminList() {
+  async adminList(locale?: string | null) {
     const rows: (DmConversationRow & {
       lowName: string | null;
       highName: string | null;
@@ -390,17 +403,20 @@ export class DmQueries {
 
     return rows.map((row) => ({
       id: row.id,
-      lowName: row.lowName ?? "Tài khoản đã xoá",
-      highName: row.highName ?? "Tài khoản đã xoá",
+      lowName: row.lowName ?? previewTexts(locale).deletedAccount,
+      highName: row.highName ?? previewTexts(locale).deletedAccount,
       lastMessageAt: row.lastMessageAt?.toISOString() ?? null,
       preview:
         row.lastId === null
           ? ""
-          : dmPreviewText({
-              body: row.lastBody,
-              photoId: row.lastPhotoId,
-              deletedAt: row.lastDeletedAt,
-            }),
+          : dmPreviewText(
+              {
+                body: row.lastBody,
+                photoId: row.lastPhotoId,
+                deletedAt: row.lastDeletedAt,
+              },
+              locale,
+            ),
     }));
   }
 

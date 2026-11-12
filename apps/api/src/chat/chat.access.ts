@@ -45,6 +45,21 @@ export class ChatAccess {
     return this.forTrainee(actor, userId, () => new TraineeNotFoundError());
   }
 
+  // The conversation of a trainee whose chat is on exists from the moment the
+  // PT switched it on; for one that predates that (or was seeded without) it is
+  // created here, on the first read. Idempotent and race-safe; a trainee with
+  // chat off gets none.
+  async ensureConversation(
+    context: ChatContext,
+  ): Promise<ConversationRow | null> {
+    if (context.conversation) {
+      return context.conversation;
+    }
+    return context.trainee.chatEnabled
+      ? this.queries.getOrCreateConversation(context.trainee.traineeId)
+      : null;
+  }
+
   async forConversation(
     actor: AuthActor,
     conversationId: number,

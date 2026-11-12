@@ -635,8 +635,8 @@ describe("reading a thread", () => {
     expect((await thread(me.token, "?before=0")).status).toBe(400);
   });
 
-  it("returns an empty payload without a conversation", async () => {
-    const me = await trainee();
+  it("returns an empty payload while chat is off and nothing was sent", async () => {
+    const me = await trainee({ chat: false });
     const response = await thread(me.token);
 
     expect(response.status).toBe(200);
@@ -646,12 +646,40 @@ describe("reading a thread", () => {
       changes: [],
       lastChangeAt: 0,
       profile: { nicknames: {}, colors: {} },
-      chatEnabled: true,
+      chatEnabled: false,
       peerReadUpTo: 0,
       peerLastSeenAt: null,
       conversationId: null,
       latestPt: null,
     });
+    expect(
+      await ds.getRepository(ChatConversation).countBy({ userId: me.id }),
+    ).toBe(0);
+  });
+
+  it("creates the conversation on the first thread read when chat is on, once", async () => {
+    const me = await trainee();
+
+    expect(
+      await ds.getRepository(ChatConversation).countBy({ userId: me.id }),
+    ).toBe(0);
+    const reads = await Promise.all([thread(me.token), thread(me.token)]);
+    const conversation = await conversationOf(me.id);
+
+    for (const read of reads) {
+      expect(read.status).toBe(200);
+      expect(read.body).toMatchObject({
+        messages: [],
+        chatEnabled: true,
+        conversationId: conversation.id,
+      });
+    }
+    expect(
+      await ds.getRepository(ChatConversation).countBy({ userId: me.id }),
+    ).toBe(1);
+    // A later first message goes into the same conversation.
+    await sendAs(me.token, { body: "chào" });
+    expect((await conversationOf(me.id)).id).toBe(conversation.id);
   });
 
   it("names the conversation and the PT who wrote last", async () => {
@@ -1528,6 +1556,10 @@ describe("inbox", () => {
       preview: "a cũ",
       unread: 1,
     });
+    await ds.query(`UPDATE admins SET locale = 'en' WHERE id = $1`, [pt.id]);
+    const english = await callWith(app, "get", "/v1/chat/inbox", pt.token);
+
+    expect(english.body.conversations[0].preview).toBe("sent a sticker");
     expect(
       response.body.withoutConversation.map(
         (row: { userId: number }) => row.userId,
@@ -1736,7 +1768,32 @@ describe("PT access to a conversation", () => {
       pt.token,
     );
 
-    expect(none.body).toMatchObject({ conversationId: null, userId: fresh.id });
+    // The admin's read creates the conversation of a trainee whose chat is on.
+    expect(none.body).toMatchObject({
+      conversationId: (await conversationOf(fresh.id)).id,
+      userId: fresh.id,
+    });
+    const again = await callWith(
+      app,
+      "get",
+      `/v1/chat/trainees/${fresh.id}/conversation`,
+      pt.token,
+    );
+
+    expect(again.body.conversationId).toBe(none.body.conversationId);
+    // Chat off and nothing sent: no conversation to open.
+    const locked = await trainee({ ptAdminId: pt.id, chat: false });
+    const closed = await callWith(
+      app,
+      "get",
+      `/v1/chat/trainees/${locked.id}/conversation`,
+      pt.token,
+    );
+
+    expect(closed.body).toMatchObject({
+      conversationId: null,
+      chatEnabled: false,
+    });
   });
 
   it("switches chat for one trainee, emits chat.status.changed and respects the scope", async () => {
@@ -1760,11 +1817,20 @@ describe("PT access to a conversation", () => {
     expect(stored.chatEnabled).toBe(true);
     expect(stored.chatEnabledByAdminId).toBe(pt.id);
     expect(stored.chatEnabledChangedAt).toEqual(clock.now());
+    // Chat on creates the conversation with it, no first message needed.
+    const created = await conversationOf(me.id);
+
     expect(events.named("chat.status.changed")[0].payload).toEqual({
       userId: me.id,
-      conversationId: null,
+      conversationId: created.id,
       enabled: true,
     });
+    // Switching it on again, or off and on, keeps that one conversation.
+    await put(pt.token, true);
+    await put(pt.token, false);
+    await put(pt.token, true);
+    expect((await conversationOf(me.id)).id).toBe(created.id);
+    await put(pt.token, false);
     // Locked again: the trainee can no longer send.
     await put(pt.token, false);
     expect((await sendAs(me.token, { body: "hi" })).status).toBe(403);
@@ -1884,6 +1950,49 @@ describe("bubbles", () => {
       (await callWith(app, "get", "/v1/chat/bubbles", mine.token)).body.bubbles,
     ).toEqual([]);
     expect((await callWith(app, "get", "/v1/chat/bubbles", null)).status).toBe(
+      401,
+    );
+  });
+});
+
+describe("GET /v1/chat/team", () => {
+  it("lists the admins with a photo or the blue tick for a trainee and an admin", async () => {
+    const pt = await admin("pt");
+    const plain = await admin("pt");
+    const ticked = await admin("pt");
+    const me = await trainee({ ptAdminId: pt.id });
+
+    await ds.query(`UPDATE admins SET avatar_updated_at = $1 WHERE id = $2`, [
+      new Date("2026-11-01T00:00:00Z"),
+      pt.id,
+    ]);
+    await ds.query(`UPDATE admins SET verified_at = $1 WHERE id = $2`, [
+      clock.now(),
+      ticked.id,
+    ]);
+    const expected = {
+      admins: [
+        {
+          id: pt.id,
+          avatarUrl: expect.stringMatching(
+            /^\/v1\/avatars\/admin\/\d+\?v=\d+$/,
+          ),
+          verified: false,
+        },
+        { id: ticked.id, avatarUrl: null, verified: true },
+      ],
+    };
+
+    for (const token of [me.token, pt.token]) {
+      const response = await callWith(app, "get", "/v1/chat/team", token);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(expected);
+      expect(
+        response.body.admins.some((row: { id: number }) => row.id === plain.id),
+      ).toBe(false);
+    }
+    expect((await callWith(app, "get", "/v1/chat/team", null)).status).toBe(
       401,
     );
   });

@@ -186,6 +186,33 @@ describe("GET /v1/dm/conversations", () => {
     ]);
   });
 
+  it("words the preview in my saved language", async () => {
+    const me = await trainee();
+    const bob = await trainee({ name: "Bob Locale" });
+    const withBob = await conversationBetween(me, bob);
+    const mine = await message(withBob, me, null);
+
+    await dmPhoto(withBob, me, mine);
+    await ds.query(`UPDATE users SET locale = 'en' WHERE id = $1`, [me.id]);
+    const english = await callWith(
+      app,
+      "get",
+      "/v1/dm/conversations",
+      me.token,
+    );
+
+    expect(english.body.conversations[0].preview).toBe("You: 📷 Photo");
+    await ds.query(`UPDATE users SET locale = 'zh' WHERE id = $1`, [me.id]);
+    const chinese = await callWith(
+      app,
+      "get",
+      "/v1/dm/conversations",
+      me.token,
+    );
+
+    expect(chinese.body.conversations[0].preview).toBe("你：📷 照片");
+  });
+
   it("leaves out a conversation with someone who blocked me or whom I blocked", async () => {
     const me = await trainee();
     const ann = await trainee();
@@ -245,13 +272,11 @@ describe("GET /v1/dm/conversations/:cid/messages", () => {
     await ds
       .getRepository(DmMessage)
       .update({ id: gone }, { deletedAt: clock.now(), body: null });
-    await ds
-      .getRepository(DmRead)
-      .save({
-        conversationId: cid,
-        userId: ann.id,
-        lastReadMessageId: photoMessage,
-      });
+    await ds.getRepository(DmRead).save({
+      conversationId: cid,
+      userId: ann.id,
+      lastReadMessageId: photoMessage,
+    });
     const response = await thread(me.token, cid);
 
     expect(response.status).toBe(200);
@@ -282,6 +307,7 @@ describe("GET /v1/dm/conversations/:cid/messages", () => {
       otherReadUpTo: photoMessage,
       readOnlyReason: DM_MESSAGES.DISABLED,
       isReadOnly: true,
+      members: [],
     });
   });
 
@@ -334,7 +360,13 @@ describe("GET /v1/dm/conversations/:cid/messages", () => {
       isReadOnly: true,
       readOnlyReason: null,
       otherReadUpTo: 0,
+      members: [
+        { id: Math.min(me.id, ann.id), name: expect.any(String) },
+        { id: Math.max(me.id, ann.id), name: expect.any(String) },
+      ],
     });
+    // A member never gets the two real names back.
+    expect((await thread(me.token, cid)).body.members).toEqual([]);
     for (const token of [stranger.token, pt.token]) {
       expect((await thread(token, cid)).status).toBe(404);
     }
@@ -424,12 +456,10 @@ describe("sending is switched off", () => {
     expect(none.body.code).toBe("DM_DISABLED");
     expect(await ds.getRepository(DmConversation).count()).toBeGreaterThan(0);
     expect(
-      await ds
-        .getRepository(DmConversation)
-        .countBy({
-          userLow: Math.min(me.id, bob.id),
-          userHigh: Math.max(me.id, bob.id),
-        }),
+      await ds.getRepository(DmConversation).countBy({
+        userLow: Math.min(me.id, bob.id),
+        userHigh: Math.max(me.id, bob.id),
+      }),
     ).toBe(0);
     expect((await open(me.token, me.id)).status).toBe(404);
     expect((await open(noTerms.token, ann.id)).body.code).toBe(
@@ -687,6 +717,18 @@ describe("GET /v1/admin/dm/conversations", () => {
       lastMessageAt: expect.any(String),
       preview: DM_MESSAGES.UNSENT,
     });
+    await ds.query(`UPDATE admins SET locale = 'en' WHERE id = $1`, [boss.id]);
+    const english = await callWith(
+      app,
+      "get",
+      "/v1/admin/dm/conversations",
+      boss.token,
+    );
+
+    expect(
+      english.body.conversations.find((item: { id: number }) => item.id === cid)
+        .preview,
+    ).toBe("This message was unsent");
     expect(
       (await callWith(app, "get", "/v1/admin/dm/conversations", pt.token))
         .status,

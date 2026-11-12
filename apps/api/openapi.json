@@ -5915,6 +5915,189 @@
         ]
       }
     },
+    "/v1/chat/team": {
+      "get": {
+        "operationId": "ChatConversationsController_team",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "admins": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "avatarUrl": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "verified": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "avatarUrl",
+                          "verified"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "admins"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "ref": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "ref"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired session, or wrong credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "ref": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "ref"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (role, passcode lock or wrong passcode)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "ref": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "ref"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "summary": "The admins with a photo or the blue tick, for the chat avatars and ticks",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
     "/v1/chat/conversations/me/messages": {
       "get": {
         "operationId": "ChatConversationsController_myThread",
@@ -10934,7 +11117,7 @@
             "bearer": []
           }
         ],
-        "summary": "Header of a trainee's chat; conversationId is null before the first message",
+        "summary": "Header of a trainee's chat; conversationId is created on this read when chat is on; null only while chat is off and nothing was ever sent",
         "tags": [
           "chat"
         ]
@@ -17568,6 +17751,28 @@
                     },
                     "isReadOnly": {
                       "type": "boolean"
+                    },
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "name": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
                     }
                   },
                   "required": [
@@ -17576,7 +17781,8 @@
                     "hasMore",
                     "otherReadUpTo",
                     "readOnlyReason",
-                    "isReadOnly"
+                    "isReadOnly",
+                    "members"
                   ],
                   "additionalProperties": false
                 }

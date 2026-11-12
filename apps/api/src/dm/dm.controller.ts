@@ -26,7 +26,7 @@ import {
 } from "@pt/contracts";
 import type { Response } from "express";
 
-import type { AuthActor, UserActor } from "../auth/actor.js";
+import type { AdminActor, AuthActor, UserActor } from "../auth/actor.js";
 import { Actor, Roles, User } from "../auth/decorators/index.js";
 import { ApiRoute } from "../common/openapi/api-route.js";
 import { DmQueries } from "./dm.queries.js";
@@ -57,7 +57,7 @@ export class DmController {
   })
   async inbox(@Actor() actor: UserActor) {
     await this.dm.requireTerms(actor);
-    return { conversations: await this.queries.inbox(actor.id) };
+    return { conversations: await this.queries.inbox(actor.id, actor.locale) };
   }
 
   @Post("dm/conversations")
@@ -167,7 +167,7 @@ export class DmController {
     response: dmAdminListResponseSchema,
     errors: [401, 403],
   })
-  async adminList() {
-    return { conversations: await this.queries.adminList() };
+  async adminList(@Actor() actor: AdminActor) {
+    return { conversations: await this.queries.adminList(actor.locale) };
   }
 }

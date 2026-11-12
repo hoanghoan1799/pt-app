@@ -31,6 +31,7 @@ import {
   chatSendMessageRequestSchema,
   type ChatSetEnabledRequest,
   chatSetEnabledRequestSchema,
+  chatTeamResponseSchema,
   type ChatThreadQuery,
   chatThreadQuerySchema,
   chatThreadResponseSchema,
@@ -78,6 +79,16 @@ export class ChatConversationsController {
   ) {}
 
   // --- Trainee: my own conversation ----------------------------------------
+
+  @Get("team")
+  @ApiRoute({
+    summary:
+      "The admins with a photo or the blue tick, for the chat avatars and ticks",
+    response: chatTeamResponseSchema,
+  })
+  team() {
+    return this.inbox.team();
+  }
 
   @Get("conversations/me/messages")
   @User()
@@ -297,7 +308,7 @@ export class ChatConversationsController {
   @Admin()
   @ApiRoute({
     summary:
-      "Header of a trainee's chat; conversationId is null before the first message",
+      "Header of a trainee's chat; conversationId is created on this read when chat is on; null only while chat is off and nothing was ever sent",
     response: chatConversationResponseSchema,
     errors: [400, 401, 403, 404],
   })
@@ -306,12 +317,9 @@ export class ChatConversationsController {
     @Param("userId", idParam) userId: number,
   ) {
     const context = await this.access.forTraineeId(actor, userId);
+    const conversation = await this.access.ensureConversation(context);
 
-    return this.inbox.header(
-      actor,
-      context.trainee,
-      context.conversation?.id ?? null,
-    );
+    return this.inbox.header(actor, context.trainee, conversation?.id ?? null);
   }
 
   @Post("trainees/:userId/messages")

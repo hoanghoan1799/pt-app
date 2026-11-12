@@ -271,6 +271,18 @@ export const chatReadResponseSchema = z.object({
   lastReadMessageId: z.number().int(),
 });
 
+// The PT team as the chat screens draw it: who has a photo and who has the blue
+// tick (the PT team is small). Admins with neither are left out.
+export const chatTeamResponseSchema = z.object({
+  admins: z.array(
+    z.object({
+      id: z.number().int(),
+      avatarUrl: z.string().nullable(),
+      verified: z.boolean(),
+    }),
+  ),
+});
+
 export const chatEnabledResponseSchema = z.object({ enabled: z.boolean() });
 
 export const chatProfileResponseSchema = z.object({
@@ -466,6 +478,9 @@ export const dmThreadResponseSchema = z.object({
   otherReadUpTo: z.number().int(),
   readOnlyReason: z.string().nullable(),
   isReadOnly: z.boolean(),
+  // The two members' real names, only for a super admin reading the chat
+  // (empty for a member); a deleted account has a null name.
+  members: z.array(z.object({ id: z.number().int(), name: z.string().nullable() })),
 });
 
 export const dmInboxResponseSchema = z.object({

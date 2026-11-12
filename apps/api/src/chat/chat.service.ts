@@ -434,15 +434,25 @@ export class ChatService {
     if (actor.kind !== "admin") {
       throw chatErrors.userNotFound();
     }
-    await this.dataSource.query(
-      `UPDATE users SET chat_enabled = $1, chat_enabled_changed_at = $2,
-                        chat_enabled_by_admin_id = $3
-       WHERE id = $4`,
-      [enabled, this.clock.now(), actor.id, trainee.traineeId],
-    );
+    // The conversation exists from the moment chat is on, not from the first
+    // message: the PT's inbox and the trainee's thread have a row to open.
+    // Same transaction as the switch, insert-or-ignore, so repeating it or
+    // racing a thread read (which also creates it) is harmless.
+    const conversation = await this.dataSource.transaction(async (manager) => {
+      await manager.query(
+        `UPDATE users SET chat_enabled = $1, chat_enabled_changed_at = $2,
+                          chat_enabled_by_admin_id = $3
+         WHERE id = $4`,
+        [enabled, this.clock.now(), actor.id, trainee.traineeId],
+      );
+      return enabled
+        ? this.queries.getOrCreateConversation(trainee.traineeId, manager)
+        : context.conversation;
+    });
+
     this.events.publish(CHAT_EVENTS.statusChanged, {
       userId: trainee.traineeId,
-      conversationId: context.conversation?.id ?? null,
+      conversationId: conversation?.id ?? null,
       enabled,
     } satisfies ChatStatusChangedEvent);
     return enabled;
