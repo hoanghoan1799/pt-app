@@ -8,7 +8,7 @@ import { ROUTES } from "@/constants/routes";
 import { CARD, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
 import { ReportActions } from "@/features/social/components/ReportActions";
-import { listOpenReports } from "@/features/social/services/report-queries";
+import { listOpenReports } from "@/features/social/services/social-queries";
 import { requireSuperAdmin } from "@/services/auth-guard";
 import { formatRelativeTime } from "@/utils/time";
 
@@ -24,7 +24,7 @@ const AdminReportsPage = async () => {
   const t = await getTranslations("adminPages.reports");
   const locale = await getLocale();
 
-  const reports = await listOpenReports(locale);
+  const { reports } = await listOpenReports();
 
   return (
     <>

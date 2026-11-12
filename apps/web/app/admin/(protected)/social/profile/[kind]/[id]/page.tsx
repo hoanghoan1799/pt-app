@@ -1,18 +1,17 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 
 import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
-import { adminActorKey } from "@/features/contact-aliases/utils/alias-rules";
 import { ProfileView } from "@/features/social/components/ProfileView";
-import { actorOfAdmin } from "@/features/social/services/post-context";
-import { listProfilePosts } from "@/features/social/services/post-queries";
-import { getProfile } from "@/features/social/services/profile-queries";
-import { getTrainingStats } from "@/features/social/services/profile-stats";
-import { countFriends } from "@/features/social/services/relationships";
+import {
+  getProfile,
+  getProfilePosts,
+  profileKey,
+} from "@/features/social/services/social-queries";
 import { parseProfileKind } from "@/features/social/utils/post-rules";
 import { requireAdminForUser } from "@/services/admin-access";
 import { requireAdmin } from "@/services/auth-guard";
@@ -35,21 +34,18 @@ const AdminProfilePage = async ({
     notFound();
   }
   // A trainee only for admins who may work with them (scope, hidden).
-  const admin =
-    kind === "user" ? await requireAdminForUser(id) : await requireAdmin();
-  const locale = await getLocale();
-  const profile = await getProfile(kind, id, adminActorKey(admin.id));
+  if (kind === "user") {
+    await requireAdminForUser(id);
+  } else {
+    await requireAdmin();
+  }
+  const card = await getProfile("admin", profileKey(kind, id));
 
-  if (!profile) {
+  if (!card) {
     notFound();
   }
-  const isOwn = kind === "admin" && admin.id === id;
-  // Any admin viewer sees a trainee's stats (access was scoped above).
-  const [posts, friendCount, stats] = await Promise.all([
-    listProfilePosts(actorOfAdmin(admin), { kind, id }, null, locale),
-    kind === "user" ? countFriends(id) : null,
-    kind === "user" ? getTrainingStats(id) : null,
-  ]);
+  const { profile } = card;
+  const posts = await getProfilePosts("admin", profileKey(kind, id));
 
   return (
     <>
@@ -64,12 +60,12 @@ const AdminProfilePage = async ({
         <ProfileView
           profile={profile}
           mode="admin"
-          isOwn={isOwn}
+          isOwn={card.isOwn}
           posts={posts}
-          friendCount={friendCount}
-          stats={stats}
-          canReport={kind === "user"}
-          composerPrivacy={isOwn ? "everyone" : null}
+          friendCount={card.friendCount}
+          stats={card.stats}
+          canReport={card.canReport}
+          composerPrivacy={card.composerPrivacy}
         />
       </main>
       <ScrollToTopButton />

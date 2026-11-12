@@ -11,8 +11,8 @@ import { ProfileAvatar } from "@/features/social/components/ProfileAvatar";
 import { ProfileMenu } from "@/features/social/components/ProfileMenu";
 import { ProfileStats } from "@/features/social/components/ProfileStats";
 import { RelationshipButton } from "@/features/social/components/RelationshipButton";
-import type { ProfileData } from "@/features/social/services/profile-queries";
-import type { TrainingStats } from "@/features/social/services/profile-stats";
+import type { ProfileData } from "@/features/social/types/social";
+import type { TrainingStats } from "@/features/social/types/social";
 import type { PostPage, PostPrivacy } from "@/features/social/types/social";
 import type { Relationship } from "@/features/social/utils/friend-rules";
 
