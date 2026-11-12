@@ -28,6 +28,22 @@ permissions:
 jobs:
   api:
     runs-on: ubuntu-latest
+    # Only for the "no migration diff" step. The e2e tests start their own
+    # PostgreSQL 17 with Testcontainers (Docker is preinstalled on the runner).
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: pt
+          POSTGRES_PASSWORD: pt_ci_only
+          POSTGRES_DB: ptapp
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U pt -d ptapp"
+          --health-interval 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://pt:pt_ci_only@localhost:5432/ptapp
     steps:
       - uses: actions/checkout@v4
 
@@ -48,6 +64,15 @@ jobs:
       - run: pnpm --filter @pt/api typecheck
 
       - run: pnpm --filter @pt/api test
+
+      - run: pnpm --filter @pt/api test:e2e
+
+      # Fails when an entity changed without a migration: apply the migrations
+      # to an empty database, then ask TypeORM for the remaining diff.
+      - name: No migration diff
+        run: |
+          pnpm --filter @pt/api migration:run
+          pnpm --filter @pt/api migration:check
 
       - run: pnpm --filter @pt/api build
 

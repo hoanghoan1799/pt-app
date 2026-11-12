@@ -3,7 +3,25 @@ import { z } from "zod";
 // An empty variable (`PORT=` in a compose file or .env) counts as unset.
 const emptyToUndefined = (value: unknown) => (value === "" ? undefined : value);
 
+export const NODE_ENVS = ["development", "test", "production"] as const;
+export const LOG_LEVELS = [
+  "fatal",
+  "error",
+  "warn",
+  "info",
+  "debug",
+  "trace",
+  "silent",
+] as const;
+
 export const envSchema = z.object({
+  // Defaults to production so a deploy that forgets NODE_ENV fails safe: no
+  // error details in responses, no Swagger, warn-level logs. Local dev sets
+  // NODE_ENV=development (apps/api/.env.example).
+  NODE_ENV: z.preprocess(
+    emptyToUndefined,
+    z.enum(NODE_ENVS).default("production"),
+  ),
   PORT: z.preprocess(
     emptyToUndefined,
     z.coerce.number().int().min(1).max(65535).default(4000),
@@ -13,28 +31,45 @@ export const envSchema = z.object({
     emptyToUndefined,
     z.url().default("http://localhost:3000"),
   ),
-  // Optional until the database module lands.
-  DATABASE_URL: z.preprocess(
-    emptyToUndefined,
-    z
-      .string()
-      .regex(/^postgres(ql)?:\/\//)
-      .optional(),
-  ),
+  // The only required variable: the API cannot start without its database.
+  DATABASE_URL: z.string().regex(/^postgres(ql)?:\/\//),
+  // Unset means "info" in development and "warn" in production.
+  LOG_LEVEL: z.preprocess(emptyToUndefined, z.enum(LOG_LEVELS).optional()),
 });
 
 export type Env = z.infer<typeof envSchema>;
 
-// Throws one readable error listing every invalid variable.
+const variableName = (path: readonly PropertyKey[]) =>
+  path.map(String).join(".");
+
+// Throws one readable error that names every missing or invalid variable. It
+// never includes a value: DATABASE_URL carries a password.
 export const loadEnv = (source: NodeJS.ProcessEnv = process.env): Env => {
   const result = envSchema.safeParse(source);
 
-  if (!result.success) {
-    const details = result.error.issues
-      .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
-      .join("; ");
-
-    throw new Error(`Invalid environment: ${details}`);
+  if (result.success) {
+    return result.data;
   }
-  return result.data;
+
+  const missing: string[] = [];
+  const invalid: string[] = [];
+
+  for (const issue of result.error.issues) {
+    const name = variableName(issue.path);
+    const unset = source[name] === undefined || source[name] === "";
+
+    if (unset) {
+      missing.push(name);
+    } else {
+      invalid.push(name);
+    }
+  }
+
+  const parts = [
+    missing.length > 0 && `missing: ${missing.join(", ")}`,
+    invalid.length > 0 &&
+      `invalid (values are not printed): ${invalid.join(", ")}`,
+  ].filter(Boolean);
+
+  throw new Error(`Invalid environment, ${parts.join("; ")}`);
 };
