@@ -18,12 +18,6 @@ vi.mock("@/services/admin-lock", () => ({
 vi.mock("@/services/auth-guard", () => ({
   getApiUser: vi.fn(async () => state.user),
   getApiAdmin: vi.fn(async () => state.admin),
-  requireAdmin: vi.fn(async () => {
-    if (!state.admin) {
-      throw new Error("not an admin");
-    }
-    return state.admin;
-  }),
 }));
 vi.mock("@/services/users", async () => {
   const { users: usersTable } = await import("@/db/schema");
@@ -48,7 +42,6 @@ vi.mock("@/db", () => ({
 
 const peerRoute = await import("@/app/api/presence/peer/route");
 const service = await import("@/features/chat/services/presence");
-const actions = await import("@/features/chat/services/presence-actions");
 
 const SEEN_EARLY = new Date("2026-11-05T01:00:00Z");
 const SEEN_LATE = new Date("2026-11-05T02:00:00Z");
@@ -148,37 +141,5 @@ describe("GET /api/presence/peer with hidden presence", () => {
       peerLastSeenAt: null,
       serverNow: expect.any(String),
     });
-  });
-});
-
-describe("setPresenceHiddenAction", () => {
-  it("saves the switch for the signed-in admin only", async () => {
-    expect(await actions.setPresenceHiddenAction({ isHidden: true })).toEqual({
-      status: "success",
-    });
-    expect(await hiddenOf(firstId)).toBe(true);
-    expect(await hiddenOf(secondId)).toBe(false);
-
-    await actions.setPresenceHiddenAction({ isHidden: false });
-    expect(await hiddenOf(firstId)).toBe(false);
-  });
-
-  it("rejects a non-boolean value and leaves the row alone", async () => {
-    const result = await actions.setPresenceHiddenAction({
-      isHidden: "yes",
-    } as never);
-
-    expect(result.status).toBe("error");
-    expect(await hiddenOf(firstId)).toBe(false);
-  });
-
-  it("requires an admin session", async () => {
-    state.admin = null;
-
-    expect(
-      (await actions.setPresenceHiddenAction({ isHidden: true })).status,
-    ).toBe("error");
-    expect(await hiddenOf(firstId)).toBe(false);
-    expect(await hiddenOf(secondId)).toBe(false);
   });
 });

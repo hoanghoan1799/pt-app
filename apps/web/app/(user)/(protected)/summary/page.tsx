@@ -9,7 +9,7 @@ import { TIME_ZONE } from "@/constants/time";
 import { UserHeaderActions } from "@/features/auth/components/UserHeaderActions";
 import { BodyProfileCard } from "@/features/nutrition/components/BodyProfileCard";
 import { getNutritionOverview } from "@/features/nutrition/services/nutrition-queries";
-import { getWeekSchedule } from "@/features/workouts/services/workout-queries";
+import { getMyWeekSchedule } from "@/features/workouts/services/workout-api";
 import { requireUser } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
 import { getTodayDate, resolveSchedule } from "@/utils/week";
@@ -30,7 +30,7 @@ const SummaryPage = async ({ searchParams }: PageProps<"/summary">) => {
     today,
   );
   const [workoutDays, overview] = await Promise.all([
-    getWeekSchedule(user.id, schedule.weekStart),
+    getMyWeekSchedule(schedule.weekStart),
     getNutritionOverview(schedule.weekStart),
   ]);
 

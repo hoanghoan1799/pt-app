@@ -26,16 +26,12 @@ vi.mock("@/services/admin-lock", () => ({
 }));
 
 const chat = await import("@/features/chat/services/chat-queries");
-const members = await import("@/features/members/services/member-queries");
-const dashboard =
-  await import("@/features/dashboard/services/dashboard-queries");
 
 let db: TestDb;
 let superId: number;
 let ptA: number;
 let ptB: number;
 let mine: number;
-let theirs: number;
 
 const addAdmin = async (name: string, role: "pt" | "super_admin") => {
   const [row] = await db
@@ -95,44 +91,10 @@ beforeEach(async () => {
   ptA = await addAdmin("pta", "pt");
   ptB = await addAdmin("ptb", "pt");
   mine = await addTrainee("mine", ptA);
-  theirs = await addTrainee("theirs", ptB);
+  await addTrainee("theirs", ptB);
 });
 
 describe("P1 scope across admin lists", () => {
-  it("dashboard member list shows a PT only their trainees, a super admin all", async () => {
-    const week = "2026-11-02";
-    const ids = async (adminId: number) =>
-      (await dashboard.getMemberProgress(week, adminId))
-        .map((member) => member.id)
-        .sort();
-
-    expect(await ids(ptA)).toEqual([mine]);
-    expect(await ids(ptB)).toEqual([theirs]);
-    expect(await ids(superId)).toEqual([mine, theirs].sort());
-  });
-
-  it("recent activity leaves out other workspaces", async () => {
-    const activity = await dashboard.getRecentActivity({
-      limit: 10,
-      adminId: ptA,
-    });
-
-    expect(activity.every((item) => item.userId === mine)).toBe(true);
-    expect(activity.length).toBeGreaterThan(0);
-  });
-
-  it("member picker lists only the workspace, and ignores keepUserId outside it", async () => {
-    expect((await members.listMembers(ptA)).map((row) => row.id)).toEqual([
-      mine,
-    ]);
-    expect(
-      (await members.listMembers(ptA, theirs)).map((row) => row.id),
-    ).toEqual([mine]);
-    expect((await members.listMembers(superId)).map((row) => row.id)).toEqual([
-      mine,
-      theirs,
-    ]);
-  });
 
   it("inbox and unread counts only cover the PT's trainees", async () => {
     const inbox = await chat.listAdminInbox(ptA);

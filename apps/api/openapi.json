@@ -168,6 +168,25 @@
                               "minimum": 0,
                               "exclusiveMinimum": true,
                               "maximum": 9007199254740991
+                            },
+                            "chatEnabled": {
+                              "type": "boolean"
+                            },
+                            "termsVersion": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "preferredMealCount": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "foodNote": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
@@ -176,7 +195,11 @@
                             "name",
                             "email",
                             "locale",
-                            "ptAdminId"
+                            "ptAdminId",
+                            "chatEnabled",
+                            "termsVersion",
+                            "preferredMealCount",
+                            "foodNote"
                           ],
                           "additionalProperties": false
                         },
@@ -545,6 +568,25 @@
                               "minimum": 0,
                               "exclusiveMinimum": true,
                               "maximum": 9007199254740991
+                            },
+                            "chatEnabled": {
+                              "type": "boolean"
+                            },
+                            "termsVersion": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "preferredMealCount": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "foodNote": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
@@ -553,7 +595,11 @@
                             "name",
                             "email",
                             "locale",
-                            "ptAdminId"
+                            "ptAdminId",
+                            "chatEnabled",
+                            "termsVersion",
+                            "preferredMealCount",
+                            "foodNote"
                           ],
                           "additionalProperties": false
                         },
@@ -882,6 +928,25 @@
                               "minimum": 0,
                               "exclusiveMinimum": true,
                               "maximum": 9007199254740991
+                            },
+                            "chatEnabled": {
+                              "type": "boolean"
+                            },
+                            "termsVersion": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "preferredMealCount": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "foodNote": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
@@ -890,7 +955,11 @@
                             "name",
                             "email",
                             "locale",
-                            "ptAdminId"
+                            "ptAdminId",
+                            "chatEnabled",
+                            "termsVersion",
+                            "preferredMealCount",
+                            "foodNote"
                           ],
                           "additionalProperties": false
                         },
@@ -1200,6 +1269,25 @@
                               "minimum": 0,
                               "exclusiveMinimum": true,
                               "maximum": 9007199254740991
+                            },
+                            "chatEnabled": {
+                              "type": "boolean"
+                            },
+                            "termsVersion": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "preferredMealCount": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "foodNote": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
@@ -1208,7 +1296,11 @@
                             "name",
                             "email",
                             "locale",
-                            "ptAdminId"
+                            "ptAdminId",
+                            "chatEnabled",
+                            "termsVersion",
+                            "preferredMealCount",
+                            "foodNote"
                           ],
                           "additionalProperties": false
                         },

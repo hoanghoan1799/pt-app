@@ -15,11 +15,11 @@ import {
 } from "@/features/social/components/FriendsTabs";
 import { UnblockButton } from "@/features/social/components/UnblockButton";
 import {
+  getSocialMe,
   listBlockedByMe,
   listFriendRequests,
   listFriends,
-} from "@/features/social/services/friend-queries";
-import { hasAcceptedTerms } from "@/features/social/services/terms";
+} from "@/features/social/services/social-queries";
 import { requireUser } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
 
@@ -33,17 +33,17 @@ const EMPTY = `${CARD} p-6 text-center text-muted`;
 
 const FriendsPage = async ({ searchParams }: PageProps<"/friends">) => {
   const t = await getTranslations("social.pages");
-  const user = await requireUser();
+  await requireUser();
 
   // Social pages sit behind the terms; the feed shows them.
-  if (!hasAcceptedTerms(user)) {
+  if (!(await getSocialMe("user")).termsAccepted) {
     redirect(ROUTES.FEED);
   }
   const tab = parseFriendsTab(readSearchParam((await searchParams).tab));
   const [friends, requests, blocked] = await Promise.all([
-    tab === "friends" ? listFriends(user.id) : [],
-    listFriendRequests(user.id),
-    tab === "friends" ? listBlockedByMe(user.id) : [],
+    tab === "friends" ? listFriends() : [],
+    listFriendRequests(),
+    tab === "friends" ? listBlockedByMe() : [],
   ]);
 
   return (

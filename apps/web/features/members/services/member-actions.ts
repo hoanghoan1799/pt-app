@@ -1,51 +1,28 @@
 "use server";
 
-import { and, eq, inArray, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { ROUTES } from "@/constants/routes";
-import { db } from "@/db";
-import {
-  adminHiddenUsers,
-  bodyProfiles,
-  chatColorOverrides,
-  chatConversations,
-  chatCustomStickers,
-  chatMessageEdits,
-  chatMessages,
-  chatNicknames,
-  chatPhotos,
-  chatReactions,
-  chatReads,
-  contactAliases,
-  exerciseCompletions,
-  exercises,
-  exerciseSets,
-  foodEntries,
-  mealPlanDays,
-  nutritionTargets,
-  pushSubscriptions,
-  users,
-  weightLogs,
-  workoutDays,
-} from "@/db/schema";
-import { userOwnerKey } from "@/features/chat/utils/push-rules";
-import { userActorKey } from "@/features/contact-aliases/utils/alias-rules";
-import { deleteDays } from "@/features/meal-plans/services/meal-plan-store";
-import { createMemberWithLogin } from "@/features/members/services/create-member-with-login";
 import { resolveTraineePt } from "@/features/members/services/resolve-trainee-pt";
-import { deleteSocialContentOfUser } from "@/features/social/services/post-cleanup";
 import {
   withFormErrorHandling,
   withResultErrorHandling,
 } from "@/services/action-errors";
-import { requireAdminForUser } from "@/services/admin-access";
+import { callApi, tryApi } from "@/services/api/call";
+import { apiErrorToFormState } from "@/services/api/errors";
 import { requireAdmin } from "@/services/auth-guard";
 import { getErrorsTranslator } from "@/services/localize-message";
 import type { FormState } from "@/types/form";
 import { createErrorState, createSuccessState } from "@/utils/form";
+
+// The form field a refused create belongs to, by API error code.
+const CREATE_ERROR_FIELDS: Record<string, string> = {
+  NAME_TAKEN: "name",
+  EMAIL_TAKEN: "email",
+  PT_NOT_FOUND: "ptAdminId",
+};
 
 export const createMemberAction = withFormErrorHandling(
   "createMember",
@@ -54,26 +31,34 @@ export const createMemberAction = withFormErrorHandling(
 
     const rawName = String(formData.get("name") ?? "");
     const rawEmail = String(formData.get("email") ?? "");
-    const pt = await resolveTraineePt(
-      admin,
-      String(formData.get("ptAdminId") ?? ""),
-    );
+    const values = { name: rawName, email: rawEmail };
+    const pt = resolveTraineePt(admin, String(formData.get("ptAdminId") ?? ""));
 
     if (pt.status === "error") {
       return createErrorState(pt.message, {
         fieldErrors: { ptAdminId: pt.message },
-        values: { name: rawName, email: rawEmail },
+        values,
       });
     }
 
-    const result = await createMemberWithLogin(rawName, rawEmail, pt.ptAdminId);
+    // The API validates, refuses duplicates and generates the password.
+    const outcome = await tryApi("admin", (api) =>
+      api.POST("/v1/trainees", {
+        body: { name: rawName, email: rawEmail, ptAdminId: pt.ptAdminId },
+      }),
+    );
 
-    if (result.status === "error") {
-      return createErrorState(result.message, {
-        fieldErrors: { [result.field]: result.message },
-        values: { name: rawName, email: rawEmail },
-      });
+    if (!outcome.ok) {
+      const field = CREATE_ERROR_FIELDS[outcome.error.code];
+
+      return field
+        ? createErrorState(outcome.error.message, {
+            fieldErrors: { [field]: outcome.error.message },
+            values,
+          })
+        : apiErrorToFormState(outcome.error, { values });
     }
+    const created = outcome.data;
 
     revalidatePath(ROUTES.ADMIN);
 
@@ -81,115 +66,28 @@ export const createMemberAction = withFormErrorHandling(
 
     // The password goes back to the caller once and is never logged.
     return {
-      ...createSuccessState(t("toasts.memberAdded", { name: result.name })),
+      ...createSuccessState(t("toasts.memberAdded", { name: created.name })),
       credentials: {
-        name: result.name,
+        name: created.name,
         email: rawEmail.trim(),
-        password: result.password,
+        password: created.password,
       },
     };
   },
 );
 
+// The API deletes the trainee and everything they own (chat, workouts, meals,
+// social content, aliases, hidden rows, push subscriptions) in one transaction.
 export const deleteMemberAction = withResultErrorHandling(
   "deleteMember",
   async (userId: number) => {
-    await requireAdmin();
-
     const id = z.number().int().positive().parse(userId);
 
-    // Scope only: hiding is a view setting, not an access rule, for deletes.
-    await requireAdminForUser(id, { ignoreHidden: true });
-    const days = await db
-      .select({ id: workoutDays.id })
-      .from(workoutDays)
-      .where(eq(workoutDays.userId, id));
-    const dayIds = days.map((day) => day.id);
-    const planDays = await db
-      .select({ id: mealPlanDays.id })
-      .from(mealPlanDays)
-      .where(eq(mealPlanDays.userId, id));
-
-    const conversations = await db
-      .select({ id: chatConversations.id })
-      .from(chatConversations)
-      .where(eq(chatConversations.userId, id));
-    const conversationIds = conversations.map((row) => row.id);
-
-    await db.transaction(async (tx) => {
-      await tx.delete(adminHiddenUsers).where(eq(adminHiddenUsers.userId, id));
-      // Private nicknames the member set and the ones set for them.
-      await tx
-        .delete(contactAliases)
-        .where(
-          or(
-            eq(contactAliases.ownerKey, userActorKey(id)),
-            eq(contactAliases.targetKey, userActorKey(id)),
-          ),
-        );
-      // Children first: foreign keys are not enforced (D10).
-      if (conversationIds.length) {
-        await tx
-          .delete(chatReads)
-          .where(inArray(chatReads.conversationId, conversationIds));
-        await tx
-          .delete(chatNicknames)
-          .where(inArray(chatNicknames.conversationId, conversationIds));
-        await tx
-          .delete(chatColorOverrides)
-          .where(inArray(chatColorOverrides.conversationId, conversationIds));
-        const messageIds = tx
-          .select({ id: chatMessages.id })
-          .from(chatMessages)
-          .where(inArray(chatMessages.conversationId, conversationIds));
-
-        await tx
-          .delete(chatReactions)
-          .where(inArray(chatReactions.messageId, messageIds));
-        await tx
-          .delete(chatMessageEdits)
-          .where(inArray(chatMessageEdits.messageId, messageIds));
-        await tx
-          .delete(chatPhotos)
-          .where(inArray(chatPhotos.conversationId, conversationIds));
-        await tx
-          .delete(chatMessages)
-          .where(inArray(chatMessages.conversationId, conversationIds));
-      }
-      await tx
-        .delete(chatConversations)
-        .where(eq(chatConversations.userId, id));
-      await tx
-        .delete(chatCustomStickers)
-        .where(
-          and(
-            eq(chatCustomStickers.ownerKind, "user"),
-            eq(chatCustomStickers.ownerId, id),
-          ),
-        );
-      await tx
-        .delete(pushSubscriptions)
-        .where(eq(pushSubscriptions.ownerKey, userOwnerKey(id)));
-      await tx.delete(exerciseSets).where(eq(exerciseSets.userId, id));
-      await tx
-        .delete(exerciseCompletions)
-        .where(eq(exerciseCompletions.userId, id));
-      await tx.delete(foodEntries).where(eq(foodEntries.userId, id));
-      await tx.delete(nutritionTargets).where(eq(nutritionTargets.userId, id));
-      await tx.delete(bodyProfiles).where(eq(bodyProfiles.userId, id));
-      await tx.delete(weightLogs).where(eq(weightLogs.userId, id));
-      await deleteDays(
-        planDays.map((day) => day.id),
-        tx,
-      );
-
-      if (dayIds.length) {
-        await tx.delete(exercises).where(inArray(exercises.dayId, dayIds));
-        await tx.delete(workoutDays).where(inArray(workoutDays.id, dayIds));
-      }
-      await deleteSocialContentOfUser(tx, id);
-      await tx.delete(users).where(eq(users.id, id));
-    });
+    await requireAdmin();
+    // Scope only: the API ignores "hidden" for deletes.
+    await callApi("admin", (api) =>
+      api.DELETE("/v1/trainees/{userId}", { params: { path: { userId: id } } }),
+    );
 
     revalidatePath(ROUTES.ADMIN);
     redirect(ROUTES.ADMIN);

@@ -83,16 +83,3 @@ export const canSeePost = (
   }
   return Boolean(ctx.areFriends) || isDefaultFriend(viewer, post, ctx);
 };
-
-const ALL_PRIVACIES: PostPrivacy[] = ["everyone", "friends", "only_me"];
-
-// The privacy values of `author`'s posts that `viewer` may see; lets a list
-// query filter in SQL with the very same rules.
-export const visiblePrivacies = (
-  viewer: SocialActor,
-  author: PostAuthorRef,
-  ctx: VisibilityContext = {},
-): PostPrivacy[] =>
-  ALL_PRIVACIES.filter((privacy) =>
-    canSeePost(viewer, { ...author, privacy }, ctx),
-  );

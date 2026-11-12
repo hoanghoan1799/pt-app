@@ -2,7 +2,7 @@ import { ChartColumn, Dumbbell, Flame, Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { CARD } from "@/constants/styles";
-import type { TrainingStats } from "@/features/social/services/profile-stats";
+import type { TrainingStats } from "@/features/social/types/social";
 
 interface ProfileStatsProps {
   // Null: the viewer may not see them (locked box).

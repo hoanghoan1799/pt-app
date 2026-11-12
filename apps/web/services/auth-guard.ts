@@ -4,10 +4,9 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 
 import { ROUTES, SESSION_ROLE_PARAM } from "@/constants/routes";
-import { isSuperAdmin } from "@/services/admin-scope";
 import { fetchMe } from "@/services/api/me";
-import { emptyUserRow, findUserById } from "@/services/users";
 import type { SessionRole } from "@/types/session";
+import { isSuperAdmin } from "@/utils/admin-role";
 
 // The signed-in actor comes from the API (GET /v1/auth/me) with the session
 // cookie's token, once per request. Session lifetime, password changes, admin
@@ -22,20 +21,19 @@ export const getCurrentUser = cache(async () => {
   }
 
   const { actor } = me;
-  // TRANSITION (integration branch feat/web-on-api): feature code still reads
-  // trainee columns the API's /auth/me does not carry (termsVersion, chatEnabled,
-  // preferredMealCount…), so the legacy row is merged in, API fields winning.
-  // A trainee without a legacy row gets nulls. Each feature area drops its
-  // use of these fields when it moves to the API; then this merge goes.
-  const legacy = (await findUserById(actor.id)) ?? emptyUserRow();
 
   return {
-    ...legacy,
     id: actor.id,
     name: actor.name,
     email: actor.email,
     locale: actor.locale,
     ptAdminId: actor.ptAdminId,
+    // Chat permission, accepted social terms version and the meal plan request
+    // all come with GET /v1/auth/me.
+    chatEnabled: actor.chatEnabled,
+    termsVersion: actor.termsVersion,
+    preferredMealCount: actor.preferredMealCount,
+    foodNote: actor.foodNote,
   };
 });
 

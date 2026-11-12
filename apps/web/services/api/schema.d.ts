@@ -2476,6 +2476,10 @@ export interface operations {
                             email: string | null;
                             locale: string | null;
                             ptAdminId: number | null;
+                            chatEnabled: boolean;
+                            termsVersion: number | null;
+                            preferredMealCount: number | null;
+                            foodNote: string | null;
                         } | {
                             /** @enum {string} */
                             kind: "admin";
@@ -2600,6 +2604,10 @@ export interface operations {
                             email: string | null;
                             locale: string | null;
                             ptAdminId: number | null;
+                            chatEnabled: boolean;
+                            termsVersion: number | null;
+                            preferredMealCount: number | null;
+                            foodNote: string | null;
                         } | {
                             /** @enum {string} */
                             kind: "admin";
@@ -2711,6 +2719,10 @@ export interface operations {
                             email: string | null;
                             locale: string | null;
                             ptAdminId: number | null;
+                            chatEnabled: boolean;
+                            termsVersion: number | null;
+                            preferredMealCount: number | null;
+                            foodNote: string | null;
                         } | {
                             /** @enum {string} */
                             kind: "admin";
@@ -2824,6 +2836,10 @@ export interface operations {
                             email: string | null;
                             locale: string | null;
                             ptAdminId: number | null;
+                            chatEnabled: boolean;
+                            termsVersion: number | null;
+                            preferredMealCount: number | null;
+                            foodNote: string | null;
                         } | {
                             /** @enum {string} */
                             kind: "admin";

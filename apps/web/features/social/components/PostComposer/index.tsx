@@ -124,11 +124,13 @@ export const PostComposer = ({
     startTransition(async () => {
       try {
         const photoId = photo ? await uploadPhoto(photo.blob, mode) : null;
-        const result = await createPostAction(mode, {
-          caption,
-          privacy,
-          photoId,
-        });
+        // One key per submit: if the answer is lost and the same submit is
+        // sent again, the API returns the first post instead of a second one.
+        const result = await createPostAction(
+          mode,
+          { caption, privacy, photoId },
+          crypto.randomUUID(),
+        );
 
         if (result.status === "error") {
           toast.error(result.message, {

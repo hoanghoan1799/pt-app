@@ -12,7 +12,7 @@ import { getTraineeDisplayName } from "@/features/chat/services/chat-queries";
 import { ExerciseProgressList } from "@/features/members/components/ExerciseProgressList";
 import { getExerciseProgress } from "@/features/members/services/progress-queries";
 import { getNutritionOverview } from "@/features/nutrition/services/nutrition-queries";
-import { getWeekSchedule } from "@/features/workouts/services/workout-queries";
+import { getTraineeWeekSchedule } from "@/features/workouts/services/workout-api";
 import { requireAdmin } from "@/services/auth-guard";
 import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
@@ -52,7 +52,7 @@ const AdminSummaryPage = async ({
     today,
   );
   const [workoutDays, overview, progressRows] = await Promise.all([
-    getWeekSchedule(user.id, schedule.weekStart),
+    getTraineeWeekSchedule(user.id, schedule.weekStart),
     getNutritionOverview(schedule.weekStart, user.id),
     getExerciseProgress(user.id, schedule.weekStart),
   ]);
