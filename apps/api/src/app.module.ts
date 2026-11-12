@@ -15,6 +15,7 @@ import { FilesModule } from "./files/files.module.js";
 import { FoodsModule } from "./foods/foods.module.js";
 import { HealthController } from "./health/health.controller.js";
 import { NutritionModule } from "./nutrition/nutrition.module.js";
+import { SocialModule } from "./social/social.module.js";
 import { StickersModule } from "./stickers/stickers.module.js";
 import { UsersModule } from "./users/users.module.js";
 import { WorkoutsModule } from "./workouts/workouts.module.js";
@@ -23,6 +24,9 @@ import { WorkoutsModule } from "./workouts/workouts.module.js";
   imports: [
     AppConfigModule,
     ClockModule,
+    // Domain events (chat.message.sent, social notifications, ...) for the
+    // realtime gateway, push and notification listeners.
+    EventEmitterModule.forRoot(),
     createLoggerModule(),
     DatabaseModule,
     AuthModule,
@@ -33,8 +37,7 @@ import { WorkoutsModule } from "./workouts/workouts.module.js";
     WorkoutsModule,
     FoodsModule,
     NutritionModule,
-    // Domain events (chat.message.sent, ...) for the realtime gateway and push.
-    EventEmitterModule.forRoot(),
+    SocialModule,
     ChatModule,
     StickersModule,
     DmModule,
