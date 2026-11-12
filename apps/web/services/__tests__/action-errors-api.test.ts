@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("next/navigation", () => ({
@@ -20,6 +28,26 @@ const loadActions = async (nodeEnv: string) => {
   return { ...(await import("@/services/action-errors")), ApiError };
 };
 
+type Actions = Awaited<ReturnType<typeof loadActions>>;
+
+// action-errors reads NODE_ENV at import, so each env needs its own module
+// graph. Built once per env here: a cold import (next-intl and every message
+// file) can take seconds on a busy machine and must not count against a
+// single test's timeout.
+const graphs = new Map<string, Actions>();
+
+beforeAll(async () => {
+  for (const nodeEnv of ["production", "development"]) {
+    graphs.set(nodeEnv, await loadActions(nodeEnv));
+    vi.unstubAllEnvs();
+  }
+}, 60_000);
+
+const actionsFor = (nodeEnv: string) => {
+  vi.stubEnv("NODE_ENV", nodeEnv);
+  return graphs.get(nodeEnv) as Actions;
+};
+
 beforeEach(() => {
   logged.mockClear();
 });
@@ -34,8 +62,7 @@ const failWith = (error: unknown) => async () => {
 
 describe("withResultErrorHandling and ApiError", () => {
   it("shows the API's own text and reference for a refused request, in production too", async () => {
-    const { withResultErrorHandling, ApiError } =
-      await loadActions("production");
+    const { withResultErrorHandling, ApiError } = actionsFor("production");
     const run = withResultErrorHandling(
       "test",
       failWith(
@@ -56,8 +83,7 @@ describe("withResultErrorHandling and ApiError", () => {
   });
 
   it("shows only the generic text and a reference for a 5xx in production", async () => {
-    const { withResultErrorHandling, ApiError } =
-      await loadActions("production");
+    const { withResultErrorHandling, ApiError } = actionsFor("production");
     const run = withResultErrorHandling(
       "test",
       failWith(
@@ -86,8 +112,7 @@ describe("withResultErrorHandling and ApiError", () => {
   });
 
   it("hides an unreachable API and a timeout behind the same generic text", async () => {
-    const { withResultErrorHandling, ApiError } =
-      await loadActions("production");
+    const { withResultErrorHandling, ApiError } = actionsFor("production");
 
     for (const [kind, code] of [
       ["network", "API_UNREACHABLE"],
@@ -108,8 +133,7 @@ describe("withResultErrorHandling and ApiError", () => {
   });
 
   it("explains the cause in development", async () => {
-    const { withResultErrorHandling, ApiError } =
-      await loadActions("development");
+    const { withResultErrorHandling, ApiError } = actionsFor("development");
     const result = await withResultErrorHandling(
       "test",
       failWith(
