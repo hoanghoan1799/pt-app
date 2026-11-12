@@ -12,3 +12,5 @@ export const FOOD_GROUP_VALUES = [
   "dish",
   "other",
 ] as const;
+
+export type FoodGroup = (typeof FOOD_GROUP_VALUES)[number];
