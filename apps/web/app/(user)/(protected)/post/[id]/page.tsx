@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 
 import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -8,10 +8,11 @@ import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { CommentSection } from "@/features/social/components/CommentSection";
 import { PostCard } from "@/features/social/components/PostCard";
-import { listComments } from "@/features/social/services/engagement-queries";
-import { actorOfUser } from "@/features/social/services/post-context";
-import { getPostView } from "@/features/social/services/post-queries";
-import { hasAcceptedTerms } from "@/features/social/services/terms";
+import {
+  getPostView,
+  getSocialMe,
+  listComments,
+} from "@/features/social/services/social-queries";
 import { requireUser } from "@/services/auth-guard";
 
 export const generateMetadata = async (): Promise<Metadata> => {
@@ -22,20 +23,15 @@ export const generateMetadata = async (): Promise<Metadata> => {
 
 const PostPage = async ({ params }: PageProps<"/post/[id]">) => {
   const t = await getTranslations("social.pages");
-  const user = await requireUser();
-  const locale = await getLocale();
+  await requireUser();
 
-  if (!hasAcceptedTerms(user)) {
+  if (!(await getSocialMe("user")).termsAccepted) {
     redirect(ROUTES.FEED);
   }
   const id = Number((await params).id);
-  const actor = actorOfUser(user);
   // Missing, deleted and invisible posts look the same.
   const [post, comments] = Number.isSafeInteger(id)
-    ? await Promise.all([
-        getPostView(actor, id, locale),
-        listComments(actor, id, "user"),
-      ])
+    ? await Promise.all([getPostView("user", id), listComments("user", id)])
     : [null, null];
 
   if (!post || !comments) {

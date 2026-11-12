@@ -86,8 +86,57 @@ export interface PostView {
 
 export interface PostPage {
   posts: PostView[];
-  // Pass back to load the next page; null on the last page.
-  nextCursor: number | null;
+  // The API's opaque cursor: pass it back to load the next page; null on the
+  // last page.
+  nextCursor: string | null;
+}
+
+export interface PersonView {
+  id: number;
+  name: string;
+  avatarUrl: string | null;
+}
+
+export type FriendRelationship = "none" | "friends" | "sent" | "received";
+
+export interface SearchResult extends PersonView {
+  relationship: FriendRelationship;
+}
+
+export interface TrainingStats {
+  workouts: number;
+  streak: number;
+  totalSets: number;
+}
+
+export interface ProfileData {
+  kind: AuthorKind;
+  id: number;
+  // The viewer's private nickname for this person when they set one, else
+  // the real name.
+  name: string;
+  // Always the real name; the profile page shows it next to a nickname.
+  realName: string;
+  // The nickname alone ("" when none), for the editor.
+  alias: string;
+  avatarUrl: string | null;
+  verified: boolean;
+  bio: string;
+  // Trainee, or the admin's actual role.
+  role: "trainee" | "pt" | "super_admin";
+}
+
+// One profile page: the card plus what the viewer may do with it.
+export interface ProfilePageData {
+  profile: ProfileData;
+  isOwn: boolean;
+  // Trainee viewer looking at another trainee: the friend button.
+  relationship: FriendRelationship | null;
+  friendCount: number | null;
+  stats: TrainingStats | null;
+  canBlock: boolean;
+  canReport: boolean;
+  composerPrivacy: PostPrivacy | null;
 }
 
 // Where a list of posts is read from.

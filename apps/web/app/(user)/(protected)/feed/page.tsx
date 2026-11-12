@@ -1,7 +1,7 @@
 import { Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 
 import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -14,10 +14,10 @@ import { PostComposer } from "@/features/social/components/PostComposer";
 import { PostList } from "@/features/social/components/PostList";
 import { TermsContent } from "@/features/social/components/TermsContent";
 import { TermsAcceptButton } from "@/features/social/components/TermsGate";
-import { listUserFeed } from "@/features/social/services/post-queries";
-import { getPostPrivacyDefault } from "@/features/social/services/profile-queries";
-import { countUnreadNotifications } from "@/features/social/services/social-notifications";
-import { hasAcceptedTerms } from "@/features/social/services/terms";
+import {
+  getFeedPage,
+  getSocialMe,
+} from "@/features/social/services/social-queries";
 import { requireUser } from "@/services/auth-guard";
 
 export const generateMetadata = async (): Promise<Metadata> => {
@@ -29,16 +29,13 @@ export const generateMetadata = async (): Promise<Metadata> => {
 const FeedPage = async () => {
   const t = await getTranslations("social.pages");
   const user = await requireUser();
-  const locale = await getLocale();
-  const accepted = hasAcceptedTerms(user);
-  const [posts, defaultPrivacy, unreadCount, avatarUrl] = accepted
-    ? await Promise.all([
-        listUserFeed(user.id, null, undefined, locale),
-        getPostPrivacyDefault(user.id),
-        countUnreadNotifications(`user:${user.id}`),
-        getAvatarUrl("user", user.id),
-      ])
-    : [null, null, 0, null];
+  const me = await getSocialMe("user");
+  const accepted = me.termsAccepted;
+  const [posts, avatarUrl] = accepted
+    ? await Promise.all([getFeedPage("user"), getAvatarUrl("user", user.id)])
+    : [null, null];
+  const defaultPrivacy = me.postPrivacyDefault;
+  const unreadCount = me.unreadNotifications;
 
   return (
     <>
@@ -69,7 +66,7 @@ const FeedPage = async () => {
       <main
         className={`${PAGE_CONTAINER} space-y-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]`}
       >
-        {posts && defaultPrivacy ? (
+        {posts ? (
           <>
             <PostComposer
               mode="user"

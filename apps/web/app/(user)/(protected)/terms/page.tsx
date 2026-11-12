@@ -7,7 +7,7 @@ import { PAGE_CONTAINER } from "@/constants/styles";
 import { TermsContent } from "@/features/social/components/TermsContent";
 import { TermsAcceptButton } from "@/features/social/components/TermsGate";
 import { TERMS_VERSION } from "@/features/social/constants/social";
-import { hasAcceptedTerms } from "@/features/social/services/terms";
+import { getSocialMe } from "@/features/social/services/social-queries";
 import { requireUser } from "@/services/auth-guard";
 
 export const generateMetadata = async (): Promise<Metadata> => {
@@ -17,8 +17,8 @@ export const generateMetadata = async (): Promise<Metadata> => {
 };
 
 const TermsPage = async () => {
-  const user = await requireUser();
-  const accepted = hasAcceptedTerms(user);
+  await requireUser();
+  const { termsAccepted: accepted } = await getSocialMe("user");
   const t = await getTranslations("pages.terms");
 
   return (

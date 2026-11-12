@@ -4,7 +4,6 @@ import { and, eq, or } from "drizzle-orm";
 
 import { db } from "@/db";
 import { socialBlocks, socialFriendships } from "@/db/schema";
-import type { Relationship } from "@/features/social/utils/friend-rules";
 import { pairOf } from "@/features/social/utils/friend-rules";
 
 // Friendships and blocks between two trainees: the one place the visibility
@@ -59,48 +58,6 @@ export const loadPairState = async (viewerId: number, otherId: number) => {
   };
 };
 
-export const getRelationship = async (
-  viewerId: number,
-  otherId: number,
-): Promise<Relationship> => {
-  if (viewerId === otherId) {
-    return "self";
-  }
-  const friendship = await findFriendship(viewerId, otherId);
-
-  if (!friendship) {
-    return "none";
-  }
-  if (friendship.status === "accepted") {
-    return "friends";
-  }
-  return friendship.requestedBy === viewerId ? "sent" : "received";
-};
-
-// Ids of the trainees in an accepted friendship with `userId`, minus anyone
-// blocked either way (a block ends the friendship, this is belt and braces).
-export const listFriendIds = async (userId: number): Promise<number[]> => {
-  const [rows, blocked] = await Promise.all([
-    db
-      .select()
-      .from(socialFriendships)
-      .where(
-        and(
-          eq(socialFriendships.status, "accepted"),
-          or(
-            eq(socialFriendships.userLow, userId),
-            eq(socialFriendships.userHigh, userId),
-          ),
-        ),
-      ),
-    listBlockedBetweenIds(userId),
-  ]);
-
-  return rows
-    .map((row) => (row.userLow === userId ? row.userHigh : row.userLow))
-    .filter((id) => !blocked.has(id));
-};
-
 // Everyone who blocked `userId` or whom `userId` blocked.
 export const listBlockedBetweenIds = async (
   userId: number,
@@ -121,6 +78,3 @@ export const listBlockedBetweenIds = async (
     ),
   );
 };
-
-export const countFriends = async (userId: number) =>
-  (await listFriendIds(userId)).length;

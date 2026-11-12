@@ -1,28 +1,19 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 
 import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
-import { userActorKey } from "@/features/contact-aliases/utils/alias-rules";
 import { ProfileView } from "@/features/social/components/ProfileView";
-import { actorOfUser } from "@/features/social/services/post-context";
-import { listProfilePosts } from "@/features/social/services/post-queries";
 import {
-  getPostPrivacyDefault,
   getProfile,
-} from "@/features/social/services/profile-queries";
-import { getTrainingStats } from "@/features/social/services/profile-stats";
-import {
-  countFriends,
-  getRelationship,
-  isBlockedBetween,
-} from "@/features/social/services/relationships";
-import { hasAcceptedTerms } from "@/features/social/services/terms";
+  getProfilePosts,
+  getSocialMe,
+  profileKey,
+} from "@/features/social/services/social-queries";
 import { parseProfileKind } from "@/features/social/utils/post-rules";
-import { canViewTrainingStats } from "@/features/social/utils/streak-rules";
 import { requireUser } from "@/services/auth-guard";
 
 export const generateMetadata = async (): Promise<Metadata> => {
@@ -32,42 +23,28 @@ export const generateMetadata = async (): Promise<Metadata> => {
 };
 
 const ProfilePage = async ({ params }: PageProps<"/profile/[kind]/[id]">) => {
-  const user = await requireUser();
-  const locale = await getLocale();
+  await requireUser();
   const t = await getTranslations("pages.profile");
 
   // Social pages sit behind the terms; the feed shows them.
-  if (!hasAcceptedTerms(user)) {
+  if (!(await getSocialMe("user")).termsAccepted) {
     redirect(ROUTES.FEED);
   }
   const { kind: rawKind, id: rawId } = await params;
   const kind = parseProfileKind(rawKind);
-  const profile = kind
-    ? await getProfile(kind, Number(rawId), userActorKey(user.id))
-    : null;
+  const id = Number(rawId);
 
-  if (!kind || !profile) {
+  if (!kind || !Number.isSafeInteger(id) || id <= 0) {
     notFound();
   }
-  const isTrainee = kind === "user";
-  const isOwn = isTrainee && profile.id === user.id;
+  // Missing, and blocked either way, look the same: no such profile (spec M1).
+  const card = await getProfile("user", profileKey(kind, id));
 
-  // Blocked either way: the profile does not exist for you (spec M1).
-  if (isTrainee && !isOwn && (await isBlockedBetween(user.id, profile.id))) {
+  if (!card) {
     notFound();
   }
-  const relationship =
-    isTrainee && !isOwn ? await getRelationship(user.id, profile.id) : null;
-  // Owner or accepted friend only; hidden stats are never queried.
-  const showStats =
-    isTrainee &&
-    canViewTrainingStats({ isOwn, isAdminViewer: false, relationship });
-  const [posts, friendCount, composerPrivacy, stats] = await Promise.all([
-    listProfilePosts(actorOfUser(user), { kind, id: profile.id }, null, locale),
-    isTrainee ? countFriends(profile.id) : null,
-    isOwn ? getPostPrivacyDefault(user.id) : null,
-    showStats ? getTrainingStats(profile.id) : null,
-  ]);
+  const { profile } = card;
+  const posts = await getProfilePosts("user", profileKey(kind, id));
 
   return (
     <>
@@ -82,16 +59,14 @@ const ProfilePage = async ({ params }: PageProps<"/profile/[kind]/[id]">) => {
         <ProfileView
           profile={profile}
           mode="user"
-          isOwn={isOwn}
+          isOwn={card.isOwn}
           posts={posts}
-          friendCount={friendCount}
-          relationship={
-            relationship && relationship !== "self" ? relationship : null
-          }
-          canBlock={isTrainee && !isOwn}
-          canReport={isTrainee && !isOwn}
-          composerPrivacy={composerPrivacy}
-          stats={stats}
+          friendCount={card.friendCount}
+          relationship={card.relationship}
+          canBlock={card.canBlock}
+          canReport={card.canReport}
+          composerPrivacy={card.composerPrivacy}
+          stats={card.stats}
         />
       </main>
       <ScrollToTopButton aboveTabBar />

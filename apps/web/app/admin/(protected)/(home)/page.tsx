@@ -44,7 +44,7 @@ import {
 } from "@/features/dashboard/utils/summary";
 import { AddMemberButton } from "@/features/members/components/AddMemberButton";
 import { listPtOptions } from "@/features/pts/services/pt-queries";
-import { countOpenReports } from "@/features/social/services/report-queries";
+import { countOpenReports } from "@/features/social/services/social-queries";
 import { adminProfilePath } from "@/features/social/utils/post-rules";
 import { isSuperAdmin } from "@/services/admin-scope";
 import { requireAdmin } from "@/services/auth-guard";
