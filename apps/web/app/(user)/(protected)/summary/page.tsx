@@ -18,7 +18,7 @@ import {
   getLatestTarget,
   getNutritionWeek,
 } from "@/features/nutrition/services/nutrition-queries";
-import { getWeekSchedule } from "@/features/workouts/services/workout-queries";
+import { getMyWeekSchedule } from "@/features/workouts/services/workout-api";
 import { requireUser } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
 import { getTodayDate, resolveSchedule } from "@/utils/week";
@@ -46,7 +46,7 @@ const SummaryPage = async ({ searchParams }: PageProps<"/summary">) => {
     bodyProfile,
     latestTarget,
   ] = await Promise.all([
-    getWeekSchedule(user.id, schedule.weekStart),
+    getMyWeekSchedule(schedule.weekStart),
     getNutritionWeek(user.id, schedule.weekStart),
     getWeightTrend(user.id, schedule.weekStart, WEIGHT_CHART_WEEKS),
     getTodayWeight(user.id, today),

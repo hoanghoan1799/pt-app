@@ -1,14 +1,17 @@
-import { createClient } from "@libsql/client";
 import { expect, type Page, test } from "@playwright/test";
 
 import {
+  findApiExerciseId,
+  logApiSets,
+  loginTraineeApi,
+} from "./api-seed-workouts";
+import {
   E2E_ADMIN,
-  E2E_DB_URL,
   E2E_EMPTY_NAME,
   E2E_LIFTER_NAME,
 } from "./config";
 import { answerConfirm } from "./confirm";
-import { E2E_NEW_VIDEO_ID, E2E_PT_EXERCISES } from "./seed";
+import { E2E_NEW_VIDEO_ID, E2E_PT_EXERCISES, getE2eDates } from "./seed";
 
 const NEW_LINK = `https://youtu.be/${E2E_NEW_VIDEO_ID}`;
 
@@ -236,19 +239,16 @@ test("C13: deleting an exercise whose sets were logged after the page loaded sti
   await expect(card.getByText("Đã ghi:")).toHaveCount(0);
 
   // The trainee logs a set after the PT's page loaded.
-  const client = createClient({ url: E2E_DB_URL });
+  const trainee = await loginTraineeApi(E2E_LIFTER_NAME);
+  const exerciseId = await findApiExerciseId(
+    trainee,
+    getE2eDates().today,
+    E2E_PT_EXERCISES.STALE,
+  );
 
-  try {
-    await client.execute({
-      sql: `INSERT INTO exercise_sets (exercise_id, user_id, position, weight_kg, reps)
-            SELECT e.id, d.user_id, 0, 25, 10
-            FROM exercises e JOIN workout_days d ON d.id = e.day_id
-            WHERE e.title = ?`,
-      args: [E2E_PT_EXERCISES.STALE],
-    });
-  } finally {
-    client.close();
-  }
+  await logApiSets(trainee, exerciseId, [{ weightKg: 25, reps: 10 }], {
+    keepCompletion: true,
+  });
 
   // The PT accepts the plain confirm, the server asks again, the PT dismisses.
   await card.getByRole("button", { name: "Xóa", exact: true }).click();

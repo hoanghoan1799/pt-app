@@ -17,7 +17,7 @@ import {
   getWeightTrend,
 } from "@/features/nutrition/services/body-profile-service";
 import { getNutritionWeek } from "@/features/nutrition/services/nutrition-queries";
-import { getWeekSchedule } from "@/features/workouts/services/workout-queries";
+import { getTraineeWeekSchedule } from "@/features/workouts/services/workout-api";
 import { requireAdmin } from "@/services/auth-guard";
 import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
@@ -58,7 +58,7 @@ const AdminSummaryPage = async ({
   );
   const [workoutDays, nutritionDays, weightWeeks, todayWeight, progressRows] =
     await Promise.all([
-      getWeekSchedule(user.id, schedule.weekStart),
+      getTraineeWeekSchedule(user.id, schedule.weekStart),
       getNutritionWeek(user.id, schedule.weekStart),
       getWeightTrend(user.id, schedule.weekStart, WEIGHT_CHART_WEEKS),
       getTodayWeight(user.id, today),
