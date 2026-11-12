@@ -33,6 +33,12 @@ export const envSchema = z.object({
   ),
   // The only required variable: the API cannot start without its database.
   DATABASE_URL: z.string().regex(/^postgres(ql)?:\/\//),
+  // Requests per minute and IP on the credential routes (login, passcode).
+  // The per-account lockout in the database is separate and always on.
+  LOGIN_THROTTLE_LIMIT: z.preprocess(
+    emptyToUndefined,
+    z.coerce.number().int().min(1).max(100000).default(20),
+  ),
   // Unset means "info" in development and "warn" in production.
   LOG_LEVEL: z.preprocess(emptyToUndefined, z.enum(LOG_LEVELS).optional()),
 });

@@ -74,6 +74,13 @@ jobs:
           pnpm --filter @pt/api migration:run
           pnpm --filter @pt/api migration:check
 
+      # Fails when the committed OpenAPI file (input of the typed web client)
+      # no longer matches the controllers: regenerate and commit it.
+      - name: OpenAPI is up to date
+        run: |
+          pnpm --filter @pt/api openapi
+          git diff --exit-code -- apps/api/openapi.json
+
       - run: pnpm --filter @pt/api build
 
   # The required status check (branch protection: `checks-api`).

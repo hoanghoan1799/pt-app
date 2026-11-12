@@ -20,13 +20,16 @@
     "migration:run": "pnpm typeorm migration:run -d src/data-source.ts",
     "migration:revert": "pnpm typeorm migration:revert -d src/data-source.ts",
     "migration:check": "pnpm typeorm migration:generate -d src/data-source.ts --check src/migrations/CheckPending",
-    "migrate": "node dist/migrate.js"
+    "migrate": "node dist/migrate.js",
+    "openapi": "tsc -p tsconfig.build.json && node dist/openapi/write.js",
+    "admin:create": "node --env-file-if-exists=.env --import tsx src/scripts/create-admin.ts"
   },
   "dependencies": {
     "@nestjs/common": "12.4.2",
     "@nestjs/core": "12.4.2",
     "@nestjs/platform-express": "12.4.2",
     "@nestjs/swagger": "12.1.1",
+    "@nestjs/throttler": "6.7.1",
     "@nestjs/typeorm": "12.0.3",
     "@pt/contracts": "workspace:*",
     "nestjs-pino": "5.3.1",

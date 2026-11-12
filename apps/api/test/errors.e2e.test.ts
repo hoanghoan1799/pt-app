@@ -7,6 +7,7 @@ import { DataSource } from "typeorm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 
+import { Public } from "../src/auth/decorators/index.js";
 import { AllExceptionsFilter } from "../src/common/filters/all-exceptions.filter.js";
 import { createTestApp } from "./support/app.js";
 import { createTestDatabase, type TestDatabase } from "./support/database.js";
@@ -14,6 +15,7 @@ import { createTestDatabase, type TestDatabase } from "./support/database.js";
 const bodySchema = z.object({ name: z.string().min(2) });
 
 // Routes that fail in the ways a real feature module will.
+@Public()
 @Controller("boom")
 class BoomController {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}

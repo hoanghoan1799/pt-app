@@ -49,7 +49,23 @@ class ProbeController {
   get() {
     // What a service might log by mistake.
     this.logger.warn(
-      { user: { password: "pw-in-object", token: "tok-in-object" } },
+      {
+        user: { password: "pw-in-object", token: "tok-in-object" },
+        body: {
+          currentPassword: "cur-pw-in-object",
+          newPassword: "new-pw-in-object",
+          currentPasscode: "cur-code-in-object",
+          newPasscode: "new-code-in-object",
+        },
+        admin: {
+          passwordHash: "pwhash-in-object",
+          passcodeHash: "pchash-in-object",
+        },
+        session: {
+          tokenHash: "tokhash-in-object",
+          authorization: "Bearer in-object",
+        },
+      },
       "probe",
     );
     return { ok: true };
@@ -105,6 +121,14 @@ describe("log content", () => {
       "cookie-secret",
       "pw-in-object",
       "tok-in-object",
+      "cur-pw-in-object",
+      "new-pw-in-object",
+      "cur-code-in-object",
+      "new-code-in-object",
+      "pwhash-in-object",
+      "pchash-in-object",
+      "tokhash-in-object",
+      "Bearer in-object",
       "request-body-marker",
       "response-body-marker",
     ]) {

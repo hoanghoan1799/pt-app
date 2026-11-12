@@ -12,10 +12,14 @@ export const createTestApp = async (options: {
   nodeEnv: "development" | "test" | "production";
   controllers?: Type[];
   overrideProviders?: { token: unknown; value: unknown }[];
+  // Extra environment variables, e.g. LOGIN_THROTTLE_LIMIT.
+  env?: Record<string, string>;
 }): Promise<INestApplication> => {
   process.env.DATABASE_URL = options.databaseUrl;
   process.env.NODE_ENV = options.nodeEnv;
   process.env.LOG_LEVEL = "silent";
+  process.env.LOGIN_THROTTLE_LIMIT = "100000";
+  Object.assign(process.env, options.env);
 
   let builder = Test.createTestingModule({
     imports: [AppModule],

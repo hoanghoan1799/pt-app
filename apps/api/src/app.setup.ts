@@ -33,20 +33,22 @@ const validationPipe = () =>
       }),
   });
 
-// Swagger UI is a development aid: it is never mounted in production.
-const setupSwagger = (app: INestApplication) => {
-  const config = new DocumentBuilder()
+export const buildOpenApiConfig = () =>
+  new DocumentBuilder()
     .setTitle("PT App API")
     .setDescription("REST API under /v1. Additive changes only.")
     .setVersion("1")
     .addBearerAuth()
     .build();
 
-  SwaggerModule.setup(
-    DOCS_PATH,
-    app,
-    SwaggerModule.createDocument(app, config),
-  );
+// The OpenAPI document, shared by Swagger UI, `pnpm openapi` and the test that
+// fails when apps/api/openapi.json is stale.
+export const buildOpenApiDocument = (app: INestApplication) =>
+  SwaggerModule.createDocument(app, buildOpenApiConfig());
+
+// Swagger UI is a development aid: it is never mounted in production.
+const setupSwagger = (app: INestApplication) => {
+  SwaggerModule.setup(DOCS_PATH, app, buildOpenApiDocument(app));
 };
 
 // Shared by main.ts and the e2e tests so both see the same routes.
