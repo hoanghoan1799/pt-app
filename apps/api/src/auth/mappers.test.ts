@@ -31,6 +31,10 @@ const user: UserActor = {
   email: "an@example.com",
   locale: "vi",
   ptAdminId: 2,
+  chatEnabled: false,
+  termsVersion: null,
+  preferredMealCount: null,
+  foodNote: null,
   session,
 };
 

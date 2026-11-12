@@ -40,19 +40,3 @@ export const requireAdminForUser = async (
   // with its own "not found" message.
   return allowed || !(await userExists(userId)) ? admin : notFound();
 };
-
-// For raw ids that may belong to other workspaces: keeps only the trainees
-// this admin may work with.
-export const filterUserIdsInScope = async (
-  adminId: number,
-  userIds: number[],
-) => {
-  const allowed: number[] = [];
-
-  for (const id of userIds) {
-    if (await isUserInAdminScope(adminId, id)) {
-      allowed.push(id);
-    }
-  }
-  return allowed;
-};

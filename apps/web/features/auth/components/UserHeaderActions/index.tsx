@@ -1,5 +1,5 @@
 import { HeaderMenus } from "@/components/layout/HeaderMenus";
-import { getAvatarUrl } from "@/features/avatar/services/avatar";
+import { getOwnAvatarUrl } from "@/features/avatar/services/own-avatar";
 import { profilePath } from "@/features/social/utils/post-rules";
 import { requireUser } from "@/services/auth-guard";
 
@@ -12,7 +12,7 @@ export const UserHeaderActions = async () => {
     <HeaderMenus
       role="user"
       name={user.name}
-      avatarUrl={await getAvatarUrl("user", user.id)}
+      avatarUrl={await getOwnAvatarUrl("user")}
       profileHref={profilePath("user", user.id)}
     />
   );

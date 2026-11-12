@@ -6,7 +6,6 @@ const state = vi.hoisted(() => ({
   // What GET /v1/auth/me answers for each cookie; null = signed out.
   admin: null as unknown,
   user: null as unknown,
-  legacyUser: null as unknown,
 }));
 
 vi.mock("server-only", () => ({}));
@@ -25,17 +24,12 @@ vi.mock("@/services/api/me", () => ({
     role === "admin" ? state.admin : state.user,
   ),
 }));
-vi.mock("@/services/users", () => ({
-  findUserById: vi.fn(async () => state.legacyUser),
-  emptyUserRow: vi.fn(() => ({ termsVersion: null, chatEnabled: null })),
-}));
 
 const guard = await import("@/services/auth-guard");
 
 beforeEach(() => {
   state.admin = fakeAdminMe({ id: 7, username: "pt", hasPasscode: true });
   state.user = null;
-  state.legacyUser = null;
 });
 
 const lockedAdmin = () =>
@@ -116,23 +110,36 @@ describe("admin lock guards", () => {
 });
 
 describe("user guards", () => {
-  it("returns the API fields over the legacy row", async () => {
-    state.user = fakeUserMe({ id: 4, name: "An", email: "an@e2e.test" });
-    state.legacyUser = { id: 4, name: "Old name", termsVersion: 2 };
-
-    expect(await guard.requireUser()).toMatchObject({
+  it("returns the trainee the API reports, with no database row behind it", async () => {
+    state.user = fakeUserMe({
       id: 4,
       name: "An",
       email: "an@e2e.test",
+      chatEnabled: true,
       termsVersion: 2,
+      preferredMealCount: 4,
+      foodNote: "no peanuts",
+    });
+
+    expect(await guard.requireUser()).toEqual({
+      id: 4,
+      name: "An",
+      email: "an@e2e.test",
+      locale: null,
+      ptAdminId: null,
+      chatEnabled: true,
+      termsVersion: 2,
+      preferredMealCount: 4,
+      foodNote: "no peanuts",
     });
   });
 
-  it("still signs in a trainee that has no legacy row", async () => {
+  it("gives a new trainee a locked chat and no terms", async () => {
     state.user = fakeUserMe({ id: 4 });
 
     expect(await guard.requireUser()).toMatchObject({
       id: 4,
+      chatEnabled: false,
       termsVersion: null,
     });
   });

@@ -21,7 +21,7 @@ import {
   SECTION_TITLE,
 } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
-import { getAvatarUrl } from "@/features/avatar/services/avatar";
+import { getOwnAvatarUrl } from "@/features/avatar/services/own-avatar";
 import { AdminUnreadBadge } from "@/features/chat/components/UnreadBadge";
 import { loadAdminAccountColor } from "@/features/chat/services/chat-profile";
 import {
@@ -94,7 +94,7 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     getRecentActivity({ limit: RECENT_ACTIVITY_LIMIT, adminId: admin.id }),
     countUnreadForAdmin(admin.id),
     listUnreadByTraineeForAdmin(admin.id),
-    getAvatarUrl("admin", admin.id),
+    getOwnAvatarUrl("admin"),
     loadAdminAccountColor(admin.id),
     isSuperAdmin(admin) ? countOpenReports() : 0,
   ]);

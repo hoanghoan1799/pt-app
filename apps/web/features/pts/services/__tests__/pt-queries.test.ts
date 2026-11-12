@@ -1,57 +1,66 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
-import { admins, users } from "@/db/schema";
+import type { FakeApi } from "@/services/api/testing";
 
-const state = vi.hoisted(() => ({ db: null as unknown }));
+const state = vi.hoisted(() => ({ fake: null as FakeApi | null }));
+const fake = () => state.fake as FakeApi;
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/db", () => ({
-  db: new Proxy(
-    {},
-    { get: (_target, property) => Reflect.get(state.db as object, property) },
-  ),
-}));
+vi.mock("@/services/api/call", async () => {
+  const { createFakeApi } = await import("@/services/api/testing");
 
-const { listAdminAccounts, listWorkspaceTrainees } =
-  await import("@/features/pts/services/pt-queries");
-
-let db: TestDb;
-
-beforeEach(async () => {
-  db = await createTestDb();
-  state.db = db;
+  state.fake = createFakeApi();
+  return { callApi: state.fake.callApi, tryApi: state.fake.tryApi };
 });
 
-describe("PT trainee counts", () => {
-  it("counts each PT's trainees and lists everyone with their PT", async () => {
-    const [root, a, b] = await db
-      .insert(admins)
-      .values([
-        { username: "root", usernameKey: "root", passwordHash: "x" },
-        { username: "a", usernameKey: "a", passwordHash: "x", role: "pt" },
-        { username: "b", usernameKey: "b", passwordHash: "x", role: "pt" },
-      ])
-      .returning({ id: admins.id });
+const { listAdminAccounts, listPtOptions, listWorkspaceTrainees } =
+  await import("@/features/pts/services/pt-queries");
 
-    await db.insert(users).values([
-      { name: "U1", nameKey: "u1", ptAdminId: a.id },
-      { name: "U2", nameKey: "u2", ptAdminId: a.id },
-      { name: "U3", nameKey: "u3" },
+const ACCOUNTS = [
+  {
+    id: 1,
+    username: "root",
+    role: "super_admin",
+    verified: true,
+    traineeCount: 0,
+  },
+  { id: 3, username: "zed", role: "pt", verified: false, traineeCount: 0 },
+  { id: 2, username: "an", role: "pt", verified: false, traineeCount: 2 },
+];
+
+beforeEach(() => {
+  fake().reset();
+  fake().respond = ({ path }) =>
+    path === "/v1/pts"
+      ? { accounts: ACCOUNTS }
+      : {
+          trainees: [
+            { id: 10, name: "U1", displayName: "Bé 1", ptAdminId: 2 },
+            { id: 11, name: "U3", displayName: "U3", ptAdminId: null },
+          ],
+        };
+});
+
+// The trainee counts per PT are the API's: apps/api/test/admins.e2e.test.ts.
+describe("PT queries", () => {
+  it("lists every admin account with its trainee count and tick", async () => {
+    expect(await listAdminAccounts()).toEqual(ACCOUNTS);
+    expect(fake().calls).toMatchObject([
+      { actor: "admin", method: "GET", path: "/v1/pts" },
     ]);
+  });
 
-    const accounts = await listAdminAccounts();
-    const trainees = await listWorkspaceTrainees();
-
-    expect(accounts.map((x) => [x.id, x.traineeCount])).toEqual([
-      [root.id, 0],
-      [a.id, 2],
-      [b.id, 0],
+  it("lists every trainee with the real name and their PT", async () => {
+    expect(await listWorkspaceTrainees()).toEqual([
+      { id: 10, name: "U1", ptAdminId: 2 },
+      { id: 11, name: "U3", ptAdminId: null },
     ]);
-    expect(trainees.map((t) => [t.name, t.ptAdminId])).toEqual([
-      ["U1", a.id],
-      ["U2", a.id],
-      ["U3", null],
+  });
+
+  it("offers only PT accounts, by username", async () => {
+    expect(await listPtOptions()).toEqual([
+      { id: 2, username: "an" },
+      { id: 3, username: "zed" },
     ]);
   });
 });

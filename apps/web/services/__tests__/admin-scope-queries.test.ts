@@ -26,7 +26,6 @@ vi.mock("@/services/admin-lock", () => ({
 }));
 
 const chat = await import("@/features/chat/services/chat-queries");
-const members = await import("@/features/members/services/member-queries");
 const dashboard =
   await import("@/features/dashboard/services/dashboard-queries");
 
@@ -119,19 +118,6 @@ describe("P1 scope across admin lists", () => {
 
     expect(activity.every((item) => item.userId === mine)).toBe(true);
     expect(activity.length).toBeGreaterThan(0);
-  });
-
-  it("member picker lists only the workspace, and ignores keepUserId outside it", async () => {
-    expect((await members.listMembers(ptA)).map((row) => row.id)).toEqual([
-      mine,
-    ]);
-    expect(
-      (await members.listMembers(ptA, theirs)).map((row) => row.id),
-    ).toEqual([mine]);
-    expect((await members.listMembers(superId)).map((row) => row.id)).toEqual([
-      mine,
-      theirs,
-    ]);
   });
 
   it("inbox and unread counts only cover the PT's trainees", async () => {

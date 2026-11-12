@@ -38,7 +38,6 @@ vi.mock("@/services/auth-guard", () => ({
 const guard = await import("@/services/hidden-users");
 const dashboard =
   await import("@/features/dashboard/services/dashboard-queries");
-const members = await import("@/features/members/services/member-queries");
 const messagesRoute =
   await import("@/app/api/admin/chat/[conversationId]/messages/route");
 const peerRoute = await import("@/app/api/presence/peer/route");
@@ -136,28 +135,6 @@ describe("dashboard member list, totals and recent activity", () => {
     expect(
       names(await dashboard.getRecentActivity({ limit: 20, userId: binh })),
     ).toEqual(["Binh"]);
-  });
-});
-
-describe("listMembers", () => {
-  it("leaves hidden trainees out, but keeps the one whose page is open", async () => {
-    const an = await addUser("An");
-    const binh = await addUser("Binh");
-    const cuc = await addUser("Cuc");
-
-    await hide(A, binh);
-    await hide(A, cuc);
-
-    expect((await members.listMembers(A)).map((m) => m.id)).toEqual([an]);
-    expect((await members.listMembers(A, binh)).map((m) => m.id)).toEqual([
-      an,
-      binh,
-    ]);
-    expect((await members.listMembers(B)).map((m) => m.id)).toEqual([
-      an,
-      binh,
-      cuc,
-    ]);
   });
 });
 

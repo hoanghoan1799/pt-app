@@ -1,11 +1,5 @@
-import "server-only";
-
-import { and, eq } from "drizzle-orm";
-
-import { db } from "@/db";
-import { admins } from "@/db/schema";
 import { PT_MESSAGES } from "@/features/pts/constants/messages";
-import { isSuperAdmin } from "@/services/admin-scope";
+import { isSuperAdmin } from "@/utils/admin-role";
 
 export type ResolveTraineePtResult =
   | { status: "ok"; ptAdminId: number | null }
@@ -13,11 +7,12 @@ export type ResolveTraineePtResult =
 
 // Which PT a newly created trainee belongs to (W1). A PT always gets their own
 // workspace, whatever the form says; a super admin may leave it empty or pick
-// an existing PT account.
-export const resolveTraineePt = async (
+// a PT account. Only the shape is checked here: the API (POST /v1/trainees)
+// answers PT_NOT_FOUND for an id that is not a PT account.
+export const resolveTraineePt = (
   admin: { id: number; role: "super_admin" | "pt" },
   rawPtId: string,
-): Promise<ResolveTraineePtResult> => {
+): ResolveTraineePtResult => {
   if (!isSuperAdmin(admin)) {
     return { status: "ok", ptAdminId: admin.id };
   }
@@ -30,17 +25,7 @@ export const resolveTraineePt = async (
 
   const ptAdminId = Number(trimmed);
 
-  if (!Number.isInteger(ptAdminId) || ptAdminId <= 0) {
-    return { status: "error", message: PT_MESSAGES.PT_NOT_FOUND };
-  }
-
-  const [pt] = await db
-    .select({ id: admins.id })
-    .from(admins)
-    .where(and(eq(admins.id, ptAdminId), eq(admins.role, "pt")))
-    .limit(1);
-
-  return pt
+  return Number.isInteger(ptAdminId) && ptAdminId > 0
     ? { status: "ok", ptAdminId }
     : { status: "error", message: PT_MESSAGES.PT_NOT_FOUND };
 };

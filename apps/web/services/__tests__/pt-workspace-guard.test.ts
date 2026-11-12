@@ -8,7 +8,6 @@ import {
   admins,
   chatConversations,
   chatMessages,
-  contactAliases,
   nutritionTargets,
   users,
   workoutDays,
@@ -51,15 +50,9 @@ const workouts = await import("@/features/workouts/services/workout-actions");
 const nutrition =
   await import("@/features/nutrition/services/nutrition-actions");
 const plans = await import("@/features/meal-plans/services/meal-plan-actions");
-const memberLogin =
-  await import("@/features/members/services/member-login-actions");
-const memberActions =
-  await import("@/features/members/services/member-actions");
 const chatAdmin = await import("@/features/chat/services/chat-admin-actions");
 const chatProfile =
   await import("@/features/chat/services/chat-profile-actions");
-const contactAliasActions =
-  await import("@/features/contact-aliases/services/contact-alias-actions");
 const chatActions = await import("@/features/chat/services/chat-actions");
 const chatHidden = await import("@/features/chat/services/chat-hidden");
 const ablyRoute = await import("@/app/api/chat/ably-token/route");
@@ -227,33 +220,6 @@ describe("meal plans", () => {
   });
 });
 
-describe("members", () => {
-  it("refuses password reset, email change and delete across workspaces", async () => {
-    expect(
-      await outcome(() => memberLogin.resetMemberPasswordAction(theirs)),
-    ).toBe("denied");
-    expect(
-      await outcome(() =>
-        memberLogin.changeMemberEmailAction(theirs, "new@x.vn"),
-      ),
-    ).toBe("denied");
-    expect(await outcome(() => memberActions.deleteMemberAction(theirs))).toBe(
-      "denied",
-    );
-    expect(await db.select().from(users)).toHaveLength(2);
-  });
-
-  it("lets a PT reset the password of and delete their own trainee", async () => {
-    const reset = await memberLogin.resetMemberPasswordAction(mine);
-
-    expect(reset.status).toBe("success");
-    await outcome(() => memberActions.deleteMemberAction(mine));
-    expect((await db.select().from(users)).map((row) => row.id)).toEqual([
-      theirs,
-    ]);
-  });
-});
-
 describe("chat", () => {
   it("setChatEnabled, read marks and nicknames are scoped", async () => {
     expect(
@@ -285,23 +251,6 @@ describe("chat", () => {
         }),
       ),
     ).toBe("denied");
-  });
-
-  it("private nicknames are refused for another workspace's trainee", async () => {
-    expect(
-      await contactAliasActions.adminSetContactAliasAction({
-        targetKey: `user:${theirs}`,
-        alias: "Bé",
-      }),
-    ).toMatchObject({ status: "error" });
-    expect(await db.select().from(contactAliases)).toHaveLength(0);
-    expect(
-      await contactAliasActions.adminSetContactAliasAction({
-        targetKey: `user:${mine}`,
-        alias: "Bé",
-      }),
-    ).toMatchObject({ status: "success", alias: "Bé" });
-    expect(await db.select().from(contactAliases)).toHaveLength(1);
   });
 
   it("colour overrides are refused for another workspace", async () => {

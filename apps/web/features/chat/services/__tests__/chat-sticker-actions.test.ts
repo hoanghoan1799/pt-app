@@ -28,6 +28,21 @@ vi.mock("@/services/api/me", async () => {
   const { fakeAdminMe, fakeUserMe } = await import("@/services/api/testing");
 
   // GET /v1/auth/me is the only thing faked: the real guards run.
+  // /auth/me carries the trainee's chat permission and terms version: read
+  // them from the seeded row, as the old legacy merge did.
+  const { eq: equals } = await import("drizzle-orm");
+  const { users: usersTable } = await import("@/db/schema");
+  const userFlags = async (id: number) => {
+    const [row] = await (state.db as TestDb)
+      .select()
+      .from(usersTable)
+      .where(equals(usersTable.id, id));
+
+    return {
+      chatEnabled: row?.chatEnabled === true,
+      termsVersion: row?.termsVersion ?? null,
+    };
+  };
   return {
     fetchMe: vi.fn(async (role: string) => {
       if (role !== state.role) {
@@ -35,7 +50,7 @@ vi.mock("@/services/api/me", async () => {
       }
       return role === "admin"
         ? fakeAdminMe({ id: state.adminId, username: "pt" })
-        : fakeUserMe({ id: state.userId });
+        : fakeUserMe({ ...(await userFlags(state.userId)), id: state.userId });
     }),
   };
 });
