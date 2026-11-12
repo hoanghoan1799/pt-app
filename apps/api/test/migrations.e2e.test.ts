@@ -75,7 +75,13 @@ describe("baseline migration", () => {
   });
 
   it("reverts to an empty schema and applies again", async () => {
+    // The newest migrations revert on their own and leave the tables behind.
     await db.dataSource.undoLastMigration({ transaction: "each" });
+    expect(await publicTables(db)).toHaveLength(EXPECTED_TABLES);
+
+    for (let index = 1; index < migrations.length; index += 1) {
+      await db.dataSource.undoLastMigration({ transaction: "each" });
+    }
     expect(await publicTables(db)).toEqual([]);
 
     await db.dataSource.runMigrations({ transaction: "each" });

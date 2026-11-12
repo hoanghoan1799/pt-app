@@ -39,6 +39,9 @@ export const envSchema = z.object({
     emptyToUndefined,
     z.coerce.number().int().min(1).max(100000).default(20),
   ),
+  // GIPHY sticker search. Optional: without a key the GIPHY tab switches off
+  // (the endpoint answers `{ enabled: false }`).
+  GIPHY_API_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   // Unset means "info" in development and "warn" in production.
   LOG_LEVEL: z.preprocess(emptyToUndefined, z.enum(LOG_LEVELS).optional()),
 });

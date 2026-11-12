@@ -7,6 +7,8 @@ import { loadTursoColumns } from "./turso-columns.js";
 // Columns PostgreSQL has and SQLite never had; the migration fills them.
 const PG_ONLY_COLUMNS: Record<string, string[]> = {
   push_subscriptions: ["kind"],
+  // Idempotency-Key of a chat photo upload (new in the API; NULL for old rows).
+  chat_photos: ["client_id"],
 };
 // Tables PostgreSQL has and SQLite never had.
 const PG_ONLY_TABLES = ["sessions"];

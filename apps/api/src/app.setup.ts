@@ -12,6 +12,7 @@ import type { Env } from "./config/env.schema.js";
 
 export const API_PREFIX = "v1";
 export const JSON_BODY_LIMIT = "256kb";
+export const RAW_BODY_LIMIT = "2mb";
 export const DOCS_PATH = `${API_PREFIX}/docs`;
 
 // Zod schemas from @pt/contracts are attached to routes (`@Body({ schema })`);
@@ -61,6 +62,13 @@ export const configureApp = (app: INestApplication) => {
   // The service still answers an over-size photo with its own message.
   (app as unknown as NestExpressApplication).useBodyParser("json", {
     limit: JSON_BODY_LIMIT,
+  });
+  // Chat photos and personal stickers arrive as raw image bytes; the services
+  // check the real size and answer with their own message, so this only caps
+  // what is read into memory.
+  (app as unknown as NestExpressApplication).useBodyParser("raw", {
+    type: ["image/*"],
+    limit: RAW_BODY_LIMIT,
   });
   app.setGlobalPrefix(API_PREFIX);
   app.useGlobalFilters(app.get(AllExceptionsFilter));
