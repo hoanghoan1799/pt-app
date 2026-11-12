@@ -3,8 +3,6 @@ import { resolve } from "node:path";
 // Single source of truth for the e2e database. Everything the e2e touches
 // (Next server, drizzle-kit push, seed) gets this URL, never one from the
 // shell or `.env.local`.
-// Ports can be overridden (E2E_PORT, E2E_API_PORT, E2E_PG_PORT) so two runs can
-// share a machine.
 export const E2E_PORT = Number(process.env.E2E_PORT ?? 3100);
 export const E2E_BASE_URL = `http://localhost:${E2E_PORT}`;
 export const E2E_TMP_DIR = resolve(__dirname, ".tmp");

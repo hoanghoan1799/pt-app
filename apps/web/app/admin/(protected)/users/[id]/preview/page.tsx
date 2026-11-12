@@ -8,7 +8,7 @@ import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
 import { getTraineeDisplayName } from "@/features/chat/services/chat-queries";
 import { WorkoutWeek } from "@/features/workouts/components/WorkoutWeek";
-import { getWeekScheduleWithSets } from "@/features/workouts/services/workout-queries";
+import { getTraineeWeekSchedule } from "@/features/workouts/services/workout-api";
 import { requireAdmin } from "@/services/auth-guard";
 import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
@@ -43,7 +43,7 @@ const AdminPreviewPage = async ({
     { week: readSearchParam(query.week), day: readSearchParam(query.day) },
     today,
   );
-  const days = await getWeekScheduleWithSets(user.id, schedule.weekStart);
+  const days = await getTraineeWeekSchedule(user.id, schedule.weekStart);
 
   return (
     <>

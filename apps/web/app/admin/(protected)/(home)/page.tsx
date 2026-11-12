@@ -36,7 +36,7 @@ import { RECENT_ACTIVITY_LIMIT } from "@/features/dashboard/constants/dashboard"
 import {
   getMemberProgress,
   getRecentActivity,
-} from "@/features/dashboard/services/dashboard-queries";
+} from "@/features/dashboard/services/dashboard-api";
 import { parsePtFilter } from "@/features/dashboard/utils/pt-filter";
 import {
   summarizeWeek,
@@ -90,21 +90,14 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     openReports,
   ] = await Promise.all([
     isSuper ? listPtOptions() : Promise.resolve([]),
-    getMemberProgress(schedule.weekStart, admin.id, ptFilter),
-    getRecentActivity({ limit: RECENT_ACTIVITY_LIMIT, adminId: admin.id }),
+    getMemberProgress(schedule.weekStart, ptFilter),
+    getRecentActivity({ limit: RECENT_ACTIVITY_LIMIT }),
     countUnreadForAdmin(admin.id),
     listUnreadByTraineeForAdmin(admin.id),
     getAvatarUrl("admin", admin.id),
     loadAdminAccountColor(admin.id),
     isSuperAdmin(admin) ? countOpenReports() : 0,
   ]);
-  const displayNames = new Map(
-    members.map((member) => [member.id, member.displayName]),
-  );
-  const namedActivity = activity.map((item) => ({
-    ...item,
-    displayName: displayNames.get(item.userId) ?? item.userName,
-  }));
   const rows = toMemberRows(members, {
     weekStart: schedule.weekStart,
     timeZone: TIME_ZONE,
@@ -227,7 +220,7 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
         </section>
         <section className="space-y-2">
           <h2 className={SECTION_TITLE}>{t("recentActivity")}</h2>
-          <RecentActivityList items={namedActivity} isUserShown now={now} />
+          <RecentActivityList items={activity} isUserShown now={now} />
         </section>
       </main>
       <ScrollToTopButton />
