@@ -1,21 +1,12 @@
-import swc from "unplugin-swc";
 import { defineConfig } from "vitest/config";
 
+import { swcPlugin } from "./vitest.swc.js";
+
+// Fast unit tests: no Docker, no database. Container tests: vitest.e2e.config.ts.
 export default defineConfig({
-  // SWC emits the decorator metadata that Nest's dependency injection reads;
-  // esbuild, the Vitest default, does not.
-  plugins: [
-    swc.vite({
-      module: { type: "es6" },
-      jsc: {
-        target: "es2022",
-        parser: { syntax: "typescript", decorators: true },
-        transform: { legacyDecorator: true, decoratorMetadata: true },
-      },
-    }),
-  ],
+  plugins: [swcPlugin()],
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts", "test/**/*.test.ts"],
+    include: ["src/**/*.test.ts"],
   },
 });

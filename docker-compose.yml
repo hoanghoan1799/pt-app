@@ -21,6 +21,9 @@ services:
       DATABASE_URL: postgres://pt:pt_local_only@db:5432/ptapp
       WEB_ORIGIN: http://localhost:3000
       PORT: "4000"
+    # Migrations run on every start (a no-op when the schema is current), then
+    # the API starts. Nothing to run by hand.
+    command: ["sh", "-c", "node dist/migrate.js && node dist/main.js"]
     depends_on: { db: { condition: service_healthy } }
     ports: ["4000:4000"]
   adminer: # optional: docker compose --profile tools up
