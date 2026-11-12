@@ -84,17 +84,45 @@ const replyTo = async (page: Page, text: string, reply: string) => {
   await send(page, reply);
 };
 
-const openSheet = async (page: Page, name: string) => {
-  await page.getByRole("button", { name }).click();
+// The settings live on the chat info page since KAN-160: the header's info
+// link opens it and "Tuỳ chỉnh" shows the panel (nicknames, colours, photo).
+const INFO_LINK = "Thông tin cuộc trò chuyện";
+
+const showCustomize = async (page: Page) => {
+  await page.getByRole("button", { name: "Tuỳ chỉnh" }).click();
   await expect(page.locator("[data-chat-settings]")).toBeVisible();
+};
+
+const openSettings = async (page: Page) => {
+  await page.getByRole("link", { name: INFO_LINK }).click();
+  await showCustomize(page);
+};
+
+// Back from the info page to the thread.
+const closeSettings = async (page: Page) => {
+  await page.goBack();
+  await expect(page.locator("[data-chat-settings]")).toHaveCount(0);
 };
 
 const saveNickname = async (page: Page, id: string, value: string) => {
   const field = page.locator(`#${id}`);
+  // The nickname block holds the input, its Lưu button and the counter.
+  const block = page.locator("[data-nickname-target]").filter({ has: field });
 
   await field.fill(value);
-  await field.locator("xpath=..").getByRole("button", { name: "Lưu" }).click();
-  await expect(field.locator("xpath=..")).not.toContainText("Đang lưu");
+  await block.getByRole("button", { name: "Lưu" }).click();
+  await expect(block).not.toContainText("Đang lưu");
+};
+
+// The admin account colour is in the header settings menu (gear), not in the
+// conversation panel: the colour of every chat without its own.
+const openAccountColor = async (page: Page) => {
+  await page.getByRole("button", { name: "Cài đặt" }).click();
+  await page.getByRole("menuitem", { name: "Màu tài khoản" }).click();
+  const group = page.getByRole("radiogroup", { name: "Màu tài khoản" });
+
+  await expect(group).toBeVisible();
+  return group;
 };
 
 const shoot = async (page: Page, name: string) => {
@@ -141,7 +169,7 @@ test.describe("chat settings", () => {
 
     // Trainee: private nickname for the PT, own colour. No field to rename
     // yourself.
-    await openSheet(t, "Cài đặt cuộc trò chuyện");
+    await openSettings(t);
     await expect(t.locator("#chat-nickname-other")).toBeVisible();
     await expect(t.locator("#chat-nickname-self")).toHaveCount(0);
     await expect(t.getByText("Chỉ bạn nhìn thấy biệt danh này")).toBeVisible();
@@ -165,8 +193,7 @@ test.describe("chat settings", () => {
         .getByRole("radio", { name: "Xanh dương" })
         .and(t.locator('[aria-checked="true"]')),
     ).toBeVisible();
-    await t.keyboard.press("Escape");
-    await expect(t.locator("[data-chat-settings]")).toHaveCount(0);
+    await closeSettings(t);
 
     await expect(t.getByRole("heading", { name: "Coach Hoan" })).toBeVisible();
     await expect(
@@ -190,34 +217,22 @@ test.describe("chat settings", () => {
       }),
     ).toBeVisible();
     await expect(a.getByText("Coach Hoan")).toHaveCount(0);
-    // The gear is an icon only: named for screen readers, no visible text.
-    await expect(
-      a.getByRole("button", { name: "Biệt danh và màu" }),
-    ).toHaveText("");
+    // The info link is an icon only: named for screen readers, no visible text.
+    await expect(a.getByRole("link", { name: INFO_LINK })).toHaveText("");
 
-    // Admin: private nickname for the trainee, conversation colour and
-    // account colour. No field to rename yourself.
-    await openSheet(a, "Biệt danh và màu");
+    // Admin: private nickname for the trainee and the conversation colour. No
+    // field to rename yourself.
+    await openSettings(a);
     await expect(
       a.getByRole("radiogroup", { name: "Màu cho cuộc trò chuyện này" }),
     ).toBeVisible();
+    // The account colour is not here (it lives in the header gear menu).
     await expect(
       a.getByRole("radiogroup", { name: "Màu tài khoản" }),
-    ).toBeVisible();
-    // Nothing saved yet: the default palette colour is preselected.
-    await expect(
-      a
-        .getByRole("radiogroup", { name: "Màu tài khoản" })
-        .getByRole("radio", { name: "Cam" }),
-    ).toHaveAttribute("aria-checked", "true");
-    await expect(
-      a
-        .getByRole("radiogroup", { name: "Màu tài khoản" })
-        .locator('[aria-checked="true"]'),
-    ).toHaveCount(1);
+    ).toHaveCount(0);
     await shoot(a, "admin-settings-sheet");
     await a
-      .getByRole("radiogroup", { name: "Màu tài khoản" })
+      .getByRole("radiogroup", { name: "Màu cho cuộc trò chuyện này" })
       .scrollIntoViewIfNeeded();
     await shoot(a, "admin-settings-sheet-colours");
     await expect(a.locator("#chat-nickname-self")).toHaveCount(0);
@@ -226,8 +241,7 @@ test.describe("chat settings", () => {
       .getByRole("radiogroup", { name: "Màu cho cuộc trò chuyện này" })
       .getByRole("radio", { name: "Xanh ngọc" })
       .click();
-    await a.keyboard.press("Escape");
-    await expect(a.locator("[data-chat-settings]")).toHaveCount(0);
+    await closeSettings(a);
     await expect(
       a.getByRole("heading", { level: 1, name: "Nhắn tin với Na nhỏ" }),
     ).toBeVisible();
@@ -290,12 +304,12 @@ test.describe("chat settings", () => {
     ).toHaveCount(0);
 
     // Clearing a nickname goes back to the real name, for that viewer only.
-    await openSheet(t, "Cài đặt cuộc trò chuyện");
+    await openSettings(t);
     await t
       .locator("[data-nickname-target='pt']")
       .getByRole("button", { name: "Xoá biệt danh" })
       .click();
-    await t.keyboard.press("Escape");
+    await closeSettings(t);
     await expect(t.getByRole("heading", { name: "Coach Hoan" })).toHaveCount(0);
 
     await trainee.context.close();
@@ -320,7 +334,7 @@ test.describe("chat settings", () => {
     await setLocked(userId);
 
     await t.reload();
-    await openSheet(t, "Cài đặt cuộc trò chuyện");
+    await openSettings(t);
     // A private nickname changes nobody else's view, so the lock does not
     // apply to it; the colours stay read-only.
     await expect(t.locator("#chat-nickname-other")).toBeEnabled();
@@ -334,7 +348,7 @@ test.describe("chat settings", () => {
 
     await logInAsAdmin(a);
     await a.goto(`/admin/users/${userId}/messages`);
-    await openSheet(a, "Biệt danh và màu");
+    await openSettings(a);
     await expect(a.locator("#chat-nickname-other")).toBeEnabled();
     await expect(
       a
@@ -342,8 +356,15 @@ test.describe("chat settings", () => {
         .getByRole("radio")
         .first(),
     ).toBeDisabled();
-    const account = a.getByRole("radiogroup", { name: "Màu tài khoản" });
+    // The account colour works while the chat is locked. Nothing saved yet:
+    // the default palette colour is preselected.
+    await a.goto("/admin");
+    const account = await openAccountColor(a);
 
+    await expect(account.getByRole("radio", { name: "Cam" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
     await expect(account.getByRole("radio").first()).toBeEnabled();
     await account.getByRole("radio", { name: "Tím" }).click();
     await expect(account.getByRole("radio", { name: "Tím" })).toHaveAttribute(
@@ -353,8 +374,7 @@ test.describe("chat settings", () => {
 
     // The saved account colour is preselected after a reload.
     await a.reload();
-    await openSheet(a, "Biệt danh và màu");
-    const reopened = a.getByRole("radiogroup", { name: "Màu tài khoản" });
+    const reopened = await openAccountColor(a);
 
     await expect(reopened.getByRole("radio", { name: "Tím" })).toHaveAttribute(
       "aria-checked",

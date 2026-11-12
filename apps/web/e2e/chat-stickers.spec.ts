@@ -529,11 +529,14 @@ test("a trainee turns a photo into a personal sticker, sends it and the PT sees 
         .toBeGreaterThan(0);
       await expect(bubble.locator("p")).toHaveCount(0);
     }
-    // The stored message carries the route URL, never a data URL.
+    // The stored message carries the API's route URL (the page shows it under
+    // this app's /api proxy), never a data URL.
     const rows = await getCustomStickerRows();
 
     expect(rows).toHaveLength(1);
-    expect(String(rows[0].sticker_url)).toBe(src);
+    expect(String(rows[0].sticker_url)).toBe(
+      (src ?? "").replace("/api/chat/", "/v1/chat/"),
+    );
     expect(String(rows[0].sticker_ref)).toBe(`custom:${src?.split("/").pop()}`);
 
     // The PT can load it (other side of the conversation) ...

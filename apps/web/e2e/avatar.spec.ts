@@ -92,8 +92,17 @@ const logInAsAdmin = async (page: Page) => {
   await expect(page).toHaveURL(/\/admin(\?.*)?$/);
 };
 
-const uploadAvatar = async (page: Page, gearName: string) => {
-  await page.getByRole("button", { name: gearName }).click();
+// The photo field is in the avatar sheet: header avatar menu, "Ảnh đại diện".
+// The chat thread header has no account menu, so this runs on /workouts (the
+// trainee) or /admin.
+const openAvatarSheet = async (page: Page) => {
+  await page.getByRole("button", { name: "Tài khoản" }).click();
+  await page.getByRole("menuitem", { name: "Ảnh đại diện" }).click();
+  await expect(page.locator("[data-avatar-field]")).toBeVisible();
+};
+
+const uploadAvatar = async (page: Page) => {
+  await openAvatarSheet(page);
   const field = page.locator("[data-avatar-field]");
 
   await expect(field).toBeVisible();
@@ -114,7 +123,7 @@ const uploadAvatar = async (page: Page, gearName: string) => {
   );
   await expect(field.getByRole("button", { name: "Xoá ảnh" })).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(page.locator("[data-chat-settings]")).toHaveCount(0);
+  await expect(page.locator("[data-avatar-field]")).toHaveCount(0);
 };
 
 test.describe("avatars", () => {
@@ -136,8 +145,7 @@ test.describe("avatars", () => {
       await t.goto("/");
       await fillTraineeLogin(t, E2E_CHAT_NAME);
       await expect(t).toHaveURL(/\/workouts/);
-      await t.goto("/messages/coach");
-      await uploadAvatar(t, "Cài đặt cuộc trò chuyện");
+      await uploadAvatar(t);
 
       await logInAsAdmin(a);
       await a.goto(`/admin/users/${userId}/messages`);
@@ -177,7 +185,8 @@ test.describe("avatars", () => {
       ).toHaveCount(1);
 
       // Remove it: the header is back to initials only.
-      await t.getByRole("button", { name: "Cài đặt cuộc trò chuyện" }).click();
+      await t.goto("/workouts");
+      await openAvatarSheet(t);
       await t
         .locator("[data-avatar-field]")
         .getByRole("button", { name: "Xoá ảnh" })
@@ -206,8 +215,8 @@ test.describe("avatars", () => {
 
     try {
       await logInAsAdmin(a);
+      await uploadAvatar(a);
       await a.goto(`/admin/users/${userId}/messages`);
-      await uploadAvatar(a, "Biệt danh và màu");
       await a.getByLabel("Nội dung tin nhắn").fill("Chào em");
       await a.getByRole("button", { name: "Gửi tin nhắn" }).click();
       await expect(a.getByText("Đang gửi…")).toHaveCount(0);

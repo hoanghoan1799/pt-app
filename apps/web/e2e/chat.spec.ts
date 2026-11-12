@@ -195,6 +195,9 @@ test("enable, message, reply, unread badges and the PT name work end to end", as
     await logInAsAdmin(admin);
     await setChatSwitch(admin, userId, true);
     await shot(admin, "chat-01-admin-enabled-empty", { fullPage: true });
+    // The thread exists from the moment chat is on, and an open admin thread
+    // reads what arrives. Leave it, so the trainee's message stays unread.
+    await admin.goto("/admin");
 
     // The trainee now has the tab and can send.
     await logInAsTrainee(trainee.page, E2E_CHAT_NAME);

@@ -238,6 +238,9 @@ test("long-press opens the sheet, a sheet reaction shows up, and the reactors sh
       sheet(trainee).getByRole("button", { name: "💪" }),
     ).toHaveAttribute("aria-pressed", "true");
     await sheet(trainee).getByRole("button", { name: "👍" }).click();
+    // Wait for the sheet to be gone: while it fades out its backdrop still
+    // takes the next press.
+    await expect(sheet(trainee)).toHaveCount(0);
     await expect(chip(trainee, mine, "👍 1")).toBeVisible();
     await expect(chip(trainee, mine, "💪 1")).toHaveCount(0);
     await expect(chip(admin, mine, "👍 1")).toBeVisible(SYNC);
@@ -246,6 +249,7 @@ test("long-press opens the sheet, a sheet reaction shows up, and the reactors sh
     // Picking the same emoji again removes it: only the PT's heart is left.
     await longPress(trainee, mine);
     await sheet(trainee).getByRole("button", { name: "👍" }).click();
+    await expect(sheet(trainee)).toHaveCount(0);
     await expect(chip(trainee, mine, "👍 1")).toHaveCount(0);
     await expect(chip(admin, mine, "👍 1")).toHaveCount(0, SYNC);
     await expect(chip(admin, mine, "❤️ 1")).toBeVisible();
