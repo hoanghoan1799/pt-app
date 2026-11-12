@@ -8,6 +8,7 @@ import { createLoggerModule } from "./common/logging/logging.module.js";
 import { AppConfigModule } from "./config/app-config.module.js";
 import { DatabaseModule } from "./database/database.module.js";
 import { HealthController } from "./health/health.controller.js";
+import { NutritionModule } from "./nutrition/nutrition.module.js";
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { HealthController } from "./health/health.controller.js";
     DatabaseModule,
     AuthModule,
     AdminsModule,
+    NutritionModule,
   ],
   controllers: [HealthController],
   // Registered globally in configureApp(): APP_FILTER would miss the 404 of
