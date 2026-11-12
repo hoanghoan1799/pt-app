@@ -3,6 +3,7 @@ import {
   type INestApplication,
   StandardSchemaValidationPipe,
 } from "@nestjs/common";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter.js";
@@ -10,6 +11,7 @@ import { APP_ENV } from "./config/app-config.module.js";
 import type { Env } from "./config/env.schema.js";
 
 export const API_PREFIX = "v1";
+export const JSON_BODY_LIMIT = "256kb";
 export const DOCS_PATH = `${API_PREFIX}/docs`;
 
 // Zod schemas from @pt/contracts are attached to routes (`@Body({ schema })`);
@@ -55,6 +57,11 @@ const setupSwagger = (app: INestApplication) => {
 export const configureApp = (app: INestApplication) => {
   const env = app.get<Env>(APP_ENV);
 
+  // Avatars arrive as data URLs (up to ~110 KB), over Express's 100 KB default.
+  // The service still answers an over-size photo with its own message.
+  (app as unknown as NestExpressApplication).useBodyParser("json", {
+    limit: JSON_BODY_LIMIT,
+  });
   app.setGlobalPrefix(API_PREFIX);
   app.useGlobalFilters(app.get(AllExceptionsFilter));
   app.useGlobalPipes(validationPipe());
