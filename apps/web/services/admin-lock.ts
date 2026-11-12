@@ -1,108 +1,32 @@
 import "server-only";
 
-import { cookies } from "next/headers";
+import { callApi } from "@/services/api/call";
+import { fetchMe } from "@/services/api/me";
 
-import {
-  ADMIN_REVEAL_COOKIE,
-  ADMIN_UNLOCK_COOKIE,
-  REVEAL_WINDOW_SECONDS,
-} from "@/constants/session";
-import { UNLOCK_WINDOW_SECONDS } from "@/features/auth/utils/passcode-rules";
-import {
-  getSessionCookieOptions,
-  signSession,
-  verifySession,
-} from "@/services/session-token";
-import {
-  isLockedFor,
-  isRevealValidFor,
-  type UnlockProof,
-} from "@/utils/admin-lock-rules";
+// The passcode lock and the hidden-trainee reveal live on the API session
+// (GET /v1/auth/me: `locked`, `revealedUntil`). The web keeps no unlock or
+// reveal cookie any more.
 
-const readUnlockProof = async (): Promise<UnlockProof | null> => {
-  const cookieStore = await cookies();
-  const session = await verifySession(
-    cookieStore.get(ADMIN_UNLOCK_COOKIE)?.value,
-  );
+// Locked = the admin has a passcode and no valid unlock on this session.
+export const isAdminLocked = (admin: { locked: boolean }) => admin.locked;
 
-  // An admin session token is never an unlock proof.
-  return session?.role === "unlock"
-    ? { adminId: session.adminId, expiresAt: session.expiresAt ?? 0 }
-    : null;
-};
-
-// Writes a fresh 5-minute proof. Used after a right passcode and by the
-// presence heartbeat (sliding window) while the admin is unlocked.
-export const issueUnlock = async (adminId: number) => {
-  const token = await signSession(
-    { role: "unlock", adminId },
-    UNLOCK_WINDOW_SECONDS,
-  );
-  const cookieStore = await cookies();
-
-  cookieStore.set(
-    ADMIN_UNLOCK_COOKIE,
-    token,
-    getSessionCookieOptions(UNLOCK_WINDOW_SECONDS),
-  );
-};
-
-export const clearReveal = async () => {
-  const cookieStore = await cookies();
-
-  cookieStore.delete(ADMIN_REVEAL_COOKIE);
-};
-
-// Locking or signing out also ends the reveal (KAN-163).
-export const clearUnlock = async () => {
-  const cookieStore = await cookies();
-
-  cookieStore.delete(ADMIN_UNLOCK_COOKIE);
-  cookieStore.delete(ADMIN_REVEAL_COOKIE);
-};
-
-// Written after a right passcode typed to see hidden trainees. Fixed 10 min
-// window, not refreshed by the heartbeat.
-export const issueReveal = async (adminId: number) => {
-  const token = await signSession(
-    { role: "reveal", adminId },
-    REVEAL_WINDOW_SECONDS,
-  );
-  const cookieStore = await cookies();
-
-  cookieStore.set(
-    ADMIN_REVEAL_COOKIE,
-    token,
-    getSessionCookieOptions(REVEAL_WINDOW_SECONDS),
-  );
-};
-
-// True while this admin's own reveal proof is valid. Another admin's cookie,
-// an unlock/session token or an expired proof all answer false.
+// True while this admin's own reveal window (10 minutes, set by the API when
+// the right passcode was typed) is open.
 export const canSeeHiddenUsers = async (adminId: number) => {
-  const cookieStore = await cookies();
-  const session = await verifySession(
-    cookieStore.get(ADMIN_REVEAL_COOKIE)?.value,
-  );
+  const me = await fetchMe("admin");
 
-  if (session?.role !== "reveal") {
+  if (me?.actor.kind !== "admin" || me.actor.id !== adminId) {
     return false;
   }
-  return isRevealValidFor(
-    adminId,
-    { adminId: session.adminId, expiresAt: session.expiresAt ?? 0 },
-    Date.now() / 1000,
+  return Boolean(
+    me.actor.revealedUntil && Date.parse(me.actor.revealedUntil) > Date.now(),
   );
 };
 
-// Locked = the admin has a passcode and no valid unlock for themselves.
-// Admins without a passcode skip the cookie read entirely.
-export const isAdminLocked = async (admin: {
-  id: number;
-  hasPasscode: boolean;
-}) => {
-  if (!admin.hasPasscode) {
-    return false;
-  }
-  return isLockedFor(admin, await readUnlockProof(), Date.now() / 1000);
+// Slides the unlock window of an unlocked admin forward. The API does this on
+// its presence heartbeat, so this is that call. Used by app/api/presence until
+// the chat area talks to the API itself.
+export const issueUnlock = async (adminId: number) => {
+  void adminId;
+  await callApi("admin", (api) => api.POST("/v1/presence/heartbeat"));
 };

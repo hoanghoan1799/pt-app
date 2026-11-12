@@ -7,7 +7,9 @@ pnpm monorepo (`apps/web`, `apps/api`, `packages/contracts`). Weekly PT workout 
 ## Commands
 
 - Install (Node 24, same as Vercel via `engines`): `pnpm install`, then `cp apps/web/.env.example apps/web/.env.local`, `pnpm db:push`, `pnpm admin:create`
-- Dev: `pnpm dev` (builds `@pt/contracts`, then the web app at http://localhost:3000, admin at `/admin/login`); API: `pnpm dev:api` (http://localhost:4000/v1/health) or `docker compose up -d --build db api` (PostgreSQL 17 + API)
+- Dev: the web signs in through the API, so start it first: `docker compose up -d --build db api` (PostgreSQL 17 + API on :4000, `pnpm dev:db`), create the admin once with `pnpm --filter @pt/api admin:create` (needs `DATABASE_URL`, `SUPER_ADMIN_USERNAME`, `SUPER_ADMIN_PASSWORD` in apps/api/.env), then `pnpm dev` (builds `@pt/contracts`, then the web app at http://localhost:3000, admin at `/admin/login`). `pnpm dev:all` does both. `API_URL` (apps/web/.env.local) defaults to http://localhost:4000. API alone: `pnpm dev:api`.
+- E2E: `pnpm test:e2e` runs Playwright against web + API + PostgreSQL (Docker starts a throwaway postgres:17 on :55432; set `E2E_DATABASE_URL` to use another e2e database; `E2E_BROWSER_CHANNEL=chrome` uses an installed browser). Details: `apps/web/e2e/api-server.mjs`.
+- After an API route change: `pnpm --filter @pt/api openapi`, then `pnpm --filter @pt/web api:types` and commit both generated files.
 - Check everything: `pnpm verify` (builds `@pt/contracts`, then runs `verify` in every workspace and the `.claude` hook tests); run it before every PR. One workspace: `pnpm --filter @pt/web verify` (also `@pt/api`, `@pt/contracts`)
 - Root `test`, `lint`, `typecheck` and the `db:*` / `admin:create` scripts delegate to the workspaces; `@pt/contracts` must be built (`pnpm build:contracts`) before running a workspace script directly
 - Format: `pnpm format` (Prettier; a hook runs `eslint --fix` + Prettier on each file Claude edits)
@@ -19,6 +21,7 @@ pnpm monorepo (`apps/web`, `apps/api`, `packages/contracts`). Weekly PT workout 
   - `app/`: routes only, thin; compose features. `(user)/(protected)` and `admin/(protected)` layouts guard access.
   - `features/<name>/{components,hooks,services,utils,constants,types}`: auth, members, workouts, dashboard, nutrition.
   - `components/` shared UI, `services/` session/guards/env/logger, `db/schema.ts` Drizzle schema, `utils/` pure helpers.
+  - `services/api/`: server-only helpers that call the NestJS API (typed client from `schema.d.ts`, `callApi`/`tryApi`, file proxy, error mapping); read `services/api/README.md` before calling the API. The session cookie holds the opaque API token; `services/auth-guard.ts` asks `GET /v1/auth/me`.
 - `apps/api/` (`@pt/api`): NestJS 12 skeleton (ESM, `/v1` prefix, `GET /v1/health`), Zod env in `src/config/env.schema.ts`, Dockerfile; built from the repo root by `docker-compose.yml`. One-time Turso to PostgreSQL copy in `scripts/` (`pnpm --filter @pt/api data:migrate`, runbook `docs/backend/cutover-runbook.md`). Plan: `docs/backend/`.
 - `packages/contracts/` (`@pt/contracts`): framework-free Zod schemas (`*-schemas.ts`), limits and the pure helpers they need; built with `tsc` to `dist/` and imported by web and API as `@pt/contracts`. No Next, Nest, React or Node-only imports here.
 - Tests: `__tests__/*.test.ts` next to the code they cover (pure utils and services); `.claude/hooks` tests run from the root (`pnpm test:tools`).

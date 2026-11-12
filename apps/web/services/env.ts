@@ -7,6 +7,45 @@ const isVercel = () => Boolean(process.env.VERCEL);
 
 const readEnv = (name: string) => process.env[name]?.trim() || undefined;
 
+// Base URL of the NestJS API the web server calls server-to-server (BFF).
+// Server only, never NEXT_PUBLIC_: browsers talk to this web app, not the API
+// (except the Socket.IO connection, which uses a ticket). Defaults to the local
+// API outside production; a deployed web app must set it.
+export const DEFAULT_LOCAL_API_URL = "http://localhost:4000";
+
+export const getApiUrl = () => {
+  const value = readEnv("API_URL");
+
+  if (!value) {
+    if (isVercel() || process.env.NODE_ENV === "production") {
+      throw new AppError(
+        "CONFIG_MISSING",
+        `Thiếu biến môi trường ${REQUIRED_ENV.API_URL}`,
+      );
+    }
+    return DEFAULT_LOCAL_API_URL;
+  }
+
+  let parsed: URL;
+
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new AppError(
+      "CONFIG_INVALID",
+      `${REQUIRED_ENV.API_URL} không phải là một URL hợp lệ`,
+    );
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new AppError(
+      "CONFIG_INVALID",
+      `${REQUIRED_ENV.API_URL} phải bắt đầu bằng http:// hoặc https://`,
+    );
+  }
+  // No trailing slash: paths from the OpenAPI schema start with "/v1/…".
+  return parsed.origin + parsed.pathname.replace(/\/+$/, "");
+};
+
 // Optional: without it chat falls back to polling only.
 export const getAblyApiKey = () => readEnv("ABLY_API_KEY");
 

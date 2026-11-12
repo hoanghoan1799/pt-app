@@ -4,9 +4,9 @@ import { type Browser, expect, type Page, test } from "@playwright/test";
 import { GENERATED_PASSWORD_ALPHABET } from "@/constants/password";
 import { AUTH_MESSAGES } from "@/features/auth/constants/messages";
 import { MEMBER_MESSAGES } from "@/features/members/constants/messages";
-import { hashPassword } from "@/services/password";
 import { toEmailKey } from "@/utils/email";
 
+import { restoreTraineeCredentials } from "./api-db";
 import { fillTraineeLogin, logOutViaMenu } from "./auth";
 import {
   E2E_ADMIN,
@@ -42,22 +42,11 @@ const withDb = async <T>(
 };
 
 // Back to the seeded state: shared password, no password change, no failures.
-const restoreCredentials = async (name: string) => {
-  const email = e2eEmail(name);
-  const passwordHash = await hashPassword(E2E_USER_PASSWORD);
+// Logins live in the API's PostgreSQL now (see api-db.ts).
+const restoreCredentials = restoreTraineeCredentials;
 
-  await withDb(async (client) => {
-    await client.execute({
-      sql: "UPDATE users SET password_hash = ?, password_changed_at = NULL WHERE email_key = ?",
-      args: [passwordHash, toEmailKey(email)],
-    });
-    await client.execute({
-      sql: "DELETE FROM login_attempts WHERE key = ?",
-      args: [`user:${toEmailKey(email)}`],
-    });
-  });
-};
-
+// Until the members area moves to the API, the admin UI still lists trainees
+// from the legacy SQLite database, so ids for /admin/users/<id> come from there.
 const getUserId = (email: string) =>
   withDb(async (client) => {
     const result = await client.execute({
@@ -254,7 +243,9 @@ test("change password: wrong current password stays inline; the toggle shows the
   await page.goto("/account/password");
 
   const current = page.getByLabel("Mật khẩu hiện tại");
-  const field = page.locator("div", { has: current }).last();
+  // The div that holds the input and its show/hide button (the Input component
+  // adds a wrapper div of its own around the input, so `.last()` is not enough).
+  const field = page.locator("div.relative").filter({ has: current });
   const toggle = field.getByRole("button", { name: "Hiện mật khẩu" });
 
   await expect(current).toHaveAttribute("type", "password");

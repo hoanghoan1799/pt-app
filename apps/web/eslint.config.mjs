@@ -26,6 +26,7 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "e2e/.tmp/**",
+    "services/api/schema.d.ts",
     "playwright-report/**",
   ]),
 ]);

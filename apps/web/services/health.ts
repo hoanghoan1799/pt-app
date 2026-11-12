@@ -17,7 +17,7 @@ import {
   weightLogs,
   workoutDays,
 } from "@/db/schema";
-import { describeDatabaseConfig, getSessionSecret } from "@/services/env";
+import { describeDatabaseConfig, getApiUrl } from "@/services/env";
 import type { ClassifiedError } from "@/types/error";
 import { AppError, classifyError } from "@/utils/errors";
 
@@ -101,8 +101,8 @@ export const canViewHealthDetails = (token: string | null) => {
 };
 
 export const checkHealth = async () => {
-  const sessionSecret = await runCheck(() => {
-    getSessionSecret();
+  const apiUrl = await runCheck(() => {
+    getApiUrl();
     return undefined;
   });
   const databaseConfig = await runCheck(describeDatabaseConfig);
@@ -116,7 +116,7 @@ export const checkHealth = async () => {
       : skipAfter("tables");
 
   const checks: Record<string, Check> = {
-    sessionSecret,
+    apiUrl,
     databaseConfig,
     tables,
     adminAccount,

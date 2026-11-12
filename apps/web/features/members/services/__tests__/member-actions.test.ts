@@ -19,9 +19,16 @@ const state = vi.hoisted(() => ({ db: null as unknown }));
 vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
-vi.mock("@/services/session", () => ({
-  readSession: vi.fn(async () => ({ role: "admin", adminId: 1 })),
-}));
+vi.mock("@/services/api/me", async () => {
+  const { fakeAdminMe } = await import("@/services/api/testing");
+
+  // GET /v1/auth/me is the only thing faked: the real guards run.
+  return {
+    fetchMe: vi.fn(async (role: string) =>
+      role === "admin" ? fakeAdminMe({ id: 1, username: "pt" }) : null,
+    ),
+  };
+});
 vi.mock("@/services/admins", () => ({
   findAdminById: vi.fn(async (id: number) => ({
     id,
@@ -30,7 +37,10 @@ vi.mock("@/services/admins", () => ({
     verified: false,
   })),
 }));
-vi.mock("@/services/users", () => ({ findUserById: vi.fn() }));
+vi.mock("@/services/users", () => ({
+  findUserById: vi.fn(async () => null),
+  emptyUserRow: vi.fn(() => ({})),
+}));
 vi.mock("@/db", () => ({
   db: new Proxy(
     {},

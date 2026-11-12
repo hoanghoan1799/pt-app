@@ -12,7 +12,9 @@ name: CI web
 # affected-only rules cannot see their impact.
 #
 # One workflow per workspace (ci-web, ci-api, ci-contracts), each started only
-# by the paths it owns. packages/contracts also starts ci-web and ci-api. The
+# by the paths it owns. packages/contracts also starts ci-web and ci-api, and
+# apps/api/openapi.json (input of the typed API client, apps/web/services/api/
+# schema.d.ts, which a unit test keeps in sync) starts ci-web too. The
 # required status check is `checks-web`. The web app imports @pt/contracts from
 # its dist/ folder, so every job builds contracts first, and a contracts change
 # runs every web unit test (the affected-only mode cannot follow the package
@@ -25,6 +27,7 @@ on:
   pull_request:
     paths:
       - "apps/web/**"
+      - "apps/api/openapi.json"
       - "packages/contracts/**"
       - ".claude/**"
       - "vitest.config.mjs"
@@ -84,10 +87,10 @@ jobs:
           if echo "$changed" | grep -qE '^(\.github/workflows/ci-web\.yml|package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|(apps|packages)/[^/]+/package\.json)$'; then
             full=true
           fi
-          if echo "$changed" | grep -qE '\.(ts|tsx|js|jsx|mjs|cjs)$|^apps/web/(tsconfig\.json|next\.config\.ts|eslint\.config\.mjs|vitest\.config\.ts)$|^packages/contracts/(tsconfig(\.build)?\.json|eslint\.config\.mjs|vitest\.config\.ts)$'; then
+          if echo "$changed" | grep -qE '\.(ts|tsx|js|jsx|mjs|cjs)$|^apps/api/openapi\.json$|^apps/web/(tsconfig\.json|next\.config\.ts|eslint\.config\.mjs|vitest\.config\.ts)$|^packages/contracts/(tsconfig(\.build)?\.json|eslint\.config\.mjs|vitest\.config\.ts)$'; then
             code=true
           fi
-          if echo "$changed" | grep -qE '^apps/web/(app|components|constants|db|e2e|features|hooks|public|services|types|utils)/|^apps/web/(proxy\.ts|instrumentation\.ts|next\.config\.ts|playwright\.config\.ts|postcss\.config\.mjs|tsconfig\.json)$|^packages/contracts/src/'; then
+          if echo "$changed" | grep -qE '^apps/web/(app|components|constants|db|e2e|features|hooks|public|services|types|utils)/|^apps/web/(proxy\.ts|instrumentation\.ts|next\.config\.ts|playwright\.config\.ts|postcss\.config\.mjs|tsconfig\.json)$|^packages/contracts/src/|^apps/api/openapi\.json$'; then
             e2e=true
           fi
           if echo "$changed" | grep -qE '^packages/contracts/'; then
@@ -158,6 +161,8 @@ jobs:
           else
             # Tests whose module graph touches a changed file.
             pnpm --filter @pt/web exec vitest run --changed "$BASE_SHA" --passWithNoTests
+            # Reads apps/api/openapi.json from disk, so --changed cannot see it.
+            pnpm --filter @pt/web exec vitest run services/api/__tests__/schema.test.ts
           fi
           if [ "$FULL" = "true" ] || [ "$TOOLS" = "true" ]; then
             pnpm test:tools
@@ -192,14 +197,31 @@ jobs:
 
   # Pinned: ubuntu-latest moved to 26.04, which Playwright 1.56 cannot install
   # Chromium deps on ("Playwright does not support chromium on ubuntu26.04").
-  # Playwright e2e on a throwaway SQLite file (e2e/.tmp). Not part of the
+  # Playwright e2e against web + API + PostgreSQL. The web keeps a throwaway
+  # SQLite file (e2e/.tmp) for the areas not on the API yet; the API runs from
+  # this checkout (e2e/api-server.mjs builds and starts it) on the PostgreSQL
+  # service container below, which it empties first. Not part of the
   # `checks-web` gate yet. The suite takes about 8 minutes with the chat specs, and
-  # `playwright install --with-deps` can spend minutes on apt, hence 15.
+  # `playwright install --with-deps` can spend minutes on apt, hence 20.
   e2e:
     needs: changes
     if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: pt
+          POSTGRES_PASSWORD: pt_ci_only
+          POSTGRES_DB: ptapp_e2e
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U pt -d ptapp_e2e"
+          --health-interval 5s
+          --health-retries 10
+    env:
+      E2E_DATABASE_URL: postgres://pt:pt_ci_only@localhost:5432/ptapp_e2e
     steps:
       - uses: actions/checkout@v4
 

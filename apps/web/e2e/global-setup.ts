@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { relative } from "node:path";
 
+import { seedApiFromLegacyDatabase } from "./api-seed";
 import { E2E_DB_PATH, E2E_DB_URL, E2E_ENV, E2E_TMP_DIR } from "./config";
 import { seedE2eDatabase } from "./seed";
 
@@ -36,6 +37,9 @@ const globalSetup = async () => {
     throw new Error("e2e: drizzle-kit push did not create the scratch DB");
   }
   await seedE2eDatabase(E2E_DB_URL);
+  // The API (PostgreSQL) is started by the first webServer entry of
+  // playwright.config.ts; its trainees are created through its endpoints.
+  await seedApiFromLegacyDatabase();
 };
 
 export default globalSetup;

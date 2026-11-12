@@ -7,13 +7,13 @@ import {
   hideConversations,
   hideUsers,
   isConversationHidden,
+  listRevealedHidden,
   noMatch,
-  revealHiddenUsers,
   unhideConversation,
   unhideUser,
 } from "@/features/chat/services/chat-hidden";
 import { withResultErrorHandling } from "@/services/action-errors";
-import { issueReveal } from "@/services/admin-lock";
+import { tryApi } from "@/services/api/call";
 import { requireAdmin } from "@/services/auth-guard";
 import { getActiveLocale } from "@/services/localize-message";
 
@@ -84,7 +84,7 @@ export const unhideUserAction = withResultErrorHandling(
 
 // Anything but a well-formed 4-digit code is a quiet generic failure without
 // touching the limiter, so ordinary name searches never burn attempts. A right
-// code also starts the 10-minute reveal session (R2): the hidden trainees'
+// code also starts the 10-minute reveal session (R2, on the API): the hidden trainees'
 // pages open until it ends.
 export const revealHiddenUsersAction = withResultErrorHandling(
   "revealHiddenUsers",
@@ -95,16 +95,16 @@ export const revealHiddenUsersAction = withResultErrorHandling(
     if (!parsed.success) {
       return noMatch();
     }
-    const result = await revealHiddenUsers(
-      admin.id,
-      parsed.data,
-      await getActiveLocale(),
+    // The API checks the code (own limiter, same answer for every failure) and
+    // opens the 10-minute reveal window on the admin's session.
+    const outcome = await tryApi("admin", (api) =>
+      api.POST("/v1/admins/me/hidden-users/reveal", { body: { passcode } }),
     );
 
-    if (result.status === "success") {
-      await issueReveal(admin.id);
-    }
-    return result;
+    // A refused request (rate limited, limited admin) is the same quiet miss.
+    return outcome.ok && outcome.data.revealed
+      ? listRevealedHidden(admin.id, await getActiveLocale())
+      : noMatch();
   },
 );
 

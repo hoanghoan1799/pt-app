@@ -4,33 +4,39 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 
 import { ROUTES, SESSION_ROLE_PARAM } from "@/constants/routes";
-import { ADMIN_COOKIE, USER_COOKIE } from "@/constants/session";
-import { isAdminLocked } from "@/services/admin-lock";
 import { isSuperAdmin } from "@/services/admin-scope";
-import { findAdminById } from "@/services/admins";
-import { readSession } from "@/services/session";
-import { findUserById } from "@/services/users";
+import { fetchMe } from "@/services/api/me";
+import { emptyUserRow, findUserById } from "@/services/users";
 import type { SessionRole } from "@/types/session";
-import { isSessionStale, sessionAuthTime } from "@/utils/session-staleness";
+
+// The signed-in actor comes from the API (GET /v1/auth/me) with the session
+// cookie's token, once per request. Session lifetime, password changes, admin
+// deletion and the passcode lock are all decided by the API.
 
 // Cached per request: the guard layout and the page both ask for it.
 export const getCurrentUser = cache(async () => {
-  const session = await readSession(USER_COOKIE);
+  const me = await fetchMe("user");
 
-  if (session?.role !== "user") {
+  if (me?.actor.kind !== "user") {
     return null;
   }
-  // The user may have been deleted by the admin since the cookie was issued.
-  const user = await findUserById(session.userId);
 
-  // A reset or password change signs out sessions issued before it.
-  if (
-    !user ||
-    isSessionStale(sessionAuthTime(session), user.passwordChangedAt)
-  ) {
-    return null;
-  }
-  return user;
+  const { actor } = me;
+  // TRANSITION (integration branch feat/web-on-api): feature code still reads
+  // trainee columns the API's /auth/me does not carry (termsVersion, chatEnabled,
+  // preferredMealCount…), so the legacy row is merged in, API fields winning.
+  // A trainee without a legacy row gets nulls. Each feature area drops its
+  // use of these fields when it moves to the API; then this merge goes.
+  const legacy = (await findUserById(actor.id)) ?? emptyUserRow();
+
+  return {
+    ...legacy,
+    id: actor.id,
+    name: actor.name,
+    email: actor.email,
+    locale: actor.locale,
+    ptAdminId: actor.ptAdminId,
+  };
 });
 
 // The signed-in admin, ignoring the passcode lock (KAN-160). Only the lock
@@ -38,19 +44,34 @@ export const getCurrentUser = cache(async () => {
 // everything else goes through getApiAdmin / requireAdmin so a locked admin
 // gets nothing.
 export const getAdminSession = cache(async () => {
-  const session = await readSession(ADMIN_COOKIE);
+  const me = await fetchMe("admin");
 
-  if (session?.role !== "admin") {
+  if (me?.actor.kind !== "admin") {
     return null;
   }
-  return findAdminById(session.adminId);
+
+  const { actor } = me;
+
+  return {
+    id: actor.id,
+    username: actor.username,
+    role: actor.role,
+    locale: actor.locale,
+    presenceHidden: actor.presenceHidden,
+    hasPasscode: actor.hasPasscode,
+    verified: actor.verified,
+    // True while the admin has a passcode and no valid unlock on this session.
+    locked: actor.locked,
+    unlockedUntil: actor.unlockedUntil,
+    revealedUntil: actor.revealedUntil,
+  };
 });
 
 // Signed in and unlocked. Null for a missing session and for a locked admin.
 export const getCurrentAdmin = cache(async () => {
   const admin = await getAdminSession();
 
-  return admin && !(await isAdminLocked(admin)) ? admin : null;
+  return admin && !admin.locked ? admin : null;
 });
 
 // Super admin only (P1): a PT is sent back to the admin dashboard.
@@ -83,11 +104,11 @@ export const requireAdminSession = async () => {
 export const requireAdmin = async () => {
   const admin = await requireAdminSession();
 
-  return (await isAdminLocked(admin)) ? redirect(ROUTES.ADMIN_LOCK) : admin;
+  return admin.locked ? redirect(ROUTES.ADMIN_LOCK) : admin;
 };
 
 // Route handlers answer 401 JSON instead of redirecting to a login page, so
-// these return null for a missing/stale session or a locked admin (KAN-160). Same checks as the
-// require* guards above (deleted user, password changed since sign-in).
+// these return null for a missing/stale session or a locked admin (KAN-160).
+// Same checks as the require* guards above.
 export const getApiUser = getCurrentUser;
 export const getApiAdmin = getCurrentAdmin;

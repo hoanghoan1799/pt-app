@@ -6,10 +6,9 @@ import { z } from "zod";
 import { USER_PASSWORD_MAX, USER_PASSWORD_MIN } from "@/constants/password";
 import { AUTH_MESSAGES } from "@/features/auth/constants/messages";
 import { withFormErrorHandling } from "@/services/action-errors";
+import { tryApi } from "@/services/api/call";
+import { apiErrorToFormState } from "@/services/api/errors";
 import { requireUser } from "@/services/auth-guard";
-import { hashPassword, verifyPassword } from "@/services/password";
-import { startUserSession } from "@/services/session";
-import { setUserPassword } from "@/services/users";
 import type { FormState } from "@/types/form";
 import { createErrorState, createSuccessState } from "@/utils/form";
 
@@ -34,7 +33,7 @@ const changePasswordSchema = z
 export const changePasswordAction = withFormErrorHandling(
   "changePassword",
   async (_previousState: FormState, formData: FormData): Promise<FormState> => {
-    const user = await requireUser();
+    await requireUser();
     const parsed = changePasswordSchema.safeParse({
       currentPassword: String(formData.get("currentPassword") ?? ""),
       newPassword: String(formData.get("newPassword") ?? ""),
@@ -47,23 +46,24 @@ export const changePasswordAction = withFormErrorHandling(
       });
     }
 
-    // A legacy trainee without a password cannot be here via email login, but
-    // never treat a missing hash as a match.
-    const isCurrentCorrect = user.passwordHash
-      ? await verifyPassword(parsed.data.currentPassword, user.passwordHash)
-      : false;
+    // The API checks the current password and signs out every other device;
+    // this session stays valid, so the cookie does not change.
+    const outcome = await tryApi("user", (api) =>
+      api.POST("/v1/users/me/password", {
+        body: {
+          currentPassword: parsed.data.currentPassword,
+          newPassword: parsed.data.newPassword,
+        },
+      }),
+    );
 
-    if (!isCurrentCorrect) {
-      return createErrorState(AUTH_MESSAGES.CURRENT_PASSWORD_WRONG, {
-        fieldErrors: { currentPassword: AUTH_MESSAGES.CURRENT_PASSWORD_WRONG },
-      });
+    if (!outcome.ok) {
+      return outcome.error.code === "CURRENT_PASSWORD_WRONG"
+        ? createErrorState(outcome.error.message, {
+            fieldErrors: { currentPassword: outcome.error.message },
+          })
+        : apiErrorToFormState(outcome.error);
     }
-
-    await setUserPassword(user.id, await hashPassword(parsed.data.newPassword));
-    // Other devices are signed out by the staleness check; this one gets a
-    // fresh session (same second as password_changed_at is still valid).
-    await startUserSession(user.id);
-
     return createSuccessState(AUTH_MESSAGES.PASSWORD_CHANGED);
   },
 );

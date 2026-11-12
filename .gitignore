@@ -58,3 +58,6 @@ test-results/
 
 # build output (packages and apps)
 dist/
+
+# Playwright e2e scratch files (temporary SQLite and API state)
+apps/web/e2e/.tmp/

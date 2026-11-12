@@ -1,6 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 
-import { E2E_BASE_URL, E2E_ENV, E2E_PORT } from "./e2e/config";
+import {
+  E2E_API_PORT,
+  E2E_API_URL,
+  E2E_BASE_URL,
+  E2E_ENV,
+  E2E_PORT,
+} from "./e2e/config";
 
 // Lets context.route see (and abort) requests made by the service worker; the
 // offline spec of e2e/pwa.spec.ts needs it. Read when the browser launches.
@@ -12,6 +18,7 @@ export default defineConfig({
   testDir: "./e2e",
   testMatch: "**/*.spec.ts",
   globalSetup: "./e2e/global-setup.ts",
+  globalTeardown: "./e2e/global-teardown.ts",
   // The specs share one seeded SQLite file and run in order.
   workers: 1,
   fullyParallel: false,
@@ -28,13 +35,33 @@ export default defineConfig({
     ...devices["iPhone 12"],
     // The iPhone preset defaults to WebKit; CI only installs Chromium.
     defaultBrowserType: "chromium",
+    // Optional: E2E_BROWSER_CHANNEL=chrome (or msedge) uses an installed browser
+    // instead of the one `playwright install` downloads.
+    ...(process.env.E2E_BROWSER_CHANNEL
+      ? { channel: process.env.E2E_BROWSER_CHANNEL }
+      : {}),
   },
   projects: [{ name: "mobile-chromium" }],
-  webServer: {
-    command: `pnpm exec next dev -p ${E2E_PORT}`,
-    url: `${E2E_BASE_URL}/`,
-    reuseExistingServer: false,
-    timeout: 120_000,
-    env: { ...E2E_ENV, NEXT_TELEMETRY_DISABLED: "1" },
-  },
+  // 1. the API with its own PostgreSQL (e2e/api-server.mjs), 2. the web app
+  // that calls it. Seeding happens in globalSetup, once both answer.
+  webServer: [
+    {
+      command: "pnpm --filter @pt/api build && node e2e/api-server.mjs",
+      url: `${E2E_API_URL}/v1/health`,
+      reuseExistingServer: false,
+      timeout: 240_000,
+      stdout: "pipe",
+      env: {
+        E2E_API_PORT: String(E2E_API_PORT),
+        E2E_BASE_URL,
+      },
+    },
+    {
+      command: `pnpm exec next dev -p ${E2E_PORT}`,
+      url: `${E2E_BASE_URL}/`,
+      reuseExistingServer: false,
+      timeout: 120_000,
+      env: { ...E2E_ENV, NEXT_TELEMETRY_DISABLED: "1" },
+    },
+  ],
 });

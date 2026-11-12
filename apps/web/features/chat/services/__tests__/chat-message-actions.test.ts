@@ -32,13 +32,21 @@ vi.mock("@/features/chat/services/chat-push", () => ({
   schedulePush: vi.fn(),
   scheduleReactionPush: vi.fn(),
 }));
-vi.mock("@/services/session", () => ({
-  readSession: vi.fn(async () =>
-    state.role === "admin"
-      ? { role: "admin", adminId: state.adminId }
-      : { role: "user", userId: state.userId },
-  ),
-}));
+vi.mock("@/services/api/me", async () => {
+  const { fakeAdminMe, fakeUserMe } = await import("@/services/api/testing");
+
+  // GET /v1/auth/me is the only thing faked: the real guards run.
+  return {
+    fetchMe: vi.fn(async (role: string) => {
+      if (role !== state.role) {
+        return null;
+      }
+      return role === "admin"
+        ? fakeAdminMe({ id: state.adminId, username: `pt${state.adminId}` })
+        : fakeUserMe({ id: state.userId, name: "An" });
+    }),
+  };
+});
 vi.mock("@/services/admins", () => ({
   findAdminById: vi.fn(async (id: number) => ({ id, username: `pt${id}` })),
 }));

@@ -1,5 +1,6 @@
 import { DB_ERROR_PATTERNS, ERROR_MESSAGES } from "@/constants/errors";
 import { describeReferenceFor } from "@/i18n/localize-message";
+import { ApiError } from "@/services/api/errors";
 import type { ClassifiedError, ErrorCode } from "@/types/error";
 import { type Locale, parseLocale } from "@/utils/locale";
 
@@ -29,6 +30,22 @@ const collectMessages = (error: unknown, depth = 0): string[] => {
 export const classifyError = (error: unknown): ClassifiedError => {
   if (error instanceof AppError) {
     return { code: error.code, detail: error.message };
+  }
+  if (error instanceof ApiError) {
+    return {
+      code:
+        error.kind === "timeout"
+          ? "API_TIMEOUT"
+          : error.kind === "network"
+            ? "API_UNREACHABLE"
+            : "UNKNOWN",
+      // Never the token or the body: method, path, status, API code, API ref.
+      detail:
+        `API ${error.method ?? ""} ${error.path ?? ""} -> ${error.status} ${error.code} ref=${error.ref ?? "-"}`.replace(
+          /\s+/g,
+          " ",
+        ),
+    };
   }
 
   const detail = collectMessages(error).join(" | ") || "Unknown error";

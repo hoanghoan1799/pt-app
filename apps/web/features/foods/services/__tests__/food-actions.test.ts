@@ -16,13 +16,21 @@ const state = vi.hoisted(() => ({
 vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 // The session cookie is the only thing faked: the real requireAdmin runs.
-vi.mock("@/services/session", () => ({
-  readSession: vi.fn(async () =>
-    state.role === "admin"
-      ? { role: "admin", adminId: 1 }
-      : { role: "user", userId: 1 },
-  ),
-}));
+vi.mock("@/services/api/me", async () => {
+  const { fakeAdminMe, fakeUserMe } = await import("@/services/api/testing");
+
+  // GET /v1/auth/me is the only thing faked: the real guards run.
+  return {
+    fetchMe: vi.fn(async (role: string) => {
+      if (role !== state.role) {
+        return null;
+      }
+      return role === "admin"
+        ? fakeAdminMe({ id: 1, username: "pt", role: state.adminRole })
+        : fakeUserMe({ id: 1 });
+    }),
+  };
+});
 vi.mock("@/services/admins", () => ({
   findAdminById: vi.fn(async (id: number) => ({
     id,
@@ -31,7 +39,10 @@ vi.mock("@/services/admins", () => ({
     verified: false,
   })),
 }));
-vi.mock("@/services/users", () => ({ findUserById: vi.fn() }));
+vi.mock("@/services/users", () => ({
+  findUserById: vi.fn(async () => null),
+  emptyUserRow: vi.fn(() => ({})),
+}));
 vi.mock("@/features/foods/services/food-queries", async (importOriginal) => {
   const original =
     await importOriginal<

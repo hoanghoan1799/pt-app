@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { fakeAdminMe, fakeUserMe } from "@/services/api/testing";
+
 const state = vi.hoisted(() => ({
-  session: null as unknown,
-  admin: null as null | { id: number; username: string; hasPasscode: boolean },
-  proof: null as null | { adminId: number; expiresAt: number },
+  // What GET /v1/auth/me answers for each cookie; null = signed out.
+  admin: null as unknown,
+  user: null as unknown,
+  legacyUser: null as unknown,
 }));
 
 vi.mock("server-only", () => ({}));
@@ -17,73 +20,81 @@ vi.mock("next/navigation", () => ({
     throw new Error(`REDIRECT:${url}`);
   }),
 }));
-vi.mock("@/services/session", () => ({
-  readSession: vi.fn(async () => state.session),
-}));
-vi.mock("@/services/admins", () => ({
-  findAdminById: vi.fn(async () => state.admin),
-}));
-vi.mock("@/services/users", () => ({ findUserById: vi.fn() }));
-vi.mock("next/headers", () => ({
-  cookies: vi.fn(async () => ({ get: () => undefined })),
-}));
-vi.mock("@/services/session-token", () => ({
-  getSessionCookieOptions: vi.fn(),
-  signSession: vi.fn(),
-  verifySession: vi.fn(async () =>
-    state.proof ? { role: "unlock", ...state.proof } : null,
+vi.mock("@/services/api/me", () => ({
+  fetchMe: vi.fn(async (role: string) =>
+    role === "admin" ? state.admin : state.user,
   ),
+}));
+vi.mock("@/services/users", () => ({
+  findUserById: vi.fn(async () => state.legacyUser),
+  emptyUserRow: vi.fn(() => ({ termsVersion: null, chatEnabled: null })),
 }));
 
 const guard = await import("@/services/auth-guard");
 
-const admin = (hasPasscode: boolean) => ({
-  id: 7,
-  username: "pt",
-  hasPasscode,
+beforeEach(() => {
+  state.admin = fakeAdminMe({ id: 7, username: "pt", hasPasscode: true });
+  state.user = null;
+  state.legacyUser = null;
 });
 
-beforeEach(() => {
-  state.session = { role: "admin", adminId: 7 };
-  state.admin = admin(true);
-  state.proof = null;
-});
+const lockedAdmin = () =>
+  fakeAdminMe({ id: 7, username: "pt", hasPasscode: true, locked: true });
 
 describe("admin lock guards", () => {
   it("lets an admin without a passcode through", async () => {
-    state.admin = admin(false);
+    state.admin = fakeAdminMe({ id: 7, username: "pt", hasPasscode: false });
 
-    expect(await guard.requireAdmin()).toEqual(admin(false));
-    expect(await guard.getApiAdmin()).toEqual(admin(false));
+    expect(await guard.requireAdmin()).toMatchObject({
+      id: 7,
+      hasPasscode: false,
+      locked: false,
+    });
+    expect(await guard.getApiAdmin()).toMatchObject({ id: 7 });
   });
 
   it("redirects a locked admin to the lock page and 401s the API", async () => {
+    state.admin = lockedAdmin();
+
     await expect(guard.requireAdmin()).rejects.toThrow("REDIRECT:/admin/lock");
     expect(await guard.getApiAdmin()).toBeNull();
     expect(await guard.getCurrentAdmin()).toBeNull();
   });
 
   it("lets a locked admin use the lock-exempt guard", async () => {
-    expect(await guard.requireAdminSession()).toEqual(admin(true));
+    state.admin = lockedAdmin();
+
+    expect(await guard.requireAdminSession()).toMatchObject({
+      id: 7,
+      locked: true,
+    });
   });
 
-  it("lets an admin with a valid unlock through", async () => {
-    state.proof = { adminId: 7, expiresAt: Date.now() / 1000 + 60 };
-
-    expect(await guard.requireAdmin()).toEqual(admin(true));
-    expect(await guard.getApiAdmin()).toEqual(admin(true));
+  it("lets an unlocked admin with a passcode through", async () => {
+    expect(await guard.requireAdmin()).toMatchObject({
+      id: 7,
+      hasPasscode: true,
+    });
+    expect(await guard.getApiAdmin()).toMatchObject({ id: 7 });
   });
 
-  it("keeps locking on an expired or foreign unlock", async () => {
-    state.proof = { adminId: 7, expiresAt: Date.now() / 1000 - 1 };
-    await expect(guard.requireAdmin()).rejects.toThrow("REDIRECT:/admin/lock");
-
-    state.proof = { adminId: 8, expiresAt: Date.now() / 1000 + 60 };
-    expect(await guard.getApiAdmin()).toBeNull();
+  it("returns the admin shape the feature code reads", async () => {
+    expect(await guard.requireAdmin()).toEqual({
+      id: 7,
+      username: "pt",
+      role: "super_admin",
+      locale: null,
+      presenceHidden: false,
+      hasPasscode: true,
+      verified: false,
+      locked: false,
+      unlockedUntil: null,
+      revealedUntil: null,
+    });
   });
 
   it("ends the session without a signed-in admin", async () => {
-    state.session = null;
+    state.admin = null;
 
     await expect(guard.requireAdmin()).rejects.toThrow(
       "REDIRECT:/session/end?role=admin",
@@ -92,5 +103,58 @@ describe("admin lock guards", () => {
       "REDIRECT:/session/end?role=admin",
     );
     expect(await guard.getApiAdmin()).toBeNull();
+  });
+
+  it("does not accept a trainee token in the admin cookie", async () => {
+    state.admin = fakeUserMe({ id: 7 });
+
+    expect(await guard.getAdminSession()).toBeNull();
+    await expect(guard.requireAdmin()).rejects.toThrow(
+      "REDIRECT:/session/end?role=admin",
+    );
+  });
+});
+
+describe("user guards", () => {
+  it("returns the API fields over the legacy row", async () => {
+    state.user = fakeUserMe({ id: 4, name: "An", email: "an@e2e.test" });
+    state.legacyUser = { id: 4, name: "Old name", termsVersion: 2 };
+
+    expect(await guard.requireUser()).toMatchObject({
+      id: 4,
+      name: "An",
+      email: "an@e2e.test",
+      termsVersion: 2,
+    });
+  });
+
+  it("still signs in a trainee that has no legacy row", async () => {
+    state.user = fakeUserMe({ id: 4 });
+
+    expect(await guard.requireUser()).toMatchObject({
+      id: 4,
+      termsVersion: null,
+    });
+  });
+
+  it("ends the session without a signed-in trainee", async () => {
+    await expect(guard.requireUser()).rejects.toThrow(
+      "REDIRECT:/session/end?role=user",
+    );
+    expect(await guard.getApiUser()).toBeNull();
+  });
+
+  it("does not accept an admin token in the trainee cookie", async () => {
+    state.user = fakeAdminMe({ id: 1 });
+
+    expect(await guard.getCurrentUser()).toBeNull();
+  });
+});
+
+describe("requireSuperAdmin", () => {
+  it("sends a PT back to the dashboard", async () => {
+    state.admin = fakeAdminMe({ id: 7, role: "pt" });
+
+    await expect(guard.requireSuperAdmin()).rejects.toThrow("REDIRECT:/admin");
   });
 });

@@ -10,6 +10,18 @@ export const E2E_DB_PATH = resolve(E2E_TMP_DIR, "e2e.db");
 // Forward slashes so the URL is also valid for libSQL on Windows.
 export const E2E_DB_URL = `file:${E2E_DB_PATH.replaceAll("\\", "/")}`;
 
+// The API the web server calls (BFF), with its own PostgreSQL. Locally the API
+// script (e2e/api-server.mjs) starts a throwaway PostgreSQL 17 container on
+// E2E_PG_PORT; CI starts a service container and sets E2E_DATABASE_URL. The
+// database name must contain "e2e": nothing else is ever wiped.
+export const E2E_API_PORT = 4100;
+export const E2E_API_URL = `http://localhost:${E2E_API_PORT}`;
+export const E2E_PG_PORT = 55432;
+export const E2E_PG_CONTAINER = "pt-e2e-pg";
+export const E2E_DATABASE_URL =
+  process.env.E2E_DATABASE_URL ||
+  `postgres://pt:pt_e2e_only@localhost:${E2E_PG_PORT}/ptapp_e2e`;
+
 // services/env.ts prefers the TURSO_* pair, so both pairs are pinned and the
 // tokens blanked. Blank values are ignored by readEnv, not used as fallbacks.
 export const E2E_ENV = {
@@ -18,6 +30,7 @@ export const E2E_ENV = {
   DATABASE_AUTH_TOKEN: "",
   TURSO_AUTH_TOKEN: "",
   SESSION_SECRET: "e2e-only-secret-at-least-32-characters-long",
+  API_URL: E2E_API_URL,
   VERCEL: "",
   // Registers public/sw.js under `next dev` (the worker is production-only otherwise).
   NEXT_PUBLIC_ENABLE_SW: "1",

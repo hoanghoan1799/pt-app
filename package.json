@@ -10,6 +10,8 @@
     "build:contracts": "pnpm --filter @pt/contracts build",
     "dev": "pnpm build:contracts && pnpm --filter @pt/web dev",
     "dev:api": "pnpm build:contracts && pnpm --filter @pt/api dev",
+    "dev:db": "docker compose up -d --build db api",
+    "dev:all": "pnpm dev:db && pnpm dev",
     "build": "pnpm build:contracts && pnpm --filter @pt/web build",
     "start": "pnpm --filter @pt/web start",
     "lint": "pnpm build:contracts && pnpm -r --no-bail lint",

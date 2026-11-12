@@ -191,7 +191,16 @@ export const revealHiddenUsers = async (
     return noMatch();
   }
   await clearAttempts(limiterKey);
+  return listRevealedHidden(adminId, locale);
+};
 
+// The reveal payload once the passcode was checked elsewhere: the API verifies
+// the code and opens the reveal window (POST /v1/admins/me/hidden-users/reveal),
+// then the action lists the hidden trainees with this.
+export const listRevealedHidden = async (
+  adminId: number,
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<RevealResult> => {
   const [hiddenUsers, inbox] = await Promise.all([
     listHiddenUsers(adminId),
     listHiddenInboxForAdmin(adminId, locale),

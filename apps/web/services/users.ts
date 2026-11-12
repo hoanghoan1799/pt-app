@@ -13,6 +13,16 @@ import { toEmailKey } from "@/utils/email";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const { avatar: _avatar, ...userColumns } = getTableColumns(users);
 
+export type UserRow = NonNullable<Awaited<ReturnType<typeof findUserById>>>;
+
+// Same shape as a row, every column null: the trainee exists on the API but
+// has no row in the legacy database (yet). Only for the auth guard, see
+// services/auth-guard.ts; goes away with Drizzle.
+export const emptyUserRow = (): UserRow =>
+  Object.fromEntries(
+    Object.keys(userColumns).map((column) => [column, null]),
+  ) as unknown as UserRow;
+
 export const findUserById = async (id: number) => {
   const [user] = await db
     .select(userColumns)

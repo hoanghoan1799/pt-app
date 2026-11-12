@@ -16,17 +16,28 @@ vi.mock("@/features/chat/services/chat-realtime", () => ({
   publishChatStatus: vi.fn(async () => undefined),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/services/session", () => ({
-  readSession: vi.fn(async () =>
-    state.role === "admin"
-      ? { role: "admin", adminId: 7 }
-      : { role: "user", userId: 1 },
-  ),
-}));
+vi.mock("@/services/api/me", async () => {
+  const { fakeAdminMe, fakeUserMe } = await import("@/services/api/testing");
+
+  // GET /v1/auth/me is the only thing faked: the real guards run.
+  return {
+    fetchMe: vi.fn(async (role: string) => {
+      if (role !== state.role) {
+        return null;
+      }
+      return role === "admin"
+        ? fakeAdminMe({ id: 7, username: "pt" })
+        : fakeUserMe({ id: 1 });
+    }),
+  };
+});
 vi.mock("@/services/admins", () => ({
   findAdminById: vi.fn(async (id: number) => ({ id, username: "pt" })),
 }));
-vi.mock("@/services/users", () => ({ findUserById: vi.fn() }));
+vi.mock("@/services/users", () => ({
+  findUserById: vi.fn(async () => null),
+  emptyUserRow: vi.fn(() => ({})),
+}));
 vi.mock("@/db", () => ({
   db: new Proxy(
     {},

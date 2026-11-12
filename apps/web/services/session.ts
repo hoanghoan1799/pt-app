@@ -2,40 +2,21 @@ import "server-only";
 
 import { cookies } from "next/headers";
 
-import {
-  ADMIN_COOKIE,
-  ADMIN_SESSION_MAX_AGE,
-  USER_COOKIE,
-  USER_SESSION_MAX_AGE,
-} from "@/constants/session";
-import {
-  getSessionCookieOptions,
-  signSession,
-  verifySession,
-} from "@/services/session-token";
+import { cookieNameFor, sessionCookieFor } from "@/services/session-cookie";
+import type { SessionRole } from "@/types/session";
 
-const writeCookie = async (name: string, value: string, maxAge: number) => {
+// The session is the opaque API token in an httpOnly cookie (see
+// services/session-cookie.ts and services/api/README.md). Who the token
+// belongs to, and whether the admin is locked, is asked from the API
+// (GET /v1/auth/me, see services/api/me.ts), never decoded here.
+
+// Writes the token the API returned from a login. Server actions and route
+// handlers only (server components cannot set cookies).
+export const startSession = async (role: SessionRole, token: string) => {
   const cookieStore = await cookies();
+  const { name, value, options } = sessionCookieFor(role, token);
 
-  cookieStore.set(name, value, getSessionCookieOptions(maxAge));
-};
-
-export const startUserSession = async (userId: number) => {
-  const token = await signSession(
-    { role: "user", userId, authAt: Math.floor(Date.now() / 1000) },
-    USER_SESSION_MAX_AGE,
-  );
-
-  await writeCookie(USER_COOKIE, token, USER_SESSION_MAX_AGE);
-};
-
-export const startAdminSession = async (adminId: number) => {
-  const token = await signSession(
-    { role: "admin", adminId },
-    ADMIN_SESSION_MAX_AGE,
-  );
-
-  await writeCookie(ADMIN_COOKIE, token, ADMIN_SESSION_MAX_AGE);
+  cookieStore.set(name, value, options);
 };
 
 export const endSession = async (cookieName: string) => {
@@ -44,8 +25,8 @@ export const endSession = async (cookieName: string) => {
   cookieStore.delete(cookieName);
 };
 
-export const readSession = async (cookieName: string) => {
+export const readSessionToken = async (role: SessionRole) => {
   const cookieStore = await cookies();
 
-  return verifySession(cookieStore.get(cookieName)?.value);
+  return cookieStore.get(cookieNameFor(role))?.value || undefined;
 };
