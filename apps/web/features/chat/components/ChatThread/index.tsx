@@ -147,10 +147,6 @@ const EditHistorySheet = dynamic(
 const HIGHLIGHT_MS = 1500;
 // A jumped-to message stays marked a little longer.
 const JUMP_HIGHLIGHT_MS = 2000;
-// Before the first message there is no conversation to poll: the page asks the
-// server this often whether one exists now.
-const WAIT_FOR_CONVERSATION_MS = 4000;
-
 type SheetKind = "actions" | "reactors" | "history";
 
 // Follows the visual viewport so the composer stays above the on-screen
@@ -239,37 +235,10 @@ export const ChatThread = ({
   const adapter = useChatAdapter(viewer, userId, conversationId);
   const chat = useChatMessages({ adapter, initial, isViewing: isVisible });
   const { messages, hasMore, chatEnabled, peerReadUpTo, sync } = chat;
-  const needsConversation = useRef(conversationId === null);
-
-  // The conversation is created by the first message. The realtime rooms and
-  // the admin routes are named after it, so once a message is stored the page
-  // reloads its server data to learn the id.
-  useEffect(() => {
-    if (
-      needsConversation.current &&
-      messages.some((message) => message.id !== null)
-    ) {
-      needsConversation.current = false;
-      router.refresh();
-    }
-  }, [messages, router]);
-
-  // Nothing to poll or listen to until the first message exists. Meanwhile the
-  // page checks every few seconds (while visible) whether the other side wrote.
-  const isWaitingForConversation = conversationId === null && chatEnabled;
-
-  useEffect(() => {
-    if (!isWaitingForConversation) {
-      return;
-    }
-    const timer = setInterval(() => {
-      if (document.visibilityState === "visible") {
-        router.refresh();
-      }
-    }, WAIT_FOR_CONVERSATION_MS);
-
-    return () => clearInterval(timer);
-  }, [isWaitingForConversation, router]);
+  // A trainee whose chat is on always has a conversation (the API creates it
+  // when the PT switches chat on, or on the first thread read), so the realtime
+  // rooms and admin routes always have an id to use. Only a locked chat with
+  // nothing ever sent has none.
 
   useClearNotifications(
     conversationId === null ? null : chatNotificationTags(conversationId),
