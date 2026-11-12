@@ -1,6 +1,7 @@
 export * from "./auth/index.js";
 export * from "./date.js";
 export * from "./decimal.js";
+export * from "./food-api-schemas.js";
 export * from "./food-groups.js";
 export * from "./food-math.js";
 export * from "./food-schemas.js";
@@ -14,7 +15,9 @@ export * from "./nutrition.js";
 export * from "./nutrition-api-schemas.js";
 export * from "./nutrition-responses.js";
 export * from "./nutrition-schemas.js";
+export * from "./pagination.js";
 export * from "./week.js";
+export * from "./workout-api-schemas.js";
 export * from "./workout-schemas.js";
 export * from "./workouts.js";
 export * from "./youtube.js";

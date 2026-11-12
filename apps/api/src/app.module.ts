@@ -7,8 +7,10 @@ import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter.js";
 import { createLoggerModule } from "./common/logging/logging.module.js";
 import { AppConfigModule } from "./config/app-config.module.js";
 import { DatabaseModule } from "./database/database.module.js";
+import { FoodsModule } from "./foods/foods.module.js";
 import { HealthController } from "./health/health.controller.js";
 import { NutritionModule } from "./nutrition/nutrition.module.js";
+import { WorkoutsModule } from "./workouts/workouts.module.js";
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { NutritionModule } from "./nutrition/nutrition.module.js";
     DatabaseModule,
     AuthModule,
     AdminsModule,
+    WorkoutsModule,
+    FoodsModule,
     NutritionModule,
   ],
   controllers: [HealthController],
