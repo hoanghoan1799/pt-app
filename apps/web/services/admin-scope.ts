@@ -15,13 +15,9 @@ import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { db } from "@/db";
 import { chatConversations, users } from "@/db/schema";
 
-export type AdminRole = "super_admin" | "pt";
-
-export const toAdminRole = (role: string | null | undefined): AdminRole =>
-  role === "pt" ? "pt" : "super_admin";
-
-export const isSuperAdmin = (admin: { role: AdminRole }) =>
-  admin.role === "super_admin";
+// Pure role helpers moved to utils/admin-role.ts (no database); re-exported so
+// the areas still on Drizzle keep their imports until they switch.
+export { type AdminRole, isSuperAdmin, toAdminRole } from "@/utils/admin-role";
 
 // Trainees this admin may NOT work with: for a PT every trainee outside their
 // workspace (users.pt_admin_id), for a super admin none. A subquery, so it

@@ -1,8 +1,8 @@
-import type { foods } from "@/db/schema";
+import type { FOOD_GROUP_VALUES } from "@pt/contracts";
 
-export type FoodGroup = (typeof foods.$inferSelect)["group"];
+export type FoodGroup = (typeof FOOD_GROUP_VALUES)[number];
 
-export type FoodState = NonNullable<(typeof foods.$inferSelect)["state"]>;
+export type FoodState = "raw" | "cooked";
 
 // What the screens and the math need; per 100 g.
 export interface Food {

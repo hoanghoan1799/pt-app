@@ -1,4 +1,3 @@
-import { addDays } from "@pt/contracts";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -12,25 +11,13 @@ import { getTraineeDisplayName } from "@/features/chat/services/chat-queries";
 import { MealPlanDay } from "@/features/meal-plans/components/MealPlanDay";
 import { PlanKcalNotices } from "@/features/meal-plans/components/PlanKcalNotices";
 import {
-  getMealLogData,
-  getWeekCompletion,
-  listDatesWithLogs,
-} from "@/features/meal-plans/services/meal-log-queries";
-import {
-  countPlanDays,
-  getMealPlanWeek,
-  getPlanKcalNoticesFrom,
-  listPlanDates,
+  getPtMealPlan,
   listPlanFoods,
 } from "@/features/meal-plans/services/meal-plan-queries";
 import { BodyProfileCard } from "@/features/nutrition/components/BodyProfileCard";
 import { NutritionTargetCard } from "@/features/nutrition/components/NutritionTargetCard";
 import { NutritionWeek } from "@/features/nutrition/components/NutritionWeek";
-import { getBodyProfile } from "@/features/nutrition/services/body-profile-queries";
-import {
-  getLatestTarget,
-  getNutritionWeek,
-} from "@/features/nutrition/services/nutrition-queries";
+import { getNutritionOverview } from "@/features/nutrition/services/nutrition-queries";
 import { requireAdmin } from "@/services/auth-guard";
 import { canAdminAccessUser } from "@/services/hidden-users";
 import { findUserById } from "@/services/users";
@@ -67,43 +54,14 @@ const AdminNutritionPage = async ({
     { week: readSearchParam(query.week), day: readSearchParam(query.day) },
     today,
   );
-  const [
-    days,
-    latestTarget,
-    bodyProfile,
-    planDays,
-    library,
-    lastWeekCount,
-    nextWeekPlanDates,
-    notices,
-    datesWithLogs,
-    completion,
-  ] = await Promise.all([
-    getNutritionWeek(user.id, schedule.weekStart),
-    getLatestTarget(user.id),
-    getBodyProfile(user.id),
-    getMealPlanWeek(user.id, schedule.weekStart, locale),
-    listPlanFoods(locale),
-    countPlanDays(user.id, addDays(schedule.weekStart, -7)),
-    listPlanDates(
-      user.id,
-      addDays(schedule.weekStart, 7),
-      addDays(schedule.weekStart, 13),
-    ),
-    getPlanKcalNoticesFrom(user.id, schedule.weekStart),
-    listDatesWithLogs(
-      user.id,
-      schedule.weekStart,
-      addDays(schedule.weekStart, 13),
-    ),
-    getWeekCompletion(user.id, schedule.weekStart),
+  const [overview, plan, library] = await Promise.all([
+    getNutritionOverview(schedule.weekStart, user.id),
+    getPtMealPlan(user.id, schedule.weekStart, schedule.selectedDate, locale),
+    listPlanFoods("admin", locale),
   ]);
-  const selectedPlan =
-    planDays.find((day) => day.date === schedule.selectedDate) ?? null;
-  const { logs, marks } = await getMealLogData(
-    selectedPlan?.meals.map((meal) => meal.id) ?? [],
-    locale,
-  );
+  const { days, latestTarget } = overview;
+  const bodyProfile = overview.bodyProfile?.profile ?? null;
+  const { selectedPlan, completion, logs, marks, preferences } = plan;
   const selectedDay = days.find((day) => day.date === schedule.selectedDate);
 
   return (
@@ -129,7 +87,7 @@ const AdminNutritionPage = async ({
           today={today}
         />
         <NutritionTargetCard userId={user.id} target={latestTarget} />
-        <PlanKcalNotices notices={notices} />
+        <PlanKcalNotices notices={plan.notices} />
         <NutritionWeek
           basePath={getAdminNutritionPath(user.id)}
           days={days}
@@ -150,14 +108,14 @@ const AdminNutritionPage = async ({
             library={library}
             logs={logs}
             marks={marks}
-            preferredMealCount={user.preferredMealCount}
-            foodNote={user.foodNote}
-            lastWeekPlanCount={lastWeekCount}
+            preferredMealCount={preferences.preferredMealCount}
+            foodNote={preferences.foodNote}
+            lastWeekPlanCount={plan.lastWeekPlanCount}
             today={today}
-            datesWithLogs={datesWithLogs}
+            datesWithLogs={plan.datesWithLogs}
             datesWithPlan={[
-              ...planDays.map((day) => day.date),
-              ...nextWeekPlanDates,
+              ...plan.days.map((day) => day.date),
+              ...plan.nextWeekPlanDates,
             ]}
           />
         </NutritionWeek>

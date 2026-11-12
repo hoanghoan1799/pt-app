@@ -20,7 +20,7 @@ const FoodsPage = async () => {
   await requireUser();
   const t = await getTranslations("pages.foods");
 
-  const foods = localizeFoods(await listFoods(), await getLocale());
+  const foods = localizeFoods(await listFoods("user"), await getLocale());
 
   return (
     <>

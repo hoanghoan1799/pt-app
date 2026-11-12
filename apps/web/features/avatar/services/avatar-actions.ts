@@ -3,16 +3,17 @@
 import { z } from "zod";
 
 import { AVATAR_MESSAGES } from "@/features/avatar/constants/messages";
-import { clearAvatar, saveAvatar } from "@/features/avatar/services/avatar";
 import {
   AVATAR_MAX_DATA_URL_LENGTH,
-  type AvatarKind,
-  decodeAvatarDataUrl,
+  toWebAvatarUrl,
 } from "@/features/avatar/utils/avatar-rules";
 import { withResultErrorHandling } from "@/services/action-errors";
+import { callApi } from "@/services/api/call";
 import { requireAdmin, requireUser } from "@/services/auth-guard";
 
-// Own photo only (KAN-157): the id always comes from the session. Results are
+// Own photo only (KAN-157): the API takes the id from the session. The API
+// checks the image bytes and size (AVATAR_INVALID / AVATAR_TOO_LARGE answer
+// with the messages shown here). Results are
 // `{ status: "success", avatarUrl } | { status: "error", message }`.
 
 const inputSchema = z.object({
@@ -21,46 +22,41 @@ const inputSchema = z.object({
 
 const fail = (message: string) => ({ status: "error" as const, message });
 
-const store = async (kind: AvatarKind, id: number, input: unknown) => {
+// Refuses an oversized or empty request before forwarding it.
+const parse = (input: unknown) => {
   const parsed = inputSchema.safeParse(input);
 
-  if (!parsed.success) {
-    return fail(
-      JSON.stringify(input ?? "").length > AVATAR_MAX_DATA_URL_LENGTH
-        ? AVATAR_MESSAGES.TOO_LARGE
-        : AVATAR_MESSAGES.INVALID,
-    );
-  }
-  const decoded = decodeAvatarDataUrl(parsed.data.dataUrl);
-
-  if (!decoded.ok) {
-    return fail(
-      decoded.reason === "too-large"
-        ? AVATAR_MESSAGES.TOO_LARGE
-        : AVATAR_MESSAGES.INVALID,
-    );
-  }
-  return {
-    status: "success" as const,
-    avatarUrl: await saveAvatar(kind, id, parsed.data.dataUrl),
-  };
+  return parsed.success
+    ? parsed.data
+    : fail(
+        JSON.stringify(input ?? "").length > AVATAR_MAX_DATA_URL_LENGTH
+          ? AVATAR_MESSAGES.TOO_LARGE
+          : AVATAR_MESSAGES.INVALID,
+      );
 };
 
 export const setUserAvatarAction = withResultErrorHandling(
   "setUserAvatar",
   async (input: { dataUrl: string }) => {
-    const user = await requireUser();
+    await requireUser();
+    const body = parse(input);
 
-    return store("user", user.id, input);
+    if ("status" in body) {
+      return body;
+    }
+    const { avatarUrl } = await callApi("user", (api) =>
+      api.PUT("/v1/users/me/avatar", { body }),
+    );
+
+    return { status: "success" as const, avatarUrl: toWebAvatarUrl(avatarUrl) };
   },
 );
 
 export const removeUserAvatarAction = withResultErrorHandling(
   "removeUserAvatar",
   async () => {
-    const user = await requireUser();
-
-    await clearAvatar("user", user.id);
+    await requireUser();
+    await callApi("user", (api) => api.DELETE("/v1/users/me/avatar"));
     return { status: "success" as const, avatarUrl: null };
   },
 );
@@ -68,18 +64,25 @@ export const removeUserAvatarAction = withResultErrorHandling(
 export const setAdminAvatarAction = withResultErrorHandling(
   "setAdminAvatar",
   async (input: { dataUrl: string }) => {
-    const admin = await requireAdmin();
+    await requireAdmin();
+    const body = parse(input);
 
-    return store("admin", admin.id, input);
+    if ("status" in body) {
+      return body;
+    }
+    const { avatarUrl } = await callApi("admin", (api) =>
+      api.PUT("/v1/admins/me/avatar", { body }),
+    );
+
+    return { status: "success" as const, avatarUrl: toWebAvatarUrl(avatarUrl) };
   },
 );
 
 export const removeAdminAvatarAction = withResultErrorHandling(
   "removeAdminAvatar",
   async () => {
-    const admin = await requireAdmin();
-
-    await clearAvatar("admin", admin.id);
+    await requireAdmin();
+    await callApi("admin", (api) => api.DELETE("/v1/admins/me/avatar"));
     return { status: "success" as const, avatarUrl: null };
   },
 );

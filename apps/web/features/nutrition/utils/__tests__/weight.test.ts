@@ -3,39 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   findNearestPoint,
   formatWeightChange,
-  getRecentWeekStarts,
   getWeightChanges,
   getWeightTicks,
-  groupWeightsByWeek,
   toChartPoints,
 } from "@/features/nutrition/utils/weight";
-
-const WEEKS = getRecentWeekStarts("2026-10-05", 3);
-
-describe("getRecentWeekStarts", () => {
-  it("lists Mondays oldest first", () => {
-    expect(WEEKS).toEqual(["2026-09-21", "2026-09-28", "2026-10-05"]);
-  });
-});
-
-describe("groupWeightsByWeek", () => {
-  it("averages each week and leaves gaps empty", () => {
-    const weeks = groupWeightsByWeek(
-      [
-        { date: "2026-09-22", weightKg: 75 },
-        { date: "2026-09-26", weightKg: 74.5 },
-        { date: "2026-10-06", weightKg: 73.9 },
-      ],
-      WEEKS,
-    );
-
-    expect(weeks).toEqual([
-      { weekStart: "2026-09-21", averageKg: 74.8, count: 2 },
-      { weekStart: "2026-09-28", averageKg: null, count: 0 },
-      { weekStart: "2026-10-05", averageKg: 73.9, count: 1 },
-    ]);
-  });
-});
 
 describe("getWeightChanges", () => {
   it("compares the last two weeks with data and the whole range", () => {

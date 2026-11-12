@@ -1,17 +1,12 @@
-import { createClient } from "@libsql/client";
 import { expect, type Page, test } from "@playwright/test";
 import { addDays } from "@pt/contracts";
 
 import { TIME_ZONE } from "@/constants/time";
 import { formatFullDay, getTodayDate, getWeekStart } from "@/utils/week";
 
+import { execApiDb } from "./api-seed-nutrition";
 import { fillTraineeLogin } from "./auth";
-import {
-  E2E_ADMIN,
-  E2E_DB_URL,
-  E2E_RINGS_EXTRA_FOOD,
-  E2E_RINGS_NAME,
-} from "./config";
+import { E2E_ADMIN, E2E_RINGS_EXTRA_FOOD, E2E_RINGS_NAME } from "./config";
 import { E2E_FOODS } from "./seed";
 import { shot } from "./shots";
 
@@ -26,17 +21,14 @@ const TODAY = getTodayDate(TIME_ZONE);
 const YESTERDAY = addDays(TODAY, -1);
 const TOMORROW = addDays(TODAY, 1);
 
+// Marks with a frozen snapshot and an extra food at exact numbers: the API
+// freezes the real plan items, so these rows are written to the API's
+// PostgreSQL directly (the specs themselves only read).
 const withDb = async (
   statements: { sql: string; args?: (string | number)[] }[],
 ) => {
-  const client = createClient({ url: E2E_DB_URL });
-
-  try {
-    for (const statement of statements) {
-      await client.execute({ sql: statement.sql, args: statement.args ?? [] });
-    }
-  } finally {
-    client.close();
+  for (const statement of statements) {
+    await execApiDb(statement.sql, statement.args ?? []);
   }
 };
 
@@ -66,12 +58,12 @@ test.beforeAll(async () => {
   await withDb([
     {
       sql: `INSERT INTO meal_marks (meal_id, user_id, achieved)
-            SELECT id, ${RINGS_USER}, 1 FROM (${MEALS_OF("")})`,
+            SELECT id, ${RINGS_USER}, true FROM (${MEALS_OF("")})`,
       args: [E2E_RINGS_NAME, E2E_RINGS_NAME, YESTERDAY],
     },
     {
       sql: `INSERT INTO meal_marks (meal_id, user_id, achieved)
-            SELECT id, ${RINGS_USER}, 1 FROM (${MEALS_OF(" AND m.position = 0")})`,
+            SELECT id, ${RINGS_USER}, true FROM (${MEALS_OF(" AND m.position = 0")})`,
       args: [E2E_RINGS_NAME, E2E_RINGS_NAME, TODAY],
     },
     // Snapshot of Bữa sáng when it was marked: P 60 / C 90 / F 12 g.
@@ -84,7 +76,7 @@ test.beforeAll(async () => {
     // The extra food: P 10 / C 20 / F 60 g.
     {
       sql: `INSERT INTO meal_logs (user_id, meal_id, custom_name, grams, kcal, protein, carbs, fat)
-            SELECT ${RINGS_USER}, id, ?, 0, 660, 10, 20, 60 FROM (${MEALS_OF(" AND m.position = 0")})`,
+            SELECT ${RINGS_USER}, id, ?::text, 0, 660, 10, 20, 60 FROM (${MEALS_OF(" AND m.position = 0")})`,
       args: [E2E_RINGS_NAME, E2E_RINGS_EXTRA_FOOD, E2E_RINGS_NAME, TODAY],
     },
   ]);

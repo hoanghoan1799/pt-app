@@ -99,13 +99,19 @@ describe("user login", () => {
       "session",
       "token",
     ]);
+    // chatEnabled, termsVersion, preferredMealCount and foodNote let the web
+    // drop its own users read (step 9b-C); still no secrets.
     expect(Object.keys(response.body.actor).sort()).toEqual([
+      "chatEnabled",
       "email",
+      "foodNote",
       "id",
       "kind",
       "locale",
       "name",
+      "preferredMealCount",
       "ptAdminId",
+      "termsVersion",
     ]);
     for (const leak of ["passwordHash", "scrypt$", "tokenHash", "userAgent"]) {
       expect(raw).not.toContain(leak);

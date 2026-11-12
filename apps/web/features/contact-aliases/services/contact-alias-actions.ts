@@ -3,21 +3,18 @@
 import { revalidatePath } from "next/cache";
 
 import { ALIAS_MESSAGES } from "@/features/contact-aliases/constants/messages";
-import { canSeeAliasTarget } from "@/features/contact-aliases/services/alias-access";
-import { setAlias } from "@/features/contact-aliases/services/contact-aliases";
 import type { SetAliasResult } from "@/features/contact-aliases/types/contact-aliases";
-import {
-  adminActorKey,
-  checkAliasTarget,
-  setAliasInputSchema,
-  userActorKey,
-} from "@/features/contact-aliases/utils/alias-rules";
+import { setAliasInputSchema } from "@/features/contact-aliases/utils/alias-rules";
 import { withResultErrorHandling } from "@/services/action-errors";
+import { tryApi } from "@/services/api/call";
+import { type ApiActor } from "@/services/api/client";
 import { requireAdmin, requireUser } from "@/services/auth-guard";
 
-// Private nicknames. The owner is always the signed-in account; the input only
-// names the target. Only the owner's own pages are refreshed: nobody else is
-// told, because nobody else's view changes.
+// Private nicknames. The owner is always the signed-in account (the API reads
+// it from the session); the input only names the target. Only the owner's own
+// pages are refreshed: nobody else is told, because nobody else's view changes.
+// The API decides if the target exists and may be seen (ALIAS_TARGET_NOT_FOUND,
+// ALIAS_SELF, ALIAS_INVALID carry the same messages as before).
 
 const fail = (message: string): SetAliasResult => ({
   status: "error",
@@ -25,8 +22,7 @@ const fail = (message: string): SetAliasResult => ({
 });
 
 const save = async (
-  owner: { kind: "user" | "admin"; id: number },
-  ownerKey: string,
+  actor: Exclude<ApiActor, "none">,
   input: unknown,
 ): Promise<SetAliasResult> => {
   const parsed = setAliasInputSchema.safeParse(input);
@@ -35,31 +31,27 @@ const save = async (
     return fail(ALIAS_MESSAGES.INVALID);
   }
   const { targetKey, alias } = parsed.data;
-  const check = checkAliasTarget(ownerKey, targetKey);
+  const outcome = await tryApi(actor, (api) =>
+    api.PUT("/v1/contact-aliases/{targetKey}", {
+      params: { path: { targetKey } },
+      body: { alias },
+    }),
+  );
 
-  if (check === "self") {
-    return fail(ALIAS_MESSAGES.SELF);
+  if (!outcome.ok) {
+    return fail(outcome.error.message);
   }
-  if (check !== "ok") {
-    return fail(ALIAS_MESSAGES.TARGET_NOT_FOUND);
-  }
-  // Clearing an alias of an account that is gone must still work.
-  if (alias !== "" && !(await canSeeAliasTarget(owner, targetKey))) {
-    return fail(ALIAS_MESSAGES.TARGET_NOT_FOUND);
-  }
-  if ((await setAlias(ownerKey, targetKey, alias)) === "changed") {
-    revalidatePath("/", "layout");
-  }
-  return { status: "success", targetKey, alias };
+  revalidatePath("/", "layout");
+  return { status: "success", targetKey, alias: outcome.data.alias };
 };
 
 // targetKey: "user:<id>" | "admin:<id>" | "pt"; alias "" clears it.
 export const setContactAliasAction = withResultErrorHandling(
   "setContactAlias",
   async (input: { targetKey: string; alias: string }) => {
-    const user = await requireUser();
+    await requireUser();
 
-    return save({ kind: "user", id: user.id }, userActorKey(user.id), input);
+    return save("user", input);
   },
 );
 
@@ -67,12 +59,8 @@ export const setContactAliasAction = withResultErrorHandling(
 export const adminSetContactAliasAction = withResultErrorHandling(
   "adminSetContactAlias",
   async (input: { targetKey: string; alias: string }) => {
-    const admin = await requireAdmin();
+    await requireAdmin();
 
-    return save(
-      { kind: "admin", id: admin.id },
-      adminActorKey(admin.id),
-      input,
-    );
+    return save("admin", input);
   },
 );

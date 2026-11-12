@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
 import { CARD } from "@/constants/styles";
-import type { PersonView } from "@/features/social/services/friend-queries";
+import type { PersonView } from "@/features/social/types/social";
 import { profilePath } from "@/features/social/utils/post-rules";
 
 interface FriendRowProps {

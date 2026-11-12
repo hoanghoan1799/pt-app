@@ -12,7 +12,7 @@ import { Spinner } from "@/components/common/Spinner";
 import { BUTTON_PRIMARY, CARD, LABEL } from "@/constants/styles";
 import { RelationshipButton } from "@/features/social/components/RelationshipButton";
 import { searchFriendAction } from "@/features/social/services/friend-actions";
-import type { SearchResult } from "@/features/social/services/friend-queries";
+import type { SearchResult } from "@/features/social/types/social";
 import { profilePath } from "@/features/social/utils/post-rules";
 import { describeErrorReference } from "@/utils/errors";
 
@@ -97,14 +97,12 @@ export const FriendSearch = () => {
                 {result.name}
               </span>
             </Link>
-            {result.relationship !== "self" && (
-              <RelationshipButton
-                userId={result.id}
-                name={result.name}
-                relationship={result.relationship}
-                onChanged={search}
-              />
-            )}
+            <RelationshipButton
+              userId={result.id}
+              name={result.name}
+              relationship={result.relationship}
+              onChanged={search}
+            />
           </div>
         ) : (
           <p className={`${CARD} p-4 text-center text-muted`}>{t("empty")}</p>

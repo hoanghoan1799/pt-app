@@ -2476,6 +2476,10 @@ export interface operations {
                             email: string | null;
                             locale: string | null;
                             ptAdminId: number | null;
+                            chatEnabled: boolean;
+                            termsVersion: number | null;
+                            preferredMealCount: number | null;
+                            foodNote: string | null;
                         } | {
                             /** @enum {string} */
                             kind: "admin";
@@ -2600,6 +2604,10 @@ export interface operations {
                             email: string | null;
                             locale: string | null;
                             ptAdminId: number | null;
+                            chatEnabled: boolean;
+                            termsVersion: number | null;
+                            preferredMealCount: number | null;
+                            foodNote: string | null;
                         } | {
                             /** @enum {string} */
                             kind: "admin";
@@ -2711,6 +2719,10 @@ export interface operations {
                             email: string | null;
                             locale: string | null;
                             ptAdminId: number | null;
+                            chatEnabled: boolean;
+                            termsVersion: number | null;
+                            preferredMealCount: number | null;
+                            foodNote: string | null;
                         } | {
                             /** @enum {string} */
                             kind: "admin";
@@ -2824,6 +2836,10 @@ export interface operations {
                             email: string | null;
                             locale: string | null;
                             ptAdminId: number | null;
+                            chatEnabled: boolean;
+                            termsVersion: number | null;
+                            preferredMealCount: number | null;
+                            foodNote: string | null;
                         } | {
                             /** @enum {string} */
                             kind: "admin";
@@ -16610,7 +16626,9 @@ export interface operations {
                 week?: string;
             };
             header?: never;
-            path?: never;
+            path: {
+                userId: number;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -16783,7 +16801,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                userId: number;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -16884,7 +16904,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                userId: number;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -17023,7 +17045,9 @@ export interface operations {
                 week?: string;
             };
             header?: never;
-            path?: never;
+            path: {
+                userId: number;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -17192,7 +17216,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                userId: number;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -17331,7 +17357,9 @@ export interface operations {
                 to: string;
             };
             header?: never;
-            path?: never;
+            path: {
+                userId: number;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -17418,7 +17446,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                userId: number;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -17512,7 +17542,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                userId: number;
+            };
             cookie?: never;
         };
         requestBody: {

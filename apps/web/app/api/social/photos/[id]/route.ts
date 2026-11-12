@@ -1,52 +1,42 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 import { parsePhotoId } from "@/features/chat/utils/photo-rules";
-import {
-  actorOfAdmin,
-  actorOfUser,
-} from "@/features/social/services/post-context";
-import { findPostPhotoForViewer } from "@/features/social/services/post-photos";
-import { getApiAdmin, getApiUser } from "@/services/auth-guard";
+import { proxyApiFile } from "@/services/api/binary";
+import { ApiError } from "@/services/api/errors";
+import { readSessionToken } from "@/services/session";
 
 type Context = { params: Promise<{ id: string }> };
 
 const reply = (body: unknown, status: number) =>
   NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
 
-// GET: the photo of a post. 404 unless the post is visible to the signed-in
-// viewer (canSeePost), never 403, so ids reveal nothing. The bytes of an id
-// never change. Visibility can, but only a viewer who already saw the photo
-// holds a copy, in their own private cache, so it may keep it for good.
-export const GET = async (_request: NextRequest, { params }: Context) => {
+// GET: the photo of a post, streamed from the API. The API answers 404 unless
+// the post is visible to the signed-in viewer, never 403, so ids reveal
+// nothing. Whoever is signed in may ask: the admin session first, then the
+// trainee's.
+export const GET = async (request: NextRequest, { params }: Context) => {
   const id = parsePhotoId((await params).id);
 
   if (id === null) {
     return reply({ error: "not_found" }, 404);
   }
-  const [admin, user] = await Promise.all([getApiAdmin(), getApiUser()]);
+  const actors = ["admin", "user"] as const;
+  let signedIn = false;
 
-  if (!admin && !user) {
-    return reply({ error: "unauthorized" }, 401);
-  }
-  const viewers = [
-    ...(admin ? [actorOfAdmin(admin)] : []),
-    ...(user ? [actorOfUser(user)] : []),
-  ];
-
-  for (const viewer of viewers) {
-    const found = await findPostPhotoForViewer(id, viewer);
-
-    if (found) {
-      return new NextResponse(new Uint8Array(found.data), {
-        status: 200,
-        headers: {
-          "Content-Type": found.mime,
-          "Cache-Control": "private, max-age=31536000, immutable",
-          "X-Content-Type-Options": "nosniff",
-          "Content-Security-Policy": "default-src 'none'; sandbox",
-        },
-      });
+  for (const actor of actors) {
+    if (!(await readSessionToken(actor))) {
+      continue;
+    }
+    signedIn = true;
+    try {
+      return await proxyApiFile(actor, `/v1/social/photos/${id}`, { request });
+    } catch (error) {
+      if (!(error instanceof ApiError) || !error.isClientError) {
+        throw error;
+      }
     }
   }
-  return reply({ error: "not_found" }, 404);
+  return signedIn
+    ? reply({ error: "not_found" }, 404)
+    : reply({ error: "unauthorized" }, 401);
 };

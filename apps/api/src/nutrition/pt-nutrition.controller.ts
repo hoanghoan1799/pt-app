@@ -7,7 +7,7 @@ import {
   Put,
   Query,
 } from "@nestjs/common";
-import { ApiTags } from "@nestjs/swagger";
+import { ApiParam, ApiTags } from "@nestjs/swagger";
 import {
   type ApplyLastWeekBody,
   applyLastWeekBodySchema,
@@ -45,6 +45,8 @@ import { ScopedUserId } from "./scoped-user.js";
 // to the trainee in `:userId` (PtScopeGuard): own workspace only, hidden
 // trainees need a reveal.
 @ApiTags("nutrition")
+// `@ScopedUserId()` reads the id itself, so Swagger needs the path parameter.
+@ApiParam({ name: "userId", type: Number })
 @Controller("trainees/:userId")
 @Admin()
 @ScopedToTrainee()

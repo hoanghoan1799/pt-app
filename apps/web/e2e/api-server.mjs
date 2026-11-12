@@ -18,26 +18,6 @@ import pg from "pg";
 const here = dirname(fileURLToPath(import.meta.url));
 const apiDir = resolve(here, "../../api");
 
-const PORT = process.env.E2E_API_PORT ?? "4100";
-const WEB_ORIGIN = process.env.E2E_BASE_URL ?? "http://localhost:3100";
-const PG_PORT = process.env.E2E_PG_PORT ?? "55432";
-const CONTAINER = process.env.E2E_PG_CONTAINER ?? `pt-e2e-pg-${PG_PORT}`;
-const external = process.env.E2E_DATABASE_URL;
-const databaseUrl =
-  external || `postgres://pt:pt_e2e_only@localhost:${PG_PORT}/ptapp_e2e`;
-const ADMIN_USERNAME = process.env.E2E_ADMIN_USERNAME ?? "e2e-admin";
-const ADMIN_PASSWORD =
-  process.env.E2E_ADMIN_PASSWORD ?? "e2e-only-admin-password";
-
-const databaseName = new URL(databaseUrl).pathname.slice(1);
-
-if (!databaseName.includes("e2e")) {
-  console.error(
-    `e2e api: refusing database "${databaseName}" (its name must contain "e2e")`,
-  );
-  process.exit(1);
-}
-
 // A throwaway VAPID key pair (P-256) so GET /v1/push/config says web push is on
 // and the opt-in card renders. No subscription of a spec reaches a push service.
 const vapidKeys = () => {
@@ -57,6 +37,28 @@ const vapidKeys = () => {
     VAPID_SUBJECT: "mailto:e2e@example.test",
   };
 };
+
+const PORT = process.env.E2E_API_PORT ?? "4100";
+const WEB_ORIGIN = process.env.E2E_BASE_URL ?? "http://localhost:3100";
+const PG_PORT = process.env.E2E_PG_PORT ?? "55432";
+const CONTAINER =
+  process.env.E2E_PG_CONTAINER ??
+  (PG_PORT === "55432" ? "pt-e2e-pg" : `pt-e2e-pg-${PG_PORT}`);
+const external = process.env.E2E_DATABASE_URL;
+const databaseUrl =
+  external || `postgres://pt:pt_e2e_only@localhost:${PG_PORT}/ptapp_e2e`;
+const ADMIN_USERNAME = process.env.E2E_ADMIN_USERNAME ?? "e2e-admin";
+const ADMIN_PASSWORD =
+  process.env.E2E_ADMIN_PASSWORD ?? "e2e-only-admin-password";
+
+const databaseName = new URL(databaseUrl).pathname.slice(1);
+
+if (!databaseName.includes("e2e")) {
+  console.error(
+    `e2e api: refusing database "${databaseName}" (its name must contain "e2e")`,
+  );
+  process.exit(1);
+}
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
@@ -139,6 +141,8 @@ const main = async () => {
     // The suite logs in a lot from one address.
     LOGIN_THROTTLE_LIMIT: "100000",
     LOG_LEVEL: "warn",
+    // No GIPHY key: the sticker tab stays hidden and no spec reaches GIPHY.
+    GIPHY_API_KEY: "",
     ...vapidKeys(),
   };
 

@@ -8,11 +8,10 @@ import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { NotificationList } from "@/features/social/components/NotificationList";
 import {
+  getSocialMe,
   listNotifications,
-  markAllNotificationsRead,
-  purgeOldNotifications,
-} from "@/features/social/services/social-notifications";
-import { hasAcceptedTerms } from "@/features/social/services/terms";
+  markNotificationsRead,
+} from "@/features/social/services/social-queries";
 import { requireUser } from "@/services/auth-guard";
 
 export const generateMetadata = async (): Promise<Metadata> => {
@@ -23,18 +22,21 @@ export const generateMetadata = async (): Promise<Metadata> => {
 
 const NotificationsPage = async () => {
   const t = await getTranslations("social.pages");
-  const user = await requireUser();
+  await requireUser();
 
-  if (!hasAcceptedTerms(user)) {
+  if (!(await getSocialMe("user")).termsAccepted) {
     redirect(ROUTES.FEED);
   }
-  const key = `user:${user.id}`;
+  // Listed first, so the page still shows which ones were new; the API no
+  // longer marks them read by itself.
+  const { notifications, unreadCount } = await listNotifications(
+    "user",
+    await getLocale(),
+  );
 
-  await purgeOldNotifications();
-  // Listed first, so the page still shows which ones were new.
-  const notifications = await listNotifications(key, await getLocale());
-
-  await markAllNotificationsRead(key);
+  if (unreadCount > 0) {
+    await markNotificationsRead("user");
+  }
   return (
     <>
       <AppHeader

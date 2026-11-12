@@ -79,6 +79,10 @@ export class SessionQueries {
         email: true,
         locale: true,
         ptAdminId: true,
+        chatEnabled: true,
+        termsVersion: true,
+        preferredMealCount: true,
+        foodNote: true,
       },
     });
   }

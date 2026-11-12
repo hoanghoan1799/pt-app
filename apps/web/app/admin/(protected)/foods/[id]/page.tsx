@@ -23,7 +23,7 @@ const AdminFoodPage = async ({ params }: PageProps<"/admin/foods/[id]">) => {
   const t = await getTranslations("pages.adminFoodDetail");
 
   const { id } = await params;
-  const food = await getFood(Number(id));
+  const food = await getFood("admin", Number(id));
 
   if (!food) {
     notFound();

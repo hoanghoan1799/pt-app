@@ -3,8 +3,6 @@ import { resolve } from "node:path";
 // Single source of truth for the e2e database. Everything the e2e touches
 // (Next server, drizzle-kit push, seed) gets this URL, never one from the
 // shell or `.env.local`.
-// Overridable per run (E2E_PORT, E2E_API_PORT, E2E_PG_PORT) so several suites can
-// run side by side on one machine.
 export const E2E_PORT = Number(process.env.E2E_PORT ?? 3100);
 export const E2E_BASE_URL = `http://localhost:${E2E_PORT}`;
 export const E2E_TMP_DIR = resolve(__dirname, ".tmp");
@@ -20,7 +18,7 @@ export const E2E_API_PORT = Number(process.env.E2E_API_PORT ?? 4100);
 export const E2E_API_URL = `http://localhost:${E2E_API_PORT}`;
 export const E2E_PG_PORT = Number(process.env.E2E_PG_PORT ?? 55432);
 export const E2E_PG_CONTAINER =
-  process.env.E2E_PG_CONTAINER ?? `pt-e2e-pg-${E2E_PG_PORT}`;
+  E2E_PG_PORT === 55432 ? "pt-e2e-pg" : `pt-e2e-pg-${E2E_PG_PORT}`;
 export const E2E_DATABASE_URL =
   process.env.E2E_DATABASE_URL ||
   `postgres://pt:pt_e2e_only@localhost:${E2E_PG_PORT}/ptapp_e2e`;

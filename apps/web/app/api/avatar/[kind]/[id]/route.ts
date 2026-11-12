@@ -1,13 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { getStoredAvatar } from "@/features/avatar/services/avatar";
-import {
-  type AvatarKind,
-  decodeAvatarDataUrl,
-  isAvatarKind,
-} from "@/features/avatar/utils/avatar-rules";
-import { hasMyConversation } from "@/features/chat/services/chat-queries";
+import { isAvatarKind } from "@/features/avatar/utils/avatar-rules";
+import { proxyApiFile } from "@/services/api/binary";
+import { ApiError } from "@/services/api/errors";
 import { getApiAdmin, getApiUser } from "@/services/auth-guard";
 
 const idSchema = z.coerce.number().int().positive();
@@ -18,27 +14,12 @@ const json = (error: string, status: number) =>
     { status, headers: { "Cache-Control": "no-store" } },
   );
 
-// Any admin sees every photo. A trainee sees their own, and the PT team's once
-// they have a conversation (the shared inbox: every PT talks to them). Never
-// another trainee's.
-const canView = async (kind: AvatarKind, id: number) => {
-  if (await getApiAdmin()) {
-    return true;
-  }
-  const user = await getApiUser();
-
-  if (!user) {
-    return null;
-  }
-  if (kind === "user") {
-    return user.id === id;
-  }
-  return hasMyConversation();
-};
-
-// The profile photo (KAN-157). Payloads carry `?v=<updatedAt>` URLs, not the
-// image, so polling stays small. With a matching `v` the bytes never change
-// and cache for a year; without it the browser revalidates by ETag.
+// The profile photo (KAN-157). Payloads carry `?v=<version>` URLs, not the
+// image, so polling stays small. The API decides who may see which photo (any
+// admin every photo; a trainee their own and the PT team's once they have a
+// conversation), answers 404 for everything else, and sets the ETag and the
+// year-long cache for a matching `v`; this route only picks whose session to
+// send and relays the bytes.
 export const GET = async (
   request: NextRequest,
   { params }: { params: Promise<{ kind: string; id: string }> },
@@ -49,34 +30,25 @@ export const GET = async (
   if (!isAvatarKind(kind) || !id.success) {
     return json("not_found", 404);
   }
-  const allowed = await canView(kind, id.data);
+  const actor = (await getApiAdmin())
+    ? "admin"
+    : (await getApiUser()) && "user";
 
-  if (allowed === null) {
+  if (!actor) {
     return json("unauthorized", 401);
   }
-  // Same answer as a missing photo, so ids cannot be probed.
-  const stored = allowed ? await getStoredAvatar(kind, id.data) : null;
-  const decoded = stored ? decodeAvatarDataUrl(stored.avatar) : null;
+  const version = request.nextUrl.searchParams.get("v");
+  const query = version ? `?v=${encodeURIComponent(version)}` : "";
 
-  if (!stored || !decoded?.ok) {
-    return json("not_found", 404);
+  try {
+    return await proxyApiFile(actor, `/v1/avatars/${kind}/${id.data}${query}`, {
+      request,
+    });
+  } catch (error) {
+    // Same answer as a missing photo, so ids cannot be probed.
+    if (error instanceof ApiError && error.isClientError) {
+      return json("not_found", 404);
+    }
+    throw error;
   }
-  const version = String(Math.floor(stored.updatedAt.getTime() / 1000));
-  const etag = `"${version}"`;
-  const isVersioned = request.nextUrl.searchParams.get("v") === version;
-  const headers = {
-    ETag: etag,
-    "Cache-Control": isVersioned
-      ? "private, max-age=31536000, immutable"
-      : "private, no-cache",
-    "X-Content-Type-Options": "nosniff",
-  };
-
-  if (request.headers.get("if-none-match") === etag) {
-    return new NextResponse(null, { status: 304, headers });
-  }
-  return new NextResponse(Buffer.from(decoded.bytes), {
-    status: 200,
-    headers: { ...headers, "Content-Type": decoded.mime },
-  });
 };
