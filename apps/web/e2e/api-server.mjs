@@ -128,7 +128,16 @@ const main = async () => {
   if (!external) {
     startContainer();
   }
-  const client = await waitForDatabase();
+  let client = await waitForDatabase();
+
+  if (!external) {
+    // The postgres image starts a temporary server for its init scripts, stops
+    // it and starts the real one; a connection in that window is cut. Wait for
+    // the restart, then connect again.
+    await client.end();
+    await sleep(4000);
+    client = await waitForDatabase();
+  }
 
   await client.query("drop schema public cascade; create schema public;");
   await client.end();
