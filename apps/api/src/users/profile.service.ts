@@ -9,6 +9,7 @@ import { DataSource } from "typeorm";
 
 import type { AuthActor } from "../auth/actor.js";
 import { SessionInvalidError } from "../auth/auth.errors.js";
+import { ChatProfileService } from "../chat/chat-profile.service.js";
 import { notFoundError } from "../common/errors.js";
 import { CURRENT_TERMS_VERSION } from "../contact-aliases/contact-aliases.service.js";
 import { Admin } from "../database/entities/admin.entity.js";
@@ -19,7 +20,10 @@ import { toUserProfile } from "./trainee.mapper.js";
 // persist on their account (language, bio).
 @Injectable()
 export class ProfileService {
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly chatProfile: ChatProfileService,
+  ) {}
 
   private get users() {
     return this.dataSource.getRepository(User);
@@ -64,6 +68,8 @@ export class ProfileService {
       });
     }
     await this.users.update({ id: userId }, { chatColor: color });
+    // Polling clients see the new colour through the conversation cursor.
+    await this.chatProfile.accountColorChanged({ kind: "user", userId });
     return { color };
   }
 

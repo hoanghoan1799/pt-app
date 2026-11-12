@@ -1,4 +1,5 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Optional } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { InjectDataSource } from "@nestjs/typeorm";
 import { DataSource, IsNull, LessThanOrEqual, Not } from "typeorm";
 
@@ -10,6 +11,12 @@ import {
   buildUserActor,
   type ClientKind,
 } from "./actor.js";
+import {
+  SESSION_EVENTS,
+  type SessionLockedEvent,
+  type SessionRevokedAllEvent,
+  type SessionRevokedEvent,
+} from "./session.events.js";
 import {
   computeSlide,
   expiryFor,
@@ -47,6 +54,7 @@ export class SessionsService {
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly clock: Clock,
     private readonly queries: SessionQueries,
+    @Optional() private readonly events?: EventEmitter2,
   ) {}
 
   private get repo() {
@@ -133,6 +141,9 @@ export class SessionsService {
 
   async revoke(sessionId: string) {
     await this.repo.delete({ id: sessionId });
+    this.events?.emit(SESSION_EVENTS.revoked, {
+      sessionId,
+    } satisfies SessionRevokedEvent);
   }
 
   // Every session of a subject except one: password change signs the other
@@ -142,6 +153,11 @@ export class SessionsService {
       ...subjectColumns(subject),
       ...(exceptSessionId ? { id: Not(exceptSessionId) } : {}),
     });
+    this.events?.emit(SESSION_EVENTS.revokedAll, {
+      kind: subject.kind,
+      id: subject.id,
+      exceptSessionId: exceptSessionId ?? null,
+    } satisfies SessionRevokedAllEvent);
   }
 
   // Right passcode: unlocked for 5 minutes, and the reveal of hidden trainees
@@ -170,6 +186,9 @@ export class SessionsService {
       { id: sessionId },
       { unlockedUntil: null, revealedUntil: null },
     );
+    this.events?.emit(SESSION_EVENTS.locked, {
+      sessionId,
+    } satisfies SessionLockedEvent);
   }
 
   // Fixed 10 minute window, not refreshed by the heartbeat.

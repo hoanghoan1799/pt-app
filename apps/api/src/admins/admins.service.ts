@@ -1,21 +1,29 @@
 import { Injectable } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { InjectDataSource } from "@nestjs/typeorm";
 import {
+  type AdminRole,
   type ChatColorKey,
   type CreatePtRequest,
   PROFILE_MESSAGES,
   PT_MESSAGES,
+  toAdminRole,
 } from "@pt/contracts";
 import { DataSource, IsNull, Not } from "typeorm";
 
 import { conflict } from "../auth/auth.errors.js";
 import { PasswordHasher } from "../auth/password-hash.js";
+import { ChatProfileService } from "../chat/chat-profile.service.js";
 import { Clock } from "../common/clock.js";
 import { isUniqueViolation, notFoundError } from "../common/errors.js";
 import { Admin } from "../database/entities/admin.entity.js";
 import { User } from "../database/entities/user.entity.js";
 import { toUsernameKey } from "../users/generate-password.js";
 import { toAdminAccount, toAdminProfile } from "../users/trainee.mapper.js";
+import {
+  ADMIN_EVENTS,
+  type AdminPresenceHiddenChangedEvent,
+} from "./admins.events.js";
 
 // Admin accounts (super admin) and the settings an admin keeps on their own
 // account.
@@ -25,6 +33,8 @@ export class AdminsService {
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly hasher: PasswordHasher,
     private readonly clock: Clock,
+    private readonly chatProfile: ChatProfileService,
+    private readonly events: EventEmitter2,
   ) {}
 
   private get admins() {
@@ -118,6 +128,17 @@ export class AdminsService {
   // per-conversation colour belongs to the chat module).
   async setChatColor(adminId: number, color: ChatColorKey | null) {
     await this.updateOwn(adminId, { chatColor: color });
+    const row = await this.admins.findOne({
+      where: { id: adminId },
+      select: { id: true, role: true },
+    });
+
+    // Polling clients see the new colour through the conversation cursors.
+    await this.chatProfile.accountColorChanged({
+      kind: "admin",
+      adminId,
+      role: toAdminRole(row?.role ?? null) satisfies AdminRole,
+    });
     return { color };
   }
 
@@ -125,6 +146,10 @@ export class AdminsService {
   // trainees.
   async setPresenceHidden(adminId: number, isHidden: boolean) {
     await this.updateOwn(adminId, { presenceHidden: isHidden });
+    this.events.emit(ADMIN_EVENTS.presenceHiddenChanged, {
+      adminId,
+      presenceHidden: isHidden,
+    } satisfies AdminPresenceHiddenChangedEvent);
     return { presenceHidden: isHidden };
   }
 

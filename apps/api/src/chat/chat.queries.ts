@@ -422,6 +422,37 @@ export class ChatQueries {
     return returnedRows<{ lastChangeAt: Date }>(result)[0]?.lastChangeAt ?? now;
   }
 
+  // The same bump for every conversation an account colour shows in: the
+  // trainee's own, or those an admin takes part in (all of them for a super
+  // admin, their trainees' for a PT). Returns each moved conversation.
+  async bumpConversationsOf(
+    scope: { traineeUserId: number } | { ptAdminId: number | null },
+    now: Date,
+  ) {
+    const filter =
+      "traineeUserId" in scope
+        ? { where: "user_id = $2", params: [scope.traineeUserId] }
+        : scope.ptAdminId === null
+          ? { where: "TRUE", params: [] }
+          : {
+              where: "user_id IN (SELECT id FROM users WHERE pt_admin_id = $2)",
+              params: [scope.ptAdminId],
+            };
+    const result = await this.run<unknown>(
+      `UPDATE chat_conversations
+       SET last_change_at = date_trunc('milliseconds', GREATEST(
+         COALESCE(last_change_at, 'epoch'::timestamptz) + interval '1 millisecond',
+         $1::timestamptz))
+       WHERE ${filter.where}
+       RETURNING id, user_id AS "userId", last_change_at AS "lastChangeAt"`,
+      [now, ...filter.params],
+    );
+
+    return returnedRows<{ id: number; userId: number; lastChangeAt: Date }>(
+      result,
+    );
+  }
+
   // --- Reads ------------------------------------------------------------------
 
   // "Đã xem" for the other side. A trainee sees the furthest any PT has read;

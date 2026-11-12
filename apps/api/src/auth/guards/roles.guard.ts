@@ -24,6 +24,11 @@ export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext) {
+    // Socket.IO events are authenticated by the handshake (RealtimeAuth).
+    if (context.getType() !== "http") {
+      return true;
+    }
+
     const targets = [context.getHandler(), context.getClass()];
 
     if (this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, targets)) {

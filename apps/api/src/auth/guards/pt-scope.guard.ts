@@ -27,6 +27,11 @@ export class PtScopeGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext) {
+    // Socket.IO events are authenticated by the handshake (RealtimeAuth).
+    if (context.getType() !== "http") {
+      return true;
+    }
+
     const meta = this.reflector.getAllAndOverride<TraineeScopeMeta | undefined>(
       TRAINEE_SCOPE_KEY,
       [context.getHandler(), context.getClass()],

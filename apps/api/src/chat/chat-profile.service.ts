@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
 import {
   adminActorKey,
+  type AdminRole,
   CHAT_COLOR_KEYS,
   CHAT_USER_READER_KEY,
   chatAdminReaderKey,
@@ -119,5 +120,31 @@ export class ChatProfileService {
       changedAt: changedAt.getTime(),
     } satisfies ChatProfileChangedEvent);
     return this.load(conversation.id, actor, trainee.traineeId);
+  }
+
+  // An account colour changed (users.chat_color / admins.chat_color): move the
+  // change cursor of every conversation it shows in, so polling clients see
+  // it, and tell the open ones. A trainee's colour touches their own
+  // conversation; an admin's the conversations they take part in.
+  async accountColorChanged(
+    who:
+      | { kind: "user"; userId: number }
+      | { kind: "admin"; adminId: number; role: AdminRole },
+  ) {
+    const moved = await this.queries.bumpConversationsOf(
+      who.kind === "user"
+        ? { traineeUserId: who.userId }
+        : { ptAdminId: who.role === "super_admin" ? null : who.adminId },
+      this.clock.now(),
+    );
+
+    for (const row of moved) {
+      this.events.publish(CHAT_EVENTS.profileChanged, {
+        conversationId: row.id,
+        traineeUserId: row.userId,
+        changedAt: row.lastChangeAt.getTime(),
+      } satisfies ChatProfileChangedEvent);
+    }
+    return moved.length;
   }
 }
