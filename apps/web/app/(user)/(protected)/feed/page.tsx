@@ -8,7 +8,7 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { UserHeaderActions } from "@/features/auth/components/UserHeaderActions";
-import { getAvatarUrl } from "@/features/avatar/services/avatar";
+import { getOwnAvatarUrl } from "@/features/avatar/services/own-avatar";
 import { NotificationBell } from "@/features/social/components/NotificationBell";
 import { PostComposer } from "@/features/social/components/PostComposer";
 import { PostList } from "@/features/social/components/PostList";
@@ -32,7 +32,7 @@ const FeedPage = async () => {
   const me = await getSocialMe("user");
   const accepted = me.termsAccepted;
   const [posts, avatarUrl] = accepted
-    ? await Promise.all([getFeedPage("user"), getAvatarUrl("user", user.id)])
+    ? await Promise.all([getFeedPage("user"), getOwnAvatarUrl("user")])
     : [null, null];
   const defaultPrivacy = me.postPrivacyDefault;
   const unreadCount = me.unreadNotifications;

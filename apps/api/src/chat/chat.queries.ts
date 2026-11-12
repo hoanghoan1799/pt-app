@@ -93,9 +93,14 @@ export class ChatQueries {
     return rows[0] ?? null;
   }
 
-  // Race-safe: two first sends at once both insert-or-ignore, then both read.
-  async getOrCreateConversation(userId: number): Promise<ConversationRow> {
-    await this.dataSource
+  // Race-safe and idempotent: insert-or-ignore on the unique user_id, then
+  // read. Two first sends, an enable and a thread read at once all end with the
+  // same row. Pass `manager` to run inside a transaction.
+  async getOrCreateConversation(
+    userId: number,
+    manager?: EntityManager,
+  ): Promise<ConversationRow> {
+    await (manager ?? this.dataSource)
       .createQueryBuilder()
       .insert()
       .into(ChatConversation)
@@ -103,7 +108,7 @@ export class ChatQueries {
       .orIgnore()
       .execute();
 
-    const conversation = await this.findConversationByUserId(userId);
+    const conversation = await this.findConversationByUserId(userId, manager);
 
     if (!conversation) {
       throw new Error("Chat conversation missing right after insert");

@@ -1,82 +1,22 @@
 import { deflateSync } from "node:zlib";
 
-import { createClient } from "@libsql/client";
 import { type Browser, expect, type Page, test } from "@playwright/test";
 
-import { toEmailKey } from "@/utils/email";
-
+import { withApiDb } from "./api-db";
+import { prepareChatTrainee, resetChat } from "./api-seed-chat";
 import { clearAvatarsViaApi } from "./api-seed-users";
 import { fillTraineeLogin } from "./auth";
-import { E2E_ADMIN, E2E_CHAT_NAME, E2E_DB_URL, e2eEmail } from "./config";
+import { E2E_ADMIN, E2E_CHAT_NAME } from "./config";
 
 // Profile photos (KAN-157): upload in the settings sheet, then the other side
 // sees it in the conversation header. The spec owns E2E_CHAT_NAME's chat rows.
-const DB_ATTEMPTS = 5;
-
-const withDb = async <T>(
-  run: (client: ReturnType<typeof createClient>) => Promise<T>,
-) => {
-  for (let attempt = 1; ; attempt += 1) {
-    const client = createClient({ url: E2E_DB_URL });
-
-    try {
-      await client.execute("PRAGMA busy_timeout = 5000");
-      return await run(client);
-    } catch (error) {
-      if (attempt >= DB_ATTEMPTS || !String(error).includes("SQLITE_BUSY")) {
-        throw error;
-      }
-    } finally {
-      client.close();
-    }
-  }
-};
-
 const resetState = async (enabled: boolean) => {
   await clearAvatarsViaApi(E2E_CHAT_NAME);
-  return resetLegacyState(enabled);
+  // Chat on with an empty conversation, or back to the seeded (off) state.
+  return enabled
+    ? prepareChatTrainee(E2E_CHAT_NAME)
+    : resetChat(E2E_CHAT_NAME);
 };
-
-const resetLegacyState = (enabled: boolean) =>
-  withDb(async (client) => {
-    const found = await client.execute({
-      sql: "SELECT id FROM users WHERE email_key = ?",
-      args: [toEmailKey(e2eEmail(E2E_CHAT_NAME))],
-    });
-    const userId = Number(found.rows[0].id);
-
-    for (const table of [
-      "chat_messages",
-      "chat_reads",
-      "chat_nicknames",
-      "chat_color_overrides",
-    ]) {
-      await client.execute({
-        sql: `DELETE FROM ${table} WHERE conversation_id IN (SELECT id FROM chat_conversations WHERE user_id = ?)`,
-        args: [userId],
-      });
-    }
-    await client.execute({
-      sql: "DELETE FROM chat_conversations WHERE user_id = ?",
-      args: [userId],
-    });
-    await client.execute({
-      sql: "UPDATE users SET chat_enabled = ?, avatar = NULL, avatar_updated_at = NULL WHERE id = ?",
-      args: [enabled ? 1 : null, userId],
-    });
-    await client.execute(
-      "UPDATE admins SET avatar = NULL, avatar_updated_at = NULL",
-    );
-    // Photos live in the API now; the legacy columns above only keep the pages
-    // that still read SQLite in step.
-    if (enabled) {
-      await client.execute({
-        sql: "INSERT INTO chat_conversations (user_id) VALUES (?)",
-        args: [userId],
-      });
-    }
-    return userId;
-  });
 
 // A solid-colour 40x20 PNG built in memory: wide, so the square crop matters.
 const crcTable = Array.from({ length: 256 }, (_, n) => {
@@ -152,8 +92,17 @@ const logInAsAdmin = async (page: Page) => {
   await expect(page).toHaveURL(/\/admin(\?.*)?$/);
 };
 
-const uploadAvatar = async (page: Page, gearName: string) => {
-  await page.getByRole("button", { name: gearName }).click();
+// The photo field is in the avatar sheet: header avatar menu, "Ảnh đại diện".
+// The chat thread header has no account menu, so this runs on /workouts (the
+// trainee) or /admin.
+const openAvatarSheet = async (page: Page) => {
+  await page.getByRole("button", { name: "Tài khoản" }).click();
+  await page.getByRole("menuitem", { name: "Ảnh đại diện" }).click();
+  await expect(page.locator("[data-avatar-field]")).toBeVisible();
+};
+
+const uploadAvatar = async (page: Page) => {
+  await openAvatarSheet(page);
   const field = page.locator("[data-avatar-field]");
 
   await expect(field).toBeVisible();
@@ -174,7 +123,7 @@ const uploadAvatar = async (page: Page, gearName: string) => {
   );
   await expect(field.getByRole("button", { name: "Xoá ảnh" })).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(page.locator("[data-chat-settings]")).toHaveCount(0);
+  await expect(page.locator("[data-avatar-field]")).toHaveCount(0);
 };
 
 test.describe("avatars", () => {
@@ -196,8 +145,7 @@ test.describe("avatars", () => {
       await t.goto("/");
       await fillTraineeLogin(t, E2E_CHAT_NAME);
       await expect(t).toHaveURL(/\/workouts/);
-      await t.goto("/messages/coach");
-      await uploadAvatar(t, "Cài đặt cuộc trò chuyện");
+      await uploadAvatar(t);
 
       await logInAsAdmin(a);
       await a.goto(`/admin/users/${userId}/messages`);
@@ -237,7 +185,8 @@ test.describe("avatars", () => {
       ).toHaveCount(1);
 
       // Remove it: the header is back to initials only.
-      await t.getByRole("button", { name: "Cài đặt cuộc trò chuyện" }).click();
+      await t.goto("/workouts");
+      await openAvatarSheet(t);
       await t
         .locator("[data-avatar-field]")
         .getByRole("button", { name: "Xoá ảnh" })
@@ -266,8 +215,8 @@ test.describe("avatars", () => {
 
     try {
       await logInAsAdmin(a);
+      await uploadAvatar(a);
       await a.goto(`/admin/users/${userId}/messages`);
-      await uploadAvatar(a, "Biệt danh và màu");
       await a.getByLabel("Nội dung tin nhắn").fill("Chào em");
       await a.getByRole("button", { name: "Gửi tin nhắn" }).click();
       await expect(a.getByText("Đang gửi…")).toHaveCount(0);
@@ -316,11 +265,11 @@ test.describe("avatars", () => {
 });
 
 const conversationId = (userId: number) =>
-  withDb(async (client) => {
-    const result = await client.execute({
-      sql: "SELECT id FROM chat_conversations WHERE user_id = ?",
-      args: [userId],
-    });
+  withApiDb(async (client) => {
+    const result = await client.query(
+      "SELECT id FROM chat_conversations WHERE user_id = $1",
+      [userId],
+    );
 
     return Number(result.rows[0].id);
   });

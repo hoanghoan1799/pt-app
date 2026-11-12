@@ -46,12 +46,29 @@ export const getApiUrl = () => {
   return parsed.origin + parsed.pathname.replace(/\/+$/, "");
 };
 
-// Optional: without it chat falls back to polling only.
-export const getAblyApiKey = () => readEnv("ABLY_API_KEY");
+// The API address the BROWSER uses for the Socket.IO connection (the only
+// thing it talks to the API for; everything else goes through this app). Read
+// on the server and handed to the browser with the realtime ticket, so it needs
+// no rebuild. Defaults to the local API outside production; in production an
+// unset value gives "" and chat polls only.
+export const getPublicApiUrl = () => {
+  const value = readEnv("NEXT_PUBLIC_API_URL");
 
-// Optional (KAN-144): without it the GIPHY sticker tab is hidden. Server only,
-// never sent to the browser.
-export const getGiphyApiKey = () => readEnv("GIPHY_API_KEY");
+  if (!value) {
+    return process.env.NODE_ENV === "production" || isVercel()
+      ? ""
+      : DEFAULT_LOCAL_API_URL;
+  }
+  try {
+    const parsed = new URL(value);
+
+    return parsed.protocol === "http:" || parsed.protocol === "https:"
+      ? parsed.origin
+      : "";
+  } catch {
+    return "";
+  }
+};
 
 // Web Push (VAPID). Optional: without all three server values push is skipped.
 // The public key may also be set as NEXT_PUBLIC_VAPID_PUBLIC_KEY (inlined into

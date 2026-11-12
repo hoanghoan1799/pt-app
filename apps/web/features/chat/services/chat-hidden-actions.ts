@@ -5,15 +5,16 @@ import { z } from "zod";
 import { HIDDEN_CHAT_MESSAGES } from "@/features/chat/constants/messages";
 import {
   hideConversations,
+  hideUsers,
   isConversationHidden,
   listRevealedHidden,
   noMatch,
   unhideConversation,
+  unhideUser,
 } from "@/features/chat/services/chat-hidden";
 import { withResultErrorHandling } from "@/services/action-errors";
-import { callApi, tryApi } from "@/services/api/call";
+import { tryApi } from "@/services/api/call";
 import { requireAdmin } from "@/services/auth-guard";
-import { getActiveLocale } from "@/services/localize-message";
 
 const idSchema = z.number().int().positive();
 const idsSchema = z.array(idSchema).min(1).max(100);
@@ -29,26 +30,26 @@ const invalid = () => ({
 export const hideConversationsAction = withResultErrorHandling(
   "hideConversations",
   async (conversationIds: number[]) => {
-    const admin = await requireAdmin();
+    await requireAdmin();
     const parsed = idsSchema.safeParse(conversationIds);
 
     if (!parsed.success) {
       return invalid();
     }
-    return hideConversations(admin.id, parsed.data);
+    return hideConversations(parsed.data);
   },
 );
 
 export const unhideConversationAction = withResultErrorHandling(
   "unhideConversation",
   async (conversationId: number) => {
-    const admin = await requireAdmin();
+    await requireAdmin();
     const parsed = idSchema.safeParse(conversationId);
 
     if (!parsed.success) {
       return invalid();
     }
-    await unhideConversation(admin.id, parsed.data);
+    await unhideConversation(parsed.data);
     return { status: "success" as const };
   },
 );
@@ -62,15 +63,7 @@ export const hideUsersAction = withResultErrorHandling(
     if (!parsed.success) {
       return invalid();
     }
-    // The API needs a passcode (PASSCODE_REQUIRED) and ignores unknown ids and
-    // trainees outside this admin's workspace.
-    const { hidden } = await callApi("admin", (api) =>
-      api.POST("/v1/admins/me/hidden-users", {
-        body: { userIds: parsed.data },
-      }),
-    );
-
-    return { status: "success" as const, hidden };
+    return hideUsers(parsed.data);
   },
 );
 
@@ -83,11 +76,7 @@ export const unhideUserAction = withResultErrorHandling(
     if (!parsed.success) {
       return invalid();
     }
-    await callApi("admin", (api) =>
-      api.DELETE("/v1/admins/me/hidden-users/{userId}", {
-        params: { path: { userId: parsed.data } },
-      }),
-    );
+    await unhideUser(parsed.data);
     return { status: "success" as const };
   },
 );
@@ -99,7 +88,7 @@ export const unhideUserAction = withResultErrorHandling(
 export const revealHiddenUsersAction = withResultErrorHandling(
   "revealHiddenUsers",
   async (passcode: string) => {
-    const admin = await requireAdmin();
+    await requireAdmin();
     const parsed = passcodeSchema.safeParse(passcode);
 
     if (!parsed.success) {
@@ -113,7 +102,7 @@ export const revealHiddenUsersAction = withResultErrorHandling(
 
     // A refused request (rate limited, limited admin) is the same quiet miss.
     return outcome.ok && outcome.data.revealed
-      ? listRevealedHidden(admin.id, await getActiveLocale())
+      ? listRevealedHidden()
       : noMatch();
   },
 );
@@ -124,7 +113,7 @@ export const revealHiddenConversationsAction = revealHiddenUsersAction;
 export const isConversationHiddenAction = withResultErrorHandling(
   "isConversationHidden",
   async (conversationId: number) => {
-    const admin = await requireAdmin();
+    await requireAdmin();
     const parsed = idSchema.safeParse(conversationId);
 
     if (!parsed.success) {
@@ -132,7 +121,7 @@ export const isConversationHiddenAction = withResultErrorHandling(
     }
     return {
       status: "success" as const,
-      hidden: await isConversationHidden(admin.id, parsed.data),
+      hidden: await isConversationHidden(parsed.data),
     };
   },
 );

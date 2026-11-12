@@ -26,7 +26,8 @@ export default defineConfig({
   fullyParallel: false,
   // No retries: the specs mutate one shared DB, so a rerun would not start clean.
   retries: 0,
-  reporter: isCi ? "github" : "list",
+  // CI: annotations in the PR, and a blob per shard that `e2e-report` merges.
+  reporter: isCi ? [["github"], ["blob"]] : "list",
   outputDir: "./e2e/.tmp/results",
   expect: { timeout: 15_000 },
   use: {

@@ -35,13 +35,12 @@ export const E2E_ENV = {
   VERCEL: "",
   // Registers public/sw.js under `next dev` (the worker is production-only otherwise).
   NEXT_PUBLIC_ENABLE_SW: "1",
-  // Public half of a throwaway P-256 key so the push opt-in card renders (KAN-104); no private key exists.
-  NEXT_PUBLIC_VAPID_PUBLIC_KEY:
-    "BAJsAp4wk0Cxz0Iys4LFcY5E1Mc_wHsarOMSC5zGuuYn81Ueki43JyI0Ui3R2C9j4LADRP5CFBh2JlsnW8O9b1Q",
+  // The address the browser opens the realtime socket to (the API above).
+  NEXT_PUBLIC_API_URL: E2E_API_URL,
+  // See next.config.ts: the Babel React Compiler cannot spawn its loader here.
+  E2E_RUST_REACT_COMPILER: "1",
   // Skips the image optimizer so no thumbnail is fetched server-side (KAN-95).
   E2E_UNOPTIMIZED_IMAGES: "1",
-  // No GIPHY key: the sticker tab stays hidden and no spec reaches GIPHY (KAN-146).
-  GIPHY_API_KEY: "",
 } as const;
 
 export const E2E_USER_NAME = "E2E Trainee";

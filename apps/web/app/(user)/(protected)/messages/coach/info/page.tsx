@@ -1,21 +1,12 @@
 import type { Metadata } from "next";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 
-import { listAdminAvatarUrls } from "@/features/avatar/services/avatar";
 import { ChatInfo } from "@/features/chat/components/ChatInfo";
 import { listGalleryPhotos } from "@/features/chat/services/chat-gallery";
-import { isChatEnabled } from "@/features/chat/services/chat-permission";
-import {
-  EMPTY_CHAT_PROFILE,
-  loadChatProfile,
-} from "@/features/chat/services/chat-profile";
-import {
-  findConversationByUserId,
-  findLatestAdminSender,
-} from "@/features/chat/services/chat-queries";
+import { loadMyThread } from "@/features/chat/services/chat-queries";
+import { listAdminAvatarUrls } from "@/features/chat/services/chat-team";
 import { chatPaths } from "@/features/chat/utils/chat-links";
 import { INFO_PREVIEW_COUNT } from "@/features/chat/utils/gallery-rules";
-import { userActorKey } from "@/features/contact-aliases/utils/alias-rules";
 import { requireUser } from "@/services/auth-guard";
 
 export const generateMetadata = async (): Promise<Metadata> => {
@@ -29,30 +20,26 @@ export const generateMetadata = async (): Promise<Metadata> => {
 const MessagesInfoPage = async () => {
   const t = await getTranslations("chat.shared");
   const user = await requireUser();
-  const locale = await getLocale();
-  const conversation = await findConversationByUserId(user.id);
-  const [profile, sender, adminAvatars, gallery] = await Promise.all([
-    conversation
-      ? loadChatProfile(conversation.id, userActorKey(user.id))
-      : EMPTY_CHAT_PROFILE,
-    conversation ? findLatestAdminSender(conversation.id) : null,
-    listAdminAvatarUrls(),
-    conversation
-      ? listGalleryPhotos(conversation.id, {
-          limit: INFO_PREVIEW_COUNT,
-          locale,
-        })
-      : { items: [], nextCursor: null },
+  // The thread answer carries the nicknames, colours, the chat switch and the
+  // PT who wrote last; only its first page of messages is not needed here.
+  const [state, adminAvatars] = await Promise.all([
+    loadMyThread({ after: 2_000_000_000 }),
+    listAdminAvatarUrls("user"),
   ]);
+  const sender = state.latestPt;
+  const gallery = await listGalleryPhotos(
+    state.conversationId,
+    INFO_PREVIEW_COUNT,
+  );
 
   return (
     <ChatInfo
       viewer={{ role: "user" }}
       userId={user.id}
-      conversationId={conversation?.id ?? null}
+      conversationId={state.conversationId}
       peerName={sender?.name ?? t("fallbackPeer")}
-      initialProfile={profile}
-      chatEnabled={isChatEnabled(user)}
+      initialProfile={state.profile}
+      chatEnabled={state.chatEnabled}
       peerAvatarUrl={
         sender?.id != null ? (adminAvatars.get(sender.id) ?? null) : null
       }

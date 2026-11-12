@@ -24,10 +24,7 @@ import { TIME_ZONE } from "@/constants/time";
 import { getOwnAvatarUrl } from "@/features/avatar/services/own-avatar";
 import { AdminUnreadBadge } from "@/features/chat/components/UnreadBadge";
 import { loadAdminAccountColor } from "@/features/chat/services/chat-profile";
-import {
-  countUnreadForAdmin,
-  listUnreadByTraineeForAdmin,
-} from "@/features/chat/services/chat-queries";
+import { loadAdminUnread } from "@/features/chat/services/chat-queries";
 import { MemberProgressList } from "@/features/dashboard/components/MemberProgressList";
 import { PtFilterSelect } from "@/features/dashboard/components/PtFilterSelect";
 import { RecentActivityList } from "@/features/dashboard/components/RecentActivityList";
@@ -46,8 +43,8 @@ import { AddMemberButton } from "@/features/members/components/AddMemberButton";
 import { listPtOptions } from "@/features/pts/services/pt-queries";
 import { countOpenReports } from "@/features/social/services/social-queries";
 import { adminProfilePath } from "@/features/social/utils/post-rules";
-import { isSuperAdmin } from "@/services/admin-scope";
 import { requireAdmin } from "@/services/auth-guard";
+import { isSuperAdmin } from "@/utils/admin-role";
 import { getAdminUserPath } from "@/utils/routes";
 import { readSearchParam } from "@/utils/search-params";
 import { getRequestTime } from "@/utils/time";
@@ -83,8 +80,7 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     ptOptions,
     members,
     activity,
-    unreadMessages,
-    unreadByTrainee,
+    unread,
     avatarUrl,
     accountColor,
     openReports,
@@ -92,12 +88,13 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     isSuper ? listPtOptions() : Promise.resolve([]),
     getMemberProgress(schedule.weekStart, ptFilter),
     getRecentActivity({ limit: RECENT_ACTIVITY_LIMIT }),
-    countUnreadForAdmin(admin.id),
-    listUnreadByTraineeForAdmin(admin.id),
+    loadAdminUnread(),
     getOwnAvatarUrl("admin"),
-    loadAdminAccountColor(admin.id),
+    loadAdminAccountColor(),
     isSuperAdmin(admin) ? countOpenReports() : 0,
   ]);
+  const unreadMessages = unread.count;
+  const unreadByTrainee = unread.perTrainee;
   const rows = toMemberRows(members, {
     weekStart: schedule.weekStart,
     timeZone: TIME_ZONE,

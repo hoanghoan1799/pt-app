@@ -1,35 +1,21 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 import {
-  deleteSubscription,
-  saveSubscription,
-} from "@/features/chat/services/chat-push";
-import {
-  adminOwnerKey,
-  pushSubscriptionSchema,
-  unsubscribeSchema,
-  userOwnerKey,
-} from "@/features/chat/utils/push-rules";
-import { getApiAdmin, getApiUser } from "@/services/auth-guard";
-import { logServerError } from "@/services/logger";
+  actorOf,
+  askApi,
+  routeError,
+  routeNoContent,
+} from "@/features/chat/services/chat-api";
 
 const NO_STORE = { "Cache-Control": "no-store" };
 
-const json = (body: unknown, status: number) =>
-  NextResponse.json(body, { status, headers: NO_STORE });
+const subscriptionSchema = z.object({
+  endpoint: z.string().min(1).max(2048),
+  keys: z.object({ p256dh: z.string().min(1), auth: z.string().min(1) }),
+});
 
-// Same role rule as /api/chat/ably-token: a browser may hold both cookies, so
-// the admin owner is only used when asked for with `?as=admin`.
-const resolveOwnerKey = async (request: NextRequest) => {
-  if (request.nextUrl.searchParams.get("as") === "admin") {
-    const admin = await getApiAdmin();
-
-    return admin ? adminOwnerKey(admin.id) : null;
-  }
-  const user = await getApiUser();
-
-  return user ? userOwnerKey(user.id) : null;
-};
+const endpointSchema = z.object({ endpoint: z.string().min(1).max(2048) });
 
 const readJson = async (request: NextRequest) => {
   try {
@@ -39,48 +25,38 @@ const readJson = async (request: NextRequest) => {
   }
 };
 
-// Any signed-in trainee or admin may subscribe: push only ever fires for chat
-// messages addressed to them.
+const invalid = (error: string) =>
+  NextResponse.json({ error }, { status: 400, headers: NO_STORE });
+
+// Same role rule as the realtime ticket: a browser may hold both cookies, so
+// the admin owner is only used when asked for with `?as=admin`. Any signed-in
+// trainee or admin may subscribe: push only ever fires for chat messages
+// addressed to them.
 export const POST = async (request: NextRequest) => {
-  try {
-    const ownerKey = await resolveOwnerKey(request);
+  const parsed = subscriptionSchema.safeParse(await readJson(request));
 
-    if (!ownerKey) {
-      return json({ error: "unauthorized" }, 401);
-    }
-    const parsed = pushSubscriptionSchema.safeParse(await readJson(request));
-
-    if (!parsed.success) {
-      return json({ error: "invalid_subscription" }, 400);
-    }
-    await saveSubscription(
-      ownerKey,
-      parsed.data,
-      request.headers.get("user-agent") ?? "",
-    );
-    return new NextResponse(null, { status: 204, headers: NO_STORE });
-  } catch (error) {
-    logServerError("pushSubscribe", error);
-    return json({ error: "server_error" }, 500);
+  if (!parsed.success) {
+    return invalid("invalid_subscription");
   }
+  const asked = await askApi(actorOf(request), (api) =>
+    api.POST("/v1/push/subscriptions", {
+      body: { kind: "web", ...parsed.data },
+      headers: { "user-agent": request.headers.get("user-agent") ?? "" },
+    } as never),
+  );
+
+  return asked.ok ? routeNoContent() : routeError(asked.error);
 };
 
 export const DELETE = async (request: NextRequest) => {
-  try {
-    const ownerKey = await resolveOwnerKey(request);
+  const parsed = endpointSchema.safeParse(await readJson(request));
 
-    if (!ownerKey) {
-      return json({ error: "unauthorized" }, 401);
-    }
-    const parsed = unsubscribeSchema.safeParse(await readJson(request));
-
-    if (!parsed.success) {
-      return json({ error: "invalid_endpoint" }, 400);
-    }
-    await deleteSubscription(ownerKey, parsed.data.endpoint);
-    return new NextResponse(null, { status: 204, headers: NO_STORE });
-  } catch (error) {
-    logServerError("pushUnsubscribe", error);
-    return json({ error: "server_error" }, 500);
+  if (!parsed.success) {
+    return invalid("invalid_endpoint");
   }
+  const asked = await askApi(actorOf(request), (api) =>
+    api.DELETE("/v1/push/subscriptions", { body: parsed.data }),
+  );
+
+  return asked.ok ? routeNoContent() : routeError(asked.error);
 };

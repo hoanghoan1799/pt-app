@@ -9,6 +9,7 @@
 //
 // Refuses any database whose name does not contain "e2e".
 import { spawn, spawnSync } from "node:child_process";
+import { generateKeyPairSync } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,6 +17,26 @@ import pg from "pg";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const apiDir = resolve(here, "../../api");
+
+// A throwaway VAPID key pair (P-256) so GET /v1/push/config says web push is on
+// and the opt-in card renders. No subscription of a spec reaches a push service.
+const vapidKeys = () => {
+  const { privateKey } = generateKeyPairSync("ec", {
+    namedCurve: "prime256v1",
+  });
+  const jwk = privateKey.export({ format: "jwk" });
+  const point = Buffer.concat([
+    Buffer.from([4]),
+    Buffer.from(jwk.x, "base64url"),
+    Buffer.from(jwk.y, "base64url"),
+  ]);
+
+  return {
+    VAPID_PUBLIC_KEY: point.toString("base64url"),
+    VAPID_PRIVATE_KEY: jwk.d,
+    VAPID_SUBJECT: "mailto:e2e@example.test",
+  };
+};
 
 const PORT = process.env.E2E_API_PORT ?? "4100";
 const WEB_ORIGIN = process.env.E2E_BASE_URL ?? "http://localhost:3100";
@@ -107,7 +128,16 @@ const main = async () => {
   if (!external) {
     startContainer();
   }
-  const client = await waitForDatabase();
+  let client = await waitForDatabase();
+
+  if (!external) {
+    // The postgres image starts a temporary server for its init scripts, stops
+    // it and starts the real one; a connection in that window is cut. Wait for
+    // the restart, then connect again.
+    await client.end();
+    await sleep(4000);
+    client = await waitForDatabase();
+  }
 
   await client.query("drop schema public cascade; create schema public;");
   await client.end();
@@ -120,6 +150,9 @@ const main = async () => {
     // The suite logs in a lot from one address.
     LOGIN_THROTTLE_LIMIT: "100000",
     LOG_LEVEL: "warn",
+    // No GIPHY key: the sticker tab stays hidden and no spec reaches GIPHY.
+    GIPHY_API_KEY: "",
+    ...vapidKeys(),
   };
 
   await run("node", ["dist/migrate.js"], env);

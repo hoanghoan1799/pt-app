@@ -1,10 +1,11 @@
-import { createClient } from "@libsql/client";
 import { type Browser, expect, type Page, test } from "@playwright/test";
 
-import { toEmailKey } from "@/utils/email";
-
+import {
+  getUserId as getChatUserId,
+  resetChat as resetChatRows,
+} from "./api-seed-chat";
 import { fillTraineeLogin } from "./auth";
-import { E2E_ADMIN, E2E_CHAT_NAME, E2E_DB_URL, e2eEmail } from "./config";
+import { E2E_ADMIN, E2E_CHAT_NAME } from "./config";
 import { answerConfirm } from "./confirm";
 
 // Chat message actions (KAN-140, docs/specs/chat-ux-v2.md C1 to C6): double-tap
@@ -17,60 +18,11 @@ const SYNC = { timeout: 20_000 };
 const UNSENT = "Tin nhắn đã bị thu hồi";
 const QUOTE = "Xem tin nhắn được trả lời";
 const UNSEND_TITLE = "Thu hồi tin nhắn này với mọi người?";
-const DB_ATTEMPTS = 5;
 
-const withDb = async <T>(
-  run: (client: ReturnType<typeof createClient>) => Promise<T>,
-) => {
-  for (let attempt = 1; ; attempt += 1) {
-    const client = createClient({ url: E2E_DB_URL });
-
-    try {
-      await client.execute("PRAGMA busy_timeout = 5000");
-      return await run(client);
-    } catch (error) {
-      if (attempt >= DB_ATTEMPTS || !String(error).includes("SQLITE_BUSY")) {
-        throw error;
-      }
-    } finally {
-      client.close();
-    }
-  }
-};
-
-const getUserId = () =>
-  withDb(async (client) => {
-    const result = await client.execute({
-      sql: "SELECT id FROM users WHERE email_key = ?",
-      args: [toEmailKey(e2eEmail(E2E_CHAT_NAME))],
-    });
-
-    return Number(result.rows[0].id);
-  });
+const getUserId = () => getChatUserId(E2E_CHAT_NAME);
 
 // Back to the seeded state: no conversation, chat locked.
-const resetChat = async () => {
-  const userId = await getUserId();
-  const conv = "(SELECT id FROM chat_conversations WHERE user_id = ?)";
-  const msgs = `(SELECT id FROM chat_messages WHERE conversation_id IN ${conv})`;
-
-  await withDb(async (client) => {
-    for (const sql of [
-      `DELETE FROM chat_reactions WHERE message_id IN ${msgs}`,
-      `DELETE FROM chat_message_edits WHERE message_id IN ${msgs}`,
-      `UPDATE chat_messages SET reply_to_message_id = NULL WHERE conversation_id IN ${conv}`,
-      `DELETE FROM chat_messages WHERE conversation_id IN ${conv}`,
-      `DELETE FROM chat_reads WHERE conversation_id IN ${conv}`,
-      "DELETE FROM chat_conversations WHERE user_id = ?",
-    ]) {
-      await client.execute({ sql, args: [userId] });
-    }
-    await client.execute({
-      sql: "UPDATE users SET chat_enabled = NULL, chat_enabled_changed_at = NULL, chat_enabled_by_admin_id = NULL WHERE id = ?",
-      args: [userId],
-    });
-  });
-};
+const resetChat = () => resetChatRows(E2E_CHAT_NAME);
 
 const newSession = async (browser: Browser) => {
   const context = await browser.newContext({
@@ -286,6 +238,9 @@ test("long-press opens the sheet, a sheet reaction shows up, and the reactors sh
       sheet(trainee).getByRole("button", { name: "💪" }),
     ).toHaveAttribute("aria-pressed", "true");
     await sheet(trainee).getByRole("button", { name: "👍" }).click();
+    // Wait for the sheet to be gone: while it fades out its backdrop still
+    // takes the next press.
+    await expect(sheet(trainee)).toHaveCount(0);
     await expect(chip(trainee, mine, "👍 1")).toBeVisible();
     await expect(chip(trainee, mine, "💪 1")).toHaveCount(0);
     await expect(chip(admin, mine, "👍 1")).toBeVisible(SYNC);
@@ -294,6 +249,7 @@ test("long-press opens the sheet, a sheet reaction shows up, and the reactors sh
     // Picking the same emoji again removes it: only the PT's heart is left.
     await longPress(trainee, mine);
     await sheet(trainee).getByRole("button", { name: "👍" }).click();
+    await expect(sheet(trainee)).toHaveCount(0);
     await expect(chip(trainee, mine, "👍 1")).toHaveCount(0);
     await expect(chip(admin, mine, "👍 1")).toHaveCount(0, SYNC);
     await expect(chip(admin, mine, "❤️ 1")).toBeVisible();

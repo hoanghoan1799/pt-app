@@ -147,7 +147,6 @@ const EditHistorySheet = dynamic(
 const HIGHLIGHT_MS = 1500;
 // A jumped-to message stays marked a little longer.
 const JUMP_HIGHLIGHT_MS = 2000;
-
 type SheetKind = "actions" | "reactors" | "history";
 
 // Follows the visual viewport so the composer stays above the on-screen
@@ -236,6 +235,10 @@ export const ChatThread = ({
   const adapter = useChatAdapter(viewer, userId, conversationId);
   const chat = useChatMessages({ adapter, initial, isViewing: isVisible });
   const { messages, hasMore, chatEnabled, peerReadUpTo, sync } = chat;
+  // A trainee whose chat is on always has a conversation (the API creates it
+  // when the PT switches chat on, or on the first thread read), so the realtime
+  // rooms and admin routes always have an id to use. Only a locked chat with
+  // nothing ever sent has none.
 
   useClearNotifications(
     conversationId === null ? null : chatNotificationTags(conversationId),

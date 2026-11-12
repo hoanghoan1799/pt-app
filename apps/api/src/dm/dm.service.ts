@@ -98,6 +98,13 @@ export class DmService {
       })),
       readOnlyReason: view.readOnlyReason,
       isReadOnly: view.access !== "member" || view.readOnlyReason !== null,
+      members:
+        view.access === "readonly_admin"
+          ? await this.queries.memberNames([
+              view.conversation.userLow,
+              view.conversation.userHigh,
+            ])
+          : [],
     };
   }
 

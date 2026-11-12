@@ -1,112 +1,23 @@
-import { createClient } from "@libsql/client";
 import { type Browser, expect, type Page, test } from "@playwright/test";
 
 import { CHAT_MESSAGES } from "@/features/chat/constants/messages";
-import { toEmailKey } from "@/utils/email";
 
-import { fillTraineeLogin } from "./auth";
 import {
-  E2E_ADMIN,
-  E2E_CHAT_NAME,
-  E2E_CHAT_OFF_NAME,
-  E2E_DB_URL,
-  e2eEmail,
-} from "./config";
+  countMessages,
+  getNewestMessageId,
+  getReadCursor,
+  getUserId,
+  resetChat,
+} from "./api-seed-chat";
+import { fillTraineeLogin } from "./auth";
+import { E2E_ADMIN, E2E_CHAT_NAME, E2E_CHAT_OFF_NAME } from "./config";
 import { shot } from "./shots";
 
 // Realtime chat phase 1 test matrix (docs/specs/realtime-chat.md section 14,
-// KAN-102), on the polling transport (there is no Ably key in e2e). Every spec
+// KAN-102), on the realtime socket with the polling fallback. Every spec
 // owns a seeded trainee and wipes its chat rows and permission first, so the
 // specs do not depend on each other or on a rerun (--repeat-each).
-const DB_ATTEMPTS = 5;
 const SEND_TIMEOUT_MS = 60_000;
-
-const withDb = async <T>(
-  run: (client: ReturnType<typeof createClient>) => Promise<T>,
-) => {
-  // The app server writes to the same file while the spec polls it, so a
-  // busy database is retried instead of failing the spec.
-  for (let attempt = 1; ; attempt += 1) {
-    const client = createClient({ url: E2E_DB_URL });
-
-    try {
-      await client.execute("PRAGMA busy_timeout = 5000");
-      return await run(client);
-    } catch (error) {
-      if (attempt >= DB_ATTEMPTS || !String(error).includes("SQLITE_BUSY")) {
-        throw error;
-      }
-    } finally {
-      client.close();
-    }
-  }
-};
-
-const getUserId = (name: string) =>
-  withDb(async (client) => {
-    const result = await client.execute({
-      sql: "SELECT id FROM users WHERE email_key = ?",
-      args: [toEmailKey(e2eEmail(name))],
-    });
-
-    return Number(result.rows[0].id);
-  });
-
-// Back to the seeded state: no conversation, no messages, chat never enabled.
-const resetChat = (name: string) =>
-  withDb(async (client) => {
-    const userId = await getUserId(name);
-    const conversations = `(SELECT id FROM chat_conversations WHERE user_id = ?)`;
-
-    await client.execute({
-      sql: `DELETE FROM chat_messages WHERE conversation_id IN ${conversations}`,
-      args: [userId],
-    });
-    await client.execute({
-      sql: `DELETE FROM chat_reads WHERE conversation_id IN ${conversations}`,
-      args: [userId],
-    });
-    await client.execute({
-      sql: "DELETE FROM chat_conversations WHERE user_id = ?",
-      args: [userId],
-    });
-    await client.execute({
-      sql: "UPDATE users SET chat_enabled = NULL, chat_enabled_changed_at = NULL, chat_enabled_by_admin_id = NULL WHERE id = ?",
-      args: [userId],
-    });
-  });
-
-const countMessages = (name: string) =>
-  withDb(async (client) => {
-    const result = await client.execute({
-      sql: "SELECT COUNT(*) AS n FROM chat_messages WHERE conversation_id IN (SELECT id FROM chat_conversations WHERE user_id = ?)",
-      args: [await getUserId(name)],
-    });
-
-    return Number(result.rows[0].n);
-  });
-
-// The read cursor is saved after a short debounce: wait for it before leaving
-// the thread, or the unread count would still include the message.
-const getReadCursor = (name: string, readerKeyPrefix: string) =>
-  withDb(async (client) => {
-    const result = await client.execute({
-      sql: "SELECT last_read_message_id AS id FROM chat_reads WHERE reader_key LIKE ? AND conversation_id IN (SELECT id FROM chat_conversations WHERE user_id = ?)",
-      args: [`${readerKeyPrefix}%`, await getUserId(name)],
-    });
-
-    return result.rows.length === 0 ? 0 : Number(result.rows[0].id);
-  });
-
-const getNewestMessageId = (name: string, senderRole: "user" | "admin") =>
-  withDb(async (client) => {
-    const result = await client.execute({
-      sql: "SELECT MAX(id) AS id FROM chat_messages WHERE sender_role = ? AND conversation_id IN (SELECT id FROM chat_conversations WHERE user_id = ?)",
-      args: [senderRole, await getUserId(name)],
-    });
-
-    return Number(result.rows[0].id);
-  });
 
 const logInAsAdmin = async (page: Page) => {
   await page.goto("/admin/login");
@@ -243,12 +154,15 @@ test("a trainee who was never enabled still has the chat tab; /messages opens re
 
   try {
     await logInAsTrainee(trainee.page, E2E_CHAT_OFF_NAME);
-    await expect(getTabBar(trainee.page).getByRole("link")).toHaveCount(4);
+    await expect(getTabBar(trainee.page).getByRole("link")).toHaveCount(5);
     await getTabBar(trainee.page)
       .getByRole("link", { name: "Nhắn tin" })
       .click();
 
     await expect(trainee.page).toHaveURL(/\/messages$/);
+    // The Messages tab is the inbox now; the coach chat is its first row.
+    await trainee.page.getByRole("link", { name: /Huấn luyện viên/ }).click();
+    await expect(trainee.page).toHaveURL(/\/messages\/coach$/);
     await expect(getComposer(trainee.page)).toHaveCount(0);
     await expect(
       trainee.page.getByRole("status").filter({
@@ -281,14 +195,20 @@ test("enable, message, reply, unread badges and the PT name work end to end", as
     await logInAsAdmin(admin);
     await setChatSwitch(admin, userId, true);
     await shot(admin, "chat-01-admin-enabled-empty", { fullPage: true });
+    // The thread exists from the moment chat is on, and an open admin thread
+    // reads what arrives. Leave it, so the trainee's message stays unread.
+    await admin.goto("/admin");
 
     // The trainee now has the tab and can send.
     await logInAsTrainee(trainee.page, E2E_CHAT_NAME);
-    await expect(getTabBar(trainee.page).getByRole("link")).toHaveCount(4);
+    await expect(getTabBar(trainee.page).getByRole("link")).toHaveCount(5);
     await getTabBar(trainee.page)
       .getByRole("link", { name: "Nhắn tin" })
       .click();
     await expect(trainee.page).toHaveURL(/\/messages$/);
+    // The Messages tab is the inbox now; the coach chat is its first row.
+    await trainee.page.getByRole("link", { name: /Huấn luyện viên/ }).click();
+    await expect(trainee.page).toHaveURL(/\/messages\/coach$/);
     await expect(
       trainee.page.getByRole("heading", { name: "PT của bạn" }),
     ).toBeVisible();
@@ -527,7 +447,7 @@ test("the service worker never caches /api/chat responses", async ({
       return { status: response.status, body: await response.json() };
     });
 
-    expect(online).toEqual({
+    expect(online).toMatchObject({
       status: 200,
       body: { count: 0, chatEnabled: true, hasHistory: false },
     });
@@ -595,6 +515,9 @@ test("the install banner stays off the chat page so it never covers the composer
       .getByRole("link", { name: "Nhắn tin" })
       .click();
     await expect(trainee.page).toHaveURL(/\/messages$/);
+    // The Messages tab is the inbox now; the coach chat is its first row.
+    await trainee.page.getByRole("link", { name: /Huấn luyện viên/ }).click();
+    await expect(trainee.page).toHaveURL(/\/messages\/coach$/);
     await expect(banner).toHaveCount(0);
     // iOS in a Safari tab cannot push: the opt-in card explains the install
     // steps instead of offering the button.

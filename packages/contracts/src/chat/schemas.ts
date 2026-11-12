@@ -251,6 +251,15 @@ export const chatThreadResponseSchema = z.object({
   peerLastSeenAt: z.string().nullable(),
   // Admin view only: the conversation's trainee.
   userId: z.number().int().optional(),
+  // Null until the trainee's first message creates the conversation. The
+  // realtime rooms are named after it.
+  conversationId: z.number().int().nullable(),
+  // The PT who wrote the newest admin message (the trainee's header and chat
+  // info page); `name` is null once that account was deleted. Null before any
+  // PT wrote.
+  latestPt: z
+    .object({ id: z.number().int().nullable(), name: z.string().nullable() })
+    .nullable(),
 });
 export type ChatThreadResponse = z.infer<typeof chatThreadResponseSchema>;
 
@@ -260,6 +269,18 @@ export const chatEditsResponseSchema = z.object({
 
 export const chatReadResponseSchema = z.object({
   lastReadMessageId: z.number().int(),
+});
+
+// The PT team as the chat screens draw it: who has a photo and who has the blue
+// tick (the PT team is small). Admins with neither are left out.
+export const chatTeamResponseSchema = z.object({
+  admins: z.array(
+    z.object({
+      id: z.number().int(),
+      avatarUrl: z.string().nullable(),
+      verified: z.boolean(),
+    }),
+  ),
 });
 
 export const chatEnabledResponseSchema = z.object({ enabled: z.boolean() });
@@ -457,6 +478,9 @@ export const dmThreadResponseSchema = z.object({
   otherReadUpTo: z.number().int(),
   readOnlyReason: z.string().nullable(),
   isReadOnly: z.boolean(),
+  // The two members' real names, only for a super admin reading the chat
+  // (empty for a member); a deleted account has a null name.
+  members: z.array(z.object({ id: z.number().int(), name: z.string().nullable() })),
 });
 
 export const dmInboxResponseSchema = z.object({

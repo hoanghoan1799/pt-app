@@ -1,20 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
-import {
-  getAvatarUrl,
-  listAdminAvatarUrls,
-} from "@/features/avatar/services/avatar";
 import { GalleryView } from "@/features/chat/components/GalleryView";
 import { loadGalleryForAdmin } from "@/features/chat/services/chat-gallery";
-import { findConversationByUserId } from "@/features/chat/services/chat-queries";
+import { findTraineeChatHeader } from "@/features/chat/services/chat-queries";
+import { listAdminAvatarUrls } from "@/features/chat/services/chat-team";
 import { chatPaths } from "@/features/chat/utils/chat-links";
 import { parseGalleryTab } from "@/features/chat/utils/gallery-rules";
 import { requireAdmin } from "@/services/auth-guard";
-import { canAdminAccessUser } from "@/services/hidden-users";
-import { findUserById } from "@/services/users";
 
 export const generateMetadata = async (): Promise<Metadata> => {
   const t = await getTranslations("adminPages.messagesPhotos");
@@ -28,25 +23,27 @@ const AdminMessagesPhotosPage = async ({
   params,
   searchParams,
 }: PageProps<"/admin/users/[id]/messages/photos">) => {
-  const admin = await requireAdmin();
+  await requireAdmin();
   const t = await getTranslations("adminPages.messagesPhotos");
-  const locale = await getLocale();
   const { id } = await params;
   const tab = parseGalleryTab((await searchParams).tab);
-  const user = await findUserById(Number(id));
+  const userId = Number(id);
+  const header = Number.isSafeInteger(userId)
+    ? await findTraineeChatHeader(userId)
+    : null;
 
-  if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
+  if (!header) {
     notFound();
   }
-  const conversation = await findConversationByUserId(user.id);
-  const [result, adminAvatars, traineeAvatar] = await Promise.all([
-    conversation
-      ? loadGalleryForAdmin(admin.id, conversation.id, undefined, tab, locale)
+  const conversationId = header.conversationId;
+  const traineeAvatar = header.avatarUrl;
+  const [result, adminAvatars] = await Promise.all([
+    conversationId
+      ? loadGalleryForAdmin(conversationId, undefined, tab)
       : { status: "ok" as const, page: { items: [], nextCursor: null } },
-    listAdminAvatarUrls(),
-    getAvatarUrl("user", user.id),
+    listAdminAvatarUrls("admin"),
   ]);
-  const paths = chatPaths("admin", user.id);
+  const paths = chatPaths("admin", header.userId);
   const avatars: Record<string, string> = Object.fromEntries(
     [...adminAvatars].map(([adminId, url]) => [`admin:${adminId}`, url]),
   );
@@ -66,7 +63,7 @@ const AdminMessagesPhotosPage = async ({
           tab={tab}
           page={result.page}
           basePath={paths.photos}
-          endpoint={`/api/admin/chat/${conversation?.id ?? 0}/gallery`}
+          endpoint={`/api/admin/chat/${conversationId ?? 0}/gallery`}
           chatPath={paths.chat}
           avatars={avatars}
         />

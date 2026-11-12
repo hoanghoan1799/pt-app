@@ -332,26 +332,32 @@ test.describe("install banner", () => {
 
     await logIn(page);
     await expect(banner(page)).toBeVisible();
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    const bannerTop = await banner(page).evaluate(
-      (el) => el.getBoundingClientRect().top,
-    );
-    const contentBottom = await page.evaluate(() => {
-      // Last visible block of the page content, not the fixed chrome.
-      const main = document.querySelector("main") ?? document.body;
-      let bottom = 0;
+    // The week streams in after the banner shows, so the page keeps growing:
+    // scroll to the bottom and measure again until the last block sits above
+    // the banner.
+    const gapAboveBanner = () =>
+      page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight);
 
-      for (const child of main.querySelectorAll("*")) {
-        const rect = child.getBoundingClientRect();
+        const installBanner = document.querySelector(
+          '[aria-label="Cài ứng dụng"]',
+        );
+        const bannerTop = installBanner?.getBoundingClientRect().top ?? 0;
+        // Last visible block of the page content, not the fixed chrome.
+        const main = document.querySelector("main") ?? document.body;
+        let bottom = 0;
 
-        if (rect.height > 0 && rect.bottom > bottom) {
-          bottom = rect.bottom;
+        for (const child of main.querySelectorAll("*")) {
+          const rect = child.getBoundingClientRect();
+
+          if (rect.height > 0 && rect.bottom > bottom) {
+            bottom = rect.bottom;
+          }
         }
-      }
-      return bottom;
-    });
+        return bannerTop - bottom;
+      });
 
-    expect(contentBottom).toBeLessThanOrEqual(bannerTop);
+    await expect.poll(gapAboveBanner).toBeGreaterThanOrEqual(0);
     await shot(page, "06-workouts-bottom-with-banner");
     await context.close();
   });

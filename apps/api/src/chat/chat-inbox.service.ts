@@ -115,12 +115,15 @@ export class ChatInboxService {
           row.userName,
         ),
         chatEnabled: row.chatEnabled === true,
-        preview: inboxPreview({
-          body: row.lastBody,
-          stickerRef: row.lastStickerRef,
-          photoId: row.lastPhotoId,
-          deletedAt: row.lastDeletedAt,
-        }),
+        preview: inboxPreview(
+          {
+            body: row.lastBody,
+            stickerRef: row.lastStickerRef,
+            photoId: row.lastPhotoId,
+            deletedAt: row.lastDeletedAt,
+          },
+          admin.locale,
+        ),
         lastFromAdmin: row.lastSenderRole === "admin",
         lastSenderAdminId: row.lastSenderAdminId,
         lastSenderAdminName: row.lastSenderAdminName,
@@ -134,6 +137,30 @@ export class ChatInboxService {
         userName: row.userName,
         lastSeenAt: iso(row.lastSeenAt),
         avatarUrl: avatarUrl("user", row.userId, row.avatarUpdatedAt),
+      })),
+    };
+  }
+
+  // Every admin with a photo or the blue tick, for the avatars and ticks of
+  // the chat screens. Public to anyone signed in: both only decorate names the
+  // reader already sees.
+  async team() {
+    const rows: {
+      id: number;
+      avatarUpdatedAt: Date | null;
+      verifiedAt: Date | null;
+    }[] = await this.dataSource.query(
+      `SELECT id, avatar_updated_at AS "avatarUpdatedAt", verified_at AS "verifiedAt"
+       FROM admins
+       WHERE avatar_updated_at IS NOT NULL OR verified_at IS NOT NULL
+       ORDER BY id`,
+    );
+
+    return {
+      admins: rows.map((row) => ({
+        id: row.id,
+        avatarUrl: avatarUrl("admin", row.id, row.avatarUpdatedAt),
+        verified: row.verifiedAt !== null,
       })),
     };
   }

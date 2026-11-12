@@ -1,294 +1,111 @@
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import type { ChatSendMessageRequest } from "@pt/contracts";
 
-import { db } from "@/db";
-import { chatMessageEdits, chatMessages, chatReactions } from "@/db/schema";
 import { CHAT_MESSAGES } from "@/features/chat/constants/messages";
-import { deletePhotoOfMessage } from "@/features/chat/services/chat-photos";
-import { scheduleReactionPush } from "@/features/chat/services/chat-push";
-import {
-  type ChatMessage,
-  findMessageById,
-  findStoredMessage,
-  touchMessage,
-} from "@/features/chat/services/chat-queries";
-import { publishMessageUpdate } from "@/features/chat/services/chat-realtime";
-import {
-  adminReaderKey,
-  editSchema,
-  reactSchema,
-  unsendSchema,
-  USER_READER_KEY,
-} from "@/features/chat/utils/chat-rules";
-import {
-  adminActorKey,
-  userActorKey,
-} from "@/features/contact-aliases/utils/alias-rules";
-import type { SocialActor } from "@/features/social/types/social";
-import type { AdminRole } from "@/services/admin-scope";
+import type { ChatMessage } from "@/features/chat/services/chat-queries";
+import { webizeUrls } from "@/features/chat/utils/api-urls";
+import { tryApi } from "@/services/api/call";
+import type { ApiError } from "@/services/api/errors";
 
-// Shared by the trainee and admin actions (KAN-138). The callers have already
-// checked the session and the chat lock; this module checks that the message
-// belongs to the caller's conversation and that the caller may change it.
-// Message bodies are never logged.
-
-export type ChatActor =
-  | { role: "user"; userId: number; name: string }
-  | { role: "admin"; adminId: number; name: string; adminRole: AdminRole };
-
-export interface ChatConversationRef {
-  id: number;
-  userId: number;
-}
+// Sending, reacting, editing and unsending go through the API, which checks
+// the session, the chat lock and ownership. Message bodies are never logged.
 
 export type MutationResult =
   | { status: "success"; message: ChatMessage }
   | { status: "error"; message: string };
 
-const fail = (message: string): MutationResult => ({
+export const fail = (message: string): MutationResult => ({
   status: "error",
   message,
 });
 
-// Who is looking, for the quoted post of the message sent back.
-const viewerOf = (actor: ChatActor): SocialActor =>
-  actor.role === "user"
-    ? { kind: "user", id: actor.userId }
-    : { kind: "admin", id: actor.adminId, role: actor.adminRole };
+// A refused request shows the API's own text; a malformed one the generic
+// "invalid message".
+export const failFrom = (error: ApiError) =>
+  fail(
+    error.code === "VALIDATION_FAILED"
+      ? CHAT_MESSAGES.INVALID_INPUT
+      : error.message,
+  );
 
-const reactorKeyOf = (actor: ChatActor) =>
-  actor.role === "user" ? USER_READER_KEY : adminReaderKey(actor.adminId);
+type Outcome = Awaited<ReturnType<typeof tryApi<{ message: ChatMessage }>>>;
 
-// The actor's account key, for looking up the recipient's private nickname.
-const globalKeyOf = (actor: ChatActor) =>
-  actor.role === "user"
-    ? userActorKey(actor.userId)
-    : adminActorKey(actor.adminId);
+const toResult = (outcome: Outcome): MutationResult =>
+  outcome.ok
+    ? { status: "success", message: webizeUrls(outcome.data.message) }
+    : failFrom(outcome.error);
 
-// A message id from another conversation answers "not found", never "not
-// yours", so ids cannot be probed across conversations.
-const loadStored = async (
-  conversation: ChatConversationRef,
-  messageId: number,
-) => {
-  const stored = await findStoredMessage(messageId);
-
-  return stored && stored.conversationId === conversation.id ? stored : null;
+export type SendBody = Omit<ChatSendMessageRequest, "clientId"> & {
+  clientId: string;
 };
 
-type StoredMessage = NonNullable<Awaited<ReturnType<typeof findStoredMessage>>>;
+// `clientId` is the idempotency key: a retried send returns the stored message.
+export const sendAsUser = async (input: SendBody) =>
+  toResult(
+    (await tryApi("user", (api) =>
+      api.POST("/v1/chat/conversations/me/messages", {
+        params: { header: { "Idempotency-Key": input.clientId } },
+        body: input,
+      }),
+    )) as Outcome,
+  );
 
-const isOwnMessage = (actor: ChatActor, stored: StoredMessage) =>
-  actor.role === "user"
-    ? stored.senderRole === "user"
-    : stored.senderRole === "admin" && stored.senderAdminId === actor.adminId;
+export const sendAsAdmin = async (userId: number, input: SendBody) =>
+  toResult(
+    (await tryApi("admin", (api) =>
+      api.POST("/v1/chat/trainees/{userId}/messages", {
+        params: {
+          path: { userId },
+          header: { "Idempotency-Key": input.clientId },
+        },
+        body: input,
+      }),
+    )) as Outcome,
+  );
 
-// Stamps the change cursor, tells the open conversations (ids only) and
-// returns the message as clients see it.
-const finish = async (
-  actor: ChatActor,
-  conversation: ChatConversationRef,
-  messageId: number,
-): Promise<MutationResult> => {
-  await touchMessage(conversation.id, messageId);
-  await publishMessageUpdate(conversation.id, messageId);
-  const message = await findMessageById(messageId, viewerOf(actor));
+type Actor = "user" | "admin";
 
-  return message
-    ? { status: "success", message }
-    : fail(CHAT_MESSAGES.MESSAGE_NOT_FOUND);
-};
-
-const current = async (
-  actor: ChatActor,
-  messageId: number,
-): Promise<MutationResult> => {
-  const message = await findMessageById(messageId, viewerOf(actor));
-
-  return message
-    ? { status: "success", message }
-    : fail(CHAT_MESSAGES.MESSAGE_NOT_FOUND);
-};
-
-const notifyAuthor = (
-  actor: ChatActor,
-  conversation: ChatConversationRef,
-  stored: StoredMessage,
-  emoji: string,
-) => {
-  if (stored.senderRole === "user") {
-    if (actor.role === "user") {
-      return;
-    }
-    scheduleReactionPush({
-      recipient: { role: "user", userId: conversation.userId },
-      reactorName: actor.name,
-      reactorKey: globalKeyOf(actor),
-      emoji,
-      traineeUserId: conversation.userId,
-      conversationId: conversation.id,
-    });
-    return;
-  }
-  if (
-    stored.senderAdminId === null ||
-    (actor.role === "admin" && actor.adminId === stored.senderAdminId)
-  ) {
-    return;
-  }
-  scheduleReactionPush({
-    recipient: { role: "admin", adminId: stored.senderAdminId },
-    reactorName: actor.name,
-    reactorKey: globalKeyOf(actor),
-    emoji,
-    traineeUserId: conversation.userId,
-    conversationId: conversation.id,
-  });
-};
-
-// One reaction per reactor per message: another emoji replaces it, the same
-// emoji or null removes it. Only adding or replacing pushes the author.
+// One reaction per person per message: another emoji replaces it, the same
+// emoji or null removes it.
 export const reactToMessage = async (
-  actor: ChatActor,
-  conversation: ChatConversationRef,
-  input: unknown,
-): Promise<MutationResult> => {
-  const parsed = reactSchema.safeParse(input);
-
-  if (!parsed.success) {
-    return fail(CHAT_MESSAGES.INVALID_INPUT);
-  }
-  const { messageId, emoji } = parsed.data;
-  const stored = await loadStored(conversation, messageId);
-
-  if (!stored) {
-    return fail(CHAT_MESSAGES.MESSAGE_NOT_FOUND);
-  }
-  if (stored.deletedAt !== null) {
-    return fail(CHAT_MESSAGES.MESSAGE_UNSENT);
-  }
-  const reactorKey = reactorKeyOf(actor);
-  const [existing] = await db
-    .select({ emoji: chatReactions.emoji })
-    .from(chatReactions)
-    .where(
-      and(
-        eq(chatReactions.messageId, messageId),
-        eq(chatReactions.reactorKey, reactorKey),
-      ),
-    );
-
-  if (emoji === null || existing?.emoji === emoji) {
-    if (!existing) {
-      return current(actor, messageId);
-    }
-    await db
-      .delete(chatReactions)
-      .where(
-        and(
-          eq(chatReactions.messageId, messageId),
-          eq(chatReactions.reactorKey, reactorKey),
-        ),
-      );
-    return finish(actor, conversation, messageId);
-  }
-  await db
-    .insert(chatReactions)
-    .values({ messageId, reactorKey, emoji, createdAt: new Date() })
-    .onConflictDoUpdate({
-      target: [chatReactions.messageId, chatReactions.reactorKey],
-      set: { emoji, createdAt: new Date() },
-    });
-  const result = await finish(actor, conversation, messageId);
-
-  notifyAuthor(actor, conversation, stored, emoji);
-  return result;
-};
-
-// Own messages only, no time limit. The previous body is kept so both people
-// in the conversation can open the history.
-export const editChatMessage = async (
-  actor: ChatActor,
-  conversation: ChatConversationRef,
-  input: unknown,
-): Promise<MutationResult> => {
-  const parsed = editSchema.safeParse(input);
-
-  if (!parsed.success) {
-    return fail(CHAT_MESSAGES.INVALID_INPUT);
-  }
-  const { messageId, body } = parsed.data;
-  const stored = await loadStored(conversation, messageId);
-
-  if (!stored) {
-    return fail(CHAT_MESSAGES.MESSAGE_NOT_FOUND);
-  }
-  if (!isOwnMessage(actor, stored)) {
-    return fail(CHAT_MESSAGES.NOT_YOUR_MESSAGE);
-  }
-  if (stored.deletedAt !== null) {
-    return fail(CHAT_MESSAGES.MESSAGE_UNSENT);
-  }
-  // A sticker has no text to edit.
-  if (stored.stickerRef !== null) {
-    return fail(CHAT_MESSAGES.STICKER_NOT_EDITABLE);
-  }
-  // Saving the same text again is not an edit: no history row, no marker.
-  if (stored.body === body) {
-    return current(actor, messageId);
-  }
-  const editedAt = new Date();
-
-  await db.transaction(async (tx) => {
-    await tx
-      .insert(chatMessageEdits)
-      .values({ messageId, previousBody: stored.body, editedAt });
-    await tx
-      .update(chatMessages)
-      .set({ body, editedAt })
-      .where(eq(chatMessages.id, messageId));
-  });
-  return finish(actor, conversation, messageId);
-};
-
-// Unsend for everyone: soft delete, idempotent.
-export const unsendChatMessage = async (
-  actor: ChatActor,
-  conversation: ChatConversationRef,
-  input: unknown,
-): Promise<MutationResult> => {
-  const parsed = unsendSchema.safeParse(input);
-
-  if (!parsed.success) {
-    return fail(CHAT_MESSAGES.INVALID_INPUT);
-  }
-  const { messageId } = parsed.data;
-  const stored = await loadStored(conversation, messageId);
-
-  if (!stored) {
-    return fail(CHAT_MESSAGES.MESSAGE_NOT_FOUND);
-  }
-  if (!isOwnMessage(actor, stored)) {
-    return fail(CHAT_MESSAGES.NOT_YOUR_MESSAGE);
-  }
-  if (stored.deletedAt !== null) {
-    return current(actor, messageId);
-  }
-  await db
-    .update(chatMessages)
-    .set({ deletedAt: new Date(), replyPostId: null })
-    .where(eq(chatMessages.id, messageId));
-  // KAN-160: an unsent photo is gone for good, bytes included.
-  await deletePhotoOfMessage(messageId);
-  return finish(actor, conversation, messageId);
-};
-
-// The reply target of a new message must be a message of the same
-// conversation; unknown and foreign ids are both just invalid.
-export const isReplyTargetValid = async (
-  conversation: ChatConversationRef,
-  replyToMessageId: number | undefined,
+  actor: Actor,
+  messageId: number,
+  emoji: string | null,
 ) =>
-  replyToMessageId === undefined ||
-  (await loadStored(conversation, replyToMessageId)) !== null;
+  toResult(
+    (await tryApi(actor, (api) =>
+      emoji === null
+        ? api.DELETE("/v1/chat/messages/{mid}/reaction", {
+            params: { path: { mid: messageId } },
+          })
+        : api.PUT("/v1/chat/messages/{mid}/reaction", {
+            params: { path: { mid: messageId } },
+            body: { emoji: emoji as never },
+          }),
+    )) as Outcome,
+  );
+
+export const editChatMessage = async (
+  actor: Actor,
+  messageId: number,
+  body: string,
+) =>
+  toResult(
+    (await tryApi(actor, (api) =>
+      api.PATCH("/v1/chat/messages/{mid}", {
+        params: { path: { mid: messageId } },
+        body: { body },
+      }),
+    )) as Outcome,
+  );
+
+// Unsend for everyone: idempotent.
+export const unsendChatMessage = async (actor: Actor, messageId: number) =>
+  toResult(
+    (await tryApi(actor, (api) =>
+      api.DELETE("/v1/chat/messages/{mid}", {
+        params: { path: { mid: messageId } },
+      }),
+    )) as Outcome,
+  );

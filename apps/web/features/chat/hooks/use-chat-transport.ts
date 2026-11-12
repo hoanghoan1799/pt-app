@@ -3,14 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
-  CHAT_EVENTS,
-  conversationChannel,
-  userChannel,
-} from "@/features/chat/utils/ably-capabilities";
+  conversationIdOf,
+  sendSocketTyping,
+  subscribeChatSocket,
+} from "@/features/chat/hooks/chat-socket";
 import {
   pollIntervalFor,
   type RealtimeState,
-  realtimeStateFor,
 } from "@/features/chat/utils/chat-thread-rules";
 import {
   isPeerTyping,
@@ -18,11 +17,6 @@ import {
   shouldSendTyping,
   TYPING_EXPIRY_MS,
 } from "@/features/chat/utils/typing-rules";
-
-const USER_TOKEN_URL = "/api/chat/ably-token";
-const ADMIN_TOKEN_URL = "/api/chat/ably-token?as=admin";
-const USER_TYPING_URL = "/api/chat/typing";
-const ADMIN_TYPING_URL = "/api/chat/typing?as=admin";
 
 interface UseChatTransportOptions {
   role: "user" | "admin";
@@ -34,12 +28,21 @@ interface UseChatTransportOptions {
   onSync: () => void;
 }
 
-// The ChatTransport seam: realtime via Ably when the server hands out a token,
-// plain polling otherwise. Ably events carry no sender name, so any event just
-// triggers a fetch (which also fills gaps). Turso stays the source of truth.
+// Events that mean "something in this conversation changed": fetch.
+const SYNC_EVENTS = new Set([
+  "message",
+  "message-update",
+  "read",
+  "profile-update",
+  "chat-status",
+]);
+
+// The ChatTransport seam: realtime over Socket.IO when the API hands out a
+// ticket, plain polling otherwise. Socket events carry ids only (never text), so
+// any of them just triggers a fetch (which also fills gaps). The database stays
+// the source of truth.
 export const useChatTransport = ({
   role,
-  userId,
   conversationId,
   chatEnabled,
   onSync,
@@ -50,8 +53,6 @@ export const useChatTransport = ({
   const syncRef = useRef(onSync);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTypingSentAt = useRef<number | null>(null);
-  // Mirrors the connection for sendTyping without re-creating it.
-  const connectedRef = useRef(false);
 
   const clearPeerTyping = useCallback(() => {
     if (typingTimer.current !== null) {
@@ -65,8 +66,8 @@ export const useChatTransport = ({
     syncRef.current = onSync;
   });
 
-  // A locked trainee gets no token (403) and polls only. An admin is never
-  // refused one: chat-status events tell them when the chat is unlocked.
+  // A locked trainee polls only. An admin always connects: chat-status events
+  // tell them when the chat is unlocked.
   const canConnect =
     conversationId !== null && (role === "admin" || chatEnabled);
 
@@ -74,131 +75,69 @@ export const useChatTransport = ({
     if (!canConnect || conversationId === null) {
       return;
     }
-    const tokenUrl = role === "admin" ? ADMIN_TOKEN_URL : USER_TOKEN_URL;
     let cancelled = false;
-    let close: (() => void) | undefined;
+    // Typing events are not a reason to fetch; they only drive the indicator,
+    // which expires on its own if the peer goes quiet.
+    const showTyping = (data: unknown) => {
+      const event = parseTypingEvent(data);
 
-    const connect = async () => {
-      setState("connecting");
-      try {
-        const Ably = await import("ably");
+      if (!event || !isPeerTyping(event, role, null)) {
+        return;
+      }
+      if (typingTimer.current !== null) {
+        clearTimeout(typingTimer.current);
+      }
+      setIsPeerTypingNow(true);
+      typingTimer.current = setTimeout(() => {
+        typingTimer.current = null;
+        setIsPeerTypingNow(false);
+      }, TYPING_EXPIRY_MS);
+    };
+    const unsubscribe = subscribeChatSocket(role, {
+      conversationId,
+      onState: (next) => {
+        if (!cancelled) {
+          setState(next);
+        }
+      },
+      // One gap-fill after every (re)connect.
+      onConnect: () => syncRef.current(),
+      onEvent: (name, data) => {
+        const target = conversationIdOf(data);
 
-        if (cancelled) {
+        if (cancelled || (target !== null && target !== conversationId)) {
           return;
         }
-        const client = new Ably.Realtime({
-          autoConnect: true,
-          authCallback: (_params, callback) => {
-            fetch(tokenUrl, { cache: "no-store" })
-              .then(async (response) => {
-                if (response.status === 200) {
-                  callback(null, await response.json());
-                  return;
-                }
-                // 204 = no key configured, 403 = locked: stay on polling.
-                if (response.status === 204 || response.status === 403) {
-                  if (!cancelled) {
-                    setState("unavailable");
-                  }
-                  client.close();
-                }
-                callback(`token request failed (${response.status})`, null);
-              })
-              .catch(() => {
-                callback("token request failed", null);
-              });
-          },
-        });
-        const trigger = () => syncRef.current();
-        // Typing events are not a reason to fetch; they only drive the
-        // indicator, which expires on its own if the peer goes quiet.
-        const handleEvent = (message: { name?: string; data?: unknown }) => {
-          if (message.name !== CHAT_EVENTS.TYPING) {
-            trigger();
-            return;
-          }
-          const event = parseTypingEvent(message.data);
-
-          if (
-            cancelled ||
-            !event ||
-            !isPeerTyping(event, role, client.auth.clientId ?? null)
-          ) {
-            return;
-          }
-          if (typingTimer.current !== null) {
-            clearTimeout(typingTimer.current);
-          }
-          setIsPeerTypingNow(true);
-          typingTimer.current = setTimeout(() => {
-            typingTimer.current = null;
-            setIsPeerTypingNow(false);
-          }, TYPING_EXPIRY_MS);
-        };
-
-        close = () => client.close();
-        client.connection.on((change) => {
-          if (cancelled || change.current === "closed") {
-            return;
-          }
-          connectedRef.current = change.current === "connected";
-          setState(realtimeStateFor(change.current));
-          if (change.current === "connected") {
-            // One gap-fill after every (re)connect.
-            trigger();
-          }
-        });
-        // subscribe() also attaches; if the client is closed meanwhile (no
-        // key, locked) the attach rejects, and polling already covers that.
-        const ignore = () => undefined;
-
-        client.channels
-          .get(conversationChannel(conversationId))
-          .subscribe(handleEvent)
-          .catch(ignore);
-        if (role === "user") {
-          client.channels
-            .get(userChannel(userId))
-            .subscribe(trigger)
-            .catch(ignore);
+        if (name === "typing") {
+          showTyping(data);
+        } else if (SYNC_EVENTS.has(name)) {
+          syncRef.current();
         }
-      } catch {
-        if (!cancelled) {
-          setState("unavailable");
-        }
-      }
-    };
+      },
+    });
 
-    void connect();
     return () => {
       cancelled = true;
-      connectedRef.current = false;
-      close?.();
+      unsubscribe();
       clearPeerTyping();
     };
-  }, [canConnect, conversationId, role, userId, clearPeerTyping]);
+  }, [canConnect, conversationId, role, clearPeerTyping]);
 
-  // Throttled, fire and forget. Polling-only mode (no live connection) sends
-  // nothing, so there is no request and no error to handle.
+  // Throttled, fire and forget, over the socket. Polling-only mode (no live
+  // connection) sends nothing, so there is no request and no error to handle.
   const sendTyping = useCallback(() => {
     const now = Date.now();
 
     if (
-      !connectedRef.current ||
+      state !== "connected" ||
       conversationId === null ||
       !shouldSendTyping(lastTypingSentAt.current, now)
     ) {
       return;
     }
     lastTypingSentAt.current = now;
-    const isAdmin = role === "admin";
-
-    fetch(isAdmin ? ADMIN_TYPING_URL : USER_TYPING_URL, {
-      method: "POST",
-      headers: isAdmin ? { "Content-Type": "application/json" } : undefined,
-      body: isAdmin ? JSON.stringify({ conversationId }) : undefined,
-    }).catch(() => undefined);
-  }, [conversationId, role]);
+    sendSocketTyping(role, conversationId);
+  }, [conversationId, role, state]);
 
   // Pause while the tab is hidden; fetch once on return.
   useEffect(() => {
@@ -216,7 +155,7 @@ export const useChatTransport = ({
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
-  // Without a token scope (locked, no conversation) there is nothing to
+  // Without a connection scope (locked, no conversation) there is nothing to
   // connect to, whatever the last connection state was.
   const effectiveState = canConnect ? state : "unavailable";
   const interval = pollIntervalFor(effectiveState, isHidden);

@@ -1,79 +1,14 @@
-import { createClient } from "@libsql/client";
 import { type Browser, expect, type Page, test } from "@playwright/test";
 
-import { toEmailKey } from "@/utils/email";
-
+import { getStoredBodies, getUserId, resetChat } from "./api-seed-chat";
 import { fillTraineeLogin } from "./auth";
-import { E2E_ADMIN, E2E_CHAT_NAME, E2E_DB_URL, e2eEmail } from "./config";
+import { E2E_ADMIN, E2E_CHAT_NAME } from "./config";
 
 // Chat slash commands (KAN-167): `/imlang` turns into a chip in the composer
 // and sends the message without a push. Owns the seeded chat trainee and wipes
 // its chat rows first, like e2e/chat.spec.ts.
 const SEND_TIMEOUT_MS = 60_000;
-const DB_ATTEMPTS = 5;
 const SHOTS_DIR = process.env.E2E_COMMAND_SHOTS_DIR;
-
-const withDb = async <T>(
-  run: (client: ReturnType<typeof createClient>) => Promise<T>,
-) => {
-  for (let attempt = 1; ; attempt += 1) {
-    const client = createClient({ url: E2E_DB_URL });
-
-    try {
-      await client.execute("PRAGMA busy_timeout = 5000");
-      return await run(client);
-    } catch (error) {
-      if (attempt >= DB_ATTEMPTS || !String(error).includes("SQLITE_BUSY")) {
-        throw error;
-      }
-    } finally {
-      client.close();
-    }
-  }
-};
-
-const getUserId = (name: string) =>
-  withDb(async (client) => {
-    const result = await client.execute({
-      sql: "SELECT id FROM users WHERE email_key = ?",
-      args: [toEmailKey(e2eEmail(name))],
-    });
-
-    return Number(result.rows[0].id);
-  });
-
-const resetChat = (name: string) =>
-  withDb(async (client) => {
-    const userId = await getUserId(name);
-    const conversations = `(SELECT id FROM chat_conversations WHERE user_id = ?)`;
-
-    await client.execute({
-      sql: `DELETE FROM chat_messages WHERE conversation_id IN ${conversations}`,
-      args: [userId],
-    });
-    await client.execute({
-      sql: `DELETE FROM chat_reads WHERE conversation_id IN ${conversations}`,
-      args: [userId],
-    });
-    await client.execute({
-      sql: "DELETE FROM chat_conversations WHERE user_id = ?",
-      args: [userId],
-    });
-    await client.execute({
-      sql: "UPDATE users SET chat_enabled = NULL, chat_enabled_changed_at = NULL, chat_enabled_by_admin_id = NULL WHERE id = ?",
-      args: [userId],
-    });
-  });
-
-const getStoredBodies = (name: string) =>
-  withDb(async (client) => {
-    const result = await client.execute({
-      sql: "SELECT body FROM chat_messages WHERE conversation_id IN (SELECT id FROM chat_conversations WHERE user_id = ?) ORDER BY id",
-      args: [await getUserId(name)],
-    });
-
-    return result.rows.map((row) => String(row.body));
-  });
 
 const logInAsAdmin = async (page: Page) => {
   await page.goto("/admin/login");

@@ -40,3 +40,25 @@ export const listMembers = async (
   }
   return members.map(({ id, name }) => ({ id, name }));
 };
+
+// One trainee as this admin may see them: the API answers 404 for a trainee
+// outside a PT's workspace, one this admin hid (until revealed with the
+// passcode) and one that does not exist, so all three are `null` here and the
+// page answers notFound(). `displayName` is this admin's private nickname if
+// set, `hidden` says whether they hid them.
+export const getTrainee = async (userId: number) => {
+  if (!Number.isSafeInteger(userId) || userId <= 0) {
+    return null;
+  }
+  const outcome = await tryApi("admin", (api) =>
+    api.GET("/v1/trainees/{userId}", { params: { path: { userId } } }),
+  );
+
+  if (outcome.ok) {
+    return outcome.data;
+  }
+  if (outcome.error.status === 404) {
+    return null;
+  }
+  throw outcome.error;
+};

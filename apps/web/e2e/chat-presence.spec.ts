@@ -1,116 +1,34 @@
-import { createClient } from "@libsql/client";
 import { type Browser, expect, type Page, test } from "@playwright/test";
 
 import { toEmailKey } from "@/utils/email";
 
+import {
+  getLastSeenMs,
+  prepareChatTrainee,
+  resetChat,
+  setUserLastSeen,
+} from "./api-seed-chat";
 import { fillTraineeLogin } from "./auth";
 import {
   E2E_ADMIN,
   E2E_CHAT_NAME,
   E2E_CHAT_OFF_NAME,
-  E2E_DB_URL,
   e2eEmail,
 } from "./config";
 
 // Chat presence (KAN-130, docs/specs/chat-presence.md): online status and
 // last seen on the trainee thread, the admin thread and the admin inbox.
 // "Offline" is made deterministic by writing last_seen_at straight into the
-// e2e SQLite file while the peer has no page open. Each spec resets the rows
+// e2e PostgreSQL while the peer has no page open. Each spec resets the rows
 // it touches first and last, so a rerun (--repeat-each) starts clean.
-const DB_ATTEMPTS = 5;
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
 // The server skips a beat when the stored one is under 60 s old (one write a
 // minute), so a beat from an earlier spec can be up to 60 s old and still be
 // the newest one. Online means under 120 s; 90 s leaves room for both.
 const FRESH_MS = 90_000;
 
-const withDb = async <T>(
-  run: (client: ReturnType<typeof createClient>) => Promise<T>,
-) => {
-  for (let attempt = 1; ; attempt += 1) {
-    const client = createClient({ url: E2E_DB_URL });
-
-    try {
-      await client.execute("PRAGMA busy_timeout = 5000");
-      return await run(client);
-    } catch (error) {
-      if (attempt >= DB_ATTEMPTS || !String(error).includes("SQLITE_BUSY")) {
-        throw error;
-      }
-    } finally {
-      client.close();
-    }
-  }
-};
-
-const getUserId = (name: string) =>
-  withDb(async (client) => {
-    const result = await client.execute({
-      sql: "SELECT id FROM users WHERE email_key = ?",
-      args: [toEmailKey(e2eEmail(name))],
-    });
-
-    return Number(result.rows[0].id);
-  });
-
-// last_seen_at is a `timestamp` column: whole seconds.
-const setUserLastSeen = (name: string, atMs: number | null) =>
-  withDb((client) =>
-    client.execute({
-      sql: "UPDATE users SET last_seen_at = ? WHERE email_key = ?",
-      args: [
-        atMs === null ? null : Math.floor(atMs / 1000),
-        toEmailKey(e2eEmail(name)),
-      ],
-    }),
-  );
-
-const getLastSeenMs = (table: "users" | "admins", where: string, arg: string) =>
-  withDb(async (client) => {
-    const result = await client.execute({
-      sql: `SELECT last_seen_at AS seen FROM ${table} WHERE ${where} = ?`,
-      args: [arg],
-    });
-    const seen = result.rows[0]?.seen;
-
-    return seen === null || seen === undefined ? null : Number(seen) * 1000;
-  });
-
-// Chat enabled with an empty conversation (the inbox lists it), presence unknown.
-const prepareChatTrainee = (name: string) =>
-  withDb(async (client) => {
-    const userId = await getUserId(name);
-
-    await client.execute({
-      sql: "DELETE FROM chat_conversations WHERE user_id = ?",
-      args: [userId],
-    });
-    await client.execute({
-      sql: "UPDATE users SET chat_enabled = 1, last_seen_at = NULL WHERE id = ?",
-      args: [userId],
-    });
-    await client.execute({
-      sql: "INSERT INTO chat_conversations (user_id) VALUES (?)",
-      args: [userId],
-    });
-
-    return userId;
-  });
-
 // Back to the seeded state (chat locked, no conversation, never seen).
-const resetChatTrainee = (name: string) =>
-  withDb(async (client) => {
-    const userId = await getUserId(name);
-
-    await client.execute({
-      sql: "DELETE FROM chat_conversations WHERE user_id = ?",
-      args: [userId],
-    });
-    await client.execute({
-      sql: "UPDATE users SET chat_enabled = NULL, chat_enabled_changed_at = NULL, chat_enabled_by_admin_id = NULL, last_seen_at = NULL WHERE id = ?",
-      args: [userId],
-    });
-  });
+const resetChatTrainee = (name: string) => resetChat(name, { profile: true });
 
 const newSession = async (browser: Browser) => {
   const context = await browser.newContext({

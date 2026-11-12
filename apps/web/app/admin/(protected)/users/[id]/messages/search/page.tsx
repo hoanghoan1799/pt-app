@@ -3,13 +3,9 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { ChatSearch } from "@/features/chat/components/ChatSearch";
-import { loadChatProfile } from "@/features/chat/services/chat-profile";
-import { findConversationByUserId } from "@/features/chat/services/chat-queries";
+import { findTraineeChatHeader } from "@/features/chat/services/chat-queries";
 import { chatPaths } from "@/features/chat/utils/chat-links";
-import { adminActorKey } from "@/features/contact-aliases/utils/alias-rules";
 import { requireAdmin } from "@/services/auth-guard";
-import { canAdminAccessUser } from "@/services/hidden-users";
-import { findUserById } from "@/services/users";
 
 export const generateMetadata = async (): Promise<Metadata> => {
   const t = await getTranslations("adminPages.messagesSearch");
@@ -24,23 +20,22 @@ const AdminMessagesSearchPage = async ({
 }: PageProps<"/admin/users/[id]/messages/search">) => {
   const admin = await requireAdmin();
   const { id } = await params;
-  const user = await findUserById(Number(id));
+  const userId = Number(id);
+  const header = Number.isSafeInteger(userId)
+    ? await findTraineeChatHeader(userId)
+    : null;
 
-  if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
+  if (!header) {
     notFound();
   }
-  const conversation = await findConversationByUserId(user.id);
-  const profile = conversation
-    ? await loadChatProfile(conversation.id, adminActorKey(admin.id))
-    : null;
 
   return (
     <ChatSearch
-      viewer={{ role: "admin", adminId: admin.id, peerName: user.name }}
+      viewer={{ role: "admin", adminId: admin.id, peerName: header.userName }}
       // Without a conversation there is nothing to find; 0 never exists.
-      endpoint={`/api/admin/chat/${conversation?.id ?? 0}/search`}
-      paths={chatPaths("admin", user.id)}
-      nicknames={profile?.nicknames ?? {}}
+      endpoint={`/api/admin/chat/${header.conversationId ?? 0}/search`}
+      paths={chatPaths("admin", header.userId)}
+      nicknames={header.profile.nicknames}
     />
   );
 };

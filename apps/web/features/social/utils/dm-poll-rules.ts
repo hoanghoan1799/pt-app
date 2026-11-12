@@ -3,7 +3,7 @@ import { DM_POLL_MS } from "@/features/social/constants/dm";
 // The DM thread poll slows down while the chat is quiet: after a few polls
 // with nothing new the delay grows one step at a time up to DM_POLL_MAX_MS,
 // and goes back to DM_POLL_MS on any activity (new message, delete, read mark,
-// send, Ably event, tab back in front).
+// send, socket event, tab back in front).
 export const DM_POLL_MAX_MS = 20_000;
 // Empty polls tolerated at the base interval before backing off.
 export const DM_POLL_FREE_EMPTY = 3;

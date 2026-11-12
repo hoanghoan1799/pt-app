@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { ChatThreadQuery, ChatThreadResponse } from "@pt/contracts";
 
-import { ChatContext } from "./chat.access.js";
+import { ChatAccess, ChatContext } from "./chat.access.js";
 import { chatErrors } from "./chat.errors.js";
 import { ChatQueries } from "./chat.queries.js";
 import { ChatProfileService, EMPTY_PROFILE } from "./chat-profile.service.js";
@@ -15,6 +15,7 @@ export type ThreadResult =
 @Injectable()
 export class ChatThreadService {
   constructor(
+    private readonly access: ChatAccess,
     private readonly queries: ChatQueries,
     private readonly views: ChatViews,
     private readonly profiles: ChatProfileService,
@@ -24,8 +25,12 @@ export class ChatThreadService {
     context: ChatContext,
     query: ChatThreadQuery,
   ): Promise<ThreadResult> {
-    const { actor, trainee, conversation } = context;
+    const { actor, trainee } = context;
     const isTrainee = actor.kind === "user";
+    // A trainee whose chat is on always has a conversation: created when the PT
+    // switched chat on, and here for ones that predate that (idempotent).
+    // While chat is off nothing is created and the empty thread is returned.
+    const conversation = await this.access.ensureConversation(context);
 
     if (!conversation) {
       return {
@@ -40,6 +45,8 @@ export class ChatThreadService {
           peerReadUpTo: 0,
           peerLastSeenAt:
             (await this.queries.adminTeamLastSeen())?.toISOString() ?? null,
+          conversationId: null,
+          latestPt: null,
         },
       };
     }
@@ -78,12 +85,14 @@ export class ChatThreadService {
             query.changedSince,
             lastChangeAt,
           );
-    const [messages, changes, profile, teamLastSeen] = await Promise.all([
-      this.views.many(page.rows, actor),
-      this.views.many(changed.rows, actor),
-      this.profiles.load(conversation.id, actor, trainee.traineeId),
-      isTrainee ? this.queries.adminTeamLastSeen() : trainee.lastSeenAt,
-    ]);
+    const [messages, changes, profile, teamLastSeen, latestPt] =
+      await Promise.all([
+        this.views.many(page.rows, actor),
+        this.views.many(changed.rows, actor),
+        this.profiles.load(conversation.id, actor, trainee.traineeId),
+        isTrainee ? this.queries.adminTeamLastSeen() : trainee.lastSeenAt,
+        this.queries.latestAdminSender(conversation.id),
+      ]);
 
     return {
       notModified: false,
@@ -96,6 +105,8 @@ export class ChatThreadService {
         chatEnabled: trainee.chatEnabled,
         peerReadUpTo,
         peerLastSeenAt: teamLastSeen?.toISOString() ?? null,
+        conversationId: conversation.id,
+        latestPt,
         ...(isTrainee ? {} : { userId: trainee.traineeId }),
       },
     };

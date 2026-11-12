@@ -23,7 +23,6 @@
   "dependencies": {
     "@libsql/client": "^0.18.0",
     "@pt/contracts": "workspace:*",
-    "ably": "^2.30.0",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.3",
     "jose": "^6.2.12",
@@ -34,6 +33,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",
+    "socket.io-client": "^4.8.4",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
     "vaul": "^1.1.2",

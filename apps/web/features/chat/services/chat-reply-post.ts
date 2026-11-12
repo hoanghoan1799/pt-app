@@ -1,39 +1,48 @@
 import "server-only";
 
-import { loadReplyPostViews } from "@/features/social/services/dm-reply-post";
-import { loadVisiblePost } from "@/features/social/services/post-access";
-import type { SocialActor } from "@/features/social/types/social";
+import { webizeUrls } from "@/features/chat/utils/api-urls";
+import type { DmReplyPostView } from "@/features/social/types/dm";
+import { runApi } from "@/services/api/call";
 
-// "Reply to a post" in the coach chat. The post must be one the sender may
-// see and the other side wrote: a PT or super admin post for a trainee (the
+// "Reply to a post" in the coach chat. The post must be one the viewer may see
+// and the other side wrote: a PT or super admin post for a trainee (the
 // conversation is shared by all PTs), a post of this conversation's trainee
-// for a PT.
-export const canQuotePost = async (
-  sender: SocialActor,
-  postId: number,
-  traineeId: number,
-) => {
-  const post = await loadVisiblePost(sender, postId);
-
-  if (!post) {
-    return false;
-  }
-  return sender.kind === "user"
-    ? post.authorKind === "admin"
-    : post.authorKind === "user" && post.authorId === traineeId;
-};
-
-// The preview for the bar of a freshly opened chat (`?replyPost=`): null unless
-// the viewer may quote that post here.
+// for a PT. The API refuses a post the viewer cannot see (404). When the
+// message is sent, the API checks the same rule again.
 export const loadCoachReplyPostFor = async (
-  viewer: SocialActor,
+  viewer: "user" | "admin",
   postId: number,
   traineeId: number,
-) => {
-  if (!(await canQuotePost(viewer, postId, traineeId))) {
+): Promise<Extract<DmReplyPostView, { available: true }> | null> => {
+  const outcome = await runApi(viewer, (api) =>
+    api.GET("/v1/social/posts/{id}", {
+      params: { path: { id: String(postId) } },
+    }),
+  );
+
+  if (!outcome.ok) {
     return null;
   }
-  const view = (await loadReplyPostViews(viewer, [postId])).get(postId);
+  const post = webizeUrls(outcome.data);
+  const quotable =
+    viewer === "user"
+      ? post.authorKind === "admin"
+      : post.authorKind === "user" && post.authorId === traineeId;
 
-  return view?.available ? view : null;
+  return quotable
+    ? {
+        id: post.id,
+        available: true,
+        authorName: post.authorName,
+        authorAvatarUrl: post.authorAvatarUrl,
+        caption: post.caption,
+        photo: post.photo
+          ? {
+              url: post.photo.url,
+              width: post.photo.width,
+              height: post.photo.height,
+            }
+          : null,
+      }
+    : null;
 };

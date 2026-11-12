@@ -6,6 +6,7 @@ import {
 } from "@pt/contracts";
 
 import type { ChatPostQuote } from "./post-quote.port.js";
+import { previewTexts } from "./preview-text.js";
 
 // Rows -> contract DTOs. Entities and raw rows never leave the API; every
 // response goes through here. Unsent messages lose their body, quote, photo,
@@ -154,12 +155,17 @@ export const toMessageViews = (rows: MessageRow[], context: MessageContext) =>
   rows.map((row) => toMessageView(row, context));
 
 // Inbox / list line of the last message.
-export const inboxPreview = (last: {
-  body: string | null;
-  stickerRef: string | null;
-  photoId: number | null;
-  deletedAt: Date | null;
-}) => {
+export const inboxPreview = (
+  last: {
+    body: string | null;
+    stickerRef: string | null;
+    photoId: number | null;
+    deletedAt: Date | null;
+  },
+  locale?: string | null,
+) => {
+  const texts = previewTexts(locale);
+
   if (last.deletedAt) {
     return "";
   }
@@ -168,10 +174,10 @@ export const inboxPreview = (last: {
     .join("");
 
   if (last.stickerRef) {
-    return "đã gửi một sticker";
+    return texts.sticker;
   }
   if (last.photoId) {
-    return text.trim() === "" ? "📷 Ảnh" : `📷 ${text}`;
+    return text.trim() === "" ? `📷 ${texts.photo}` : `📷 ${text}`;
   }
   return text;
 };
