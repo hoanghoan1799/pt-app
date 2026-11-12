@@ -6,10 +6,13 @@ import { ClockModule } from "./common/clock.js";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter.js";
 import { createLoggerModule } from "./common/logging/logging.module.js";
 import { AppConfigModule } from "./config/app-config.module.js";
+import { ContactAliasesModule } from "./contact-aliases/contact-aliases.module.js";
 import { DatabaseModule } from "./database/database.module.js";
+import { FilesModule } from "./files/files.module.js";
 import { FoodsModule } from "./foods/foods.module.js";
 import { HealthController } from "./health/health.controller.js";
 import { NutritionModule } from "./nutrition/nutrition.module.js";
+import { UsersModule } from "./users/users.module.js";
 import { WorkoutsModule } from "./workouts/workouts.module.js";
 
 @Module({
@@ -20,6 +23,9 @@ import { WorkoutsModule } from "./workouts/workouts.module.js";
     DatabaseModule,
     AuthModule,
     AdminsModule,
+    UsersModule,
+    ContactAliasesModule,
+    FilesModule,
     WorkoutsModule,
     FoodsModule,
     NutritionModule,

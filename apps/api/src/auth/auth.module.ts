@@ -56,9 +56,6 @@ import { TraineeScopeQueries } from "./trainee-scope.queries.js";
     PasswordHasher,
     AdminPasscodeStrategy,
     LoginThrottlerModule,
-    // Feature modules ask the same scope questions as the PtScopeGuard.
-    PtScopePolicy,
-    TraineeScopeQueries,
   ],
 })
 export class AuthModule {}
