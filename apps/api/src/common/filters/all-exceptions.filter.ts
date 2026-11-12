@@ -87,6 +87,20 @@ const describeHttpException = (exception: HttpException) => {
   return { status, code, message, details: primitiveDetails(fields.details) };
 };
 
+// The JSON body parser throws its own (non-Nest) error for a body over the
+// limit; it is a client mistake, not a server failure.
+const describeBodyParserError = (exception: unknown) =>
+  typeof exception === "object" &&
+  exception !== null &&
+  (exception as { type?: unknown }).type === "entity.too.large"
+    ? {
+        status: HttpStatus.PAYLOAD_TOO_LARGE,
+        code: "PAYLOAD_TOO_LARGE",
+        message: "Dữ liệu gửi lên quá lớn",
+        details: undefined,
+      }
+    : undefined;
+
 // The single place errors become responses: `{ code, message, ref }`. Production
 // never shows a stack, SQL, driver text or entity data; those only go to the
 // server log together with the same `ref`.
@@ -116,7 +130,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const http =
       exception instanceof HttpException
         ? describeHttpException(exception)
-        : undefined;
+        : describeBodyParserError(exception);
     const status = http?.status ?? HttpStatus.INTERNAL_SERVER_ERROR;
     const isClientError = status < 500;
     const code = http?.code ?? "INTERNAL_ERROR";

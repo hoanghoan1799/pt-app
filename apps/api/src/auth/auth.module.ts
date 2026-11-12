@@ -53,6 +53,8 @@ import { TraineeScopeQueries } from "./trainee-scope.queries.js";
     PasswordHasher,
     AdminPasscodeStrategy,
     LoginThrottlerModule,
+    PtScopePolicy,
+    TraineeScopeQueries,
   ],
 })
 export class AuthModule {}
