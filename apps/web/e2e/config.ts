@@ -37,6 +37,8 @@ export const E2E_ENV = {
   NEXT_PUBLIC_ENABLE_SW: "1",
   // The address the browser opens the realtime socket to (the API above).
   NEXT_PUBLIC_API_URL: E2E_API_URL,
+  // See next.config.ts: the Babel React Compiler cannot spawn its loader here.
+  E2E_RUST_REACT_COMPILER: "1",
   // Skips the image optimizer so no thumbnail is fetched server-side (KAN-95).
   E2E_UNOPTIMIZED_IMAGES: "1",
 } as const;

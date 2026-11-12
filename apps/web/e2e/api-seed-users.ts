@@ -90,3 +90,12 @@ export const clearAvatarsViaApi = async (traineeName: string) => {
     token: await loginAdminViaApi(),
   });
 };
+
+// A PT account (the e2e admin is a super admin), created through the API. The
+// spec that needs one owns the username, so specs do not depend on each other.
+export const createPtViaApi = async (username: string, password: string) => {
+  await call("POST", "/v1/pts", {
+    token: await loginAdminViaApi(),
+    body: { username, password },
+  });
+};
