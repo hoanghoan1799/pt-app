@@ -75,7 +75,10 @@ describe("baseline migration", () => {
   });
 
   it("reverts to an empty schema and applies again", async () => {
-    await db.dataSource.undoLastMigration({ transaction: "each" });
+    // Newest first, down to the empty database.
+    for (let applied = 0; applied < migrations.length; applied += 1) {
+      await db.dataSource.undoLastMigration({ transaction: "each" });
+    }
     expect(await publicTables(db)).toEqual([]);
 
     await db.dataSource.runMigrations({ transaction: "each" });
