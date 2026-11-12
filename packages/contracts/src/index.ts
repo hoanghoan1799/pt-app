@@ -14,6 +14,7 @@ export * from "./name.js";
 export * from "./nutrition.js";
 export * from "./nutrition-schemas.js";
 export * from "./pagination.js";
+export * from "./workout-api-schemas.js";
 export * from "./workout-schemas.js";
 export * from "./workouts.js";
 export * from "./youtube.js";
