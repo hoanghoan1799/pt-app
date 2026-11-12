@@ -6,9 +6,10 @@ const PROTECTED_BRANCHES = ["main", "master", "stag"];
 
 const ENV_FILE_PATTERN = /(^|[\s/"'=<])\.env(\.[\w.-]+)?(?=$|[\s"';|&)>])/g;
 
-// The README setup step: create the local env file from the template.
+// The README setup step: create the local env file from the template (the web
+// app's, in apps/web/).
 const ENV_TEMPLATE_COPY_PATTERN =
-  /\bcp\s+(-n\s+)?(\.\/)?\.env\.example\s+(\.\/)?\.env\.local(?=$|[\s;|&)])/g;
+  /\bcp\s+(-n\s+)?(\.\/|apps\/web\/)?\.env\.example\s+(\.\/|apps\/web\/)?\.env\.local(?=$|[\s;|&)])/g;
 
 // The quoted text after -m / --message on a git commit.
 const COMMIT_MESSAGE_PATTERN =

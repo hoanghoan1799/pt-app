@@ -7,6 +7,8 @@ description: Review a pt-app branch or PR against the team checklist (scope, tes
 
 Review the diff against the base branch (`git diff origin/stag...HEAD` for task branches, `origin/main...origin/stag` for a release PR, or the PR diff). Go through the sections in order and stop at the first section that fails badly: a PR without a ticket or with red tests is not worth a style review yet.
 
+Source paths below (`app/`, `features/`, `db/`, `utils/`, `proxy.ts`, `scripts/`) are inside `apps/web/` unless a section says otherwise; input schemas shared with the API live in `packages/contracts/`.
+
 ## 1. Scope
 
 - The branch and commit subjects carry one KAN key, and the diff does only what that ticket asks.
@@ -16,7 +18,7 @@ Review the diff against the base branch (`git diff origin/stag...HEAD` for task 
 ## 2. Tests and checks
 
 - `pnpm test && pnpm lint && pnpm typecheck` pass. Run them; do not trust the description.
-- A bug fix comes with a test that fails without the fix. New pure logic in `utils/` or `features/*/utils/` has tests in the sibling `__tests__/`.
+- A bug fix comes with a test that fails without the fix. New pure logic in `apps/web/utils/` or `apps/web/features/*/utils/` (or in `packages/contracts`) has tests in the sibling `__tests__/`.
 - No test was skipped, deleted or loosened to get green.
 
 ## 3. Access control

@@ -53,11 +53,13 @@
 ```bash
 corepack enable              # một lần, để dùng đúng pnpm trong packageManager
 pnpm install
-cp .env.example .env.local   # sửa SESSION_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD
-pnpm db:push                 # tạo bảng trong local.db (SQLite)
+cp apps/web/.env.example apps/web/.env.local   # sửa SESSION_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD
+pnpm db:push                 # tạo bảng trong apps/web/local.db (SQLite)
 pnpm admin:create            # tạo tài khoản admin từ ADMIN_USERNAME / ADMIN_PASSWORD
-pnpm dev
+pnpm dev                     # build @pt/contracts rồi chạy web
 ```
+
+Repo là monorepo pnpm: `apps/web` (Next.js), `apps/api` (NestJS, đang là bộ khung) và `packages/contracts` (schema Zod dùng chung). Các lệnh `db:*` và `admin:create` ở root chuyển sang `@pt/web`.
 
 Mở http://localhost:3000 (user) và http://localhost:3000/admin/login (admin). Trang user không có link sang admin.
 
@@ -73,12 +75,14 @@ pnpm admin:create <username> <mật-khẩu>
 
 | Lệnh                | Việc                                                        |
 | ------------------- | ----------------------------------------------------------- |
-| `pnpm dev`          | Dev server                                                  |
-| `pnpm build`        | Build production                                            |
+| `pnpm dev`          | Dev server web (build `@pt/contracts` trước)                |
+| `pnpm dev:api`      | Dev server API NestJS (http://localhost:4000/v1/health)     |
+| `pnpm verify`       | test + lint + typecheck cho mọi workspace                   |
+| `pnpm build`        | Build production (contracts rồi web)                        |
 | `pnpm test`         | Unit test (Vitest)                                          |
 | `pnpm lint`         | ESLint (0 warning)                                          |
 | `pnpm typecheck`    | TypeScript                                                  |
-| `pnpm db:push`      | Đồng bộ schema `db/schema.ts` vào DB                        |
+| `pnpm db:push`      | Đồng bộ schema `apps/web/db/schema.ts` vào DB               |
 | `pnpm db:setup`     | Tạo bảng + admin đầu tiên (tự chạy khi build trên Vercel)   |
 | `pnpm db:studio`    | Xem dữ liệu bằng Drizzle Studio                             |
 | `pnpm admin:create` | Tạo admin / đặt lại mật khẩu                                |
@@ -91,7 +95,7 @@ pnpm admin:create <username> <mật-khẩu>
 | User  | `/` (email + mật khẩu), `/workouts`, `/account/password` | User đã đăng nhập. Admin vào sẽ bị chuyển về `/admin`.                              |
 | Admin | `/admin/login`, `/admin/**`                              | Admin đã đăng nhập. User vào (kể cả trang login admin) sẽ bị chuyển về `/workouts`. |
 
-Bảo vệ 3 lớp: `proxy.ts` (kiểm tra cookie và điều hướng), layout của route group `(user)/(protected)` và `admin/(protected)` (kiểm tra với DB), và từng server action (`requireAdmin`). Trang admin có `noindex`.
+Bảo vệ 3 lớp: `apps/web/proxy.ts` (kiểm tra cookie và điều hướng), layout của route group `(user)/(protected)` và `admin/(protected)` (kiểm tra với DB), và từng server action (`requireAdmin`). Trang admin có `noindex`.
 
 ## Công nghệ
 
@@ -100,16 +104,22 @@ Next.js 16 (App Router, Server Actions, `proxy.ts`), React 19, Tailwind CSS 4, D
 ## Cấu trúc
 
 ```text
-app/                 routes (mỏng, chỉ ghép các feature)
-features/
-  auth/              đăng nhập user/admin, đăng xuất
-  members/           quản lý user (admin)
-  workouts/          lịch tuần, bài tập, YouTube, sao chép tuần, đánh dấu đã tập
-  dashboard/         thống kê tiến độ và hoạt động cho admin
-  nutrition/         mục tiêu dinh dưỡng, nhật ký ăn, tổng kết ngày/tuần
-components/          layout + UI dùng chung (header, bottom sheet, nút submit)
-services/            session, guard, truy vấn user dùng chung
-db/                  schema + kết nối Drizzle
+apps/web/            Next.js (xem bên dưới)
+apps/api/            NestJS API (bộ khung, /v1/health)
+packages/contracts/  schema Zod + giới hạn dùng chung cho web và API
+docker-compose.yml   PostgreSQL 17 + API (docker compose up -d --build db api)
+
+apps/web/
+  app/               routes (mỏng, chỉ ghép các feature)
+  features/
+    auth/              đăng nhập user/admin, đăng xuất
+    members/           quản lý user (admin)
+    workouts/          lịch tuần, bài tập, YouTube, sao chép tuần, đánh dấu đã tập
+    dashboard/         thống kê tiến độ và hoạt động cho admin
+    nutrition/         mục tiêu dinh dưỡng, nhật ký ăn, tổng kết ngày/tuần
+  components/          layout + UI dùng chung (header, bottom sheet, nút submit)
+  services/            session, guard, truy vấn user dùng chung
+  db/                  schema + kết nối Drizzle
 ```
 
 ## Deploy lên Vercel (Turso)
@@ -127,7 +137,7 @@ db/                  schema + kết nối Drizzle
 
    Không cần `DATABASE_URL` trên Vercel; nếu có, đừng để `file:local.db`.
 
-3. **Redeploy**. `pnpm build` chạy `scripts/setup-database.ts` trước `next build`: tạo/cập nhật bảng trên Turso và tạo admin từ `ADMIN_USERNAME`/`ADMIN_PASSWORD` nếu database chưa có admin nào (admin đã có thì không bị ghi đè).
+3. **Redeploy**. `pnpm build` (web) chạy `apps/web/scripts/setup-database.ts` trước `next build`: tạo/cập nhật bảng trên Turso và tạo admin từ `ADMIN_USERNAME`/`ADMIN_PASSWORD` nếu database chưa có admin nào (admin đã có thì không bị ghi đè).
 4. Kiểm tra: mở `https://<domain>/api/health?token=<HEALTH_CHECK_TOKEN>` — phải là `"status": "ok"`.
 
 ## Xử lý lỗi

@@ -1,4 +1,9 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
 # Dependencies allowed to run install scripts (pnpm blocks the rest).
 onlyBuiltDependencies:
+  - "@swc/core"
   - esbuild
   - unrs-resolver

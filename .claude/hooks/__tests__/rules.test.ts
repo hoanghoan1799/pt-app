@@ -45,6 +45,7 @@ describe("findViolation", () => {
       ["cp .env.example .env.local", fresh],
       ["cp ./.env.example ./.env.local && pnpm db:push", fresh],
       ["cp -n .env.example .env.local", configured],
+      ["cp apps/web/.env.example apps/web/.env.local", fresh],
     ])("allows %s", (command, options) => {
       expect(findViolation(command, "kan-15", options)).toBeNull();
     });
@@ -53,6 +54,7 @@ describe("findViolation", () => {
       ["cp .env.example .env.local", configured],
       ["cp .env.example .env.local && cat .env.local", fresh],
       ["cp .env.example .env.production", fresh],
+      ["cp apps/web/.env.example apps/web/.env.local", configured],
     ])("blocks %s", (command, options) => {
       expect(findViolation(command, "kan-15", options)).toEqual(
         expect.any(String),

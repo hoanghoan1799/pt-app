@@ -18,7 +18,7 @@ const input = JSON.parse(readFileSync(0, "utf8") || "{}");
 const command = input.tool_input?.command ?? "";
 const projectDir = process.env.CLAUDE_PROJECT_DIR ?? process.cwd();
 const reason = findViolation(command, readCurrentBranch(), {
-  envLocalExists: existsSync(join(projectDir, ".env.local")),
+  envLocalExists: existsSync(join(projectDir, "apps", "web", ".env.local")),
 });
 
 if (reason) {

@@ -1,0 +1,8 @@
+export const EXERCISE_LIMITS = {
+  TITLE: 120,
+  DESCRIPTION: 2000,
+  REPS: 40,
+  MAX_SETS: 50,
+  DAY_TITLE: 120,
+  DAY_NOTE: 1000,
+} as const;

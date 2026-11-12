@@ -3,9 +3,10 @@
 # project threads, routines) so the work does not need Hoan's machine to be on.
 #
 #   1. installs dependencies from the lock file
-#   2. creates .env.local from .env.example when it is missing, with a random
+#   2. builds packages/contracts (the apps import it from dist/)
+#   3. creates apps/web/.env.local from apps/web/.env.example when it is missing, with a random
 #      SESSION_SECRET and the local SQLite file (never a Turso URL)
-#   3. creates the tables, the first admin and the starter foods in local.db
+#   4. creates the tables, the first admin and the starter foods in local.db (in apps/web)
 #
 # Runs only in cloud sessions (CLAUDE_CODE_REMOTE=true); local sessions keep
 # their own setup. Safe to run many times: each step skips work already done.
@@ -32,17 +33,20 @@ fi
 echo "▸ pt-app cloud setup: installing dependencies"
 pnpm install --frozen-lockfile --reporter=silent
 
-env_file=".env.local"
+echo "▸ pt-app cloud setup: building packages/contracts"
+pnpm --silent build:contracts
+
+env_file="apps/web/.env.local"
 if [ ! -f "$env_file" ]; then
   echo "▸ pt-app cloud setup: creating $env_file from the template (local SQLite)"
   secret="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))')"
   sed -e "s|^SESSION_SECRET=.*|SESSION_SECRET=${secret}|" \
     -e "s|^DATABASE_URL=.*|DATABASE_URL=file:local.db|" \
-    .env.example >"$env_file"
+    apps/web/.env.example >"$env_file"
 fi
 
-# Never point the setup at a remote database: drizzle.config.ts and
-# services/env.ts prefer TURSO_DATABASE_URL, then DATABASE_URL, from the
+# Never point the setup at a remote database: apps/web/drizzle.config.ts and
+# apps/web/services/env.ts prefer TURSO_DATABASE_URL, then DATABASE_URL, from the
 # environment over .env.local.
 for name in TURSO_DATABASE_URL DATABASE_URL; do
   value="${!name:-}"
@@ -53,6 +57,6 @@ for name in TURSO_DATABASE_URL DATABASE_URL; do
 done
 
 echo "▸ pt-app cloud setup: preparing local.db"
-pnpm --silent db:setup
+pnpm --silent --filter @pt/web db:setup
 
 echo "✔ pt-app cloud setup done: pnpm verify, pnpm dev (http://localhost:3000)"

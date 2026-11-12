@@ -1,0 +1,66 @@
+name: CI api
+
+# NestJS API (apps/api). Started only by its own paths: the API, the shared
+# contracts it imports, the root manifests and this file. Contracts is built to
+# dist/ first because the API imports it from there.
+# The required status check is `checks-api`.
+
+on:
+  pull_request:
+    paths:
+      - "apps/api/**"
+      - "packages/contracts/**"
+      - "docker-compose.yml"
+      - ".dockerignore"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/ci-api.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-api-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the version from packageManager in package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build:contracts
+
+      - run: pnpm --filter @pt/api lint
+
+      - run: pnpm --filter @pt/api typecheck
+
+      - run: pnpm --filter @pt/api test
+
+      - run: pnpm --filter @pt/api build
+
+  # The required status check (branch protection: `checks-api`).
+  checks-api:
+    needs: [api]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          API: ${{ needs.api.result }}
+        run: |
+          echo "api=$API"
+          if [ "$API" != "success" ]; then
+            exit 1
+          fi

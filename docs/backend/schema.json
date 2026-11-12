@@ -1,0 +1,3597 @@
+[
+ {
+  "name": "admin_hidden_users",
+  "cols": [
+   {
+    "n": "admin_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "user_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "hidden_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [],
+  "pks": [
+   [
+    "admin_id",
+    "user_id"
+   ]
+  ],
+  "idx": []
+ },
+ {
+  "name": "admins",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "username",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "username_key",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": true,
+    "d": false
+   },
+   {
+    "n": "password_hash",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "last_seen_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "chat_color",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "avatar",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "avatar_updated_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "passcode_hash",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "passcode_failed_count",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "presence_hidden",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "role",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "verified_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "bio",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "locale",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [],
+  "pks": [],
+  "idx": []
+ },
+ {
+  "name": "body_profiles",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "user_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": true,
+    "d": false
+   },
+   {
+    "n": "sex",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "birth_year",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "height_cm",
+    "t": "real",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "weight_kg",
+    "t": "real",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "activity_level",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "goal",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "kcal_adjustment",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "protein_per_kg",
+    "t": "real",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "updated_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [
+   {
+    "cols": [
+     "user_id"
+    ],
+    "table": "users",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   }
+  ],
+  "pks": [],
+  "idx": []
+ },
+ {
+  "name": "chat_color_overrides",
+  "cols": [
+   {
+    "n": "conversation_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "admin_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "color",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [
+   [
+    "conversation_id",
+    "admin_id"
+   ]
+  ],
+  "idx": []
+ },
+ {
+  "name": "chat_conversations",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "user_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": true,
+    "d": false
+   },
+   {
+    "n": "last_message_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "last_message_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "last_change_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [
+   {
+    "cols": [
+     "user_id"
+    ],
+    "table": "users",
+    "fcols": [
+     "id"
+    ]
+   }
+  ],
+  "pks": [],
+  "idx": [
+   {
+    "n": "chat_conversations_last_message_at",
+    "u": false,
+    "cols": [
+     "last_message_at"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "chat_custom_stickers",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "owner_kind",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "owner_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "mime",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "data",
+    "t": "blob",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "size",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "deleted_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [],
+  "idx": [
+   {
+    "n": "chat_custom_stickers_owner",
+    "u": false,
+    "cols": [
+     "owner_kind",
+     "owner_id"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "chat_hidden_conversations",
+  "cols": [
+   {
+    "n": "admin_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "conversation_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "hidden_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [],
+  "pks": [
+   [
+    "admin_id",
+    "conversation_id"
+   ]
+  ],
+  "idx": []
+ },
+ {
+  "name": "chat_message_edits",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "message_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "previous_body",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "edited_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [],
+  "idx": [
+   {
+    "n": "chat_message_edits_message_id",
+    "u": false,
+    "cols": [
+     "message_id"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "chat_messages",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "conversation_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "sender_role",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "sender_admin_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "body",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "attachment_url",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "attachment_meta",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "client_id",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "deleted_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "hidden_by_admin_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "reply_to_message_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "sticker_ref",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "sticker_url",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "photo_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "reply_post_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "edited_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "updated_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [
+   {
+    "cols": [
+     "conversation_id"
+    ],
+    "table": "chat_conversations",
+    "fcols": [
+     "id"
+    ]
+   }
+  ],
+  "pks": [],
+  "idx": [
+   {
+    "n": "chat_messages_conversation_client",
+    "u": true,
+    "cols": [
+     "conversation_id",
+     "client_id"
+    ]
+   },
+   {
+    "n": "chat_messages_conversation_id",
+    "u": false,
+    "cols": [
+     "conversation_id",
+     "id"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "chat_nicknames",
+  "cols": [
+   {
+    "n": "conversation_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "target_key",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "nickname",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "set_by_key",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "updated_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [
+   [
+    "conversation_id",
+    "target_key"
+   ]
+  ],
+  "idx": []
+ },
+ {
+  "name": "chat_photos",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "conversation_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "message_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "uploader_key",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "mime",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "width",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "height",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "data",
+    "t": "blob",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "size",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [],
+  "idx": [
+   {
+    "n": "chat_photos_message",
+    "u": false,
+    "cols": [
+     "message_id"
+    ]
+   },
+   {
+    "n": "chat_photos_conversation",
+    "u": false,
+    "cols": [
+     "conversation_id"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "chat_reactions",
+  "cols": [
+   {
+    "n": "message_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "reactor_key",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "emoji",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [
+   [
+    "message_id",
+    "reactor_key"
+   ]
+  ],
+  "idx": []
+ },
+ {
+  "name": "chat_reads",
+  "cols": [
+   {
+    "n": "conversation_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "reader_key",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "last_read_message_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "updated_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [],
+  "pks": [
+   [
+    "conversation_id",
+    "reader_key"
+   ]
+  ],
+  "idx": []
+ },
+ {
+  "name": "contact_aliases",
+  "cols": [
+   {
+    "n": "owner_key",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "target_key",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "alias",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "updated_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [
+   [
+    "owner_key",
+    "target_key"
+   ]
+  ],
+  "idx": [
+   {
+    "n": "contact_aliases_owner_key",
+    "u": false,
+    "cols": [
+     "owner_key"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "dm_conversations",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "user_low",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "user_high",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "last_message_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "last_message_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [],
+  "idx": [
+   {
+    "n": "dm_conversations_pair",
+    "u": true,
+    "cols": [
+     "user_low",
+     "user_high"
+    ]
+   },
+   {
+    "n": "dm_conversations_high",
+    "u": false,
+    "cols": [
+     "user_high"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "dm_messages",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "conversation_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "sender_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "body",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "photo_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "reply_post_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "client_id",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "deleted_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [],
+  "idx": [
+   {
+    "n": "dm_messages_conversation_client",
+    "u": true,
+    "cols": [
+     "conversation_id",
+     "client_id"
+    ]
+   },
+   {
+    "n": "dm_messages_conversation_id",
+    "u": false,
+    "cols": [
+     "conversation_id",
+     "id"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "dm_photos",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "conversation_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "message_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "uploader_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "mime",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "width",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "height",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "data",
+    "t": "blob",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "size",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [],
+  "idx": [
+   {
+    "n": "dm_photos_message",
+    "u": false,
+    "cols": [
+     "message_id"
+    ]
+   },
+   {
+    "n": "dm_photos_conversation",
+    "u": false,
+    "cols": [
+     "conversation_id"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "dm_reads",
+  "cols": [
+   {
+    "n": "conversation_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "user_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "last_read_message_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [],
+  "pks": [
+   [
+    "conversation_id",
+    "user_id"
+   ]
+  ],
+  "idx": []
+ },
+ {
+  "name": "exercise_completions",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "exercise_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": true,
+    "d": false
+   },
+   {
+    "n": "user_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "completed_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [
+   {
+    "cols": [
+     "exercise_id"
+    ],
+    "table": "exercises",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   },
+   {
+    "cols": [
+     "user_id"
+    ],
+    "table": "users",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   }
+  ],
+  "pks": [],
+  "idx": []
+ },
+ {
+  "name": "exercise_sets",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "exercise_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "user_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "position",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "weight_kg",
+    "t": "real",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "reps",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [
+   {
+    "cols": [
+     "exercise_id"
+    ],
+    "table": "exercises",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   },
+   {
+    "cols": [
+     "user_id"
+    ],
+    "table": "users",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   }
+  ],
+  "pks": [],
+  "idx": [
+   {
+    "n": "exercise_sets_exercise_position",
+    "u": true,
+    "cols": [
+     "exercise_id",
+     "position"
+    ]
+   },
+   {
+    "n": "exercise_sets_user",
+    "u": false,
+    "cols": [
+     "user_id"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "exercises",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "day_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "title",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "description",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "sets",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "reps",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "youtube_id",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "position",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [
+   {
+    "cols": [
+     "day_id"
+    ],
+    "table": "workout_days",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   }
+  ],
+  "pks": [],
+  "idx": []
+ },
+ {
+  "name": "food_entries",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "user_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "date",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "meal",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "description",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "carbs",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "protein",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "fat",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [
+   {
+    "cols": [
+     "user_id"
+    ],
+    "table": "users",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   }
+  ],
+  "pks": [],
+  "idx": []
+ },
+ {
+  "name": "foods",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "name",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "name_key",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "name_en",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "name_zh",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "group",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "state",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "kcal",
+    "t": "real",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "protein",
+    "t": "real",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "carbs",
+    "t": "real",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "fat",
+    "t": "real",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "fiber",
+    "t": "real",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "serving_label",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "serving_grams",
+    "t": "real",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "source",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "archived_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "updated_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [],
+  "pks": [],
+  "idx": [
+   {
+    "n": "foods_active_name_key",
+    "u": true,
+    "cols": [
+     "name_key"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "login_attempts",
+  "cols": [
+   {
+    "n": "key",
+    "t": "text",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "failed_count",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "window_started_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "locked_until",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [],
+  "idx": []
+ },
+ {
+  "name": "meal_logs",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "user_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "meal_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "food_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "custom_name",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "grams",
+    "t": "real",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "kcal",
+    "t": "real",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "protein",
+    "t": "real",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "carbs",
+    "t": "real",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "fat",
+    "t": "real",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "updated_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [
+   {
+    "cols": [
+     "user_id"
+    ],
+    "table": "users",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   },
+   {
+    "cols": [
+     "meal_id"
+    ],
+    "table": "meal_plan_meals",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   },
+   {
+    "cols": [
+     "food_id"
+    ],
+    "table": "foods",
+    "fcols": [
+     "id"
+    ]
+   }
+  ],
+  "pks": [],
+  "idx": [
+   {
+    "n": "meal_logs_meal",
+    "u": false,
+    "cols": [
+     "meal_id"
+    ]
+   },
+   {
+    "n": "meal_logs_user",
+    "u": false,
+    "cols": [
+     "user_id"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "meal_mark_items",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "mark_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "meal_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "food_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "grams",
+    "t": "real",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "protein",
+    "t": "real",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "carbs",
+    "t": "real",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "fat",
+    "t": "real",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "kcal",
+    "t": "real",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [
+   {
+    "cols": [
+     "mark_id"
+    ],
+    "table": "meal_marks",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   },
+   {
+    "cols": [
+     "meal_id"
+    ],
+    "table": "meal_plan_meals",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   },
+   {
+    "cols": [
+     "food_id"
+    ],
+    "table": "foods",
+    "fcols": [
+     "id"
+    ]
+   }
+  ],
+  "pks": [],
+  "idx": [
+   {
+    "n": "meal_mark_items_meal",
+    "u": false,
+    "cols": [
+     "meal_id"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "meal_marks",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "meal_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": true,
+    "d": false
+   },
+   {
+    "n": "user_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "achieved",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "note",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "updated_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [
+   {
+    "cols": [
+     "meal_id"
+    ],
+    "table": "meal_plan_meals",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   },
+   {
+    "cols": [
+     "user_id"
+    ],
+    "table": "users",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   }
+  ],
+  "pks": [],
+  "idx": []
+ },
+ {
+  "name": "meal_plan_days",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "user_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "date",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [
+   {
+    "cols": [
+     "user_id"
+    ],
+    "table": "users",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   }
+  ],
+  "pks": [],
+  "idx": [
+   {
+    "n": "meal_plan_days_user_date",
+    "u": true,
+    "cols": [
+     "user_id",
+     "date"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "meal_plan_items",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "meal_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "food_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "grams",
+    "t": "real",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [
+   {
+    "cols": [
+     "meal_id"
+    ],
+    "table": "meal_plan_meals",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   },
+   {
+    "cols": [
+     "food_id"
+    ],
+    "table": "foods",
+    "fcols": [
+     "id"
+    ]
+   }
+  ],
+  "pks": [],
+  "idx": [
+   {
+    "n": "meal_plan_items_meal",
+    "u": false,
+    "cols": [
+     "meal_id"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "meal_plan_meals",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "day_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "position",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "name",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "share_percent",
+    "t": "real",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [
+   {
+    "cols": [
+     "day_id"
+    ],
+    "table": "meal_plan_days",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   }
+  ],
+  "pks": [],
+  "idx": [
+   {
+    "n": "meal_plan_meals_day",
+    "u": false,
+    "cols": [
+     "day_id"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "nutrition_targets",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "user_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "effective_from",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "carbs",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "protein",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "fat",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "note",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "source",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [
+   {
+    "cols": [
+     "user_id"
+    ],
+    "table": "users",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   }
+  ],
+  "pks": [],
+  "idx": [
+   {
+    "n": "nutrition_targets_user_from",
+    "u": true,
+    "cols": [
+     "user_id",
+     "effective_from"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "push_subscriptions",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "owner_key",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "endpoint",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": true,
+    "d": false
+   },
+   {
+    "n": "p256dh",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "auth",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "user_agent",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "last_success_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [],
+  "idx": [
+   {
+    "n": "push_subscriptions_owner_key",
+    "u": false,
+    "cols": [
+     "owner_key"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "rate_limits",
+  "cols": [
+   {
+    "n": "key",
+    "t": "text",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "count",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "window_started_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [],
+  "idx": []
+ },
+ {
+  "name": "social_blocks",
+  "cols": [
+   {
+    "n": "blocker_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "blocked_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [
+   [
+    "blocker_id",
+    "blocked_id"
+   ]
+  ],
+  "idx": [
+   {
+    "n": "social_blocks_blocked",
+    "u": false,
+    "cols": [
+     "blocked_id"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "social_comments",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "post_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "author_key",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "body",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "updated_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "deleted_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [],
+  "idx": [
+   {
+    "n": "social_comments_post",
+    "u": false,
+    "cols": [
+     "post_id",
+     "created_at"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "social_friendships",
+  "cols": [
+   {
+    "n": "user_low",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "user_high",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "status",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "requested_by",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "accepted_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [
+   [
+    "user_low",
+    "user_high"
+   ]
+  ],
+  "idx": [
+   {
+    "n": "social_friendships_high",
+    "u": false,
+    "cols": [
+     "user_high"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "social_notifications",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "recipient_key",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "kind",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "actor_key",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "post_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "read_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "pushed_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [],
+  "idx": [
+   {
+    "n": "social_notifications_recipient",
+    "u": false,
+    "cols": [
+     "recipient_key",
+     "created_at"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "social_post_photos",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "uploader_key",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "post_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "mime",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "width",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "height",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "data",
+    "t": "blob",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "size",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [],
+  "idx": [
+   {
+    "n": "social_post_photos_post",
+    "u": false,
+    "cols": [
+     "post_id"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "social_posts",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "author_kind",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "author_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "caption",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "privacy",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "photo_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "updated_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "deleted_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [],
+  "idx": [
+   {
+    "n": "social_posts_author",
+    "u": false,
+    "cols": [
+     "author_kind",
+     "author_id",
+     "created_at"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "social_reactions",
+  "cols": [
+   {
+    "n": "post_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "reactor_key",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "emoji",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [
+   [
+    "post_id",
+    "reactor_key"
+   ]
+  ],
+  "idx": []
+ },
+ {
+  "name": "social_reports",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "reporter_key",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "target_kind",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "target_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "reason",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "status",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "resolved_by",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "resolved_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "resolution",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   }
+  ],
+  "fks": [],
+  "pks": [],
+  "idx": [
+   {
+    "n": "social_reports_status",
+    "u": false,
+    "cols": [
+     "status",
+     "created_at"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "users",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "name",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "locale",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "name_key",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": true,
+    "d": false
+   },
+   {
+    "n": "preferred_meal_count",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "food_note",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "email",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "email_key",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": true,
+    "d": false
+   },
+   {
+    "n": "password_hash",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "password_changed_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "chat_enabled",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "chat_enabled_changed_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "chat_enabled_by_admin_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "last_seen_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "chat_color",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "avatar",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "avatar_updated_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "pt_admin_id",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "bio",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "terms_version",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "terms_accepted_at",
+    "t": "integer",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "post_privacy_default",
+    "t": "text",
+    "pk": false,
+    "nn": false,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [],
+  "pks": [],
+  "idx": [
+   {
+    "n": "users_pt_admin",
+    "u": false,
+    "cols": [
+     "pt_admin_id"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "weight_logs",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "user_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "date",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "weight_kg",
+    "t": "real",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [
+   {
+    "cols": [
+     "user_id"
+    ],
+    "table": "users",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   }
+  ],
+  "pks": [],
+  "idx": [
+   {
+    "n": "weight_logs_user_date",
+    "u": true,
+    "cols": [
+     "user_id",
+     "date"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "workout_days",
+  "cols": [
+   {
+    "n": "id",
+    "t": "integer",
+    "pk": true,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "user_id",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "date",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": false
+   },
+   {
+    "n": "title",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "note",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "source",
+    "t": "text",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   },
+   {
+    "n": "created_at",
+    "t": "integer",
+    "pk": false,
+    "nn": true,
+    "u": false,
+    "d": true
+   }
+  ],
+  "fks": [
+   {
+    "cols": [
+     "user_id"
+    ],
+    "table": "users",
+    "fcols": [
+     "id"
+    ],
+    "del": "cascade"
+   }
+  ],
+  "pks": [],
+  "idx": [
+   {
+    "n": "workout_days_user_date",
+    "u": true,
+    "cols": [
+     "user_id",
+     "date"
+    ]
+   }
+  ]
+ }
+]

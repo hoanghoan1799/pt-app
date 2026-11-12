@@ -10,10 +10,10 @@ Principle: put the context in the repo, not in the prompt. Every time something 
 ## Procedure
 
 1. Read `CLAUDE.md`, the `AGENTS.md` it imports (written by `next dev`; leave its block as is), `docs/claude-code-setup.md`, `docs/hoan-dev-skills.md` and the repo layout.
-2. Collect what is missing or stale, from the code (`package.json` scripts, `app/`, `features/`, `.claude/`, `.github/workflows/`) and from the conversation the user points to.
+2. Collect what is missing or stale, from the code (`package.json` scripts, `apps/web/app/`, `apps/web/features/`, `apps/api/`, `packages/contracts/`, `.claude/`, `.github/workflows/`) and from the conversation the user points to.
 3. Make sure these sections exist and are true today:
    - **Commands**: install, dev, test, lint, typecheck, format, db scripts (all `pnpm`).
-   - **Layout**: `app/` routes, `features/<name>/...`, `components/`, `services/`, `db/schema.ts`, `utils/`, where tests live.
+   - **Layout**: the workspaces (`apps/web`, `apps/api`, `packages/contracts`) and, in `apps/web`: `app/` routes, `features/<name>/...`, `components/`, `services/`, `db/schema.ts`, `utils/`, where tests live.
    - **Conventions**: imports, naming, auth guards, Zod, error handling, language (Vietnamese UI copy, English everything else), KAN key per branch and commit.
    - **Capstone workflow**: specs, Jira questions, one Story per worktree and PR, additive schema.
    - **Skills**: every skill in `.claude/skills/`, one line each.

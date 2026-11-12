@@ -1,0 +1,61 @@
+name: CI contracts
+
+# Shared Zod schemas (packages/contracts). Started only by its own paths, the
+# root manifests and this file; the same paths also start ci-web and ci-api,
+# which check that the apps still work with the change.
+# The required status check is `checks-contracts`.
+
+on:
+  pull_request:
+    paths:
+      - "packages/contracts/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/ci-contracts.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-contracts-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the version from packageManager in package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @pt/contracts build
+
+      - run: pnpm --filter @pt/contracts test
+
+      - run: pnpm --filter @pt/contracts lint
+
+      - run: pnpm --filter @pt/contracts typecheck
+
+  # The required status check (branch protection: `checks-contracts`).
+  checks-contracts:
+    needs: [contracts]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          CONTRACTS: ${{ needs.contracts.result }}
+        run: |
+          echo "contracts=$CONTRACTS"
+          if [ "$CONTRACTS" != "success" ]; then
+            exit 1
+          fi
