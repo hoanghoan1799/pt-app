@@ -39,10 +39,7 @@ jobs:
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
           prompt: '/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
-          # REVIEW.md holds the repo's review policy (KAN-64); the plugin only reads CLAUDE.md on its own.
-          claude_args: >-
-            --allowedTools "mcp__github_inline_comment__create_inline_comment"
-            --append-system-prompt "Read REVIEW.md at the repo root and apply its review policy: tag each finding with its pass ([Bugs], [Security] or [Compliance]), follow its Important vs Nit rules and nit cap, and never report anything on its Do not report list."
+          claude_args: '--allowedTools "mcp__github_inline_comment__create_inline_comment"'
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
 
