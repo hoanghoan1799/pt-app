@@ -4,8 +4,8 @@ import type { ExerciseProgressRow } from "@/features/members/types/progress";
 import { callApi } from "@/services/api/call";
 
 // Admin-only: called from pages under app/admin/(protected) after
-// requireAdmin() (C10). The API compares the selected week's best set per
-// exercise link with everything logged before it ("Tiến bộ", F4).
+// requireAdmin(). One row per exercise link: the selected week's best against
+// the best of every earlier week (computed by the API).
 export const getExerciseProgress = async (
   userId: number,
   weekStart: string,
@@ -16,5 +16,13 @@ export const getExerciseProgress = async (
     }),
   );
 
-  return rows;
+  return rows.map((row) => ({
+    youtubeId: row.youtubeId,
+    title: row.title,
+    weekBest: row.weekBest,
+    previousBest: row.previousBest,
+    changeKg: row.changeKg,
+    trend: row.trend,
+    lastDate: row.lastDate,
+  }));
 };

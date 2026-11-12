@@ -55,8 +55,8 @@ export default defineConfig({
       stdout: "pipe",
       env: {
         E2E_API_PORT: String(E2E_API_PORT),
-        E2E_PG_PORT: String(E2E_PG_PORT),
         E2E_PG_CONTAINER,
+        E2E_PG_PORT: String(E2E_PG_PORT),
         E2E_BASE_URL,
       },
     },

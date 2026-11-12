@@ -8,9 +8,8 @@ import { PAGE_CONTAINER } from "@/constants/styles";
 import { NotificationList } from "@/features/social/components/NotificationList";
 import {
   listNotifications,
-  markAllNotificationsRead,
-  purgeOldNotifications,
-} from "@/features/social/services/social-notifications";
+  markNotificationsRead,
+} from "@/features/social/services/social-queries";
 import { requireAdmin } from "@/services/auth-guard";
 
 export const generateMetadata = async (): Promise<Metadata> => {
@@ -21,13 +20,16 @@ export const generateMetadata = async (): Promise<Metadata> => {
 
 const AdminNotificationsPage = async () => {
   const t = await getTranslations("social.adminPages");
-  const admin = await requireAdmin();
-  const key = `admin:${admin.id}`;
+  await requireAdmin();
+  // Listed first, so the page still shows which ones were new.
+  const { notifications, unreadCount } = await listNotifications(
+    "admin",
+    await getLocale(),
+  );
 
-  await purgeOldNotifications();
-  const notifications = await listNotifications(key, await getLocale());
-
-  await markAllNotificationsRead(key);
+  if (unreadCount > 0) {
+    await markNotificationsRead("admin");
+  }
   return (
     <>
       <AppHeader

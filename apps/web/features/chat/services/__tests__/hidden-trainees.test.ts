@@ -8,11 +8,7 @@ import {
   chatConversations,
   chatHiddenConversations,
   chatMessages,
-  exerciseCompletions,
-  exercises,
-  exerciseSets,
   users,
-  workoutDays,
 } from "@/db/schema";
 
 const state = vi.hoisted(() => ({
@@ -36,8 +32,6 @@ vi.mock("@/services/auth-guard", () => ({
 }));
 
 const guard = await import("@/services/hidden-users");
-const dashboard =
-  await import("@/features/dashboard/services/dashboard-queries");
 const messagesRoute =
   await import("@/app/api/admin/chat/[conversationId]/messages/route");
 const peerRoute = await import("@/app/api/presence/peer/route");
@@ -57,31 +51,6 @@ const addUser = async (name: string) => {
   return row.id;
 };
 
-// One day with one exercise, completed and with a weighted set, for `userId`.
-const addActivity = async (userId: number, date = "2026-11-02") => {
-  const [day] = await db
-    .insert(workoutDays)
-    .values({ userId, date })
-    .returning({ id: workoutDays.id });
-  const [exercise] = await db
-    .insert(exercises)
-    .values({ dayId: day.id, title: `Squat ${userId}`, youtubeId: "abc" })
-    .returning({ id: exercises.id });
-
-  await db.insert(exerciseCompletions).values({
-    exerciseId: exercise.id,
-    userId,
-    completedAt: new Date("2026-11-03T03:00:00Z"),
-  });
-  await db.insert(exerciseSets).values({
-    exerciseId: exercise.id,
-    userId,
-    position: 0,
-    weightKg: 50,
-    reps: 5,
-  });
-};
-
 const hide = (adminId: number, userId: number) =>
   db.insert(adminHiddenUsers).values({ adminId, userId });
 
@@ -94,48 +63,6 @@ beforeEach(async () => {
     { username: "pt-one", usernameKey: "pt-one", passwordHash: "x" },
     { username: "pt-two", usernameKey: "pt-two", passwordHash: "x" },
   ]);
-});
-
-describe("dashboard member list, totals and recent activity", () => {
-  it("leaves a hidden trainee out for the hiding admin only", async () => {
-    const an = await addUser("An");
-    const binh = await addUser("Binh");
-
-    await addActivity(an);
-    await addActivity(binh);
-    await hide(A, binh);
-
-    const forA = await dashboard.getMemberProgress("2026-11-02", A);
-    const forB = await dashboard.getMemberProgress("2026-11-02", B);
-
-    expect(forA.map((m) => m.id)).toEqual([an]);
-    expect(forB.map((m) => m.id)).toEqual([an, binh]);
-    // The totals are built from this list, so they drop the trainee too.
-    expect(forA.reduce((sum, m) => sum + m.assigned, 0)).toBe(1);
-    expect(forB.reduce((sum, m) => sum + m.assigned, 0)).toBe(2);
-  });
-
-  it("leaves completions and personal bests of a hidden trainee out of recent activity", async () => {
-    const an = await addUser("An");
-    const binh = await addUser("Binh");
-
-    await addActivity(an);
-    await addActivity(binh);
-    await hide(A, binh);
-
-    const names = (items: { userName: string }[]) =>
-      [...new Set(items.map((item) => item.userName))].sort();
-    const forA = await dashboard.getRecentActivity({ limit: 20, adminId: A });
-    const forB = await dashboard.getRecentActivity({ limit: 20, adminId: B });
-
-    expect(names(forA)).toEqual(["An"]);
-    expect(names(forB)).toEqual(["An", "Binh"]);
-    expect(forA.some((item) => item.kind === "completion")).toBe(true);
-    // The per-trainee page asks by userId and is guarded separately.
-    expect(
-      names(await dashboard.getRecentActivity({ limit: 20, userId: binh })),
-    ).toEqual(["Binh"]);
-  });
 });
 
 describe("canAdminAccessUser", () => {

@@ -13,7 +13,7 @@ import { TIME_ZONE } from "@/constants/time";
 import { getTraineeDisplayName } from "@/features/chat/services/chat-queries";
 import { RecentActivityList } from "@/features/dashboard/components/RecentActivityList";
 import { MEMBER_ACTIVITY_LIMIT } from "@/features/dashboard/constants/dashboard";
-import { getRecentActivity } from "@/features/dashboard/services/dashboard-queries";
+import { getRecentActivity } from "@/features/dashboard/services/dashboard-api";
 import { DeleteMemberButton } from "@/features/members/components/DeleteMemberButton";
 import { HideUserButton } from "@/features/members/components/HideUserButton";
 import { MemberLoginCard } from "@/features/members/components/MemberLoginCard";
@@ -22,7 +22,7 @@ import { PtAssignSelect } from "@/features/pts/components/PtAssignSelect";
 import { listPtOptions } from "@/features/pts/services/pt-queries";
 import { CopyWeekButton } from "@/features/workouts/components/CopyWeekButton";
 import { WorkoutWeekEditor } from "@/features/workouts/components/WorkoutWeekEditor";
-import { getWeekScheduleWithSets } from "@/features/workouts/services/workout-queries";
+import { getTraineeWeekSchedule } from "@/features/workouts/services/workout-api";
 import { isSuperAdmin } from "@/services/admin-scope";
 import { requireAdmin } from "@/services/auth-guard";
 import { canAdminAccessUser, isUserHidden } from "@/services/hidden-users";
@@ -61,7 +61,7 @@ const AdminUserPage = async ({
   );
   const ptOptions = isSuperAdmin(admin) ? await listPtOptions() : [];
   const [days, members, activity, isHidden] = await Promise.all([
-    getWeekScheduleWithSets(user.id, schedule.weekStart),
+    getTraineeWeekSchedule(user.id, schedule.weekStart),
     listMembers(admin.id, user.id),
     getRecentActivity({ userId: user.id, limit: MEMBER_ACTIVITY_LIMIT }),
     isUserHidden(admin.id, user.id),

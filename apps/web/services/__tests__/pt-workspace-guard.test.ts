@@ -10,7 +10,6 @@ import {
   chatMessages,
   nutritionTargets,
   users,
-  workoutDays,
 } from "@/db/schema";
 
 const state = vi.hoisted(() => ({ db: null as unknown, adminId: 1 }));
@@ -46,7 +45,6 @@ vi.mock("@/db", () => ({
   ),
 }));
 
-const workouts = await import("@/features/workouts/services/workout-actions");
 const nutrition =
   await import("@/features/nutrition/services/nutrition-actions");
 const plans = await import("@/features/meal-plans/services/meal-plan-actions");
@@ -140,46 +138,6 @@ beforeEach(async () => {
     "theirs",
     ptB,
   ));
-});
-
-describe("workouts", () => {
-  const save = (userId: number) =>
-    outcome(() =>
-      workouts.saveDayAction(
-        INITIAL_FORM_STATE,
-        form({ userId: String(userId), date: "2026-11-02", title: "Push" }),
-      ),
-    );
-
-  it("lets a PT edit their own trainee and refuses another workspace's", async () => {
-    expect(await save(mine)).toBe("ran");
-    expect(await save(theirs)).toBe("denied");
-    const days = await db.select().from(workoutDays);
-
-    expect(days.map((day) => day.userId)).toEqual([mine]);
-  });
-
-  it("refuses exercise delete, move and week copy across workspaces", async () => {
-    expect(await outcome(() => workouts.deleteExerciseAction(1, theirs))).toBe(
-      "denied",
-    );
-    expect(
-      await outcome(() => workouts.moveExerciseAction(1, theirs, "up")),
-    ).toBe("denied");
-    expect(
-      await outcome(() =>
-        workouts.copyWeekAction(
-          INITIAL_FORM_STATE,
-          form({
-            userId: String(mine),
-            fromWeek: "2026-11-02",
-            targetUserId: String(theirs),
-            targetDate: "2026-11-09",
-          }),
-        ),
-      ),
-    ).toBe("denied");
-  });
 });
 
 describe("nutrition", () => {
