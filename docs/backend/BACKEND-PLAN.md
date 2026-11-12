@@ -1,6 +1,6 @@
 # pt-app NestJS + PostgreSQL backend: handoff plan
 
-Status: analysis only. Do NOT write code, create repos or branches until Hoan says "approve".
+Status: steps 0-9 are implemented on the integration branches (see the list below); step 10 (removing Turso, Ably, jose and Drizzle from the web) remains.
 Full detail: `nest-blueprint.html` in this folder (44 tables as TypeORM entity specs, 137 endpoints, libraries, patterns, migration plan). Live copy: https://claude.ai/artifact/HXsPG38gg9rYp58RG5reLZ
 
 ## Decisions (all agreed by Hoan, 2026-11-11)
@@ -24,16 +24,16 @@ Full detail: `nest-blueprint.html` in this folder (44 tables as TypeORM entity s
 Modular monolith, one Nest module per feature. Inside a module: controller/gateway (HTTP/WS only), service (use cases + transactions), queries (read models), policy (authorization rules), mapper (entity -> DTO, never return entities). TypeORM repositories directly (no generic base repo). Domain events (`@nestjs/event-emitter`) for chat -> socket/push/unread. Adapter + Strategy for: push sender, login credential, file storage, sticker source, nutrition target, notification content. Central exception filter returns `{code, message, ref}`. Cursor pagination, Idempotency-Key on message/upload/post creation.
 
 ## Implementation order (module by module, one PR each, small slices)
-0. Monorepo + `packages/contracts`.
-1. API core: config (Zod env), TypeORM DataSource, baseline migration for 44 tables, error filter, health, logger. Write the Turso -> PG script here so later steps test on real data.
-2. Auth + sessions + guards/policies.
-3. Foods (simplest, proves the template).
-4. Workouts + exercise sets.
-5. Nutrition + meal plans + TDEE.
-6. Users/PT/admin (members, avatar, nicknames, hidden trainees).
-7. Social (profiles, posts, comments, reactions, friends, feed, notifications).
-8. Chat + Socket.IO gateway + push + stickers/GIPHY (largest and riskiest, last).
-9. Cutover: freeze, run data script, switch all flags, remove Turso/Ably/jose/Drizzle.
+0. DONE: monorepo + `packages/contracts`.
+1. DONE: API core, baseline migration, health, Turso -> PG script.
+2. DONE: auth, sessions, guards and policies; web signs in through the API.
+3. DONE: foods.
+4. DONE: workouts and exercise sets.
+5. DONE: nutrition, meal plans and TDEE.
+6. DONE: users, PTs, admins, avatars, nicknames, hidden trainees.
+7. DONE: social (profiles, posts, comments, reactions, friends, feed, notifications).
+8. DONE: chat, Socket.IO realtime, push, stickers/GIPHY, read-only DMs; the conversation is created when chat is switched on.
+9. DONE in the web: every runtime read and write goes through the API and the Playwright suite runs on web + API + PostgreSQL; Turso/Ably/jose/Drizzle removal (step 10) and the production data run follow `cutover-runbook.md`.
 Per module: entity + migration, contracts, service/policy/controller, Vitest with real PG, then switch the web server action behind the `API_MODULES` flag.
 
 ## Conventions (project rules)
