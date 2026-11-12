@@ -268,7 +268,7 @@ export const copyPlanResultResponseSchema = z.object({
   skipped: z.number().int(),
 });
 
-export const copyInfoResponseSchema = z.object({
+export const mealPlanCopyInfoResponseSchema = z.object({
   planDates: z.array(z.string()),
   logDates: z.array(z.string()),
 });

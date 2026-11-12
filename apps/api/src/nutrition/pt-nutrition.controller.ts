@@ -15,12 +15,12 @@ import {
   bodyProfileBodySchema,
   type CopyInfoQuery,
   copyInfoQuerySchema,
-  copyInfoResponseSchema,
   type CopyMealPlanDayBody,
   copyMealPlanDayBodySchema,
   copyPlanResultResponseSchema,
   type CreateDayPlanBody,
   createDayPlanBodySchema,
+  mealPlanCopyInfoResponseSchema,
   nutritionOverviewResponseSchema,
   nutritionTargetResponseSchema,
   planDayResponseSchema,
@@ -114,7 +114,7 @@ export class PtNutritionController {
   @Get("meal-plan-days/copy-info")
   @ApiRoute({
     summary: "Plan dates and log dates in a range (the copy sheet's months)",
-    response: copyInfoResponseSchema,
+    response: mealPlanCopyInfoResponseSchema,
     errors: [400, 401, 403, 404],
   })
   copyInfo(
