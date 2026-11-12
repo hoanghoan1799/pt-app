@@ -16,6 +16,8 @@ export * from "./nutrition-api-schemas.js";
 export * from "./nutrition-responses.js";
 export * from "./nutrition-schemas.js";
 export * from "./pagination.js";
+export * from "./social.js";
+export * from "./social-api-schemas.js";
 export * from "./users/index.js";
 export * from "./week.js";
 export * from "./workout-api-schemas.js";

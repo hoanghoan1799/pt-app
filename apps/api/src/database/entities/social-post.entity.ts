@@ -16,6 +16,11 @@ import { SocialPostPhoto } from "./social-post-photo.entity.js";
 @Check(`"author_kind" IN ('user', 'admin')`)
 @Check(`"privacy" IN ('everyone', 'friends', 'only_me')`)
 @Index("social_posts_photo_id_idx", ["photoId"])
+@Index(
+  "social_posts_idempotency",
+  ["authorKind", "authorId", "idempotencyKey"],
+  { unique: true, where: `"idempotency_key" IS NOT NULL` },
+)
 export class SocialPost {
   @PrimaryGeneratedColumn("identity", { generatedIdentity: "ALWAYS" })
   id!: number;
@@ -38,6 +43,11 @@ export class SocialPost {
   @ManyToOne(() => SocialPostPhoto, { onDelete: "SET NULL", nullable: true })
   @JoinColumn({ name: "photo_id" })
   photo!: Relation<SocialPostPhoto> | null;
+
+  // `Idempotency-Key` header of the create request: a retry with the same key
+  // returns this post instead of making another.
+  @Column({ type: "text", nullable: true })
+  idempotencyKey!: string | null;
 
   @Column({ type: "timestamptz" })
   createdAt!: Date;
