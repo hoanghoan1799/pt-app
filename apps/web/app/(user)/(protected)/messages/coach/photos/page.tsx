@@ -2,12 +2,10 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
-import {
-  getAvatarUrl,
-  listAdminAvatarUrls,
-} from "@/features/avatar/services/avatar";
+import { getOwnAvatarUrl } from "@/features/avatar/services/own-avatar";
 import { GalleryView } from "@/features/chat/components/GalleryView";
 import { loadGalleryForTrainee } from "@/features/chat/services/chat-gallery";
+import { listAdminAvatarUrls } from "@/features/chat/services/chat-team";
 import { chatPaths } from "@/features/chat/utils/chat-links";
 import { parseGalleryTab } from "@/features/chat/utils/gallery-rules";
 import { requireUser } from "@/services/auth-guard";
@@ -29,8 +27,8 @@ const MessagesPhotosPage = async ({
   const [result, adminAvatars, ownAvatar] = await Promise.all([
     // Without a conversation the API answers an empty page.
     loadGalleryForTrainee(true, undefined, tab),
-    listAdminAvatarUrls(),
-    getAvatarUrl("user", user.id),
+    listAdminAvatarUrls("user"),
+    getOwnAvatarUrl("user"),
   ]);
   const paths = chatPaths("user", user.id);
   const avatars: Record<string, string> = Object.fromEntries(

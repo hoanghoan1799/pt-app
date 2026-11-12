@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
-import { listAdminAvatarUrls } from "@/features/avatar/services/avatar";
 import { ChatInfo } from "@/features/chat/components/ChatInfo";
 import { listGalleryPhotos } from "@/features/chat/services/chat-gallery";
 import { loadMyThread } from "@/features/chat/services/chat-queries";
+import { listAdminAvatarUrls } from "@/features/chat/services/chat-team";
 import { chatPaths } from "@/features/chat/utils/chat-links";
 import { INFO_PREVIEW_COUNT } from "@/features/chat/utils/gallery-rules";
 import { requireUser } from "@/services/auth-guard";
@@ -24,7 +24,7 @@ const MessagesInfoPage = async () => {
   // PT who wrote last; only its first page of messages is not needed here.
   const [state, adminAvatars] = await Promise.all([
     loadMyThread({ after: 2_000_000_000 }),
-    listAdminAvatarUrls(),
+    listAdminAvatarUrls("user"),
   ]);
   const sender = state.latestPt;
   const gallery = await listGalleryPhotos(

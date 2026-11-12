@@ -14,7 +14,7 @@ vi.mock("@/services/api/call", async () => {
   return { callApi: state.fake.callApi, tryApi: state.fake.tryApi };
 });
 
-const { listMembers } =
+const { getTrainee, listMembers } =
   await import("@/features/members/services/member-queries");
 const { getExerciseProgress } =
   await import("@/features/members/services/progress-queries");
@@ -97,5 +97,31 @@ describe("getExerciseProgress", () => {
         },
       },
     ]);
+  });
+});
+
+// Out of workspace, hidden without a reveal and missing all answer 404:
+// apps/api/test/trainees.e2e.test.ts ("GET /v1/trainees/:userId").
+describe("getTrainee", () => {
+  it("returns the detail the API gives this admin", async () => {
+    const detail = { ...trainee(2, "Binh", "Bé Bình"), hidden: true };
+
+    fake().respond = () => detail;
+
+    expect(await getTrainee(2)).toEqual(detail);
+    expect(fake().calls).toMatchObject([
+      {
+        actor: "admin",
+        path: "/v1/trainees/{userId}",
+        init: { params: { path: { userId: 2 } } },
+      },
+    ]);
+  });
+
+  it("is null when the API says 404, and for an id that cannot exist", async () => {
+    expect(await getTrainee(9)).toBeNull();
+    expect(await getTrainee(Number.NaN)).toBeNull();
+    expect(await getTrainee(-1)).toBeNull();
+    expect(fake().calls).toHaveLength(1);
   });
 });

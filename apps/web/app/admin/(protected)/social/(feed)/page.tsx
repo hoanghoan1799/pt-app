@@ -7,7 +7,7 @@ import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON, PAGE_CONTAINER } from "@/constants/styles";
-import { getAvatarUrl } from "@/features/avatar/services/avatar";
+import { getOwnAvatarUrl } from "@/features/avatar/services/own-avatar";
 import { NotificationBell } from "@/features/social/components/NotificationBell";
 import { PostComposer } from "@/features/social/components/PostComposer";
 import { PostList } from "@/features/social/components/PostList";
@@ -16,8 +16,8 @@ import {
   getSocialMe,
 } from "@/features/social/services/social-queries";
 import { adminProfilePath } from "@/features/social/utils/post-rules";
-import { isSuperAdmin } from "@/services/admin-scope";
 import { requireAdmin } from "@/services/auth-guard";
+import { isSuperAdmin } from "@/utils/admin-role";
 
 export const generateMetadata = async (): Promise<Metadata> => {
   const t = await getTranslations("social.adminPages");
@@ -31,7 +31,7 @@ const AdminSocialPage = async () => {
   const [posts, me, avatarUrl] = await Promise.all([
     getFeedPage("admin"),
     getSocialMe("admin"),
-    getAvatarUrl("admin", admin.id),
+    getOwnAvatarUrl("admin"),
   ]);
   const unreadCount = me.unreadNotifications;
 

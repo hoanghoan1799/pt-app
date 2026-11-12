@@ -3,10 +3,10 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
-import { listAdminAvatarUrls } from "@/features/avatar/services/avatar";
 import { GalleryView } from "@/features/chat/components/GalleryView";
 import { loadGalleryForAdmin } from "@/features/chat/services/chat-gallery";
 import { findTraineeChatHeader } from "@/features/chat/services/chat-queries";
+import { listAdminAvatarUrls } from "@/features/chat/services/chat-team";
 import { chatPaths } from "@/features/chat/utils/chat-links";
 import { parseGalleryTab } from "@/features/chat/utils/gallery-rules";
 import { requireAdmin } from "@/services/auth-guard";
@@ -41,7 +41,7 @@ const AdminMessagesPhotosPage = async ({
     conversationId
       ? loadGalleryForAdmin(conversationId, undefined, tab)
       : { status: "ok" as const, page: { items: [], nextCursor: null } },
-    listAdminAvatarUrls(),
+    listAdminAvatarUrls("admin"),
   ]);
   const paths = chatPaths("admin", header.userId);
   const avatars: Record<string, string> = Object.fromEntries(

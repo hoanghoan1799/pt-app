@@ -372,6 +372,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/chat/team": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The admins with a photo or the blue tick, for the chat avatars and ticks */
+        get: operations["ChatConversationsController_team"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/chat/conversations/me/messages": {
         parameters: {
             query?: never;
@@ -550,7 +567,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Header of a trainee's chat; conversationId is null before the first message */
+        /** Header of a trainee's chat; conversationId is created on this read when chat is on; null only while chat is off and nothing was ever sent */
         get: operations["ChatConversationsController_traineeHeader"];
         put?: never;
         post?: never;
@@ -4664,6 +4681,80 @@ export interface operations {
             };
         };
     };
+    ChatConversationsController_team: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        admins: {
+                            id: number;
+                            avatarUrl: string | null;
+                            verified: boolean;
+                        }[];
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
     ChatConversationsController_myThread: {
         parameters: {
             query?: {
@@ -8493,6 +8584,10 @@ export interface operations {
                         otherReadUpTo: number;
                         readOnlyReason: string | null;
                         isReadOnly: boolean;
+                        members: {
+                            id: number;
+                            name: string | null;
+                        }[];
                     };
                 };
             };

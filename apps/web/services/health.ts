@@ -2,41 +2,16 @@ import "server-only";
 
 import { createHash, timingSafeEqual } from "node:crypto";
 
-import { getTableName, sql } from "drizzle-orm";
-
 import { ERROR_MESSAGES } from "@/constants/errors";
-import { db } from "@/db";
-import {
-  admins,
-  bodyProfiles,
-  exerciseCompletions,
-  exercises,
-  foodEntries,
-  nutritionTargets,
-  users,
-  weightLogs,
-  workoutDays,
-} from "@/db/schema";
-import { describeDatabaseConfig, getApiUrl } from "@/services/env";
+import { runApi } from "@/services/api/call";
+import { getApiUrl } from "@/services/env";
 import type { ClassifiedError } from "@/types/error";
-import { AppError, classifyError } from "@/utils/errors";
+import { classifyError } from "@/utils/errors";
 
 type Check =
   | { status: "ok"; info?: string }
   | { status: "skipped"; reason: string }
   | ({ status: "error" } & ClassifiedError);
-
-const REQUIRED_TABLES = [
-  admins,
-  users,
-  workoutDays,
-  exercises,
-  exerciseCompletions,
-  nutritionTargets,
-  foodEntries,
-  bodyProfiles,
-  weightLogs,
-].map((table) => getTableName(table));
 
 const runCheck = async (
   check: () => Promise<string | undefined> | string | undefined,
@@ -54,31 +29,17 @@ const skipAfter = (name: string): Check => ({
   reason: `${name} lỗi`,
 });
 
-const checkTables = async () => {
-  const rows = await db.all<{ name: string }>(
-    sql`select name from sqlite_master where type = 'table'`,
-  );
-  const tables = rows.map((row) => row.name);
-  const missing = REQUIRED_TABLES.filter((table) => !tables.includes(table));
+// The API answers GET /v1/health with its own database ping (503 when the
+// database is down), so this app never opens a database itself.
+const checkApi = async () => {
+  const outcome = await runApi("none", (api) => api.GET("/v1/health"));
 
-  if (missing.length) {
-    throw new AppError("DB_NOT_MIGRATED", `Thiếu bảng: ${missing.join(", ")}`);
+  if (!outcome.ok) {
+    // Classified as API_UNREACHABLE / API_TIMEOUT, or UNKNOWN with the status
+    // (503 means the API is up but its database is not).
+    throw outcome.error;
   }
-  return `đủ ${REQUIRED_TABLES.length} bảng`;
-};
-
-const checkAdminAccount = async () => {
-  const [{ total }] = await db.all<{ total: number }>(
-    sql`select count(*) as total from ${admins}`,
-  );
-
-  if (!total) {
-    throw new AppError(
-      "CONFIG_MISSING",
-      "Chưa có tài khoản admin nào (đặt ADMIN_USERNAME/ADMIN_PASSWORD rồi deploy lại, hoặc chạy pnpm admin:create)",
-    );
-  }
-  return `${total} admin`;
+  return `API: ${outcome.data.status}, db ${outcome.data.db}`;
 };
 
 const MIN_HEALTH_TOKEN_LENGTH = 16;
@@ -105,22 +66,9 @@ export const checkHealth = async () => {
     getApiUrl();
     return undefined;
   });
-  const databaseConfig = await runCheck(describeDatabaseConfig);
-  const tables =
-    databaseConfig.status === "ok"
-      ? await runCheck(checkTables)
-      : skipAfter("databaseConfig");
-  const adminAccount =
-    tables.status === "ok"
-      ? await runCheck(checkAdminAccount)
-      : skipAfter("tables");
-
-  const checks: Record<string, Check> = {
-    apiUrl,
-    databaseConfig,
-    tables,
-    adminAccount,
-  };
+  const api =
+    apiUrl.status === "ok" ? await runCheck(checkApi) : skipAfter("apiUrl");
+  const checks: Record<string, Check> = { apiUrl, api };
   const problems = Object.entries(checks).flatMap(([name, check]) =>
     check.status === "error"
       ? [`${name}: ${ERROR_MESSAGES[check.code]} — ${check.detail}`]

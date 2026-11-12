@@ -7,20 +7,18 @@ import { MemberSectionTabs } from "@/components/layout/MemberSectionTabs";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
-import { getTraineeDisplayName } from "@/features/chat/services/chat-queries";
 import { MealPlanDay } from "@/features/meal-plans/components/MealPlanDay";
 import { PlanKcalNotices } from "@/features/meal-plans/components/PlanKcalNotices";
 import {
   getPtMealPlan,
   listPlanFoods,
 } from "@/features/meal-plans/services/meal-plan-queries";
+import { getTrainee } from "@/features/members/services/member-queries";
 import { BodyProfileCard } from "@/features/nutrition/components/BodyProfileCard";
 import { NutritionTargetCard } from "@/features/nutrition/components/NutritionTargetCard";
 import { NutritionWeek } from "@/features/nutrition/components/NutritionWeek";
 import { getNutritionOverview } from "@/features/nutrition/services/nutrition-queries";
 import { requireAdmin } from "@/services/auth-guard";
-import { canAdminAccessUser } from "@/services/hidden-users";
-import { findUserById } from "@/services/users";
 import { parseLocale } from "@/utils/locale";
 import { getAdminNutritionPath } from "@/utils/routes";
 import { readSearchParam } from "@/utils/search-params";
@@ -36,17 +34,19 @@ const AdminNutritionPage = async ({
   params,
   searchParams,
 }: PageProps<"/admin/users/[id]/nutrition">) => {
-  const admin = await requireAdmin();
+  await requireAdmin();
   const t = await getTranslations("adminPages.userNutrition");
   const locale = parseLocale(await getLocale());
 
   const { id } = await params;
-  const user = await findUserById(Number(id));
+  // Scope, hiding and nicknames are the API's: it answers 404 for a trainee
+  // this admin may not see.
+  const user = await getTrainee(Number(id));
 
-  if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
+  if (!user) {
     notFound();
   }
-  const displayName = await getTraineeDisplayName(admin.id, user);
+  const { displayName } = user;
 
   const query = await searchParams;
   const today = getTodayDate(TIME_ZONE);

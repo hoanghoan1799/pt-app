@@ -7,7 +7,6 @@ import { MemberSectionTabs } from "@/components/layout/MemberSectionTabs";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
-import { listAdminAvatarUrls } from "@/features/avatar/services/avatar";
 import { AdminChatThread } from "@/features/chat/components/AdminChatThread";
 import { ChatLockSwitch } from "@/features/chat/components/ChatLockSwitch";
 import {
@@ -16,6 +15,7 @@ import {
   loadConversationThreadAround,
 } from "@/features/chat/services/chat-queries";
 import { loadCoachReplyPostFor } from "@/features/chat/services/chat-reply-post";
+import { listAdminAvatarUrls } from "@/features/chat/services/chat-team";
 import { parseJumpId } from "@/features/chat/utils/chat-links";
 import { serializeMessage } from "@/features/chat/utils/chat-thread-rules";
 import { isEmbedParam } from "@/features/chat-bubbles/utils/bubble-links";
@@ -102,7 +102,7 @@ const AdminMessagesPage = async ({
   const [thread, adminAvatars] = await Promise.all([
     around ??
       (conversationId === null ? null : loadConversationThread(conversationId)),
-    listAdminAvatarUrls(),
+    listAdminAvatarUrls("admin"),
   ]);
   const avatars: Record<string, string> = Object.fromEntries(
     [...adminAvatars].map(([adminId, url]) => [`admin:${adminId}`, url]),

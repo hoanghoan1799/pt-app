@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
-import { listAdminAvatarUrls } from "@/features/avatar/services/avatar";
 import { TraineeChatThread } from "@/features/chat/components/TraineeChatThread";
 import {
   loadMyThread,
   loadMyThreadAround,
 } from "@/features/chat/services/chat-queries";
 import { loadCoachReplyPostFor } from "@/features/chat/services/chat-reply-post";
+import {
+  listAdminAvatarUrls,
+  listVerifiedAdminIds,
+} from "@/features/chat/services/chat-team";
 import { parseJumpId } from "@/features/chat/utils/chat-links";
 import { serializeMessage } from "@/features/chat/utils/chat-thread-rules";
 import { isEmbedParam } from "@/features/chat-bubbles/utils/bubble-links";
 import { parseDmId } from "@/features/social/utils/dm-rules";
-import { listVerifiedAdminIds } from "@/services/admins";
 import { requireUser } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
 
@@ -42,12 +44,12 @@ const CoachChatPage = async ({
     replyPostId !== null && chatEnabled
       ? await loadCoachReplyPostFor("user", replyPostId, user.id)
       : null;
-  const adminAvatars = await listAdminAvatarUrls();
+  const adminAvatars = await listAdminAvatarUrls("user");
 
   return (
     <TraineeChatThread
       initialPeerName={payload.latestPt?.name ?? null}
-      verifiedAdminIds={await listVerifiedAdminIds()}
+      verifiedAdminIds={await listVerifiedAdminIds("user")}
       userId={user.id}
       isEmbed={isEmbedParam(query.embed)}
       avatars={Object.fromEntries(

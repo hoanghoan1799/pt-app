@@ -1,15 +1,12 @@
 import "server-only";
 
-import { desc, inArray, sql } from "drizzle-orm";
+import { webizeUrls } from "@/features/chat/utils/api-urls";
+import type { DmThreadPage } from "@/features/social/types/dm";
+import { callApi, tryApi } from "@/services/api/call";
 
-import { db } from "@/db";
-import { dmConversations, dmMessages, users } from "@/db/schema";
-import { dmPreview } from "@/features/social/utils/dm-rules";
-import { getFormatTranslator } from "@/i18n/format-translator";
-import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
-
-// Read-only views for the super admin (Q6). Callers must have passed
-// requireSuperAdmin; nothing here checks the role.
+// Read-only views for the super admin (Q6), through the API: GET
+// /v1/admin/dm/conversations and the thread route, which a PT never gets.
+// Callers must have passed requireSuperAdmin; the API checks the role too.
 
 export interface AdminDmRow {
   id: number;
@@ -19,65 +16,56 @@ export interface AdminDmRow {
   preview: string;
 }
 
-export const listAllDmConversations = async (
-  locale: Locale = DEFAULT_LOCALE,
-): Promise<AdminDmRow[]> => {
-  const rows = await db
-    .select()
-    .from(dmConversations)
-    .orderBy(
-      desc(sql`coalesce(${dmConversations.lastMessageAt}, 0)`),
-      desc(dmConversations.id),
-    );
-
-  if (rows.length === 0) {
-    return [];
-  }
-  const memberIds = [...new Set(rows.flatMap((r) => [r.userLow, r.userHigh]))];
-  const lastIds = rows.flatMap((r) =>
-    r.lastMessageId === null ? [] : [r.lastMessageId],
+// Names and previews come in the admin's saved language (the API words them).
+export const listAllDmConversations = async (): Promise<AdminDmRow[]> => {
+  const { conversations } = await callApi("admin", (api) =>
+    api.GET("/v1/admin/dm/conversations"),
   );
-  const [people, lasts] = await Promise.all([
-    db
-      .select({ id: users.id, name: users.name })
-      .from(users)
-      .where(inArray(users.id, memberIds)),
-    lastIds.length === 0
-      ? Promise.resolve([])
-      : db.select().from(dmMessages).where(inArray(dmMessages.id, lastIds)),
-  ]);
-  const names = new Map(people.map((p) => [p.id, p.name]));
-  const lastById = new Map(lasts.map((m) => [m.id, m]));
-  const t = getFormatTranslator(locale);
 
-  return rows.map((row) => {
-    const last =
-      row.lastMessageId === null ? undefined : lastById.get(row.lastMessageId);
-
-    return {
-      id: row.id,
-      lowName: names.get(row.userLow) ?? t("fallback.deletedAccountDm"),
-      highName: names.get(row.userHigh) ?? t("fallback.deletedAccountDm"),
-      lastMessageAt: row.lastMessageAt,
-      preview: last
-        ? dmPreview(
-            {
-              body: last.body,
-              photoId: last.photoId,
-              deleted: last.deletedAt !== null,
-            },
-            locale,
-          )
-        : "",
-    };
-  });
+  return conversations.map((row) => ({
+    ...row,
+    lastMessageAt:
+      row.lastMessageAt === null ? null : new Date(row.lastMessageAt),
+  }));
 };
 
-export const loadDmMemberNames = async (low: number, high: number) => {
-  const people = await db
-    .select({ id: users.id, name: users.name })
-    .from(users)
-    .where(inArray(users.id, [low, high]));
+export interface AdminDmThread {
+  thread: DmThreadPage;
+  // The two members' real names by user id, low id first; a deleted account is
+  // left out of the map but keeps its id in `memberIds`.
+  names: Map<number, string>;
+  memberIds: number[];
+}
 
-  return new Map(people.map((p) => [p.id, p.name]));
+// Null for a conversation that does not exist (the API answers 404).
+export const loadAdminDmThread = async (
+  conversationId: number,
+  before?: number,
+): Promise<AdminDmThread | null> => {
+  const outcome = await tryApi("admin", (api) =>
+    api.GET("/v1/dm/conversations/{cid}/messages", {
+      params: {
+        path: { cid: conversationId },
+        query: before === undefined ? {} : { before },
+      },
+    }),
+  );
+
+  if (!outcome.ok) {
+    if (outcome.error.status === 404) {
+      return null;
+    }
+    throw outcome.error;
+  }
+  const data = webizeUrls(outcome.data);
+
+  return {
+    thread: data,
+    names: new Map(
+      data.members.flatMap((member) =>
+        member.name === null ? [] : [[member.id, member.name] as const],
+      ),
+    ),
+    memberIds: data.members.map((member) => member.id),
+  };
 };
