@@ -1,0 +1,2927 @@
+{
+  "source": "apps/web/db/schema.ts",
+  "tables": {
+    "admin_hidden_users": {
+      "primaryKey": ["admin_id", "user_id"],
+      "columns": [
+        {
+          "name": "admin_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "user_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "hidden_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "admins": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "username",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "username_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "password_hash",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "last_seen_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "chat_color",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "avatar",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "avatar_updated_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "passcode_hash",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "passcode_failed_count",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "presence_hidden",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteBoolean",
+          "kind": "boolean",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "role",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false,
+          "enumValues": ["super_admin", "pt"]
+        },
+        {
+          "name": "verified_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "bio",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "locale",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "body_profiles": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "user_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "sex",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": ["male", "female"]
+        },
+        {
+          "name": "birth_year",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "height_cm",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "weight_kg",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "activity_level",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": [
+            "sedentary",
+            "light",
+            "moderate",
+            "active",
+            "very_active"
+          ]
+        },
+        {
+          "name": "goal",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": ["cut", "maintain", "bulk"]
+        },
+        {
+          "name": "kcal_adjustment",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "protein_per_kg",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "chat_color_overrides": {
+      "primaryKey": ["conversation_id", "admin_id"],
+      "columns": [
+        {
+          "name": "conversation_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "admin_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "color",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "chat_conversations": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "user_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "last_message_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "last_message_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "last_change_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "chat_custom_stickers": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "owner_kind",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": ["user", "admin"]
+        },
+        {
+          "name": "owner_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "mime",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": ["image/webp", "image/png"]
+        },
+        {
+          "name": "data",
+          "sqliteType": "blob",
+          "drizzleType": "SQLiteBlobBuffer",
+          "kind": "blob",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "size",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "deleted_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "chat_hidden_conversations": {
+      "primaryKey": ["admin_id", "conversation_id"],
+      "columns": [
+        {
+          "name": "admin_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "conversation_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "hidden_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "chat_message_edits": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "message_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "previous_body",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "edited_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "chat_messages": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "conversation_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "sender_role",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": ["user", "admin"]
+        },
+        {
+          "name": "sender_admin_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "body",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "attachment_url",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "attachment_meta",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "client_id",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "deleted_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "hidden_by_admin_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "reply_to_message_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "sticker_ref",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "sticker_url",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "photo_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "reply_post_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "silent",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteBoolean",
+          "kind": "boolean",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "edited_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "chat_nicknames": {
+      "primaryKey": ["conversation_id", "target_key"],
+      "columns": [
+        {
+          "name": "conversation_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "target_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "nickname",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "set_by_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "chat_photos": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "conversation_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "message_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "uploader_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "mime",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": ["image/webp", "image/jpeg", "image/png"]
+        },
+        {
+          "name": "width",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "height",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "data",
+          "sqliteType": "blob",
+          "drizzleType": "SQLiteBlobBuffer",
+          "kind": "blob",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "size",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "chat_reactions": {
+      "primaryKey": ["message_id", "reactor_key"],
+      "columns": [
+        {
+          "name": "message_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "reactor_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "emoji",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "chat_reads": {
+      "primaryKey": ["conversation_id", "reader_key"],
+      "columns": [
+        {
+          "name": "conversation_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "reader_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "last_read_message_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "contact_aliases": {
+      "primaryKey": ["owner_key", "target_key"],
+      "columns": [
+        {
+          "name": "owner_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "target_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "alias",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "dm_conversations": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "user_low",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "user_high",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "last_message_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "last_message_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "dm_messages": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "conversation_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "sender_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "body",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "photo_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "reply_post_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "client_id",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "deleted_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": false,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "dm_photos": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "conversation_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "message_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "uploader_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "mime",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": ["image/webp", "image/jpeg", "image/png"]
+        },
+        {
+          "name": "width",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "height",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "data",
+          "sqliteType": "blob",
+          "drizzleType": "SQLiteBlobBuffer",
+          "kind": "blob",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "size",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "dm_reads": {
+      "primaryKey": ["conversation_id", "user_id"],
+      "columns": [
+        {
+          "name": "conversation_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "user_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "last_read_message_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "exercise_completions": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "exercise_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "user_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "completed_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "exercise_sets": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "exercise_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "user_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "position",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "weight_kg",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "reps",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "exercises": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "day_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "title",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "description",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "sets",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "reps",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "youtube_id",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "position",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "food_entries": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "user_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "date",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "meal",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": ["breakfast", "lunch", "dinner", "snack"]
+        },
+        {
+          "name": "description",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "carbs",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "protein",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "fat",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "foods": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "name",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "name_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "name_en",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "name_zh",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "group",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": [
+            "meat",
+            "seafood",
+            "egg_dairy",
+            "starch",
+            "vegetable",
+            "fruit",
+            "legume_nut",
+            "fat_oil",
+            "dish",
+            "other"
+          ]
+        },
+        {
+          "name": "state",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false,
+          "enumValues": ["raw", "cooked"]
+        },
+        {
+          "name": "kcal",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "protein",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "carbs",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "fat",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "fiber",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "serving_label",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "serving_grams",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "source",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "archived_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "login_attempts": {
+      "primaryKey": ["key"],
+      "columns": [
+        {
+          "name": "key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "failed_count",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "window_started_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "locked_until",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": false,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "meal_logs": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "user_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "meal_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "food_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "custom_name",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "grams",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "kcal",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "protein",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "carbs",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "fat",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "meal_mark_items": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "mark_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "meal_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "food_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "grams",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "protein",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "carbs",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "fat",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "kcal",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "meal_marks": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "meal_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "user_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "achieved",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteBoolean",
+          "kind": "boolean",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "note",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "meal_plan_days": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "user_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "date",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "meal_plan_items": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "meal_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "food_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "grams",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "meal_plan_meals": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "day_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "position",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "name",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "share_percent",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "nutrition_targets": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "user_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "effective_from",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "carbs",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "protein",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "fat",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "note",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "source",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": ["manual", "tdee"]
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "push_subscriptions": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "owner_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "endpoint",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "p256dh",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "auth",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "user_agent",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "last_success_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": false,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "rate_limits": {
+      "primaryKey": ["key"],
+      "columns": [
+        {
+          "name": "key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "count",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "window_started_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "social_blocks": {
+      "primaryKey": ["blocker_id", "blocked_id"],
+      "columns": [
+        {
+          "name": "blocker_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "blocked_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "social_comments": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "post_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "author_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "body",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "deleted_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": false,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "social_friendships": {
+      "primaryKey": ["user_low", "user_high"],
+      "columns": [
+        {
+          "name": "user_low",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "user_high",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "status",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": ["pending", "accepted"]
+        },
+        {
+          "name": "requested_by",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "accepted_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": false,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "social_notifications": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "recipient_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "kind",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": [
+            "friend_request",
+            "friend_accepted",
+            "post_reaction",
+            "post_comment",
+            "admin_post"
+          ]
+        },
+        {
+          "name": "actor_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "post_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "read_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "pushed_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": false,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "social_post_photos": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "uploader_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "post_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "mime",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": ["image/webp", "image/jpeg", "image/png"]
+        },
+        {
+          "name": "width",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "height",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "data",
+          "sqliteType": "blob",
+          "drizzleType": "SQLiteBlobBuffer",
+          "kind": "blob",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "size",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "social_posts": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "author_kind",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": ["user", "admin"]
+        },
+        {
+          "name": "author_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "caption",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "privacy",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": ["everyone", "friends", "only_me"]
+        },
+        {
+          "name": "photo_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "deleted_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": false,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "social_reactions": {
+      "primaryKey": ["post_id", "reactor_key"],
+      "columns": [
+        {
+          "name": "post_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "reactor_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "emoji",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "social_reports": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "reporter_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "target_kind",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": ["post", "comment", "user"]
+        },
+        {
+          "name": "target_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "reason",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "status",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": ["open", "resolved"]
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "resolved_by",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "resolved_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_ms",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "resolution",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false,
+          "enumValues": ["kept", "deleted"]
+        }
+      ]
+    },
+    "users": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "name",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "locale",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "name_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "preferred_meal_count",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "food_note",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "email",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "email_key",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "password_hash",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "password_changed_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "chat_enabled",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteBoolean",
+          "kind": "boolean",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "chat_enabled_changed_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "chat_enabled_by_admin_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "last_seen_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "chat_color",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "avatar",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "avatar_updated_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "pt_admin_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "bio",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "terms_version",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "terms_accepted_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "post_privacy_default",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": false,
+          "autoIncrement": false,
+          "enumValues": ["everyone", "friends", "only_me"]
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "weight_logs": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "user_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "date",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "weight_kg",
+          "sqliteType": "real",
+          "drizzleType": "SQLiteReal",
+          "kind": "real",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    },
+    "workout_days": {
+      "primaryKey": ["id"],
+      "columns": [
+        {
+          "name": "id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "user_id",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteInteger",
+          "kind": "integer",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "date",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "title",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "note",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "source",
+          "sqliteType": "text",
+          "drizzleType": "SQLiteText",
+          "kind": "text",
+          "notNull": true,
+          "autoIncrement": false,
+          "enumValues": ["manual", "tdee"]
+        },
+        {
+          "name": "created_at",
+          "sqliteType": "integer",
+          "drizzleType": "SQLiteTimestamp",
+          "kind": "timestamp_s",
+          "notNull": true,
+          "autoIncrement": false
+        }
+      ]
+    }
+  }
+}

@@ -19,7 +19,7 @@ pnpm monorepo (`apps/web`, `apps/api`, `packages/contracts`). Weekly PT workout 
   - `app/`: routes only, thin; compose features. `(user)/(protected)` and `admin/(protected)` layouts guard access.
   - `features/<name>/{components,hooks,services,utils,constants,types}`: auth, members, workouts, dashboard, nutrition.
   - `components/` shared UI, `services/` session/guards/env/logger, `db/schema.ts` Drizzle schema, `utils/` pure helpers.
-- `apps/api/` (`@pt/api`): NestJS 12 skeleton (ESM, `/v1` prefix, `GET /v1/health`), Zod env in `src/config/env.schema.ts`, Dockerfile; built from the repo root by `docker-compose.yml`. Plan: `docs/backend/`.
+- `apps/api/` (`@pt/api`): NestJS 12 skeleton (ESM, `/v1` prefix, `GET /v1/health`), Zod env in `src/config/env.schema.ts`, Dockerfile; built from the repo root by `docker-compose.yml`. One-time Turso to PostgreSQL copy in `scripts/` (`pnpm --filter @pt/api data:migrate`, runbook `docs/backend/cutover-runbook.md`). Plan: `docs/backend/`.
 - `packages/contracts/` (`@pt/contracts`): framework-free Zod schemas (`*-schemas.ts`), limits and the pure helpers they need; built with `tsc` to `dist/` and imported by web and API as `@pt/contracts`. No Next, Nest, React or Node-only imports here.
 - Tests: `__tests__/*.test.ts` next to the code they cover (pure utils and services); `.claude/hooks` tests run from the root (`pnpm test:tools`).
 
