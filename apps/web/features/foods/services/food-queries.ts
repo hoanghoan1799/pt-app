@@ -1,65 +1,57 @@
 import "server-only";
 
-import { and, asc, eq, isNull, ne } from "drizzle-orm";
+import { FOOD_LIST_LIMIT } from "@pt/contracts";
 
-import { db } from "@/db";
-import { foods } from "@/db/schema";
 import type { Food } from "@/features/foods/types/food";
+import { callApi, tryApi } from "@/services/api/call";
+import type { ApiActor } from "@/services/api/client";
 
-const foodColumns = {
-  id: foods.id,
-  name: foods.name,
-  nameKey: foods.nameKey,
-  nameEn: foods.nameEn,
-  nameZh: foods.nameZh,
-  group: foods.group,
-  state: foods.state,
-  kcal: foods.kcal,
-  protein: foods.protein,
-  carbs: foods.carbs,
-  fat: foods.fat,
-  fiber: foods.fiber,
-  servingLabel: foods.servingLabel,
-  servingGrams: foods.servingGrams,
-  source: foods.source,
+type FoodReader = Exclude<ApiActor, "none">;
+
+// The library pages with a cursor (at most FOOD_LIST_LIMIT.MAX per page). The
+// screens filter in the browser, so the whole active library is read page by
+// page; a runaway cursor is cut off at MAX_PAGES.
+const MAX_PAGES = 50;
+
+// Active foods only: archived ones are hidden everywhere. Sorted by name key.
+export const listFoods = async (actor: FoodReader): Promise<Food[]> => {
+  const foods: Food[] = [];
+  let cursor: string | undefined;
+
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const result = await callApi(actor, (api) =>
+      api.GET("/v1/foods", {
+        params: { query: { limit: FOOD_LIST_LIMIT.MAX, cursor } },
+      }),
+    );
+
+    foods.push(...result.items);
+    if (!result.nextCursor) {
+      break;
+    }
+    cursor = result.nextCursor;
+  }
+  return foods;
 };
 
-// Active foods only: archived ones are hidden everywhere.
-export const listFoods = async (): Promise<Food[]> =>
-  db
-    .select(foodColumns)
-    .from(foods)
-    .where(isNull(foods.archivedAt))
-    .orderBy(asc(foods.nameKey));
-
-export const getFood = async (id: number): Promise<Food | null> => {
+// Null for a missing, archived or malformed id.
+export const getFood = async (
+  actor: FoodReader,
+  id: number,
+): Promise<Food | null> => {
   if (!Number.isInteger(id) || id <= 0) {
     return null;
   }
 
-  const [food] = await db
-    .select(foodColumns)
-    .from(foods)
-    .where(and(eq(foods.id, id), isNull(foods.archivedAt)));
+  const outcome = await tryApi(actor, (api) =>
+    api.GET("/v1/foods/{id}", { params: { path: { id: String(id) } } }),
+  );
 
-  return food ?? null;
-};
-
-// A name is unique among active foods; `exceptId` skips the food being edited.
-export const findActiveFoodByNameKey = async (
-  nameKey: string,
-  exceptId?: number,
-) => {
-  const [found] = await db
-    .select({ id: foods.id })
-    .from(foods)
-    .where(
-      and(
-        eq(foods.nameKey, nameKey),
-        isNull(foods.archivedAt),
-        exceptId === undefined ? undefined : ne(foods.id, exceptId),
-      ),
-    );
-
-  return found ?? null;
+  if (outcome.ok) {
+    return outcome.data;
+  }
+  if (outcome.error.status === 404) {
+    return null;
+  }
+  throw outcome.error;
 };

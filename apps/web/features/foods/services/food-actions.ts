@@ -1,24 +1,24 @@
 "use server";
 
-import { FOOD_MESSAGES } from "@pt/contracts";
-import { foodFormSchema, foodIdSchema } from "@pt/contracts";
-import { toFieldErrors } from "@pt/contracts";
-import { toNameKey } from "@pt/contracts";
-import { and, eq, isNull } from "drizzle-orm";
+import {
+  FOOD_ERROR_CODES,
+  FOOD_MESSAGES,
+  foodFormSchema,
+  foodIdSchema,
+  toFieldErrors,
+} from "@pt/contracts";
 import { revalidatePath } from "next/cache";
 
 import { ROUTES } from "@/constants/routes";
-import { db } from "@/db";
-import { foods } from "@/db/schema";
-import { findActiveFoodByNameKey } from "@/features/foods/services/food-queries";
 import {
   withFormErrorHandling,
   withResultErrorHandling,
 } from "@/services/action-errors";
+import { tryApi } from "@/services/api/call";
+import { apiErrorToFormState } from "@/services/api/errors";
 import { requireSuperAdmin } from "@/services/auth-guard";
 import type { ActionResult } from "@/types/error";
 import type { FormState } from "@/types/form";
-import { isUniqueViolation } from "@/utils/errors";
 import {
   createErrorState,
   createSuccessState,
@@ -30,10 +30,11 @@ const revalidateFoods = () => {
   revalidatePath(ROUTES.FOODS, "layout");
 };
 
-// Validates the form, drops the "I checked" box (it is not stored) and adds
-// the search key. Returns the error state when the input is not acceptable.
+// Validates the form (so the messages stay the web's) and returns the text the
+// user typed: the API takes the same form-text formats and checks them again.
 const readFoodForm = (formData: FormData) => {
-  const parsed = foodFormSchema.safeParse(getFormValues(formData));
+  const values = getFormValues(formData);
+  const parsed = foodFormSchema.safeParse(values);
 
   if (!parsed.success) {
     return {
@@ -43,18 +44,22 @@ const readFoodForm = (formData: FormData) => {
     } as const;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- not stored
-  const { confirmed, ...values } = parsed.data;
-
   return {
-    values: {
-      ...values,
-      // Empty serving fields are stored as null, not as an empty label.
-      servingLabel: values.servingLabel || null,
-      // An empty translation falls back to the starter map or the name.
-      nameEn: values.nameEn || null,
-      nameZh: values.nameZh || null,
-      nameKey: toNameKey(values.name),
+    body: {
+      name: values.name ?? "",
+      group: values.group ?? "",
+      state: values.state,
+      kcal: values.kcal ?? "",
+      protein: values.protein ?? "",
+      carbs: values.carbs ?? "",
+      fat: values.fat ?? "",
+      fiber: values.fiber,
+      servingLabel: values.servingLabel,
+      servingGrams: values.servingGrams,
+      nameEn: values.nameEn,
+      nameZh: values.nameZh,
+      source: values.source,
+      confirmed: values.confirmed,
     },
   } as const;
 };
@@ -69,23 +74,20 @@ export const createFoodAction = withFormErrorHandling(
   async (_previousState: FormState, formData: FormData): Promise<FormState> => {
     await requireSuperAdmin();
 
-    const { error, values } = readFoodForm(formData);
+    const { error, body } = readFoodForm(formData);
 
-    if (!values) {
+    if (!body) {
       return error;
     }
-    if (await findActiveFoodByNameKey(values.nameKey)) {
-      return nameTakenState();
-    }
 
-    try {
-      await db.insert(foods).values(values);
-    } catch (error) {
-      // Two saves with the same name raced past the check above.
-      if (isUniqueViolation(error)) {
-        return nameTakenState();
-      }
-      throw error;
+    const outcome = await tryApi("admin", (api) =>
+      api.POST("/v1/foods", { body }),
+    );
+
+    if (!outcome.ok) {
+      return outcome.error.code === FOOD_ERROR_CODES.NAME_TAKEN
+        ? nameTakenState()
+        : apiErrorToFormState(outcome.error);
     }
     revalidateFoods();
     return createSuccessState(FOOD_MESSAGES.CREATED);
@@ -103,33 +105,27 @@ export const updateFoodAction = withFormErrorHandling(
       return createErrorState(FOOD_MESSAGES.NOT_FOUND);
     }
 
-    const { error, values } = readFoodForm(formData);
+    const { error, body } = readFoodForm(formData);
 
-    if (!values) {
+    if (!body) {
       return error;
     }
-    if (await findActiveFoodByNameKey(values.nameKey, id.data)) {
-      return nameTakenState();
-    }
 
-    let updated: { id: number }[];
+    const outcome = await tryApi("admin", (api) =>
+      api.PATCH("/v1/foods/{id}", {
+        params: { path: { id: String(id.data) } },
+        body,
+      }),
+    );
 
-    try {
-      updated = await db
-        .update(foods)
-        .set({ ...values, updatedAt: new Date() })
-        .where(and(eq(foods.id, id.data), isNull(foods.archivedAt)))
-        .returning({ id: foods.id });
-    } catch (error) {
-      if (isUniqueViolation(error)) {
+    if (!outcome.ok) {
+      if (outcome.error.code === FOOD_ERROR_CODES.NAME_TAKEN) {
         return nameTakenState();
       }
-      throw error;
-    }
-
-    // Archived or removed since the page was opened.
-    if (!updated.length) {
-      return createErrorState(FOOD_MESSAGES.NOT_FOUND);
+      // Archived or removed since the page was opened.
+      return outcome.error.code === FOOD_ERROR_CODES.NOT_FOUND
+        ? createErrorState(FOOD_MESSAGES.NOT_FOUND)
+        : apiErrorToFormState(outcome.error);
     }
     revalidateFoods();
     return createSuccessState(FOOD_MESSAGES.UPDATED);
@@ -148,14 +144,20 @@ export const archiveFoodAction = withResultErrorHandling(
       return { status: "error", message: FOOD_MESSAGES.NOT_FOUND };
     }
 
-    const archived = await db
-      .update(foods)
-      .set({ archivedAt: new Date(), updatedAt: new Date() })
-      .where(and(eq(foods.id, id.data), isNull(foods.archivedAt)))
-      .returning({ id: foods.id });
+    const outcome = await tryApi("admin", (api) =>
+      api.DELETE("/v1/foods/{id}", {
+        params: { path: { id: String(id.data) } },
+      }),
+    );
 
-    if (!archived.length) {
-      return { status: "error", message: FOOD_MESSAGES.NOT_FOUND };
+    if (!outcome.ok) {
+      return {
+        status: "error",
+        message:
+          outcome.error.code === FOOD_ERROR_CODES.NOT_FOUND
+            ? FOOD_MESSAGES.NOT_FOUND
+            : outcome.error.message,
+      };
     }
     revalidateFoods();
     return { status: "success" };

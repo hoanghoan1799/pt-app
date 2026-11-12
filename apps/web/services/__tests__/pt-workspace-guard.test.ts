@@ -9,11 +9,12 @@ import {
   chatConversations,
   chatMessages,
   contactAliases,
-  nutritionTargets,
   users,
   workoutDays,
 } from "@/db/schema";
 
+// Nutrition and meal plans are scoped by the API now: see
+// apps/api/test/nutrition.e2e.test.ts and meal-plans.e2e.test.ts (PT scope).
 const state = vi.hoisted(() => ({ db: null as unknown, adminId: 1 }));
 
 vi.mock("server-only", () => ({}));
@@ -48,9 +49,6 @@ vi.mock("@/db", () => ({
 }));
 
 const workouts = await import("@/features/workouts/services/workout-actions");
-const nutrition =
-  await import("@/features/nutrition/services/nutrition-actions");
-const plans = await import("@/features/meal-plans/services/meal-plan-actions");
 const memberLogin =
   await import("@/features/members/services/member-login-actions");
 const memberActions =
@@ -184,44 +182,6 @@ describe("workouts", () => {
             targetDate: "2026-11-09",
           }),
         ),
-      ),
-    ).toBe("denied");
-  });
-});
-
-describe("nutrition", () => {
-  const save = (userId: number) =>
-    outcome(() =>
-      nutrition.saveNutritionTargetAction(
-        INITIAL_FORM_STATE,
-        form({
-          userId: String(userId),
-          carbs: "200",
-          protein: "120",
-          fat: "60",
-        }),
-      ),
-    );
-
-  it("saves targets only inside the workspace", async () => {
-    expect(await save(mine)).toBe("ran");
-    expect(await save(theirs)).toBe("denied");
-    const rows = await db.select().from(nutritionTargets);
-
-    expect(rows.map((row) => row.userId)).toEqual([mine]);
-  });
-});
-
-describe("meal plans", () => {
-  it("creates day plans only inside the workspace", async () => {
-    const create = (userId: number) =>
-      outcome(() => plans.createDayPlanAction({ userId, date: "2026-11-02" }));
-
-    expect(await create(theirs)).toBe("denied");
-    expect(await create(mine)).toBe("ran");
-    expect(
-      await outcome(() =>
-        plans.deleteDayPlanAction({ userId: theirs, dayId: 1 }),
       ),
     ).toBe("denied");
   });

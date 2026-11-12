@@ -4,68 +4,14 @@ import { ON_TARGET } from "@/features/nutrition/constants/energy";
 import { MACROS } from "@/features/nutrition/constants/nutrition";
 import type {
   ComparedMetric,
-  EatenAmounts,
-  FoodEntry,
-  Macro,
   MacroAmounts,
   MacroComparison,
   NutritionDay,
-  NutritionTarget,
   NutritionWeekSummary,
 } from "@/features/nutrition/types/nutrition";
 import { calculatePercent } from "@/utils/time";
 
 const EMPTY_AMOUNTS: MacroAmounts = { carbs: 0, protein: 0, fat: 0 };
-
-export const sumEntries = (entries: FoodEntry[]): MacroAmounts =>
-  entries.reduce(
-    (sum, entry) => ({
-      carbs: sum.carbs + (entry.carbs ?? 0),
-      protein: sum.protein + (entry.protein ?? 0),
-      fat: sum.fat + (entry.fat ?? 0),
-    }),
-    EMPTY_AMOUNTS,
-  );
-
-// A day from the old free-text entries and what the meal plan counts as eaten
-// (KAN-71, KAN-87): one part per logged food, or per planned food of a meal
-// marked "Đạt". Totals are whole grams and whole kcal.
-export const buildNutritionDay = (
-  date: string,
-  target: NutritionTarget | null,
-  entries: FoodEntry[],
-  mealLogs: EatenAmounts[],
-): NutritionDay => {
-  const fromEntries = sumEntries(entries);
-  const sum = (macro: Macro) =>
-    Math.round(
-      mealLogs.reduce((total, log) => total + log[macro], fromEntries[macro]),
-    );
-
-  return {
-    date,
-    target,
-    entries,
-    loggedCount: entries.length + mealLogs.length,
-    totals: { carbs: sum("carbs"), protein: sum("protein"), fat: sum("fat") },
-    totalKcal: Math.round(
-      mealLogs.reduce((total, log) => total + log.kcal, 0) +
-        calculateCalories(fromEntries),
-    ),
-  };
-};
-
-// Targets sorted by effectiveFrom ascending; the latest one that started on
-// or before the date applies. A day before the first target uses the first
-// one (KAN-90): a target saved today must also cover the earlier days of the
-// week the PT is planning, not leave them "without a target".
-export const findTargetForDate = (targets: NutritionTarget[], date: string) =>
-  targets.reduce<NutritionTarget | null>(
-    (current, target) => (target.effectiveFrom <= date ? target : current),
-    null,
-  ) ??
-  targets[0] ??
-  null;
 
 // Calories follow from the macros: 4 kcal/g carbs and protein, 9 kcal/g fat.
 export const calculateCalories = ({ carbs, protein, fat }: MacroAmounts) =>

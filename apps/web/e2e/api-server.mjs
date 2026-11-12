@@ -19,8 +19,8 @@ const apiDir = resolve(here, "../../api");
 
 const PORT = process.env.E2E_API_PORT ?? "4100";
 const WEB_ORIGIN = process.env.E2E_BASE_URL ?? "http://localhost:3100";
-const CONTAINER = process.env.E2E_PG_CONTAINER ?? "pt-e2e-pg";
 const PG_PORT = process.env.E2E_PG_PORT ?? "55432";
+const CONTAINER = process.env.E2E_PG_CONTAINER ?? `pt-e2e-pg-${PG_PORT}`;
 const external = process.env.E2E_DATABASE_URL;
 const databaseUrl =
   external || `postgres://pt:pt_e2e_only@localhost:${PG_PORT}/ptapp_e2e`;

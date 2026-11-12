@@ -140,7 +140,13 @@ test("the admin library is closed to trainees", async ({ page }) => {
 });
 
 test("a food that does not exist shows not found", async ({ page }) => {
-  const response = await page.goto("/foods/999999");
+  await page.goto("/foods/999999");
 
-  expect(response?.status()).toBe(404);
+  // The food is read from the API after the page's loading shell is sent, so
+  // the HTTP status is already 200 (Next streams a not-found as the 404 page
+  // plus a noindex tag): the trainee sees the 404 page and no food.
+  await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Thư viện thực phẩm" }),
+  ).toHaveCount(0);
 });

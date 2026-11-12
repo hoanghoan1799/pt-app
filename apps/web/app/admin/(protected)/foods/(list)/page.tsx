@@ -22,7 +22,7 @@ const AdminFoodsPage = async () => {
   await requireSuperAdmin();
   const t = await getTranslations("pages.adminFoods");
 
-  const foods = localizeFoods(await listFoods(), await getLocale());
+  const foods = localizeFoods(await listFoods("admin"), await getLocale());
 
   return (
     <>

@@ -10,15 +10,11 @@ import { FoodLibraryLink } from "@/features/foods/components/FoodLibraryLink";
 import { MealPreferencesForm } from "@/features/meal-plans/components/MealPreferencesForm";
 import { TraineeMealPlan } from "@/features/meal-plans/components/TraineeMealPlan";
 import {
-  getMealLogData,
-  getWeekCompletion,
-} from "@/features/meal-plans/services/meal-log-queries";
-import {
-  getMealPlanWeek,
+  getTraineeMealPlan,
   listPlanFoods,
 } from "@/features/meal-plans/services/meal-plan-queries";
 import { NutritionWeek } from "@/features/nutrition/components/NutritionWeek";
-import { getNutritionWeek } from "@/features/nutrition/services/nutrition-queries";
+import { getNutritionOverview } from "@/features/nutrition/services/nutrition-queries";
 import { requireUser } from "@/services/auth-guard";
 import { parseLocale } from "@/utils/locale";
 import { readSearchParam } from "@/utils/search-params";
@@ -40,18 +36,13 @@ const NutritionPage = async ({ searchParams }: PageProps<"/nutrition">) => {
     { week: readSearchParam(params.week), day: readSearchParam(params.day) },
     today,
   );
-  const [days, planDays, library, completion] = await Promise.all([
-    getNutritionWeek(user.id, weekStart),
-    getMealPlanWeek(user.id, weekStart, locale),
-    listPlanFoods(locale),
-    getWeekCompletion(user.id, weekStart),
+  const [overview, plan, library] = await Promise.all([
+    getNutritionOverview(weekStart),
+    getTraineeMealPlan(weekStart, selectedDate, locale),
+    listPlanFoods("user", locale),
   ]);
-  const selectedPlan =
-    planDays.find((day) => day.date === selectedDate) ?? null;
-  const { logs, marks } = await getMealLogData(
-    selectedPlan?.meals.map((meal) => meal.id) ?? [],
-    locale,
-  );
+  const { days } = overview;
+  const { selectedPlan, completion, logs, marks, preferences } = plan;
 
   return (
     <>
@@ -87,8 +78,8 @@ const NutritionPage = async ({ searchParams }: PageProps<"/nutrition">) => {
           />
         </NutritionWeek>
         <MealPreferencesForm
-          preferredMealCount={user.preferredMealCount}
-          foodNote={user.foodNote}
+          preferredMealCount={preferences.preferredMealCount}
+          foodNote={preferences.foodNote}
         />
         <FoodLibraryLink />
       </main>

@@ -21,7 +21,7 @@ const FoodPage = async ({ params }: PageProps<"/foods/[id]">) => {
   const t = await getTranslations("pages.foodDetail");
 
   const { id } = await params;
-  const raw = await getFood(Number(id));
+  const raw = await getFood("user", Number(id));
 
   if (!raw) {
     notFound();

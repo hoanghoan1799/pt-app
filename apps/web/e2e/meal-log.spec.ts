@@ -1,4 +1,3 @@
-import { createClient } from "@libsql/client";
 import { expect, type Page, test } from "@playwright/test";
 import { addDays } from "@pt/contracts";
 
@@ -11,8 +10,14 @@ import {
   getWeekStart,
 } from "@/utils/week";
 
+import {
+  execApiDb,
+  getUserId,
+  queryApiDb,
+  setTargetViaApi,
+} from "./api-seed-nutrition";
 import { fillTraineeLogin } from "./auth";
-import { E2E_ADMIN, E2E_DB_URL, E2E_LOGGER_NAME } from "./config";
+import { E2E_ADMIN, E2E_LOGGER_NAME } from "./config";
 import { answerConfirm } from "./confirm";
 import { pickCopyDay } from "./copy-day";
 import { E2E_FOODS } from "./seed";
@@ -24,36 +29,13 @@ import { shot } from "./shots";
 // C 235 / F 55 g (2,075 kcal); today's plan is 2,084.1 kcal (see seed.ts).
 const TODAY = getTodayDate(TIME_ZONE);
 
-const query = async <T>(sql: string, args: (string | number)[] = []) => {
-  const client = createClient({ url: E2E_DB_URL });
+// Plans, logs and marks live in the API's PostgreSQL. Reads go straight to it;
+// the one write left (extra "Đạt" marks) has no endpoint that skips the frozen
+// items, so it is a SQL insert.
+const query = queryApiDb;
+const run = execApiDb;
 
-  try {
-    const result = await client.execute({ sql, args });
-
-    return result.rows as unknown as T[];
-  } finally {
-    client.close();
-  }
-};
-
-const run = async (sql: string, args: (string | number)[] = []) => {
-  const client = createClient({ url: E2E_DB_URL });
-
-  try {
-    await client.execute({ sql, args });
-  } finally {
-    client.close();
-  }
-};
-
-const getLoggerId = async () => {
-  const [row] = await query<{ id: number }>(
-    "SELECT id FROM users WHERE name = ?",
-    [E2E_LOGGER_NAME],
-  );
-
-  return Number(row.id);
-};
+const getLoggerId = () => getUserId(E2E_LOGGER_NAME);
 
 const getLogs = () =>
   query<{
@@ -417,7 +399,7 @@ test("S4: the trainee marks a meal Đạt with a note about what was over", asyn
 
   await run(
     `INSERT INTO meal_marks (meal_id, user_id, achieved)
-     SELECT m.id, ?, 1 FROM meal_plan_meals m
+     SELECT m.id, ?::int, true FROM meal_plan_meals m
      JOIN meal_plan_days d ON d.id = m.day_id
      WHERE d.user_id = ? AND d.date = ?
        AND m.id NOT IN (SELECT meal_id FROM meal_marks)`,
@@ -442,6 +424,8 @@ test("S4: the trainee marks a meal Đạt with a note about what was over", asyn
 test("S4 + S3: the PT sees the marks and logs, and is told when the plan no longer fits the target", async ({
   page,
 }) => {
+  // Several full PT page loads (each reads the API) in a cold dev server.
+  test.slow();
   await logInAsAdmin(page);
   await openAdminDay(page);
 
@@ -478,11 +462,7 @@ test("S4 + S3: the PT sees the marks and logs, and is told when the plan no long
   // 1,935 kcal, so the plan is 2,084.1 - 1,935 = +149 kcal over.
   const id = await getLoggerId();
 
-  await run(
-    `INSERT INTO nutrition_targets (user_id, effective_from, carbs, protein, fat, source)
-     VALUES (?, ?, 200, 160, 55, 'manual')`,
-    [id, TODAY],
-  );
+  await setTargetViaApi(id, { carbs: 200, protein: 160, fat: 55 });
   await openAdminDay(page);
 
   const notice = page.getByRole("region", { name: "Plan lệch mục tiêu" });

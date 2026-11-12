@@ -5,27 +5,21 @@ import {
   foodEntrySchema,
   myBodyProfileSchema,
   targetSchema,
+  toFieldErrors,
   weightLogSchema,
 } from "@pt/contracts";
-import { toFieldErrors } from "@pt/contracts";
-import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { ROUTES } from "@/constants/routes";
 import { TIME_ZONE } from "@/constants/time";
-import { db } from "@/db";
-import { foodEntries, nutritionTargets } from "@/db/schema";
 import { NUTRITION_MESSAGES } from "@/features/nutrition/constants/nutrition";
-import {
-  logWeight,
-  saveBodyProfile,
-} from "@/features/nutrition/services/body-profile-service";
 import {
   withFormErrorHandling,
   withResultErrorHandling,
 } from "@/services/action-errors";
-import { requireAdminForUser } from "@/services/admin-access";
+import { callApi, tryApi } from "@/services/api/call";
+import { apiErrorToFormState } from "@/services/api/errors";
 import { requireAdmin, requireUser } from "@/services/auth-guard";
 import type { ActionResult } from "@/types/error";
 import type { FormState } from "@/types/form";
@@ -44,13 +38,17 @@ const revalidateNutrition = (userId: number) => {
   revalidatePath(ROUTES.ADMIN);
 };
 
+// The API takes the form's own text ("72,5") and checks it again; the Zod
+// parse in each action keeps the web's messages and field errors.
+
 // Admin: sets the daily target from today on; earlier days keep theirs.
 export const saveNutritionTargetAction = withFormErrorHandling(
   "saveNutritionTarget",
   async (_previousState: FormState, formData: FormData): Promise<FormState> => {
     await requireAdmin();
 
-    const parsed = targetSchema.safeParse(getFormValues(formData));
+    const values = getFormValues(formData);
+    const parsed = targetSchema.safeParse(values);
 
     if (!parsed.success) {
       return createErrorState(NUTRITION_MESSAGES.INVALID_INPUT, {
@@ -58,27 +56,22 @@ export const saveNutritionTargetAction = withFormErrorHandling(
       });
     }
 
-    const { userId, carbs, protein, fat, note } = parsed.data;
+    const { userId } = parsed.data;
+    const outcome = await tryApi("admin", (api) =>
+      api.PUT("/v1/trainees/{userId}/nutrition-target", {
+        params: { path: { userId: userId } },
+        body: {
+          carbs: values.carbs ?? "",
+          protein: values.protein ?? "",
+          fat: values.fat ?? "",
+          note: values.note,
+        },
+      }),
+    );
 
-    await requireAdminForUser(userId);
-    const effectiveFrom = getTodayDate(TIME_ZONE);
-
-    await db
-      .insert(nutritionTargets)
-      .values({
-        userId,
-        effectiveFrom,
-        carbs,
-        protein,
-        fat,
-        note,
-        source: "manual",
-      })
-      .onConflictDoUpdate({
-        target: [nutritionTargets.userId, nutritionTargets.effectiveFrom],
-        set: { carbs, protein, fat, note, source: "manual" },
-      });
-
+    if (!outcome.ok) {
+      return apiErrorToFormState(outcome.error);
+    }
     revalidateNutrition(userId);
     return createSuccessState(NUTRITION_MESSAGES.TARGET_SAVED);
   },
@@ -89,7 +82,8 @@ export const saveFoodEntryAction = withFormErrorHandling(
   "saveFoodEntry",
   async (_previousState: FormState, formData: FormData): Promise<FormState> => {
     const user = await requireUser();
-    const parsed = foodEntrySchema.safeParse(getFormValues(formData));
+    const values = getFormValues(formData);
+    const parsed = foodEntrySchema.safeParse(values);
 
     if (!parsed.success) {
       return createErrorState(NUTRITION_MESSAGES.INVALID_INPUT, {
@@ -97,37 +91,36 @@ export const saveFoodEntryAction = withFormErrorHandling(
       });
     }
 
-    const { entryId, date, ...values } = parsed.data;
-    const hasAmount = [values.carbs, values.protein, values.fat].some(
-      (grams) => grams !== null,
-    );
-
-    if (!values.description && !hasAmount) {
-      return createErrorState(NUTRITION_MESSAGES.ENTRY_EMPTY);
-    }
-    if (date > getTodayDate(TIME_ZONE)) {
-      return createErrorState(NUTRITION_MESSAGES.FUTURE_DATE);
-    }
-
-    if (entryId) {
-      const updated = await db
-        .update(foodEntries)
-        .set(values)
-        .where(
-          and(eq(foodEntries.id, entryId), eq(foodEntries.userId, user.id)),
+    const { entryId } = parsed.data;
+    const body = {
+      date: parsed.data.date,
+      meal: parsed.data.meal,
+      description: values.description,
+      carbs: values.carbs,
+      protein: values.protein,
+      fat: values.fat,
+    };
+    // The API refuses an empty entry and a future date with the web's messages.
+    const outcome = entryId
+      ? await tryApi("user", (api) =>
+          api.PUT("/v1/me/food-entries/{id}", {
+            params: { path: { id: entryId } },
+            body,
+          }),
         )
-        .returning({ id: foodEntries.id });
+      : await tryApi("user", (api) =>
+          api.POST("/v1/me/food-entries", { body }),
+        );
 
-      if (!updated.length) {
-        return createErrorState(NUTRITION_MESSAGES.ENTRY_NOT_FOUND);
-      }
-      revalidateNutrition(user.id);
-      return createSuccessState(NUTRITION_MESSAGES.ENTRY_UPDATED);
+    if (!outcome.ok) {
+      return apiErrorToFormState(outcome.error);
     }
-
-    await db.insert(foodEntries).values({ ...values, date, userId: user.id });
     revalidateNutrition(user.id);
-    return createSuccessState(NUTRITION_MESSAGES.ENTRY_CREATED);
+    return createSuccessState(
+      entryId
+        ? NUTRITION_MESSAGES.ENTRY_UPDATED
+        : NUTRITION_MESSAGES.ENTRY_CREATED,
+    );
   },
 );
 
@@ -137,9 +130,12 @@ export const deleteFoodEntryAction = withResultErrorHandling(
     const user = await requireUser();
     const id = z.number().int().positive().parse(entryId);
 
-    await db
-      .delete(foodEntries)
-      .where(and(eq(foodEntries.id, id), eq(foodEntries.userId, user.id)));
+    // No error when the entry is already gone.
+    await callApi("user", (api) =>
+      api.DELETE("/v1/me/food-entries/{id}", {
+        params: { path: { id: id } },
+      }),
+    );
 
     revalidateNutrition(user.id);
     return { status: "success" };
@@ -153,7 +149,8 @@ export const saveBodyProfileAction = withFormErrorHandling(
   async (_previousState: FormState, formData: FormData): Promise<FormState> => {
     await requireAdmin();
 
-    const parsed = bodyProfileSchema.safeParse(getFormValues(formData));
+    const values = getFormValues(formData);
+    const parsed = bodyProfileSchema.safeParse(values);
 
     if (!parsed.success) {
       return createErrorState(NUTRITION_MESSAGES.INVALID_INPUT, {
@@ -161,19 +158,29 @@ export const saveBodyProfileAction = withFormErrorHandling(
       });
     }
 
-    const { userId, applyToTarget, ...measurements } = parsed.data;
-
-    await requireAdminForUser(userId);
-    const isApplied = await saveBodyProfile(
-      userId,
-      measurements,
-      applyToTarget ? "always" : "never",
-      getTodayDate(TIME_ZONE),
+    const { userId, applyToTarget } = parsed.data;
+    const outcome = await tryApi("admin", (api) =>
+      api.PUT("/v1/trainees/{userId}/body-profile", {
+        params: { path: { userId: userId } },
+        body: {
+          sex: parsed.data.sex,
+          age: values.age ?? "",
+          heightCm: values.heightCm ?? "",
+          weightKg: values.weightKg ?? "",
+          activityLevel: parsed.data.activityLevel,
+          kcalAdjustment: values.kcalAdjustment ?? "",
+          proteinPerKg: values.proteinPerKg ?? "",
+          applyToTarget,
+        },
+      }),
     );
 
+    if (!outcome.ok) {
+      return apiErrorToFormState(outcome.error);
+    }
     revalidateNutrition(userId);
     return createSuccessState(
-      isApplied
+      outcome.data.targetApplied
         ? NUTRITION_MESSAGES.PROFILE_APPLIED
         : NUTRITION_MESSAGES.PROFILE_SAVED,
     );
@@ -186,7 +193,8 @@ export const saveMyBodyProfileAction = withFormErrorHandling(
   "saveMyBodyProfile",
   async (_previousState: FormState, formData: FormData): Promise<FormState> => {
     const user = await requireUser();
-    const parsed = myBodyProfileSchema.safeParse(getFormValues(formData));
+    const values = getFormValues(formData);
+    const parsed = myBodyProfileSchema.safeParse(values);
 
     if (!parsed.success) {
       return createErrorState(NUTRITION_MESSAGES.INVALID_INPUT, {
@@ -194,16 +202,25 @@ export const saveMyBodyProfileAction = withFormErrorHandling(
       });
     }
 
-    const isApplied = await saveBodyProfile(
-      user.id,
-      parsed.data,
-      "unless-manual",
-      getTodayDate(TIME_ZONE),
+    const outcome = await tryApi("user", (api) =>
+      api.PUT("/v1/me/body-profile", {
+        body: {
+          sex: parsed.data.sex,
+          age: values.age ?? "",
+          heightCm: values.heightCm ?? "",
+          weightKg: values.weightKg ?? "",
+          activityLevel: parsed.data.activityLevel,
+          goal: parsed.data.goal,
+        },
+      }),
     );
 
+    if (!outcome.ok) {
+      return apiErrorToFormState(outcome.error);
+    }
     revalidateNutrition(user.id);
     return createSuccessState(
-      isApplied
+      outcome.data.targetApplied
         ? NUTRITION_MESSAGES.PROFILE_APPLIED
         : NUTRITION_MESSAGES.PROFILE_KEPT_MANUAL,
     );
@@ -215,7 +232,8 @@ export const logWeightAction = withFormErrorHandling(
   "logWeight",
   async (_previousState: FormState, formData: FormData): Promise<FormState> => {
     const user = await requireUser();
-    const parsed = weightLogSchema.safeParse(getFormValues(formData));
+    const values = getFormValues(formData);
+    const parsed = weightLogSchema.safeParse(values);
 
     if (!parsed.success) {
       return createErrorState(NUTRITION_MESSAGES.INVALID_INPUT, {
@@ -223,18 +241,20 @@ export const logWeightAction = withFormErrorHandling(
       });
     }
 
-    const today = getTodayDate(TIME_ZONE);
-    const isTargetUpdated = await logWeight(
-      user.id,
-      today,
-      parsed.data.weightKg,
-      today,
+    const outcome = await tryApi("user", (api) =>
+      api.PUT("/v1/me/weight-logs/{date}", {
+        params: { path: { date: getTodayDate(TIME_ZONE) } },
+        body: { weightKg: values.weightKg ?? "" },
+      }),
     );
 
+    if (!outcome.ok) {
+      return apiErrorToFormState(outcome.error);
+    }
     revalidateNutrition(user.id);
     revalidatePath(ROUTES.SUMMARY);
     return createSuccessState(
-      isTargetUpdated
+      outcome.data.targetApplied
         ? NUTRITION_MESSAGES.WEIGHT_SAVED_TARGET
         : NUTRITION_MESSAGES.WEIGHT_SAVED,
     );
