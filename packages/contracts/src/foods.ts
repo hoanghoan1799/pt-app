@@ -19,3 +19,10 @@ export const FOOD_MESSAGES = {
   NOT_FOUND: "Món này không còn tồn tại",
   CONFIRM_LABEL: "Tôi đã kiểm tra số liệu",
 } as const;
+
+// Stable `code` of the API errors, for clients that switch on it. The message
+// is FOOD_MESSAGES.NAME_TAKEN / NOT_FOUND.
+export const FOOD_ERROR_CODES = {
+  NAME_TAKEN: "FOOD_NAME_TAKEN",
+  NOT_FOUND: "FOOD_NOT_FOUND",
+} as const;
