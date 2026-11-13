@@ -7,10 +7,7 @@ import {
   POSTS_PREFETCH_AT,
   SOCIAL_MESSAGES,
 } from "@/features/social/constants/social";
-import type {
-  PostAuthorRef,
-  SocialActor,
-} from "@/features/social/types/social";
+import type { PostAuthorRef } from "@/features/social/types/social";
 
 export const privacySchema = z.enum(POST_PRIVACIES);
 
@@ -40,22 +37,7 @@ export const editPostSchema = z.object({
 
 export const postIdSchema = idSchema;
 
-// A post needs text or a photo.
-export const isPostEmpty = (caption: string, hasPhoto: boolean) =>
-  caption.trim() === "" && !hasPhoto;
-
 export const actorKey = (actor: PostAuthorRef) => `${actor.kind}:${actor.id}`;
-
-export const isSameAuthor = (actor: SocialActor, author: PostAuthorRef) =>
-  actor.kind === author.kind && actor.id === author.id;
-
-// Author edits and deletes their own post; a super admin deletes any.
-export const canEditPost = (actor: SocialActor, author: PostAuthorRef) =>
-  isSameAuthor(actor, author);
-
-export const canDeletePost = (actor: SocialActor, author: PostAuthorRef) =>
-  isSameAuthor(actor, author) ||
-  (actor.kind === "admin" && actor.role === "super_admin");
 
 export const socialPhotoUrl = (id: number) => `/api/social/photos/${id}`;
 

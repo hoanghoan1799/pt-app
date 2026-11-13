@@ -8,19 +8,12 @@ import { WeekSummary } from "@/components/layout/WeekSummary";
 import { ROUTES } from "@/constants/routes";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
-import { getTraineeDisplayName } from "@/features/chat/services/chat-queries";
 import { ExerciseProgressList } from "@/features/members/components/ExerciseProgressList";
+import { getTrainee } from "@/features/members/services/member-queries";
 import { getExerciseProgress } from "@/features/members/services/progress-queries";
-import { WEIGHT_CHART_WEEKS } from "@/features/nutrition/constants/weight";
-import {
-  getTodayWeight,
-  getWeightTrend,
-} from "@/features/nutrition/services/body-profile-service";
-import { getNutritionWeek } from "@/features/nutrition/services/nutrition-queries";
-import { getWeekSchedule } from "@/features/workouts/services/workout-queries";
+import { getNutritionOverview } from "@/features/nutrition/services/nutrition-queries";
+import { getTraineeWeekSchedule } from "@/features/workouts/services/workout-api";
 import { requireAdmin } from "@/services/auth-guard";
-import { canAdminAccessUser } from "@/services/hidden-users";
-import { findUserById } from "@/services/users";
 import {
   getAdminNutritionPath,
   getAdminSummaryPath,
@@ -39,16 +32,18 @@ const AdminSummaryPage = async ({
   params,
   searchParams,
 }: PageProps<"/admin/users/[id]/summary">) => {
-  const admin = await requireAdmin();
+  await requireAdmin();
   const t = await getTranslations("adminPages.userSummary");
 
   const { id } = await params;
-  const user = await findUserById(Number(id));
+  // Scope, hiding and nicknames are the API's: it answers 404 for a trainee
+  // this admin may not see.
+  const user = await getTrainee(Number(id));
 
-  if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
+  if (!user) {
     notFound();
   }
-  const displayName = await getTraineeDisplayName(admin.id, user);
+  const { displayName } = user;
 
   const query = await searchParams;
   const today = getTodayDate(TIME_ZONE);
@@ -56,14 +51,11 @@ const AdminSummaryPage = async ({
     { week: readSearchParam(query.week), day: readSearchParam(query.day) },
     today,
   );
-  const [workoutDays, nutritionDays, weightWeeks, todayWeight, progressRows] =
-    await Promise.all([
-      getWeekSchedule(user.id, schedule.weekStart),
-      getNutritionWeek(user.id, schedule.weekStart),
-      getWeightTrend(user.id, schedule.weekStart, WEIGHT_CHART_WEEKS),
-      getTodayWeight(user.id, today),
-      getExerciseProgress(user.id, schedule.weekStart),
-    ]);
+  const [workoutDays, overview, progressRows] = await Promise.all([
+    getTraineeWeekSchedule(user.id, schedule.weekStart),
+    getNutritionOverview(schedule.weekStart, user.id),
+    getExerciseProgress(user.id, schedule.weekStart),
+  ]);
 
   return (
     <>
@@ -88,10 +80,10 @@ const AdminSummaryPage = async ({
           selectedDate={schedule.selectedDate}
           today={today}
           workoutDays={workoutDays}
-          nutritionDays={nutritionDays}
-          weightWeeks={weightWeeks}
+          nutritionDays={overview.days}
+          weightWeeks={overview.weightWeeks}
           canLogWeight={false}
-          todayWeight={todayWeight}
+          todayWeight={overview.todayWeight}
           progress={<ExerciseProgressList rows={progressRows} />}
         />
       </main>

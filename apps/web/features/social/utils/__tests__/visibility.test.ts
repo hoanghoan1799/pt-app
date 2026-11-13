@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { SocialActor } from "@/features/social/types/social";
-import {
-  canSeePost,
-  visiblePrivacies,
-} from "@/features/social/utils/visibility";
+import { canSeePost } from "@/features/social/utils/visibility";
 
 const superAdmin: SocialActor = { kind: "admin", id: 1, role: "super_admin" };
 const pt: SocialActor = { kind: "admin", id: 2, role: "pt" };
@@ -127,24 +124,5 @@ describe("canSeePost", () => {
     expect(canSeePost(pt, adminPost(3, "only_me"), { authorRole: "pt" })).toBe(
       false,
     );
-  });
-});
-
-describe("visiblePrivacies", () => {
-  it("lists what the viewer may see of one author", () => {
-    expect(visiblePrivacies(stranger, { kind: "user", id: 10 })).toEqual([
-      "everyone",
-    ]);
-    expect(
-      visiblePrivacies(
-        stranger,
-        { kind: "user", id: 10 },
-        { areFriends: true },
-      ),
-    ).toEqual(["everyone", "friends"]);
-    expect(visiblePrivacies(trainee, { kind: "user", id: 10 })).toHaveLength(3);
-    expect(
-      visiblePrivacies(stranger, { kind: "user", id: 10 }, { isBlocked: true }),
-    ).toEqual([]);
   });
 });

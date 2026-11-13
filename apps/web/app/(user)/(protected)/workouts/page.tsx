@@ -7,7 +7,7 @@ import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
 import { UserHeaderActions } from "@/features/auth/components/UserHeaderActions";
 import { WorkoutWeek } from "@/features/workouts/components/WorkoutWeek";
-import { getWeekScheduleWithSets } from "@/features/workouts/services/workout-queries";
+import { getMyWeekSchedule } from "@/features/workouts/services/workout-api";
 import { requireUser } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
 import { getTodayDate, resolveSchedule } from "@/utils/week";
@@ -27,7 +27,7 @@ const WorkoutsPage = async ({ searchParams }: PageProps<"/workouts">) => {
     { week: readSearchParam(params.week), day: readSearchParam(params.day) },
     today,
   );
-  const days = await getWeekScheduleWithSets(user.id, weekStart);
+  const days = await getMyWeekSchedule(weekStart);
 
   return (
     <>

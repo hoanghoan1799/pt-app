@@ -1,12 +1,14 @@
 import { crc32, deflateSync } from "node:zlib";
 
-import { createClient } from "@libsql/client";
 import { type Browser, expect, type Page, test } from "@playwright/test";
 
-import { toEmailKey } from "@/utils/email";
-
+import {
+  getCustomStickerRows,
+  getUserId as getChatUserId,
+  resetChat as resetChatRows,
+} from "./api-seed-chat";
 import { fillTraineeLogin } from "./auth";
-import { E2E_ADMIN, E2E_CHAT_NAME, E2E_DB_URL, e2eEmail } from "./config";
+import { E2E_ADMIN, E2E_CHAT_NAME } from "./config";
 import { answerConfirm } from "./confirm";
 
 // Chat stickers (KAN-146, docs/specs/chat-ux-v2.md E0 to E3): the bundled pack
@@ -19,65 +21,14 @@ const LONG_PRESS_MS = 600;
 const SYNC = { timeout: 20_000 };
 const UNSENT = "Tin nhắn đã bị thu hồi";
 const QUOTE = "Xem tin nhắn được trả lời";
-const DB_ATTEMPTS = 5;
 
 const FIRE = { alt: "Lửa", src: "/stickers/fluent/fire.svg" };
 const TROPHY = { alt: "Cúp", src: "/stickers/fluent/trophy.svg" };
 
-const withDb = async <T>(
-  run: (client: ReturnType<typeof createClient>) => Promise<T>,
-) => {
-  for (let attempt = 1; ; attempt += 1) {
-    const client = createClient({ url: E2E_DB_URL });
+const getUserId = () => getChatUserId(E2E_CHAT_NAME);
 
-    try {
-      await client.execute("PRAGMA busy_timeout = 5000");
-      return await run(client);
-    } catch (error) {
-      if (attempt >= DB_ATTEMPTS || !String(error).includes("SQLITE_BUSY")) {
-        throw error;
-      }
-    } finally {
-      client.close();
-    }
-  }
-};
-
-const getUserId = () =>
-  withDb(async (client) => {
-    const result = await client.execute({
-      sql: "SELECT id FROM users WHERE email_key = ?",
-      args: [toEmailKey(e2eEmail(E2E_CHAT_NAME))],
-    });
-
-    return Number(result.rows[0].id);
-  });
-
-// Back to the seeded state: no conversation, chat locked.
-const resetChat = async () => {
-  const userId = await getUserId();
-  const conv = "(SELECT id FROM chat_conversations WHERE user_id = ?)";
-  const msgs = `(SELECT id FROM chat_messages WHERE conversation_id IN ${conv})`;
-
-  await withDb(async (client) => {
-    for (const sql of [
-      `DELETE FROM chat_reactions WHERE message_id IN ${msgs}`,
-      `DELETE FROM chat_message_edits WHERE message_id IN ${msgs}`,
-      `UPDATE chat_messages SET reply_to_message_id = NULL WHERE conversation_id IN ${conv}`,
-      `DELETE FROM chat_messages WHERE conversation_id IN ${conv}`,
-      `DELETE FROM chat_reads WHERE conversation_id IN ${conv}`,
-      "DELETE FROM chat_conversations WHERE user_id = ?",
-    ]) {
-      await client.execute({ sql, args: [userId] });
-    }
-    // Personal stickers (KAN-158) of the trainee and of the PT.
-    await client.execute("DELETE FROM chat_custom_stickers");
-    await client.execute({
-      sql: "UPDATE users SET chat_enabled = NULL, chat_enabled_changed_at = NULL, chat_enabled_by_admin_id = NULL WHERE id = ?",
-      args: [userId],
-    });
-  });
-};
+// Back to the seeded state: no conversation, no personal stickers, chat locked.
+const resetChat = () => resetChatRows(E2E_CHAT_NAME, { stickers: true });
 
 const newSession = async (browser: Browser) => {
   const context = await browser.newContext({
@@ -578,15 +529,14 @@ test("a trainee turns a photo into a personal sticker, sends it and the PT sees 
         .toBeGreaterThan(0);
       await expect(bubble.locator("p")).toHaveCount(0);
     }
-    // The stored message carries the route URL, never a data URL.
-    const { rows } = await withDb((client) =>
-      client.execute(
-        "SELECT sticker_ref, sticker_url FROM chat_messages WHERE sticker_ref LIKE 'custom:%'",
-      ),
-    );
+    // The stored message carries the API's route URL (the page shows it under
+    // this app's /api proxy), never a data URL.
+    const rows = await getCustomStickerRows();
 
     expect(rows).toHaveLength(1);
-    expect(String(rows[0].sticker_url)).toBe(src);
+    expect(String(rows[0].sticker_url)).toBe(
+      (src ?? "").replace("/api/chat/", "/v1/chat/"),
+    );
     expect(String(rows[0].sticker_ref)).toBe(`custom:${src?.split("/").pop()}`);
 
     // The PT can load it (other side of the conversation) ...

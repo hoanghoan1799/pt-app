@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
-// Whether the admin inbox already has a live Ably connection in this tab.
+// Whether the admin inbox already has a live socket connection in this tab.
 // InboxLiveRefresh owns that connection and publishes its state here, so the
 // unread badge can slow its poll without opening a second connection.
 let connected = false;

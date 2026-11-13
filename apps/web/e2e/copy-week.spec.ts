@@ -1,4 +1,3 @@
-import { createClient } from "@libsql/client";
 import { expect, test } from "@playwright/test";
 import { addDays } from "@pt/contracts";
 
@@ -10,7 +9,13 @@ import {
   getWeekStart,
 } from "@/utils/week";
 
-import { E2E_ADMIN, E2E_DB_URL, E2E_LIFTER_NAME } from "./config";
+import {
+  clearApiWorkoutDays,
+  countApiPlannedDays,
+  findTraineeId,
+  loginAdminApi,
+} from "./api-seed-workouts";
+import { E2E_ADMIN, E2E_LIFTER_NAME } from "./config";
 import { answerConfirm } from "./confirm";
 
 // Copy week asks in the in-app confirm dialog, never in window.confirm
@@ -21,45 +26,26 @@ const TODAY = getTodayDate(TIME_ZONE);
 const TARGET_DATE = addDays(getWeekStart(TODAY), 63);
 const TARGET_DATES = getWeekDates(getWeekStart(TARGET_DATE));
 
-const withDb = async <T>(
-  run: (client: ReturnType<typeof createClient>) => Promise<T>,
-) => {
-  const client = createClient({ url: E2E_DB_URL });
+// Counts planned days through the API (a PT's read of the lifter's week).
+const countCopiedDays = async (userName: string) => {
+  const admin = await loginAdminApi();
 
-  try {
-    return await run(client);
-  } finally {
-    client.close();
-  }
+  return countApiPlannedDays(
+    admin,
+    await findTraineeId(admin, userName),
+    TARGET_DATES[0],
+    TARGET_DATES[TARGET_DATES.length - 1],
+  );
 };
 
-const countCopiedDays = (userName: string) =>
-  withDb(async (client) => {
-    const result = await client.execute({
-      sql: `SELECT COUNT(*) AS n FROM workout_days d JOIN users u ON u.id = d.user_id
-            WHERE u.name = ? AND d.date >= ? AND d.date <= ?`,
-      args: [userName, TARGET_DATES[0], TARGET_DATES[TARGET_DATES.length - 1]],
-    });
-
-    return Number(result.rows[0].n);
-  });
-
+// The API has no "delete a day" route, so the copy is cleared in its e2e
+// database.
 const removeCopy = () =>
-  withDb(async (client) => {
-    const range = [TARGET_DATES[0], TARGET_DATES[TARGET_DATES.length - 1]];
-
-    await client.execute({
-      sql: `DELETE FROM exercises WHERE day_id IN (
-              SELECT d.id FROM workout_days d JOIN users u ON u.id = d.user_id
-              WHERE u.name = ? AND d.date >= ? AND d.date <= ?)`,
-      args: [E2E_LIFTER_NAME, ...range],
-    });
-    await client.execute({
-      sql: `DELETE FROM workout_days WHERE date >= ? AND date <= ? AND user_id IN (
-              SELECT id FROM users WHERE name = ?)`,
-      args: [...range, E2E_LIFTER_NAME],
-    });
-  });
+  clearApiWorkoutDays(
+    E2E_LIFTER_NAME,
+    TARGET_DATES[0],
+    TARGET_DATES[TARGET_DATES.length - 1],
+  );
 
 test.afterEach(async () => {
   await removeCopy();

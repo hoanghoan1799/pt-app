@@ -4,6 +4,7 @@ import {
   ERROR_REFERENCE_LENGTH,
   GENERIC_ERROR_MESSAGE,
 } from "@/constants/errors";
+import { ApiError } from "@/services/api/errors";
 import { localizeResult } from "@/services/localize-message";
 import { logServerError } from "@/services/logger";
 import type { ActionErrorResult, ActionResult } from "@/types/error";
@@ -30,6 +31,14 @@ const toPublicError = (context: string, error: unknown) => {
 
   const referenceId = crypto.randomUUID().slice(0, ERROR_REFERENCE_LENGTH);
   const classified = logServerError(context, error, { referenceId });
+
+  // A request the API refused (4xx) carries text it chose for the user, plus
+  // its own reference. Nothing internal is in it, so it is shown as is, in
+  // production too. 5xx, timeouts and unreachable API fall through to the
+  // generic text below.
+  if (error instanceof ApiError && error.isClientError) {
+    return { message: error.message, reference: error.ref ?? referenceId };
+  }
 
   return IS_PRODUCTION
     ? { message: GENERIC_ERROR_MESSAGE, reference: referenceId }

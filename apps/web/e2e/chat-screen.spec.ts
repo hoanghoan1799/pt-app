@@ -1,153 +1,32 @@
-import { createClient } from "@libsql/client";
 import { type Browser, expect, type Page, test } from "@playwright/test";
 
 import { CHAT_MESSAGES } from "@/features/chat/constants/messages";
-import { toEmailKey } from "@/utils/email";
 
-import { fillTraineeLogin } from "./auth";
 import {
-  E2E_CHAT_NAME,
-  E2E_CHAT_OFF_NAME,
-  E2E_DB_URL,
-  e2eEmail,
-} from "./config";
+  type AdminSeen,
+  getAdminsLastSeen,
+  prepareThread,
+  resetChat as resetChatRows,
+  restoreAdminsLastSeen,
+  setAdminsLastSeen,
+} from "./api-seed-chat";
+import { fillTraineeLogin } from "./auth";
+import { E2E_CHAT_NAME, E2E_CHAT_OFF_NAME } from "./config";
 
 // The focused trainee conversation screen (KAN-136, docs/specs/chat-ux-v2.md
 // B1-B5): tab bar hidden, Back behaviour, the header with its presence dot,
 // time breaks after a 30 minute gap, and the read-only thread when chat is
 // off. Presence is made deterministic by writing admins.last_seen_at straight
-// into the e2e SQLite file (no admin page is open). Each spec resets the rows
+// into the e2e PostgreSQL (no admin page is open). Each spec resets the rows
 // it touches first and last, so a rerun (--repeat-each) starts clean.
-const DB_ATTEMPTS = 5;
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
 // Asia/Ho_Chi_Minh has no daylight saving: a fixed UTC+7.
 const VN_OFFSET_MS = 7 * HOUR_MS;
 
-type Seeded = { body: string; createdAt: number };
-
-const withDb = async <T>(
-  run: (client: ReturnType<typeof createClient>) => Promise<T>,
-) => {
-  for (let attempt = 1; ; attempt += 1) {
-    const client = createClient({ url: E2E_DB_URL });
-
-    try {
-      await client.execute("PRAGMA busy_timeout = 5000");
-      return await run(client);
-    } catch (error) {
-      if (attempt >= DB_ATTEMPTS || !String(error).includes("SQLITE_BUSY")) {
-        throw error;
-      }
-    } finally {
-      client.close();
-    }
-  }
-};
-
-const getUserId = (name: string) =>
-  withDb(async (client) => {
-    const result = await client.execute({
-      sql: "SELECT id FROM users WHERE email_key = ?",
-      args: [toEmailKey(e2eEmail(name))],
-    });
-
-    return Number(result.rows[0].id);
-  });
-
-// Back to the seeded state: no conversation, no messages, chat never enabled.
-const resetChat = (name: string) =>
-  withDb(async (client) => {
-    const userId = await getUserId(name);
-    const conversations = `(SELECT id FROM chat_conversations WHERE user_id = ?)`;
-
-    await client.execute({
-      sql: `DELETE FROM chat_messages WHERE conversation_id IN ${conversations}`,
-      args: [userId],
-    });
-    await client.execute({
-      sql: `DELETE FROM chat_reads WHERE conversation_id IN ${conversations}`,
-      args: [userId],
-    });
-    await client.execute({
-      sql: "DELETE FROM chat_conversations WHERE user_id = ?",
-      args: [userId],
-    });
-    await client.execute({
-      sql: "UPDATE users SET chat_enabled = NULL, chat_enabled_changed_at = NULL, chat_enabled_by_admin_id = NULL, last_seen_at = NULL WHERE id = ?",
-      args: [userId],
-    });
-  });
-
-// A conversation for the trainee, optionally enabled, with the given PT
-// messages (`createdAt` in epoch ms).
-const prepareThread = async (
-  name: string,
-  { enabled, messages }: { enabled: boolean; messages: Seeded[] },
-) => {
-  await resetChat(name);
-  const userId = await getUserId(name);
-
-  await withDb(async (client) => {
-    if (enabled) {
-      await client.execute({
-        sql: "UPDATE users SET chat_enabled = 1 WHERE id = ?",
-        args: [userId],
-      });
-    }
-    const created = await client.execute({
-      sql: "INSERT INTO chat_conversations (user_id) VALUES (?) RETURNING id",
-      args: [userId],
-    });
-    const conversationId = Number(created.rows[0].id);
-
-    for (const [index, message] of messages.entries()) {
-      await client.execute({
-        sql: "INSERT INTO chat_messages (conversation_id, sender_role, body, client_id, created_at) VALUES (?, 'admin', ?, ?, ?)",
-        args: [
-          conversationId,
-          message.body,
-          `e2e-screen-${index}-${message.createdAt}`,
-          message.createdAt,
-        ],
-      });
-    }
-  });
-};
-
-type AdminSeen = { id: number; seen: number | null };
-
-const getAdminsLastSeen = () =>
-  withDb(async (client) => {
-    const result = await client.execute(
-      "SELECT id, last_seen_at AS seen FROM admins",
-    );
-
-    return result.rows.map((row): AdminSeen => ({
-      id: Number(row.id),
-      seen: row.seen === null ? null : Number(row.seen),
-    }));
-  });
-
-// last_seen_at is a `timestamp` column: whole seconds.
-const setAdminsLastSeen = (atMs: number) =>
-  withDb((client) =>
-    client.execute({
-      sql: "UPDATE admins SET last_seen_at = ?",
-      args: [Math.floor(atMs / 1000)],
-    }),
-  );
-
-const restoreAdminsLastSeen = (saved: AdminSeen[]) =>
-  withDb(async (client) => {
-    for (const { id, seen } of saved) {
-      await client.execute({
-        sql: "UPDATE admins SET last_seen_at = ? WHERE id = ?",
-        args: [seen, id],
-      });
-    }
-  });
+// Back to the seeded state: no conversation, chat never enabled, never seen.
+const resetChat = (name: string) => resetChatRows(name, { profile: true });
 
 const newSession = async (browser: Browser) => {
   const context = await browser.newContext({
@@ -248,6 +127,9 @@ test.describe("trainee conversation screen", () => {
         .getByRole("link", { name: "Nhắn tin" })
         .click();
       await expect(trainee.page).toHaveURL(/\/messages$/);
+      // The Messages tab is the inbox now; the coach chat is its first row.
+      await trainee.page.getByRole("link", { name: /Huấn luyện viên/ }).click();
+      await expect(trainee.page).toHaveURL(/\/messages\/coach$/);
       await expect(getTabBar(trainee.page)).toHaveCount(0);
 
       await getHeader(trainee.page)
@@ -411,6 +293,9 @@ test.describe("trainee conversation screen", () => {
       await expect(tab).toBeVisible();
       await tab.click();
       await expect(trainee.page).toHaveURL(/\/messages$/);
+      // The Messages tab is the inbox now; the coach chat is its first row.
+      await trainee.page.getByRole("link", { name: /Huấn luyện viên/ }).click();
+      await expect(trainee.page).toHaveURL(/\/messages\/coach$/);
 
       const log = getLog(trainee.page);
 

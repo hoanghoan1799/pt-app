@@ -1,116 +1,67 @@
 import "server-only";
 
-import { getTranslations } from "next-intl/server";
-
-import {
-  getAvatarUrl,
-  listAdminAvatarUrls,
-} from "@/features/avatar/services/avatar";
-import { isChatEnabled } from "@/features/chat/services/chat-permission";
-import { loadChatProfile } from "@/features/chat/services/chat-profile";
-import {
-  findConversationByUserId,
-  findLatestAdminSender,
-} from "@/features/chat/services/chat-queries";
-import { getAdminTeamLastSeen } from "@/features/chat/services/presence";
-import { adminLabel } from "@/features/chat/utils/chat-settings";
-import { displayNameFor } from "@/features/chat/utils/display-name";
-import { serializeLastSeen } from "@/features/chat/utils/presence";
+import { askApi, type Asked } from "@/features/chat/services/chat-api";
+import { webizeUrls } from "@/features/chat/utils/api-urls";
 import type { BubbleMeta } from "@/features/chat-bubbles/types";
 import {
   bubbleHrefs,
   bubbleKeyFor,
 } from "@/features/chat-bubbles/utils/bubble-links";
-import {
-  adminActorKey,
-  userActorKey,
-} from "@/features/contact-aliases/utils/alias-rules";
-import { canAdminAccessUser } from "@/services/hidden-users";
-import { findUserById } from "@/services/users";
+
+type ApiBubble = {
+  userId: number;
+  conversationId: number;
+  name: string;
+  avatarUrl: string | null;
+  lastSeenAt: string | null;
+};
+
+const toBubbles = (role: "user" | "admin", bubbles: ApiBubble[]) =>
+  webizeUrls(bubbles).flatMap((bubble): BubbleMeta[] => {
+    const key = bubbleKeyFor(role, bubble.userId);
+    const hrefs = bubbleHrefs(role, key);
+
+    return hrefs
+      ? [
+          {
+            key,
+            userId: bubble.userId,
+            name: bubble.name,
+            avatarSrc: bubble.avatarUrl,
+            lastSeenAt: bubble.lastSeenAt,
+            ...hrefs,
+          },
+        ]
+      : [];
+  });
 
 // What the bubble host needs for the trainee's one chat: the coach. Chat off
-// or no conversation yet: nothing to open.
-export const loadCoachBubble = async (user: {
-  id: number;
-  chatEnabled: boolean | null;
-}): Promise<BubbleMeta[]> => {
-  const conversation = await findConversationByUserId(user.id);
+// or no conversation yet: the API sends nothing, so there is nothing to open.
+export const loadCoachBubble = async (): Promise<Asked<BubbleMeta[]>> => {
+  const asked = await askApi("user", (api) => api.GET("/v1/chat/bubbles"));
 
-  if (!isChatEnabled(user) || !conversation) {
-    return [];
-  }
-  const key = bubbleKeyFor("user", user.id);
-  const hrefs = bubbleHrefs("user", key);
-  const [t, profile, latest, teamLastSeen] = await Promise.all([
-    getTranslations("chat.shared"),
-    loadChatProfile(conversation.id, userActorKey(user.id)),
-    findLatestAdminSender(conversation.id),
-    // Respects each PT's "Trạng thái hoạt động" switch.
-    getAdminTeamLastSeen(),
-  ]);
-  const avatars = latest?.id ? await listAdminAvatarUrls() : null;
-
-  if (!hrefs) {
-    return [];
-  }
-  return [
-    {
-      key,
-      userId: user.id,
-      name: adminLabel(
-        profile.nicknames,
-        null,
-        latest?.name ?? t("fallbackPeer"),
-        "pt",
-      ),
-      avatarSrc: (latest?.id ? avatars?.get(latest.id) : null) ?? null,
-      lastSeenAt: serializeLastSeen(teamLastSeen),
-      ...hrefs,
-    },
-  ];
+  return asked.ok
+    ? { ...asked, data: toBubbles("user", asked.data.bubbles) }
+    : asked;
 };
 
 // One bubble per trainee id this admin may open and that has a writable chat;
-// unknown, hidden and out-of-scope ids are left out.
+// unknown, hidden and out-of-scope ids are left out by the API.
 export const loadTraineeBubbles = async (
-  adminId: number,
   userIds: readonly number[],
-): Promise<BubbleMeta[]> => {
-  const rows = await Promise.all(
-    userIds.map(async (userId): Promise<BubbleMeta | null> => {
-      const user = await findUserById(userId);
-
-      if (
-        !user ||
-        !isChatEnabled(user) ||
-        !(await canAdminAccessUser(adminId, user.id))
-      ) {
-        return null;
-      }
-      const conversation = await findConversationByUserId(user.id);
-      const key = bubbleKeyFor("admin", user.id);
-      const hrefs = bubbleHrefs("admin", key);
-
-      if (!conversation || !hrefs) {
-        return null;
-      }
-      const [profile, avatarSrc] = await Promise.all([
-        loadChatProfile(conversation.id, adminActorKey(adminId)),
-        getAvatarUrl("user", user.id),
-      ]);
-
-      return {
-        key,
-        userId: user.id,
-        name: displayNameFor(profile.nicknames, "user", user.name),
-        avatarSrc,
-        lastSeenAt: serializeLastSeen(user.lastSeenAt ?? null),
-        ...hrefs,
-      };
+): Promise<Asked<BubbleMeta[]>> => {
+  if (userIds.length === 0) {
+    return { ok: true, status: 200, data: [] };
+  }
+  const asked = await askApi("admin", (api) =>
+    api.GET("/v1/chat/bubbles", {
+      params: { query: { ids: userIds.join(",") } },
     }),
   );
 
-  return rows.flatMap((row) => (row ? [row] : []));
+  return asked.ok
+    ? { ...asked, data: toBubbles("admin", asked.data.bubbles) }
+    : asked;
 };
 
 // `?ids=1,2`: plain positive ids, deduped, at most `max`.

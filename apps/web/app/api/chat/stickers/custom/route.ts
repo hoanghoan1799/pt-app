@@ -1,85 +1,61 @@
-import type { NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 import {
+  actorOf,
+  askApi,
+  askUpload,
   isSameOrigin,
-  resolveStickerOwner,
-  stickerReply as reply,
-} from "@/features/chat/services/custom-sticker-api";
+  routeData,
+  routeError,
+} from "@/features/chat/services/chat-api";
 import {
-  createOwnSticker,
-  listOwnStickers,
-} from "@/features/chat/services/custom-stickers";
-import {
-  checkStickerImage,
   CUSTOM_STICKER_ERRORS,
   CUSTOM_STICKER_MAX_BYTES,
-  customStickerUrl,
 } from "@/features/chat/utils/custom-sticker-rules";
 import { logServerError } from "@/services/logger";
 
-const toView = (id: number) => ({ id, url: customStickerUrl(id) });
+const NO_STORE = { "Cache-Control": "no-store" };
 
-// GET: ids and image URLs of my stickers, newest first.
-export const GET = async (request: NextRequest) => {
-  const owner = await resolveStickerOwner(request);
-
-  if (!owner) {
-    return reply({ error: "unauthorized" }, 401);
-  }
-  if (owner === "locked") {
-    return reply({ error: "chat_locked" }, 403);
-  }
-  return reply({ stickers: (await listOwnStickers(owner)).map(toView) }, 200);
-};
-
-const tooLarge = () =>
-  reply({ error: "too_large", message: CUSTOM_STICKER_ERRORS.TOO_LARGE }, 413);
+// GET: ids and image URLs of my stickers, newest first. `?as=admin` uses the
+// PT session, otherwise the trainee's (a browser may hold both). The API
+// answers 403 for a trainee whose chat is locked.
+export const GET = async (request: NextRequest) =>
+  routeData(
+    await askApi(actorOf(request), (api) =>
+      api.GET("/v1/chat/stickers/custom"),
+    ),
+  );
 
 // POST: the raw image bytes as the request body (the browser has already
-// resized and re-encoded it). The type is read from the bytes, not trusted.
+// resized and re-encoded it). The API reads the type from the bytes.
 export const POST = async (request: NextRequest) => {
   if (!isSameOrigin(request)) {
-    return reply({ error: "forbidden" }, 403);
-  }
-  const owner = await resolveStickerOwner(request);
-
-  if (!owner) {
-    return reply({ error: "unauthorized" }, 401);
-  }
-  if (owner === "locked") {
-    return reply({ error: "chat_locked" }, 403);
+    return NextResponse.json(
+      { error: "forbidden" },
+      { status: 403, headers: NO_STORE },
+    );
   }
   const declared = Number(request.headers.get("content-length"));
 
   if (Number.isFinite(declared) && declared > CUSTOM_STICKER_MAX_BYTES) {
-    return tooLarge();
+    return NextResponse.json(
+      { error: "too_large", message: CUSTOM_STICKER_ERRORS.TOO_LARGE },
+      { status: 413, headers: NO_STORE },
+    );
   }
   try {
-    const bytes = new Uint8Array(await request.arrayBuffer());
-    const check = checkStickerImage(bytes);
+    const asked = await askUpload(
+      actorOf(request),
+      "/v1/chat/stickers/custom",
+      request,
+    );
 
-    if (!check.ok) {
-      return check.error === "too_large"
-        ? tooLarge()
-        : reply(
-            { error: "bad_image", message: CUSTOM_STICKER_ERRORS.BAD_IMAGE },
-            400,
-          );
-    }
-    const result = await createOwnSticker(owner, { mime: check.mime, bytes });
-
-    if (result.status === "limit") {
-      return reply(
-        { error: "limit", message: CUSTOM_STICKER_ERRORS.LIMIT },
-        409,
-      );
-    }
-    return reply({ sticker: toView(result.id) }, 201);
+    return asked.ok ? routeData(asked, 201) : routeError(asked.error);
   } catch (error) {
     logServerError("createCustomSticker", error);
-    return reply(
+    return NextResponse.json(
       { error: "failed", message: CUSTOM_STICKER_ERRORS.GENERIC },
-      500,
+      { status: 500, headers: NO_STORE },
     );
   }
 };

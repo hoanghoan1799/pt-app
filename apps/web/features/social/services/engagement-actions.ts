@@ -3,16 +3,10 @@
 import { revalidatePath } from "next/cache";
 
 import { SOCIAL_MESSAGES } from "@/features/social/constants/social";
-import { resolveActor, type Who } from "@/features/social/services/actor-guard";
 import {
-  addComment,
-  deleteComment,
-  editComment,
-  type EngagementError,
-  reactToPost,
-} from "@/features/social/services/engagement-mutations";
-import { listReactors } from "@/features/social/services/engagement-queries";
-import { scheduleSocialPush } from "@/features/social/services/social-notifications";
+  requireWho,
+  type Who,
+} from "@/features/social/services/social-session";
 import type { ReactorView } from "@/features/social/types/social";
 import {
   addCommentSchema,
@@ -22,15 +16,11 @@ import {
 } from "@/features/social/utils/engagement-rules";
 import { postIdSchema } from "@/features/social/utils/post-rules";
 import { withResultErrorHandling } from "@/services/action-errors";
+import { callApi } from "@/services/api/call";
 import type { ActionErrorResult } from "@/types/error";
 
-// Every action resolves the actor first (requireUser / requireAdmin plus the
-// terms gate), validates with Zod, and the services re-check canSeePost.
-
-const MESSAGES: Record<EngagementError, string> = {
-  not_found: SOCIAL_MESSAGES.NOT_FOUND,
-  forbidden: SOCIAL_MESSAGES.NOT_ALLOWED,
-};
+// Every action starts with requireUser / requireAdmin, validates with Zod and
+// leaves the terms, visibility and blocks to the API.
 
 const fail = (message: string): ActionErrorResult => ({
   status: "error",
@@ -49,27 +39,27 @@ const refresh = () => {
 export const reactAction = withResultErrorHandling(
   "reactToPost",
   async (who: Who, input: unknown) => {
-    const actor = await resolveActor(who);
-
-    if (!actor) {
-      return fail(SOCIAL_MESSAGES.TERMS_REQUIRED);
-    }
+    const actor = await requireWho(who);
     const parsed = reactSchema.safeParse(input);
 
     if (!parsed.success) {
       return fail(SOCIAL_MESSAGES.REACTION_INVALID);
     }
-    const result = await reactToPost(
-      actor,
-      parsed.data.postId,
-      parsed.data.emoji,
-    );
+    const { postId, emoji } = parsed.data;
 
-    if (!result.ok) {
-      return fail(MESSAGES[result.error]);
-    }
-    if (result.notificationId !== null) {
-      scheduleSocialPush({ notificationId: result.notificationId });
+    if (emoji === null) {
+      await callApi(actor, (api) =>
+        api.DELETE("/v1/social/posts/{id}/reaction", {
+          params: { path: { id: String(postId) } },
+        }),
+      );
+    } else {
+      await callApi(actor, (api) =>
+        api.PUT("/v1/social/posts/{id}/reaction", {
+          params: { path: { id: String(postId) } },
+          body: { emoji },
+        }),
+      );
     }
     refresh();
   },
@@ -78,11 +68,7 @@ export const reactAction = withResultErrorHandling(
 export const addCommentAction = withResultErrorHandling(
   "addComment",
   async (who: Who, input: unknown) => {
-    const actor = await resolveActor(who);
-
-    if (!actor) {
-      return fail(SOCIAL_MESSAGES.TERMS_REQUIRED);
-    }
+    const actor = await requireWho(who);
     const parsed = addCommentSchema.safeParse(input);
 
     if (!parsed.success) {
@@ -90,21 +76,12 @@ export const addCommentAction = withResultErrorHandling(
         parsed.error.issues[0]?.message ?? SOCIAL_MESSAGES.COMMENT_EMPTY,
       );
     }
-    const result = await addComment(
-      actor,
-      parsed.data.postId,
-      parsed.data.body,
+    await callApi(actor, (api) =>
+      api.POST("/v1/social/posts/{id}/comments", {
+        params: { path: { id: String(parsed.data.postId) } },
+        body: { body: parsed.data.body },
+      }),
     );
-
-    if (!result.ok) {
-      return fail(MESSAGES[result.error]);
-    }
-    if (result.notificationId !== null) {
-      scheduleSocialPush({
-        notificationId: result.notificationId,
-        commentBody: parsed.data.body,
-      });
-    }
     refresh();
   },
 );
@@ -112,11 +89,7 @@ export const addCommentAction = withResultErrorHandling(
 export const editCommentAction = withResultErrorHandling(
   "editComment",
   async (who: Who, input: unknown) => {
-    const actor = await resolveActor(who);
-
-    if (!actor) {
-      return fail(SOCIAL_MESSAGES.TERMS_REQUIRED);
-    }
+    const actor = await requireWho(who);
     const parsed = editCommentSchema.safeParse(input);
 
     if (!parsed.success) {
@@ -124,15 +97,12 @@ export const editCommentAction = withResultErrorHandling(
         parsed.error.issues[0]?.message ?? SOCIAL_MESSAGES.COMMENT_EMPTY,
       );
     }
-    const result = await editComment(
-      actor,
-      parsed.data.commentId,
-      parsed.data.body,
+    await callApi(actor, (api) =>
+      api.PATCH("/v1/social/comments/{id}", {
+        params: { path: { id: String(parsed.data.commentId) } },
+        body: { body: parsed.data.body },
+      }),
     );
-
-    if (!result.ok) {
-      return fail(MESSAGES[result.error]);
-    }
     refresh();
   },
 );
@@ -140,21 +110,17 @@ export const editCommentAction = withResultErrorHandling(
 export const deleteCommentAction = withResultErrorHandling(
   "deleteComment",
   async (who: Who, commentId: unknown) => {
-    const actor = await resolveActor(who);
-
-    if (!actor) {
-      return fail(SOCIAL_MESSAGES.TERMS_REQUIRED);
-    }
+    const actor = await requireWho(who);
     const id = commentIdSchema.safeParse(commentId);
 
     if (!id.success) {
       return fail(SOCIAL_MESSAGES.COMMENT_NOT_FOUND);
     }
-    const result = await deleteComment(actor, id.data);
-
-    if (!result.ok) {
-      return fail(MESSAGES[result.error]);
-    }
+    await callApi(actor, (api) =>
+      api.DELETE("/v1/social/comments/{id}", {
+        params: { path: { id: String(id.data) } },
+      }),
+    );
     refresh();
   },
 );
@@ -165,20 +131,18 @@ export type ListReactorsResult =
 export const listReactorsAction = withResultErrorHandling(
   "listReactors",
   async (who: Who, postId: unknown): Promise<ListReactorsResult> => {
-    const actor = await resolveActor(who);
-
-    if (!actor) {
-      return fail(SOCIAL_MESSAGES.TERMS_REQUIRED);
-    }
+    const actor = await requireWho(who);
     const id = postIdSchema.safeParse(postId);
 
     if (!id.success) {
       return fail(SOCIAL_MESSAGES.NOT_FOUND);
     }
-    const reactors = await listReactors(actor, id.data);
+    const { items } = await callApi(actor, (api) =>
+      api.GET("/v1/social/posts/{id}/reactions", {
+        params: { path: { id: String(id.data) } },
+      }),
+    );
 
-    return reactors
-      ? { status: "success", reactors }
-      : fail(SOCIAL_MESSAGES.NOT_FOUND);
+    return { status: "success", reactors: items };
   },
 );

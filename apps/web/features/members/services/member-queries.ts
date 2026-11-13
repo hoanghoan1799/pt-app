@@ -1,41 +1,64 @@
 import "server-only";
 
-import { and, asc, eq, notInArray, or } from "drizzle-orm";
+import { toNameKey } from "@pt/contracts";
 
-import { db } from "@/db";
-import { users } from "@/db/schema";
-import { resolveDisplayName } from "@/features/chat/utils/display-name";
-import { loadTraineeAliases } from "@/features/contact-aliases/services/contact-aliases";
 import type { Member } from "@/features/members/types/member";
-import { outOfScopeUserIdsOf } from "@/services/admin-scope";
-import { hiddenUserIdsOf } from "@/services/hidden-users";
+import { callApi, tryApi } from "@/services/api/call";
 
-// Trainees `adminId` hid are left out (KAN-163), except `keepUserId` (the one
-// whose page is open, which the admin is allowed to see).
+// The trainees this admin may work with, without the ones they hid (KAN-163),
+// except `keepUserId` (the one whose page is open, which the admin is allowed
+// to see). `name` is what the admin sees: their private nickname if one is set.
+// Ordered by real name, like the API's list.
 export const listMembers = async (
-  adminId: number,
+  _adminId: number,
   keepUserId?: number,
 ): Promise<Member[]> => {
-  const inScope = notInArray(users.id, outOfScopeUserIdsOf(adminId));
-  const visible = and(inScope, notInArray(users.id, hiddenUserIdsOf(adminId)));
+  const { trainees } = await callApi("admin", (api) => api.GET("/v1/trainees"));
+  const members = trainees.map((trainee) => ({
+    id: trainee.id,
+    name: trainee.displayName,
+    key: toNameKey(trainee.name),
+  }));
 
-  const rows = await db
-    .select({ id: users.id, name: users.name })
-    .from(users)
-    .where(
-      keepUserId === undefined
-        ? visible
-        : or(and(eq(users.id, keepUserId), inScope), visible),
-    )
-    .orderBy(asc(users.nameKey));
-  const nicknames = await loadTraineeAliases(
-    adminId,
-    rows.map((row) => row.id),
+  if (keepUserId !== undefined && !members.some((m) => m.id === keepUserId)) {
+    // Hidden but revealed (or just opened): the API answers 404 when the admin
+    // may not see this trainee.
+    const kept = await tryApi("admin", (api) =>
+      api.GET("/v1/trainees/{userId}", {
+        params: { path: { userId: keepUserId } },
+      }),
+    );
+
+    if (kept.ok) {
+      members.push({
+        id: kept.data.id,
+        name: kept.data.displayName,
+        key: toNameKey(kept.data.name),
+      });
+      members.sort((a, b) => a.key.localeCompare(b.key));
+    }
+  }
+  return members.map(({ id, name }) => ({ id, name }));
+};
+
+// One trainee as this admin may see them: the API answers 404 for a trainee
+// outside a PT's workspace, one this admin hid (until revealed with the
+// passcode) and one that does not exist, so all three are `null` here and the
+// page answers notFound(). `displayName` is this admin's private nickname if
+// set, `hidden` says whether they hid them.
+export const getTrainee = async (userId: number) => {
+  if (!Number.isSafeInteger(userId) || userId <= 0) {
+    return null;
+  }
+  const outcome = await tryApi("admin", (api) =>
+    api.GET("/v1/trainees/{userId}", { params: { path: { userId } } }),
   );
 
-  // `name` is what the admin sees: this admin's private nickname if one is set.
-  return rows.map((row) => ({
-    ...row,
-    name: resolveDisplayName(nicknames.get(row.id), row.name),
-  }));
+  if (outcome.ok) {
+    return outcome.data;
+  }
+  if (outcome.error.status === 404) {
+    return null;
+  }
+  throw outcome.error;
 };

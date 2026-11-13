@@ -8,13 +8,11 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { CARD, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
-import { isChatEnabled } from "@/features/chat/services/chat-permission";
-import { countUnreadForUser } from "@/features/chat/services/chat-queries";
+import { loadUserUnread } from "@/features/chat/services/chat-queries";
 import { BubbleRowTrigger } from "@/features/chat-bubbles/components/BubbleRowTrigger";
 import { bubbleKeyFor } from "@/features/chat-bubbles/utils/bubble-links";
 import { DmInboxRefresh } from "@/features/social/components/DmInboxRefresh";
-import { listDmInbox } from "@/features/social/services/dm-queries";
-import { hasAcceptedTerms } from "@/features/social/services/terms";
+import { listDmInbox } from "@/features/social/services/dm-api";
 import { dmPath } from "@/features/social/utils/dm-rules";
 import { requireUser } from "@/services/auth-guard";
 import { formatRelativeTime } from "@/utils/time";
@@ -42,10 +40,7 @@ const MessagesInboxPage = async () => {
   const dm = await getTranslations("social.dm");
   const locale = await getLocale();
   const user = await requireUser();
-  const [coachUnread, chats] = await Promise.all([
-    countUnreadForUser(user.id),
-    hasAcceptedTerms(user) ? listDmInbox(user.id, locale) : [],
-  ]);
+  const [unread, chats] = await Promise.all([loadUserUnread(), listDmInbox()]);
 
   return (
     <>
@@ -60,7 +55,7 @@ const MessagesInboxPage = async () => {
               role="user"
               bubbleKey={bubbleKeyFor("user", user.id)}
               name={dm("coachTitle")}
-              disabled={!isChatEnabled(user)}
+              disabled={!unread.chatEnabled}
             >
               <Link href={ROUTES.MESSAGES_COACH} className={ROW}>
                 <Avatar name="PT" className="size-12 shrink-0 text-base" />
@@ -72,7 +67,7 @@ const MessagesInboxPage = async () => {
                     {t("coachSubtitle")}
                   </span>
                 </span>
-                {coachUnread > 0 && <UnreadDot label={t("unreadDot")} />}
+                {unread.coachCount > 0 && <UnreadDot label={t("unreadDot")} />}
               </Link>
             </BubbleRowTrigger>
           </li>

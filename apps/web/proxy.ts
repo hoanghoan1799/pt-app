@@ -1,63 +1,53 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 import { ROUTES } from "@/constants/routes";
-import {
-  ADMIN_COOKIE,
-  USER_COOKIE,
-  USER_SESSION_MAX_AGE,
-  USER_SESSION_REFRESH_AFTER,
-} from "@/constants/session";
-import {
-  getSessionCookieOptions,
-  signSession,
-  verifySession,
-} from "@/services/session-token";
-import type { VerifiedSession } from "@/types/session";
-import { refreshedUserPayload } from "@/utils/session-staleness";
+import { ADMIN_COOKIE, USER_COOKIE } from "@/constants/session";
+import { sessionCookieFor } from "@/services/session-cookie";
 
 const redirectTo = (path: string, request: NextRequest) =>
   NextResponse.redirect(new URL(path, request.url));
 
-const readSession = (request: NextRequest, cookieName: string) =>
-  verifySession(request.cookies.get(cookieName)?.value);
+// Only the cookie's presence is checked here: the token is opaque and only the
+// API can say whether it is still valid. Pages, guard layouts and server
+// actions ask the API (GET /v1/auth/me through services/auth-guard); a stale
+// cookie is cleared by /session/end.
+const hasCookie = (request: NextRequest, cookieName: string) =>
+  Boolean(request.cookies.get(cookieName)?.value);
 
-// Slides the user session forward (at most once a day) so it only ends on an
-// explicit logout, not because the user didn't open the app for a while.
-// Keeps `authAt`, so a password reset still signs this session out (D6).
-const withRefreshedUserSession = async (
+// A page navigation (not a server action, not a prefetch): the only requests
+// that extend the trainee cookie, so it never races with a login or logout
+// action that writes the same cookie.
+const isNavigation = (request: NextRequest) =>
+  request.method === "GET" && !request.headers.has("next-router-prefetch");
+
+// The API slides a trainee session on use; this slides the cookie with it, so
+// a trainee who keeps opening the app is never asked to log in again (the
+// browser caps a cookie at 400 days from the last time it was set).
+const withSlidingUserCookie = (
   response: NextResponse,
-  session: Extract<VerifiedSession, { role: "user" }>,
+  request: NextRequest,
 ) => {
-  if (Date.now() / 1000 - session.issuedAt > USER_SESSION_REFRESH_AFTER) {
-    const token = await signSession(
-      refreshedUserPayload(session),
-      USER_SESSION_MAX_AGE,
-    );
+  const token = request.cookies.get(USER_COOKIE)?.value;
 
-    response.cookies.set(
-      USER_COOKIE,
-      token,
-      getSessionCookieOptions(USER_SESSION_MAX_AGE),
-    );
+  if (token && isNavigation(request)) {
+    const { name, value, options } = sessionCookieFor("user", token);
+
+    response.cookies.set(name, value, options);
   }
   return response;
 };
 
 // Admin area: /admin/*. Only admins get in; a signed-in user is sent back to
 // their own app and never sees the admin login.
-const handleAdminArea = async (request: NextRequest) => {
+const handleAdminArea = (request: NextRequest) => {
   const isLoginPage = request.nextUrl.pathname === ROUTES.ADMIN_LOGIN;
-  const adminSession = await readSession(request, ADMIN_COOKIE);
 
-  if (adminSession?.role === "admin") {
+  if (hasCookie(request, ADMIN_COOKIE)) {
     return isLoginPage
       ? redirectTo(ROUTES.ADMIN, request)
       : NextResponse.next();
   }
-
-  const userSession = await readSession(request, USER_COOKIE);
-
-  if (userSession?.role === "user") {
+  if (hasCookie(request, USER_COOKIE)) {
     return redirectTo(ROUTES.WORKOUTS, request);
   }
   return isLoginPage
@@ -66,28 +56,21 @@ const handleAdminArea = async (request: NextRequest) => {
 };
 
 // User area: / (login), /feed/*, /friends/*, /terms/*, /profile/*, /post/*, /notifications/*, /workouts/*, /nutrition/*, /summary/*, /messages/*, /foods/* and /account/*.
-const handleUserArea = async (request: NextRequest) => {
+const handleUserArea = (request: NextRequest) => {
   const isLoginPage = request.nextUrl.pathname === ROUTES.HOME;
-  const userSession = await readSession(request, USER_COOKIE);
 
-  if (userSession?.role === "user") {
-    const response = isLoginPage
-      ? redirectTo(ROUTES.WORKOUTS, request)
-      : NextResponse.next();
-
-    return withRefreshedUserSession(response, userSession);
+  if (hasCookie(request, USER_COOKIE)) {
+    return withSlidingUserCookie(
+      isLoginPage ? redirectTo(ROUTES.WORKOUTS, request) : NextResponse.next(),
+      request,
+    );
   }
-
-  const adminSession = await readSession(request, ADMIN_COOKIE);
-
-  if (adminSession?.role === "admin") {
+  if (hasCookie(request, ADMIN_COOKIE)) {
     return redirectTo(ROUTES.ADMIN, request);
   }
   return isLoginPage ? NextResponse.next() : redirectTo(ROUTES.HOME, request);
 };
 
-// Optimistic cookie checks only; pages, guard layouts and server actions
-// re-verify against the database through services/auth-guard.
 export const proxy = (request: NextRequest) =>
   request.nextUrl.pathname.startsWith(ROUTES.ADMIN)
     ? handleAdminArea(request)

@@ -37,6 +37,10 @@ const trainee: UserActor = {
   email: null,
   locale: null,
   ptAdminId: 1,
+  chatEnabled: false,
+  termsVersion: null,
+  preferredMealCount: null,
+  foodNote: null,
   session,
 };
 

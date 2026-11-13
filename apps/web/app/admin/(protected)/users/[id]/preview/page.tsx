@@ -6,12 +6,10 @@ import { getTranslations } from "next-intl/server";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { PAGE_CONTAINER } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
-import { getTraineeDisplayName } from "@/features/chat/services/chat-queries";
+import { getTrainee } from "@/features/members/services/member-queries";
 import { WorkoutWeek } from "@/features/workouts/components/WorkoutWeek";
-import { getWeekScheduleWithSets } from "@/features/workouts/services/workout-queries";
+import { getTraineeWeekSchedule } from "@/features/workouts/services/workout-api";
 import { requireAdmin } from "@/services/auth-guard";
-import { canAdminAccessUser } from "@/services/hidden-users";
-import { findUserById } from "@/services/users";
 import { getAdminPreviewPath, getAdminUserPath } from "@/utils/routes";
 import { readSearchParam } from "@/utils/search-params";
 import { buildScheduleHref, getTodayDate, resolveSchedule } from "@/utils/week";
@@ -26,16 +24,18 @@ const AdminPreviewPage = async ({
   params,
   searchParams,
 }: PageProps<"/admin/users/[id]/preview">) => {
-  const admin = await requireAdmin();
+  await requireAdmin();
   const t = await getTranslations("adminPages.userPreview");
 
   const { id } = await params;
-  const user = await findUserById(Number(id));
+  // Scope, hiding and nicknames are the API's: it answers 404 for a trainee
+  // this admin may not see.
+  const user = await getTrainee(Number(id));
 
-  if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
+  if (!user) {
     notFound();
   }
-  const displayName = await getTraineeDisplayName(admin.id, user);
+  const { displayName } = user;
 
   const query = await searchParams;
   const today = getTodayDate(TIME_ZONE);
@@ -43,7 +43,7 @@ const AdminPreviewPage = async ({
     { week: readSearchParam(query.week), day: readSearchParam(query.day) },
     today,
   );
-  const days = await getWeekScheduleWithSets(user.id, schedule.weekStart);
+  const days = await getTraineeWeekSchedule(user.id, schedule.weekStart);
 
   return (
     <>

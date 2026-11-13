@@ -1,63 +1,37 @@
-import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { INITIAL_FORM_STATE } from "@/constants/form";
-import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
-import { foods } from "@/db/schema";
+import type { FakeApi } from "@/services/api/fake-call";
 
-const state = vi.hoisted(() => ({
-  db: null as unknown,
-  role: "admin",
-  adminRole: "super_admin" as "super_admin" | "pt",
-  // Pretend the duplicate check found nothing, as when two saves race.
-  skipNameCheck: false,
-}));
+// The food rules (unique active name, archive keeps the row, the kcal check,
+// super admin only) live in the API and are covered by
+// apps/api/test/foods.e2e.test.ts. These tests cover what the web action still
+// owns: the Zod check before the call, what is sent, how each answer is shown
+// and where the pages are revalidated.
 
 vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-// The session cookie is the only thing faked: the real requireAdmin runs.
-vi.mock("@/services/session", () => ({
-  readSession: vi.fn(async () =>
-    state.role === "admin"
-      ? { role: "admin", adminId: 1 }
-      : { role: "user", userId: 1 },
-  ),
-}));
-vi.mock("@/services/admins", () => ({
-  findAdminById: vi.fn(async (id: number) => ({
-    id,
-    username: "pt",
-    role: state.adminRole,
-    verified: false,
-  })),
-}));
-vi.mock("@/services/users", () => ({ findUserById: vi.fn() }));
-vi.mock("@/features/foods/services/food-queries", async (importOriginal) => {
-  const original =
-    await importOriginal<
-      typeof import("@/features/foods/services/food-queries")
-    >();
+vi.mock("@/services/api/call", async () => {
+  const { createFakeApi } = await import("@/services/api/fake-call");
+  const fake = createFakeApi();
 
-  return {
-    ...original,
-    findActiveFoodByNameKey: (
-      ...args: Parameters<typeof original.findActiveFoodByNameKey>
-    ) =>
-      state.skipNameCheck
-        ? Promise.resolve(null)
-        : original.findActiveFoodByNameKey(...args),
-  };
+  return { callApi: fake.callApi, tryApi: fake.tryApi, fake };
 });
-vi.mock("@/db", () => ({
-  db: new Proxy(
-    {},
-    { get: (_target, property) => Reflect.get(state.db as object, property) },
-  ),
+vi.mock("@/services/auth-guard", () => ({
+  requireSuperAdmin: vi.fn(async () => ({ id: 1 })),
 }));
 
 const { archiveFoodAction, createFoodAction, updateFoodAction } =
   await import("@/features/foods/services/food-actions");
-const { listFoods } = await import("@/features/foods/services/food-queries");
+const { fake } = (await import("@/services/api/call")) as unknown as {
+  fake: FakeApi;
+};
+
+beforeEach(() => {
+  fake.reset();
+  vi.mocked(revalidatePath).mockClear();
+});
 
 const CHICKEN: Record<string, string> = {
   name: "Ức gà (chín)",
@@ -66,7 +40,7 @@ const CHICKEN: Record<string, string> = {
   kcal: "165",
   protein: "31",
   carbs: "0",
-  fat: "3.6",
+  fat: "3,6",
   source: "USDA FDC 171477",
 };
 
@@ -79,359 +53,178 @@ const toFormData = (fields: Record<string, string>) => {
   return formData;
 };
 
-let db: TestDb;
-
-beforeEach(async () => {
-  db = await createTestDb();
-  state.db = db;
-  state.role = "admin";
-  state.adminRole = "super_admin";
-  state.skipNameCheck = false;
-});
-
-const rowCount = async () => (await db.select().from(foods)).length;
-
 describe("createFoodAction", () => {
-  it("stores the food with its accent-free name key", async () => {
+  it("sends the form text as typed to POST /v1/foods and revalidates both lists", async () => {
     const result = await createFoodAction(
       INITIAL_FORM_STATE,
       toFormData(CHICKEN),
     );
 
-    expect(result.status).toBe("success");
-
-    const [row] = await db.select().from(foods);
-
-    expect(row).toMatchObject({
-      name: "Ức gà (chín)",
-      nameKey: "uc ga (chin)",
-      group: "meat",
-      state: "cooked",
-      kcal: 165,
-      protein: 31,
-      carbs: 0,
-      fat: 3.6,
-      fiber: null,
-      servingLabel: null,
-      servingGrams: null,
-      source: "USDA FDC 171477",
-      archivedAt: null,
-    });
+    expect(result).toMatchObject({ status: "success", message: "Đã thêm món" });
+    expect(fake.requests).toEqual([
+      expect.objectContaining({
+        actor: "admin",
+        method: "POST",
+        path: "/v1/foods",
+        // "3,6" stays text: the API parses the Vietnamese decimal comma.
+        body: expect.objectContaining({
+          name: "Ức gà (chín)",
+          group: "meat",
+          kcal: "165",
+          fat: "3,6",
+        }),
+      }),
+    ]);
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/foods", "layout");
+    expect(revalidatePath).toHaveBeenCalledWith("/foods", "layout");
   });
 
-  it("F6: saves nothing and reports the field when the input is bad", async () => {
+  it("refuses an invalid form without calling the API", async () => {
     const result = await createFoodAction(
       INITIAL_FORM_STATE,
-      toFormData({ ...CHICKEN, name: "", protein: "-3" }),
+      toFormData({ ...CHICKEN, name: "" }),
     );
 
-    expect(result.status).toBe("error");
-    expect(result.fieldErrors).toEqual({
-      name: "Nhập tên món",
-      protein: "Protein không được âm",
+    expect(result).toMatchObject({
+      status: "error",
+      message: "Vui lòng kiểm tra lại thông tin",
     });
-    expect(await rowCount()).toBe(0);
+    expect(result.fieldErrors?.name).toBeTruthy();
+    expect(fake.requests).toHaveLength(0);
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("F4: refuses a kcal that is 140 % off unless the box is ticked", async () => {
-    const refused = await createFoodAction(
+  it("refuses a kcal far from the macros until the box is ticked, before calling the API", async () => {
+    const result = await createFoodAction(
       INITIAL_FORM_STATE,
       toFormData({ ...CHICKEN, kcal: "65" }),
     );
 
-    expect(refused.status).toBe("error");
-    expect(refused.fieldErrors?.kcal).toContain("lệch 141%");
-    expect(await rowCount()).toBe(0);
-
-    const accepted = await createFoodAction(
-      INITIAL_FORM_STATE,
-      toFormData({ ...CHICKEN, kcal: "65", confirmed: "on" }),
-    );
-
-    expect(accepted.status).toBe("success");
-    expect((await db.select().from(foods))[0].kcal).toBe(65);
+    expect(result.status).toBe("error");
+    expect(fake.requests).toHaveLength(0);
   });
 
-  it("F7: refuses a second active food with the same name, ignoring accents and case", async () => {
-    await createFoodAction(INITIAL_FORM_STATE, toFormData(CHICKEN));
-
-    const result = await createFoodAction(
-      INITIAL_FORM_STATE,
-      toFormData({ ...CHICKEN, name: "UC GA (CHIN)" }),
-    );
-
-    expect(result.status).toBe("error");
-    expect(result.fieldErrors?.name).toBe(
+  it("marks the name field when the API says the name is taken", async () => {
+    fake.refuse(
+      409,
+      "FOOD_NAME_TAKEN",
       "Đã có món trùng tên. Thêm trạng thái (sống/chín) để phân biệt.",
     );
-    expect(await rowCount()).toBe(1);
-  });
-
-  it("F7: the raw and cooked versions are two different foods", async () => {
-    await createFoodAction(INITIAL_FORM_STATE, toFormData(CHICKEN));
-
-    const raw = await createFoodAction(
-      INITIAL_FORM_STATE,
-      toFormData({
-        ...CHICKEN,
-        name: "Ức gà (sống)",
-        state: "raw",
-        kcal: "120",
-        protein: "22.5",
-        fat: "2.6",
-      }),
-    );
-
-    expect(raw.status).toBe("success");
-    expect(await rowCount()).toBe(2);
-  });
-
-  it("F7: an archived food's name can be used again", async () => {
-    await createFoodAction(INITIAL_FORM_STATE, toFormData(CHICKEN));
-
-    const [first] = await db.select().from(foods);
-
-    await archiveFoodAction(first.id);
-
-    const again = await createFoodAction(
-      INITIAL_FORM_STATE,
-      toFormData(CHICKEN),
-    );
-
-    expect(again.status).toBe("success");
-    expect(await rowCount()).toBe(2);
-  });
-});
-
-describe("duplicate names that slip past the check", () => {
-  it("create: the unique index refuses the second row and the action reports the name", async () => {
-    await createFoodAction(INITIAL_FORM_STATE, toFormData(CHICKEN));
-    state.skipNameCheck = true;
 
     const result = await createFoodAction(
       INITIAL_FORM_STATE,
-      toFormData({ ...CHICKEN, name: "uc ga (chin)" }),
+      toFormData(CHICKEN),
     );
 
-    expect(result.status).toBe("error");
-    expect(result.fieldErrors?.name).toContain("trùng tên");
-    expect(await rowCount()).toBe(1);
+    expect(result).toMatchObject({
+      status: "error",
+      fieldErrors: {
+        name: "Đã có món trùng tên. Thêm trạng thái (sống/chín) để phân biệt.",
+      },
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("update: renaming onto another active food is refused the same way", async () => {
-    await createFoodAction(INITIAL_FORM_STATE, toFormData(CHICKEN));
-    await createFoodAction(
-      INITIAL_FORM_STATE,
-      toFormData({ ...CHICKEN, name: "Ức gà (sống)", state: "raw" }),
-    );
+  it("shows the API's own message for any other refusal", async () => {
+    fake.refuse(403, "FORBIDDEN", "Bạn không có quyền");
 
-    const [first] = await db
-      .select()
-      .from(foods)
-      .where(eq(foods.nameKey, "uc ga (chin)"));
-
-    state.skipNameCheck = true;
-
-    const result = await updateFoodAction(
-      INITIAL_FORM_STATE,
-      toFormData({ ...CHICKEN, id: String(first.id), name: "Ức gà (sống)" }),
-    );
-
-    expect(result.status).toBe("error");
-    expect(result.fieldErrors?.name).toContain("trùng tên");
-    expect(
-      (await db.select().from(foods).where(eq(foods.id, first.id)))[0].name,
-    ).toBe("Ức gà (chín)");
-  });
-
-  it("the index allows an archived row to share a name with an active one", async () => {
-    await createFoodAction(INITIAL_FORM_STATE, toFormData(CHICKEN));
-
-    const [first] = await db.select().from(foods);
-
-    await archiveFoodAction(first.id);
-    state.skipNameCheck = true;
-
-    const again = await createFoodAction(
+    const result = await createFoodAction(
       INITIAL_FORM_STATE,
       toFormData(CHICKEN),
     );
 
-    expect(again.status).toBe("success");
-    expect(await rowCount()).toBe(2);
+    expect(result).toMatchObject({
+      status: "error",
+      message: "Bạn không có quyền",
+    });
   });
 });
 
 describe("updateFoodAction", () => {
-  const createChicken = async () => {
-    await createFoodAction(INITIAL_FORM_STATE, toFormData(CHICKEN));
-
-    return (await db.select().from(foods))[0];
-  };
-
-  it("changes the numbers and the search key", async () => {
-    const chicken = await createChicken();
+  it("sends the whole food to PATCH /v1/foods/:id", async () => {
     const result = await updateFoodAction(
       INITIAL_FORM_STATE,
-      toFormData({
-        ...CHICKEN,
-        id: String(chicken.id),
-        name: "Ức gà luộc",
-        fat: "4",
-        kcal: "160",
-      }),
+      toFormData({ ...CHICKEN, id: "7", kcal: "170" }),
     );
 
-    expect(result.status).toBe("success");
+    expect(result).toMatchObject({ status: "success" });
+    expect(fake.requests).toEqual([
+      expect.objectContaining({
+        method: "PATCH",
+        path: "/v1/foods/{id}",
+        params: { path: { id: "7" } },
+        body: expect.objectContaining({ kcal: "170" }),
+      }),
+    ]);
+    expect(revalidatePath).toHaveBeenCalledTimes(2);
+  });
 
-    const [row] = await db.select().from(foods);
+  it("says the food is gone when the id is missing or the API answers 404", async () => {
+    const withoutId = await updateFoodAction(
+      INITIAL_FORM_STATE,
+      toFormData(CHICKEN),
+    );
 
-    expect(row).toMatchObject({
-      id: chicken.id,
-      name: "Ức gà luộc",
-      nameKey: "uc ga luoc",
-      fat: 4,
-      kcal: 160,
+    expect(withoutId).toMatchObject({
+      status: "error",
+      message: "Món này không còn tồn tại",
     });
+    expect(fake.requests).toHaveLength(0);
+
+    fake.refuse(404, "FOOD_NOT_FOUND", "Món này không còn tồn tại");
+
+    const archived = await updateFoodAction(
+      INITIAL_FORM_STATE,
+      toFormData({ ...CHICKEN, id: "7" }),
+    );
+
+    expect(archived).toMatchObject({
+      status: "error",
+      message: "Món này không còn tồn tại",
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("allows saving a food under its own name", async () => {
-    const chicken = await createChicken();
+  it("marks the name field when another food has that name", async () => {
+    fake.refuse(409, "FOOD_NAME_TAKEN", "Đã có món trùng tên.");
+
     const result = await updateFoodAction(
       INITIAL_FORM_STATE,
-      toFormData({ ...CHICKEN, id: String(chicken.id), fat: "4" }),
+      toFormData({ ...CHICKEN, id: "7" }),
     );
 
-    expect(result.status).toBe("success");
-  });
-
-  it("F7: refuses a rename onto another active food", async () => {
-    const chicken = await createChicken();
-
-    await createFoodAction(
-      INITIAL_FORM_STATE,
-      toFormData({ ...CHICKEN, name: "Ức gà (sống)", state: "raw" }),
-    );
-
-    const result = await updateFoodAction(
-      INITIAL_FORM_STATE,
-      toFormData({
-        ...CHICKEN,
-        id: String(chicken.id),
-        name: "ức gà (sống)",
-      }),
-    );
-
-    expect(result.status).toBe("error");
-    expect(result.fieldErrors?.name).toContain("trùng tên");
-    expect(
-      (await db.select().from(foods).where(eq(foods.id, chicken.id)))[0].name,
-    ).toBe("Ức gà (chín)");
-  });
-
-  it("reports a missing or archived food instead of inserting", async () => {
-    const chicken = await createChicken();
-
-    await archiveFoodAction(chicken.id);
-
-    for (const id of [String(chicken.id), "9999", "abc", ""]) {
-      const result = await updateFoodAction(
-        INITIAL_FORM_STATE,
-        toFormData({ ...CHICKEN, id }),
-      );
-
-      expect(result.status).toBe("error");
-      expect(result.message).toBe("Món này không còn tồn tại");
-    }
-    expect(await rowCount()).toBe(1);
+    expect(result.fieldErrors?.name).toBeTruthy();
   });
 });
 
 describe("archiveFoodAction", () => {
-  it("hides the food from the list but keeps the row", async () => {
-    await createFoodAction(INITIAL_FORM_STATE, toFormData(CHICKEN));
+  it("calls DELETE /v1/foods/:id and revalidates both lists", async () => {
+    const result = await archiveFoodAction(7);
 
-    const [chicken] = await db.select().from(foods);
-
-    expect(await archiveFoodAction(chicken.id)).toEqual({ status: "success" });
-
-    const [row] = await db.select().from(foods);
-
-    expect(row.archivedAt).toBeInstanceOf(Date);
-    expect(row.kcal).toBe(165);
-    expect(await listFoods()).toEqual([]);
+    expect(result).toEqual({ status: "success" });
+    expect(fake.requests).toEqual([
+      expect.objectContaining({
+        method: "DELETE",
+        path: "/v1/foods/{id}",
+        params: { path: { id: "7" } },
+      }),
+    ]);
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/foods", "layout");
+    expect(revalidatePath).toHaveBeenCalledWith("/foods", "layout");
   });
 
-  it("reports a food that is already archived or never existed", async () => {
-    await createFoodAction(INITIAL_FORM_STATE, toFormData(CHICKEN));
-
-    const [chicken] = await db.select().from(foods);
-
-    await archiveFoodAction(chicken.id);
-
-    expect(await archiveFoodAction(chicken.id)).toEqual({
+  it("refuses a bad id without calling the API and reports a missing food", async () => {
+    expect(await archiveFoodAction(0)).toMatchObject({
       status: "error",
       message: "Món này không còn tồn tại",
     });
-    expect(await archiveFoodAction(9999)).toEqual({
+    expect(fake.requests).toHaveLength(0);
+
+    fake.refuse(404, "FOOD_NOT_FOUND", "Món này không còn tồn tại");
+    expect(await archiveFoodAction(7)).toMatchObject({
       status: "error",
       message: "Món này không còn tồn tại",
     });
-    expect(await archiveFoodAction(Number.NaN)).toEqual({
-      status: "error",
-      message: "Món này không còn tồn tại",
-    });
-  });
-});
-
-describe("F10 non-admin access", () => {
-  const seedChicken = async () => {
-    await createFoodAction(INITIAL_FORM_STATE, toFormData(CHICKEN));
-    state.role = "user";
-
-    return (await db.select().from(foods))[0];
-  };
-
-  // requireAdmin() sends a non-admin to /session/end with redirect(), which
-  // throws; the error wrapper lets that reach Next.js.
-  const expectRedirect = async (call: Promise<unknown>) => {
-    await expect(call).rejects.toMatchObject({
-      digest: expect.stringContaining("NEXT_REDIRECT"),
-    });
-  };
-
-  it("refuses create and writes nothing", async () => {
-    state.role = "user";
-    await expectRedirect(
-      createFoodAction(INITIAL_FORM_STATE, toFormData(CHICKEN)),
-    );
-    expect(await rowCount()).toBe(0);
-  });
-
-  it("refuses update and leaves the food as it was", async () => {
-    const chicken = await seedChicken();
-
-    await expectRedirect(
-      updateFoodAction(
-        INITIAL_FORM_STATE,
-        toFormData({ ...CHICKEN, id: String(chicken.id), name: "Hacked" }),
-      ),
-    );
-    expect((await db.select().from(foods))[0].name).toBe("Ức gà (chín)");
-  });
-
-  it("refuses archive and leaves the food active", async () => {
-    const chicken = await seedChicken();
-
-    await expectRedirect(archiveFoodAction(chicken.id));
-    expect((await db.select().from(foods))[0].archivedAt).toBeNull();
-  });
-
-  it("refuses a PT account: the food library is super admin only", async () => {
-    state.adminRole = "pt";
-    await expectRedirect(
-      createFoodAction(INITIAL_FORM_STATE, toFormData(CHICKEN)),
-    );
-    expect(await rowCount()).toBe(0);
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 });

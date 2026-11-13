@@ -7,10 +7,7 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { BUTTON_SECONDARY, CARD, PAGE_CONTAINER } from "@/constants/styles";
 import { DmBubbleList } from "@/features/social/components/DmBubbleList";
-import { resolveDmView } from "@/features/social/services/dm-access";
-import { loadDmMemberNames } from "@/features/social/services/dm-admin-queries";
-import { listDmThread } from "@/features/social/services/dm-queries";
-import { actorOfAdmin } from "@/features/social/services/post-context";
+import { loadAdminDmThread } from "@/features/social/services/dm-admin-queries";
 import { parseDmId } from "@/features/social/utils/dm-rules";
 import { requireSuperAdmin } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
@@ -27,30 +24,24 @@ const AdminDmThreadPage = async ({
   searchParams,
 }: PageProps<"/admin/social/chats/[id]">) => {
   const t = await getTranslations("social.adminPages");
-  const admin = await requireSuperAdmin();
+  await requireSuperAdmin();
   const id = parseDmId((await params).id);
+  const before = parseDmId(readSearchParam((await searchParams).before) ?? "");
   const view =
-    id === null ? null : await resolveDmView(id, actorOfAdmin(admin));
+    id === null ? null : await loadAdminDmThread(id, before ?? undefined);
 
   if (id === null || !view) {
     notFound();
   }
-  const before = parseDmId(readSearchParam((await searchParams).before) ?? "");
-  const [thread, names] = await Promise.all([
-    listDmThread(id, {
-      before: before ?? undefined,
-      otherId: null,
-      viewer: actorOfAdmin(admin),
-    }),
-    loadDmMemberNames(view.conversation.userLow, view.conversation.userHigh),
-  ]);
+  const { thread, names, memberIds } = view;
+  const [low, high] = memberIds;
   const oldest = thread.messages[0];
 
   return (
     <>
       <AppHeader
         eyebrow={t("readOnly")}
-        title={`${names.get(view.conversation.userLow) ?? t("deletedName")} · ${names.get(view.conversation.userHigh) ?? t("deletedName")}`}
+        title={`${names.get(low) ?? t("deletedName")} · ${names.get(high) ?? t("deletedName")}`}
         backHref={ROUTES.ADMIN_SOCIAL_CHATS}
       />
       <main

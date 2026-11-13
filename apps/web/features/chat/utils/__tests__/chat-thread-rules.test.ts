@@ -147,14 +147,12 @@ describe("pollIntervalFor", () => {
 });
 
 describe("realtimeStateFor", () => {
-  it("maps Ably connection states", () => {
-    expect(realtimeStateFor("connected")).toBe("connected");
-    expect(realtimeStateFor("suspended")).toBe("degraded");
-    expect(realtimeStateFor("disconnected")).toBe("degraded");
-    expect(realtimeStateFor("failed")).toBe("degraded");
-    expect(realtimeStateFor("closed")).toBe("unavailable");
+  it("maps Socket.IO connection events", () => {
+    expect(realtimeStateFor("connect")).toBe("connected");
+    expect(realtimeStateFor("connect_error")).toBe("degraded");
+    expect(realtimeStateFor("disconnect")).toBe("degraded");
+    expect(realtimeStateFor("io client disconnect")).toBe("unavailable");
     expect(realtimeStateFor("connecting")).toBe("connecting");
-    expect(realtimeStateFor("initialized")).toBe("connecting");
   });
 });
 

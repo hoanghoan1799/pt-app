@@ -1,25 +1,20 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
-import { ROUTES } from "@/constants/routes";
-import { listAdminAvatarUrls } from "@/features/avatar/services/avatar";
 import { TraineeChatThread } from "@/features/chat/components/TraineeChatThread";
-import { isChatEnabled } from "@/features/chat/services/chat-permission";
 import {
-  findConversationByUserId,
-  findLatestAdminSenderName,
-  getOrCreateConversation,
-  listMessagesAround,
+  loadMyThread,
+  loadMyThreadAround,
 } from "@/features/chat/services/chat-queries";
 import { loadCoachReplyPostFor } from "@/features/chat/services/chat-reply-post";
-import { loadTraineeThread } from "@/features/chat/services/chat-thread";
+import {
+  listAdminAvatarUrls,
+  listVerifiedAdminIds,
+} from "@/features/chat/services/chat-team";
 import { parseJumpId } from "@/features/chat/utils/chat-links";
 import { serializeMessage } from "@/features/chat/utils/chat-thread-rules";
 import { isEmbedParam } from "@/features/chat-bubbles/utils/bubble-links";
-import { actorOfUser } from "@/features/social/services/post-context";
 import { parseDmId } from "@/features/social/utils/dm-rules";
-import { listVerifiedAdminIds } from "@/services/admins";
 import { requireUser } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
 
@@ -33,56 +28,39 @@ const CoachChatPage = async ({
   searchParams,
 }: PageProps<"/messages/coach">) => {
   const user = await requireUser();
-  const chatEnabled = isChatEnabled(user);
-  const existing = await findConversationByUserId(user.id);
-
-  // Chat off: the thread opens read-only (old messages, if any, and the
-  // locked banner); no conversation is created for it.
-  // The realtime token is scoped to the conversation, so make sure it exists.
-  const conversation =
-    existing ?? (chatEnabled ? await getOrCreateConversation(user.id) : null);
-  const result = await loadTraineeThread(user, {}, {});
-
-  if (result.notModified) {
-    // Unreachable without `after`; keeps the type honest.
-    redirect(ROUTES.WORKOUTS);
-  }
-  const { payload } = result;
   // `?m=<id>`: open at that message (from the gallery or a search result).
   const query = await searchParams;
   const jumpId = parseJumpId(query.m);
+  // Chat off: the thread opens read-only (old messages, if any, and the
+  // locked banner). The conversation exists once the trainee wrote or a PT
+  // wrote to them; the thread says which.
+  const jump = jumpId === null ? null : await loadMyThreadAround(jumpId);
+  const payload = jump ?? (await loadMyThread());
+  const chatEnabled = payload.chatEnabled;
   // `?replyPost=<id>`: a PT's post quoted above the composer; only when the
   // chat is open for writing and the viewer may quote that post.
   const replyPostId = parseDmId(readSearchParam(query.replyPost) ?? "");
   const replyPost =
     replyPostId !== null && chatEnabled
-      ? await loadCoachReplyPostFor(actorOfUser(user), replyPostId, user.id)
+      ? await loadCoachReplyPostFor("user", replyPostId, user.id)
       : null;
-  const around =
-    jumpId !== null && existing
-      ? await listMessagesAround(existing.id, jumpId, actorOfUser(user))
-      : null;
-  const adminAvatars = await listAdminAvatarUrls();
-  const peerName = existing
-    ? await findLatestAdminSenderName(existing.id)
-    : null;
+  const adminAvatars = await listAdminAvatarUrls("user");
 
   return (
     <TraineeChatThread
-      initialPeerName={peerName}
-      verifiedAdminIds={await listVerifiedAdminIds()}
+      initialPeerName={payload.latestPt?.name ?? null}
+      verifiedAdminIds={await listVerifiedAdminIds("user")}
       userId={user.id}
       isEmbed={isEmbedParam(query.embed)}
       avatars={Object.fromEntries(
         [...adminAvatars].map(([id, url]) => [`admin:${id}`, url]),
       )}
-      conversationId={conversation?.id ?? null}
+      conversationId={payload.conversationId}
       replyPost={replyPost}
-      jumpToId={around ? jumpId : null}
+      jumpToId={jump ? jumpId : null}
       initial={{
         ...payload,
-        messages: (around?.messages ?? payload.messages).map(serializeMessage),
-        hasMore: around?.hasMore ?? payload.hasMore,
+        messages: payload.messages.map(serializeMessage),
         // Without `changedSince` the payload has no changes to carry.
         changes: [],
       }}

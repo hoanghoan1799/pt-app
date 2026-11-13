@@ -4,35 +4,20 @@ import { redirect } from "next/navigation";
 
 import { ROUTES } from "@/constants/routes";
 import { ADMIN_COOKIE, USER_COOKIE } from "@/constants/session";
-import {
-  AUTH_MESSAGES,
-  LOGIN_FAILURE_DELAY_MS,
-} from "@/features/auth/constants/messages";
+import { AUTH_MESSAGES } from "@/features/auth/constants/messages";
 import { withFormErrorHandling } from "@/services/action-errors";
-import { clearUnlock } from "@/services/admin-lock";
-import { findAdminByUsername } from "@/services/admins";
+import { runApi, tryApi } from "@/services/api/call";
+import { apiErrorToFormState } from "@/services/api/errors";
 import { applyStoredLocale } from "@/services/locale-cookie";
-import {
-  adminLimiterKey,
-  clearAttempts,
-  isLocked,
-  recordFailure,
-  userLimiterKey,
-} from "@/services/login-limiter";
-import { getDummyPasswordHash, verifyPassword } from "@/services/password";
-import {
-  endSession,
-  startAdminSession,
-  startUserSession,
-} from "@/services/session";
-import { findUserByEmail } from "@/services/users";
+import { endSession, startSession } from "@/services/session";
 import type { FormState } from "@/types/form";
-import { emailSchema, toEmailKey } from "@/utils/email";
 import { createErrorState } from "@/utils/form";
-import { toUsernameKey } from "@/utils/username";
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+// Shown in the "signed-in devices" list of the API.
+const CLIENT = { clientKind: "web" as const };
 
+// Wrong credentials, lockout and validation come back from the API as 4xx with
+// the text to show (`error.message`); the limiter lives in the API.
 export const loginWithEmailAction = withFormErrorHandling(
   "loginWithEmail",
   async (_previousState: FormState, formData: FormData): Promise<FormState> => {
@@ -46,32 +31,16 @@ export const loginWithEmailAction = withFormErrorHandling(
       });
     }
 
-    const limiterKey = userLimiterKey(toEmailKey(email));
-
-    if (await isLocked(limiterKey)) {
-      return createErrorState(AUTH_MESSAGES.LOGIN_LOCKED, { values });
-    }
-
-    // A malformed email can never match a stored one: same generic failure.
-    const user = emailSchema.safeParse(email).success
-      ? await findUserByEmail(email)
-      : null;
-    // Always run one hash check so unknown emails and trainees without a
-    // password yet are not faster to reject.
-    const isPasswordCorrect = await verifyPassword(
-      password,
-      user?.passwordHash ?? (await getDummyPasswordHash()),
+    const outcome = await tryApi("none", (api) =>
+      api.POST("/v1/auth/login", { body: { email, password, ...CLIENT } }),
     );
 
-    if (!user?.passwordHash || !isPasswordCorrect) {
-      await recordFailure(limiterKey);
-      await wait(LOGIN_FAILURE_DELAY_MS);
-      return createErrorState(AUTH_MESSAGES.EMAIL_LOGIN_WRONG, { values });
+    if (!outcome.ok) {
+      return apiErrorToFormState(outcome.error, { values });
     }
 
-    await clearAttempts(limiterKey);
-    await startUserSession(user.id);
-    await applyStoredLocale(user.locale);
+    await startSession("user", outcome.data.token);
+    await applyStoredLocale(outcome.data.actor.locale);
     redirect(ROUTES.WORKOUTS);
   },
 );
@@ -87,39 +56,32 @@ export const loginAdminAction = withFormErrorHandling(
       return createErrorState(AUTH_MESSAGES.CREDENTIALS_REQUIRED, { values });
     }
 
-    const limiterKey = adminLimiterKey(toUsernameKey(username));
-
-    if (await isLocked(limiterKey)) {
-      return createErrorState(AUTH_MESSAGES.LOGIN_LOCKED, { values });
-    }
-
-    const admin = await findAdminByUsername(username);
-    // Always run one hash check so an unknown username isn't faster to reject.
-    const isPasswordCorrect = await verifyPassword(
-      password,
-      admin?.passwordHash ?? (await getDummyPasswordHash()),
+    const outcome = await tryApi("none", (api) =>
+      api.POST("/v1/auth/admin/login", {
+        body: { username, password, ...CLIENT },
+      }),
     );
 
-    if (!admin || !isPasswordCorrect) {
-      await recordFailure(limiterKey);
-      await wait(LOGIN_FAILURE_DELAY_MS);
-      return createErrorState(AUTH_MESSAGES.CREDENTIALS_WRONG, { values });
+    if (!outcome.ok) {
+      return apiErrorToFormState(outcome.error, { values });
     }
 
-    await clearAttempts(limiterKey);
-    await startAdminSession(admin.id);
-    await applyStoredLocale(admin.locale);
+    await startSession("admin", outcome.data.token);
+    await applyStoredLocale(outcome.data.actor.locale);
     redirect(ROUTES.ADMIN);
   },
 );
 
+// Revokes the session on the API, then forgets the cookie. A failing API call
+// (already expired, API down) must not keep the user signed in on this device.
 export const logoutUserAction = async () => {
+  await runApi("user", (api) => api.POST("/v1/auth/logout"));
   await endSession(USER_COOKIE);
   redirect(ROUTES.HOME);
 };
 
 export const logoutAdminAction = async () => {
+  await runApi("admin", (api) => api.POST("/v1/auth/logout"));
   await endSession(ADMIN_COOKIE);
-  await clearUnlock();
   redirect(ROUTES.ADMIN_LOGIN);
 };

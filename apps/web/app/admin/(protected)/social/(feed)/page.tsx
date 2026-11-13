@@ -1,21 +1,23 @@
 import { MessageCircle, UserRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 
 import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON, PAGE_CONTAINER } from "@/constants/styles";
-import { getAvatarUrl } from "@/features/avatar/services/avatar";
+import { getOwnAvatarUrl } from "@/features/avatar/services/own-avatar";
 import { NotificationBell } from "@/features/social/components/NotificationBell";
 import { PostComposer } from "@/features/social/components/PostComposer";
 import { PostList } from "@/features/social/components/PostList";
-import { listAdminFeed } from "@/features/social/services/post-queries";
-import { countUnreadNotifications } from "@/features/social/services/social-notifications";
+import {
+  getFeedPage,
+  getSocialMe,
+} from "@/features/social/services/social-queries";
 import { adminProfilePath } from "@/features/social/utils/post-rules";
-import { isSuperAdmin } from "@/services/admin-scope";
 import { requireAdmin } from "@/services/auth-guard";
+import { isSuperAdmin } from "@/utils/admin-role";
 
 export const generateMetadata = async (): Promise<Metadata> => {
   const t = await getTranslations("social.adminPages");
@@ -26,12 +28,12 @@ export const generateMetadata = async (): Promise<Metadata> => {
 const AdminSocialPage = async () => {
   const t = await getTranslations("social.adminPages");
   const admin = await requireAdmin();
-  const locale = await getLocale();
-  const [posts, unreadCount, avatarUrl] = await Promise.all([
-    listAdminFeed(admin, null, locale),
-    countUnreadNotifications(`admin:${admin.id}`),
-    getAvatarUrl("admin", admin.id),
+  const [posts, me, avatarUrl] = await Promise.all([
+    getFeedPage("admin"),
+    getSocialMe("admin"),
+    getOwnAvatarUrl("admin"),
   ]);
+  const unreadCount = me.unreadNotifications;
 
   return (
     <>

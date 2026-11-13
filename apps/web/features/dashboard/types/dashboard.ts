@@ -1,5 +1,8 @@
 import type { BestSet } from "@/features/workouts/types/workout";
 
+// Dashboard filter by PT: everyone, trainees without a PT, or one PT's.
+export type PtFilter = "all" | "none" | number;
+
 export interface MemberProgress {
   id: number;
   name: string;

@@ -5,25 +5,14 @@ import { revalidatePath } from "next/cache";
 import { ROUTES } from "@/constants/routes";
 import { SOCIAL_MESSAGES } from "@/features/social/constants/social";
 import {
-  resolveActor,
-  traineeActor,
+  getFeedPage,
+  getProfilePosts,
+  profileKey,
+} from "@/features/social/services/social-queries";
+import {
+  requireWho,
   type Who,
-} from "@/features/social/services/actor-guard";
-import { notifyAdminPost } from "@/features/social/services/admin-post-notify";
-import { actorOfAdmin } from "@/features/social/services/post-context";
-import {
-  createPost,
-  deletePost,
-  editPost,
-  type PostMutationError,
-  updateBio,
-} from "@/features/social/services/post-mutations";
-import {
-  listAdminFeed,
-  listProfilePosts,
-  listUserFeed,
-} from "@/features/social/services/post-queries";
-import { acceptTerms } from "@/features/social/services/terms";
+} from "@/features/social/services/social-session";
 import type { PostPage, PostSource } from "@/features/social/types/social";
 import {
   bioSchema,
@@ -33,18 +22,13 @@ import {
 } from "@/features/social/utils/post-rules";
 import { withResultErrorHandling } from "@/services/action-errors";
 import { requireAdminForUser } from "@/services/admin-access";
-import { requireAdmin, requireUser } from "@/services/auth-guard";
+import { callApi } from "@/services/api/call";
+import { requireUser } from "@/services/auth-guard";
 import type { ActionErrorResult } from "@/types/error";
 
 // Every action starts with requireUser() / requireAdmin() and validates its
-// input with Zod. Trainee actions also need the accepted terms (spec T1).
-
-const MESSAGES: Record<PostMutationError, string> = {
-  empty: SOCIAL_MESSAGES.EMPTY_POST,
-  not_found: SOCIAL_MESSAGES.NOT_FOUND,
-  forbidden: SOCIAL_MESSAGES.NOT_ALLOWED,
-  photo_not_found: SOCIAL_MESSAGES.PHOTO_NOT_FOUND,
-};
+// input with Zod; the API checks the terms, ownership and visibility again and
+// its refusals come back as the message the person sees.
 
 const fail = (message: string): ActionErrorResult => ({
   status: "error",
@@ -60,21 +44,18 @@ const refresh = () => {
 export const acceptTermsAction = withResultErrorHandling(
   "acceptTerms",
   async () => {
-    const user = await requireUser();
-
-    await acceptTerms(user.id);
+    await requireUser();
+    await callApi("user", (api) => api.POST("/v1/social/me/terms"));
     revalidatePath(ROUTES.FEED);
   },
 );
 
+// `idempotencyKey` is made once per submit by the composer: a retry of the
+// same submit (double tap, flaky network) returns the first post.
 export const createPostAction = withResultErrorHandling(
   "createPost",
-  async (who: Who, input: unknown) => {
-    const actor = await resolveActor(who);
-
-    if (!actor) {
-      return fail(SOCIAL_MESSAGES.TERMS_REQUIRED);
-    }
+  async (who: Who, input: unknown, idempotencyKey: string) => {
+    const actor = await requireWho(who);
     const parsed = createPostSchema.safeParse(input);
 
     if (!parsed.success) {
@@ -82,17 +63,15 @@ export const createPostAction = withResultErrorHandling(
         parsed.error.issues[0]?.message ?? SOCIAL_MESSAGES.EMPTY_POST,
       );
     }
-    const result = await createPost(actor, parsed.data);
-
-    if (!result.ok) {
-      return fail(MESSAGES[result.error]);
-    }
-    if (actor.kind === "admin") {
-      await notifyAdminPost(actor, {
-        postId: result.postId,
-        privacy: parsed.data.privacy,
-      });
-    }
+    await callApi(
+      actor,
+      (api) =>
+        api.POST("/v1/social/posts", {
+          body: parsed.data,
+          params: { header: { "Idempotency-Key": idempotencyKey } },
+        }),
+      { idempotencyKey },
+    );
     refresh();
   },
 );
@@ -100,11 +79,7 @@ export const createPostAction = withResultErrorHandling(
 export const editPostAction = withResultErrorHandling(
   "editPost",
   async (who: Who, input: unknown) => {
-    const actor = await resolveActor(who);
-
-    if (!actor) {
-      return fail(SOCIAL_MESSAGES.TERMS_REQUIRED);
-    }
+    const actor = await requireWho(who);
     const parsed = editPostSchema.safeParse(input);
 
     if (!parsed.success) {
@@ -112,11 +87,14 @@ export const editPostAction = withResultErrorHandling(
         parsed.error.issues[0]?.message ?? SOCIAL_MESSAGES.EMPTY_POST,
       );
     }
-    const result = await editPost(actor, parsed.data);
+    const { postId, caption, privacy } = parsed.data;
 
-    if (!result.ok) {
-      return fail(MESSAGES[result.error]);
-    }
+    await callApi(actor, (api) =>
+      api.PATCH("/v1/social/posts/{id}", {
+        params: { path: { id: String(postId) } },
+        body: { caption, privacy },
+      }),
+    );
     refresh();
   },
 );
@@ -124,21 +102,17 @@ export const editPostAction = withResultErrorHandling(
 export const deletePostAction = withResultErrorHandling(
   "deletePost",
   async (who: Who, postId: unknown) => {
-    const actor = await resolveActor(who);
-
-    if (!actor) {
-      return fail(SOCIAL_MESSAGES.TERMS_REQUIRED);
-    }
+    const actor = await requireWho(who);
     const id = postIdSchema.safeParse(postId);
 
     if (!id.success) {
       return fail(SOCIAL_MESSAGES.NOT_FOUND);
     }
-    const result = await deletePost(actor, id.data);
-
-    if (!result.ok) {
-      return fail(MESSAGES[result.error]);
-    }
+    await callApi(actor, (api) =>
+      api.DELETE("/v1/social/posts/{id}", {
+        params: { path: { id: String(id.data) } },
+      }),
+    );
     refresh();
   },
 );
@@ -146,11 +120,7 @@ export const deletePostAction = withResultErrorHandling(
 export const updateBioAction = withResultErrorHandling(
   "updateBio",
   async (who: Who, bio: unknown) => {
-    const actor = await resolveActor(who);
-
-    if (!actor) {
-      return fail(SOCIAL_MESSAGES.TERMS_REQUIRED);
-    }
+    const actor = await requireWho(who);
     const parsed = bioSchema.safeParse(bio);
 
     if (!parsed.success) {
@@ -158,7 +128,9 @@ export const updateBioAction = withResultErrorHandling(
         parsed.error.issues[0]?.message ?? SOCIAL_MESSAGES.BIO_TOO_LONG,
       );
     }
-    await updateBio(actor, parsed.data);
+    await callApi(actor, (api) =>
+      api.PUT("/v1/me/bio", { body: { bio: parsed.data } }),
+    );
     refresh();
   },
 );
@@ -166,8 +138,8 @@ export const updateBioAction = withResultErrorHandling(
 export type LoadPostsResult =
   { status: "success"; page: PostPage } | ActionErrorResult;
 
-// "Xem thêm": the next page of a feed or profile. The profile lists are
-// filtered for the signed-in viewer on the server.
+// "Xem thêm": the next page of a feed or profile, with the cursor the API gave
+// for the previous one. The API filters for the signed-in viewer.
 export const loadMorePostsAction = withResultErrorHandling(
   "loadMorePosts",
   async (
@@ -175,52 +147,25 @@ export const loadMorePostsAction = withResultErrorHandling(
     source: PostSource,
     cursor: unknown,
   ): Promise<LoadPostsResult> => {
-    const after = postIdSchema.safeParse(cursor);
+    const actor = await requireWho(who);
 
-    if (!after.success) {
+    if (typeof cursor !== "string" || cursor === "") {
       return fail(SOCIAL_MESSAGES.NOT_FOUND);
     }
-    if (who === "admin") {
-      const admin = await requireAdmin();
-      const actor = actorOfAdmin(admin);
-
-      if (source.type === "profile") {
-        // A trainee's profile only for admins who may work with the trainee.
-        if (source.kind === "user") {
-          await requireAdminForUser(source.id);
-        }
-        return {
-          status: "success",
-          page: await listProfilePosts(
-            actor,
-            { kind: source.kind, id: source.id },
-            after.data,
-          ),
-        };
+    if (source.type === "profile") {
+      // A trainee's profile only for admins who may work with the trainee.
+      if (actor === "admin" && source.kind === "user") {
+        await requireAdminForUser(source.id);
       }
       return {
         status: "success",
-        page: await listAdminFeed(admin, after.data),
-      };
-    }
-    const actor = await traineeActor();
-
-    if (!actor) {
-      return fail(SOCIAL_MESSAGES.TERMS_REQUIRED);
-    }
-    if (source.type === "profile") {
-      return {
-        status: "success",
-        page: await listProfilePosts(
+        page: await getProfilePosts(
           actor,
-          { kind: source.kind, id: source.id },
-          after.data,
+          profileKey(source.kind, source.id),
+          cursor,
         ),
       };
     }
-    return {
-      status: "success",
-      page: await listUserFeed(actor.id, after.data),
-    };
+    return { status: "success", page: await getFeedPage(actor, cursor) };
   },
 );

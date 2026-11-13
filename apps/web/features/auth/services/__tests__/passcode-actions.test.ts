@@ -1,312 +1,294 @@
-import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
-import { adminHiddenUsers, admins, loginAttempts } from "@/db/schema";
+import { ApiError } from "@/services/api/errors";
+
+// The passcode rules themselves (hash, attempt counter, the 5th wrong code
+// signing the admin out, unlock window, reset limiter, hidden-chat refusal) now
+// live in the API and are covered by apps/api/test/passcode.e2e.test.ts. These
+// tests cover what the web actions still own: input validation before the call,
+// which endpoint is called with what, and how each API answer is translated.
+
+type Call = { method: string; path: string; body?: unknown };
 
 const state = vi.hoisted(() => ({
-  db: null as unknown,
-  adminId: 0,
-  unlocked: true,
+  calls: [] as { method: string; path: string; body?: unknown }[],
+  // What the next API call answers: data, or an error to refuse with.
+  answer: { ok: true, data: {} } as unknown,
 }));
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/db", () => ({
-  db: new Proxy(
-    {},
-    { get: (_target, property) => Reflect.get(state.db as object, property) },
+vi.mock("@/services/api/call", () => ({
+  tryApi: vi.fn(
+    async (_actor: string, run: (api: unknown) => Promise<unknown>) => {
+      const record =
+        (method: string) => async (path: string, init?: { body?: unknown }) => {
+          state.calls.push({ method, path, body: init?.body });
+          return {};
+        };
+
+      await run({
+        PUT: record("PUT"),
+        POST: record("POST"),
+        DELETE: record("DELETE"),
+      });
+      return state.answer;
+    },
   ),
-}));
-vi.mock("@/services/admin-lock", () => ({
-  issueUnlock: vi.fn(async () => undefined),
-  clearUnlock: vi.fn(async () => undefined),
-  clearReveal: vi.fn(async () => undefined),
 }));
 vi.mock("@/services/session", () => ({
   endSession: vi.fn(async () => undefined),
 }));
-vi.mock("@/services/auth-guard", async () => {
-  const { findAdminById } = await import("@/services/admins");
+vi.mock("@/services/auth-guard", () => ({
+  requireAdmin: vi.fn(async () => ({ id: 1 })),
+  requireAdminSession: vi.fn(async () => ({ id: 1 })),
+}));
 
-  return {
-    requireAdminSession: vi.fn(
-      async () => (await findAdminById(state.adminId))!,
-    ),
-    requireAdmin: vi.fn(async () => {
-      if (!state.unlocked) {
-        throw new Error("REDIRECT:/admin/lock");
-      }
-      return (await findAdminById(state.adminId))!;
-    }),
-  };
-});
-
-const { clearUnlock, issueUnlock } = await import("@/services/admin-lock");
 const { endSession } = await import("@/services/session");
-const { hashPassword } = await import("@/services/password");
+const { requireAdmin, requireAdminSession } =
+  await import("@/services/auth-guard");
 const actions = await import("@/features/auth/services/passcode-actions");
 
-let db: TestDb;
-
-const load = async () =>
-  (await db.select().from(admins).where(eq(admins.id, state.adminId)))[0];
-
-const withPasscode = async (code: string) => {
-  await db
-    .update(admins)
-    .set({ passcodeHash: await hashPassword(code) })
-    .where(eq(admins.id, state.adminId));
+const refuse = (
+  status: number,
+  code: string,
+  message: string,
+  details?: Record<string, string | number | boolean>,
+) => {
+  state.answer = {
+    ok: false,
+    error: new ApiError({ status, code, message, details }),
+  };
 };
 
-beforeEach(async () => {
-  db = await createTestDb();
-  state.db = db;
-  state.unlocked = true;
-  vi.mocked(issueUnlock).mockClear();
-  vi.mocked(clearUnlock).mockClear();
-  vi.mocked(endSession).mockClear();
-  const [row] = await db
-    .insert(admins)
-    .values({
-      username: "pt",
-      usernameKey: "pt",
-      passwordHash: await hashPassword("correct-password"),
-    })
-    .returning({ id: admins.id });
+const sent = (): Call[] => state.calls;
 
-  state.adminId = row.id;
+beforeEach(() => {
+  state.calls = [];
+  state.answer = { ok: true, data: {} };
+  vi.mocked(endSession).mockClear();
+  vi.mocked(requireAdmin).mockClear();
+  vi.mocked(requireAdminSession).mockClear();
 });
 
 describe("setPasscode", () => {
-  it("stores a hash (not the code) and unlocks right away", async () => {
+  it("sends the code to the API and succeeds", async () => {
     expect(await actions.setPasscode("1234")).toEqual({ status: "success" });
-
-    const admin = await load();
-
-    expect(admin.passcodeHash).toMatch(/^scrypt\$/);
-    expect(admin.passcodeHash).not.toContain("1234");
-    expect(issueUnlock).toHaveBeenCalledWith(state.adminId);
+    expect(sent()).toEqual([
+      {
+        method: "PUT",
+        path: "/v1/admins/me/passcode",
+        body: { passcode: "1234" },
+      },
+    ]);
+    expect(requireAdmin).toHaveBeenCalled();
   });
 
-  it("rejects anything but 4 digits", async () => {
+  it("rejects anything but 4 digits without calling the API", async () => {
     for (const bad of ["123", "12345", "abcd", ""]) {
       expect(await actions.setPasscode(bad)).toMatchObject({
         status: "error",
         message: "Mã khoá gồm đúng 4 chữ số",
       });
     }
-    expect((await load()).passcodeHash).toBeNull();
+    expect(sent()).toEqual([]);
   });
 
-  it("refuses when a passcode already exists", async () => {
-    await withPasscode("1111");
-    const before = (await load()).passcodeHash;
+  it("shows the API's refusal when a passcode already exists", async () => {
+    refuse(
+      409,
+      "PASSCODE_ALREADY_SET",
+      "Đã có mã khoá. Hãy đổi mã khoá thay vì đặt mới.",
+    );
 
-    expect(await actions.setPasscode("2222")).toMatchObject({
+    expect(await actions.setPasscode("2222")).toEqual({
       status: "error",
+      message: "Đã có mã khoá. Hãy đổi mã khoá thay vì đặt mới.",
     });
-    expect((await load()).passcodeHash).toBe(before);
-  });
-
-  it("needs an unlocked session", async () => {
-    state.unlocked = false;
-
-    expect(await actions.setPasscode("1234")).toMatchObject({
-      status: "error",
-    });
-    expect((await load()).passcodeHash).toBeNull();
-  });
-});
-
-describe("verifyPasscode", () => {
-  beforeEach(async () => {
-    await withPasscode("1234");
-    state.unlocked = false;
-  });
-
-  it("unlocks on the right code and resets the counter", async () => {
-    await actions.verifyPasscode("0000");
-    await actions.verifyPasscode("0000");
-    expect((await load()).passcodeFailedCount).toBe(2);
-    expect(issueUnlock).not.toHaveBeenCalled();
-
-    expect(await actions.verifyPasscode("1234")).toEqual({
-      status: "success",
-    });
-    expect((await load()).passcodeFailedCount).toBe(0);
-    expect(issueUnlock).toHaveBeenCalledWith(state.adminId);
-  });
-
-  it("counts wrong codes down and signs out on the 5th", async () => {
-    for (const left of [4, 3, 2, 1]) {
-      expect(await actions.verifyPasscode("0000")).toMatchObject({
-        status: "error",
-        attemptsLeft: left,
-      });
-    }
-    expect(endSession).not.toHaveBeenCalled();
-
-    const last = await actions.verifyPasscode("0000");
-
-    expect(last).toMatchObject({ status: "error", signedOut: true });
-    expect(endSession).toHaveBeenCalledWith("pt_admin");
-    expect(clearUnlock).toHaveBeenCalled();
-    expect((await load()).passcodeFailedCount).toBe(0);
-    expect(issueUnlock).not.toHaveBeenCalled();
-  });
-
-  it("does not unlock on a malformed code or a missing passcode", async () => {
-    expect(await actions.verifyPasscode("12")).toMatchObject({
-      status: "error",
-    });
-    await db
-      .update(admins)
-      .set({ passcodeHash: null })
-      .where(eq(admins.id, state.adminId));
-    expect(await actions.verifyPasscode("1234")).toMatchObject({
-      status: "error",
-    });
-    expect(issueUnlock).not.toHaveBeenCalled();
   });
 });
 
 describe("changePasscode", () => {
-  beforeEach(async () => withPasscode("1234"));
-
-  it("replaces the passcode when the current one is right", async () => {
-    const before = (await load()).passcodeHash;
-
-    expect(await actions.changePasscode("1234", "4321")).toEqual({
+  it("calls the API with both codes", async () => {
+    expect(await actions.changePasscode("1111", "2222")).toEqual({
       status: "success",
     });
-    expect((await load()).passcodeHash).not.toBe(before);
-    expect(await actions.verifyPasscode("4321")).toEqual({ status: "success" });
+    expect(sent()).toEqual([
+      {
+        method: "POST",
+        path: "/v1/admins/me/passcode/change",
+        body: { currentPasscode: "1111", newPasscode: "2222" },
+      },
+    ]);
   });
 
-  it("keeps the old passcode on a wrong current code and counts it", async () => {
-    const before = (await load()).passcodeHash;
-
-    expect(await actions.changePasscode("0000", "4321")).toMatchObject({
+  it("refuses the same code or a malformed one before the call", async () => {
+    expect(await actions.changePasscode("1111", "1111")).toMatchObject({
       status: "error",
-      attemptsLeft: 4,
+      message: "Mã khoá mới phải khác mã khoá hiện tại",
     });
-    expect((await load()).passcodeHash).toBe(before);
+    expect(await actions.changePasscode("1111", "22")).toMatchObject({
+      status: "error",
+    });
+    expect(sent()).toEqual([]);
   });
 
-  it("rejects an unchanged or malformed new code", async () => {
-    expect(await actions.changePasscode("1234", "1234")).toMatchObject({
-      status: "error",
+  it("reports the attempts left on a wrong current code", async () => {
+    refuse(403, "PASSCODE_WRONG", "Mã khoá không đúng", {
+      attemptsLeft: 3,
+      signedOut: false,
     });
-    expect(await actions.changePasscode("1234", "43")).toMatchObject({
+
+    expect(await actions.changePasscode("0000", "2222")).toEqual({
       status: "error",
+      message: "Mã khoá không đúng",
+      attemptsLeft: 3,
     });
+    expect(endSession).not.toHaveBeenCalled();
   });
 });
 
 describe("turnOffPasscode", () => {
-  beforeEach(async () => withPasscode("1234"));
-
-  it("clears the hash and the unlock with the right code", async () => {
-    expect(await actions.turnOffPasscode("1234")).toEqual({
+  it("sends the current code in the DELETE body", async () => {
+    expect(await actions.turnOffPasscode("1111")).toEqual({
       status: "success",
     });
-    expect((await load()).passcodeHash).toBeNull();
-    expect(clearUnlock).toHaveBeenCalled();
+    expect(sent()).toEqual([
+      {
+        method: "DELETE",
+        path: "/v1/admins/me/passcode",
+        body: { currentPasscode: "1111" },
+      },
+    ]);
   });
 
-  it("refuses with a wrong code", async () => {
-    expect(await actions.turnOffPasscode("0000")).toMatchObject({
-      status: "error",
-    });
-    expect((await load()).passcodeHash).not.toBeNull();
-  });
+  it("shows the API's refusal while chats are hidden", async () => {
+    refuse(
+      409,
+      "PASSCODE_HAS_HIDDEN_CHATS",
+      "Hãy bỏ ẩn các học viên đã ẩn trước khi tắt mã khoá",
+    );
 
-  it("refuses while this admin has hidden chats, not for another admin's", async () => {
-    const [other] = await db
-      .insert(admins)
-      .values({ username: "b", usernameKey: "b", passwordHash: "x" })
-      .returning({ id: admins.id });
-
-    await db.insert(adminHiddenUsers).values({ adminId: other.id, userId: 1 });
-    expect(await actions.turnOffPasscode("1234")).toEqual({
-      status: "success",
-    });
-
-    await withPasscode("1234");
-    await db
-      .insert(adminHiddenUsers)
-      .values({ adminId: state.adminId, userId: 2 });
-
-    expect(await actions.turnOffPasscode("1234")).toEqual({
+    expect(await actions.turnOffPasscode("1111")).toMatchObject({
       status: "error",
       message: "Hãy bỏ ẩn các học viên đã ẩn trước khi tắt mã khoá",
     });
-    expect((await load()).passcodeHash).not.toBeNull();
+  });
+});
+
+describe("verifyPasscode", () => {
+  it("uses the lock-exempt guard and the verify endpoint", async () => {
+    expect(await actions.verifyPasscode("1111")).toEqual({ status: "success" });
+    expect(requireAdminSession).toHaveBeenCalled();
+    expect(requireAdmin).not.toHaveBeenCalled();
+    expect(sent()).toEqual([
+      {
+        method: "POST",
+        path: "/v1/admins/me/passcode/verify",
+        body: { passcode: "1111" },
+      },
+    ]);
+  });
+
+  it("counts wrong codes down", async () => {
+    refuse(403, "PASSCODE_WRONG", "Mã khoá không đúng", { attemptsLeft: 4 });
+
+    expect(await actions.verifyPasscode("0000")).toMatchObject({
+      status: "error",
+      attemptsLeft: 4,
+    });
+    expect(endSession).not.toHaveBeenCalled();
+  });
+
+  it("clears the cookie and reports signedOut on the 5th wrong code", async () => {
+    refuse(
+      401,
+      "PASSCODE_SIGNED_OUT",
+      "Nhập sai mã khoá quá nhiều lần. Bạn đã bị đăng xuất.",
+      {
+        attemptsLeft: 0,
+        signedOut: true,
+      },
+    );
+
+    expect(await actions.verifyPasscode("0000")).toEqual({
+      status: "error",
+      message: "Nhập sai mã khoá quá nhiều lần. Bạn đã bị đăng xuất.",
+      attemptsLeft: 0,
+      signedOut: true,
+    });
+    expect(endSession).toHaveBeenCalledWith("pt_admin");
+  });
+
+  it("rejects a malformed code without calling the API", async () => {
+    expect(await actions.verifyPasscode("12")).toMatchObject({
+      status: "error",
+    });
+    expect(sent()).toEqual([]);
   });
 });
 
 describe("resetPasscodeWithPassword", () => {
-  beforeEach(async () => {
-    await withPasscode("1234");
-    state.unlocked = false;
-  });
-
-  it("sets a new passcode and unlocks with the account password", async () => {
+  it("sends the account password and the new code", async () => {
     expect(
-      await actions.resetPasscodeWithPassword("correct-password", "9999"),
+      await actions.resetPasscodeWithPassword("correct-password", "3333"),
     ).toEqual({ status: "success" });
-    expect(issueUnlock).toHaveBeenCalledWith(state.adminId);
-    expect(await actions.verifyPasscode("9999")).toEqual({ status: "success" });
+    expect(sent()).toEqual([
+      {
+        method: "POST",
+        path: "/v1/admins/me/passcode/reset",
+        body: { password: "correct-password", newPasscode: "3333" },
+      },
+    ]);
   });
 
-  it("rejects a wrong password and locks out after repeated failures", async () => {
-    for (let i = 0; i < 5; i++) {
-      expect(
-        await actions.resetPasscodeWithPassword("nope", "9999"),
-      ).toMatchObject({ status: "error", message: "Mật khẩu không đúng" });
-    }
-    expect((await db.select().from(loginAttempts))[0]?.key).toBe(
-      `passcode-reset:${state.adminId}`,
+  it("shows a wrong password and a lockout from the API", async () => {
+    refuse(403, "PASSCODE_RESET_PASSWORD_WRONG", "Mật khẩu không đúng");
+    expect(
+      await actions.resetPasscodeWithPassword("nope", "3333"),
+    ).toMatchObject({
+      status: "error",
+      message: "Mật khẩu không đúng",
+    });
+
+    refuse(
+      429,
+      "LOGIN_LOCKED",
+      "Đăng nhập sai quá nhiều lần. Thử lại sau 15 phút.",
     );
-
-    // Even the right password is refused while the limiter holds.
     expect(
-      await actions.resetPasscodeWithPassword("correct-password", "9999"),
-    ).toMatchObject({ status: "error" });
-    expect(issueUnlock).not.toHaveBeenCalled();
-    expect(await actions.verifyPasscode("1234")).toEqual({ status: "success" });
+      await actions.resetPasscodeWithPassword("nope", "3333"),
+    ).toMatchObject({
+      status: "error",
+      message: "Đăng nhập sai quá nhiều lần. Thử lại sau 15 phút.",
+    });
   });
 
-  it("rejects a malformed new passcode", async () => {
-    expect(
-      await actions.resetPasscodeWithPassword("correct-password", "12"),
-    ).toMatchObject({ status: "error" });
-    expect(issueUnlock).not.toHaveBeenCalled();
+  it("rejects an empty password or a malformed code before the call", async () => {
+    expect(await actions.resetPasscodeWithPassword("", "3333")).toMatchObject({
+      status: "error",
+    });
+    expect(await actions.resetPasscodeWithPassword("pw", "x")).toMatchObject({
+      status: "error",
+    });
+    expect(sent()).toEqual([]);
   });
 });
 
 describe("lockNow", () => {
-  it("ends the unlock when a passcode is set", async () => {
-    await withPasscode("1234");
-
+  it("locks through the API with the lock-exempt guard", async () => {
     expect(await actions.lockNow()).toEqual({ status: "success" });
-    expect(clearUnlock).toHaveBeenCalledTimes(1);
-    expect(issueUnlock).not.toHaveBeenCalled();
+    expect(requireAdminSession).toHaveBeenCalled();
+    expect(sent()).toEqual([
+      { method: "POST", path: "/v1/admins/me/passcode/lock", body: undefined },
+    ]);
   });
 
-  it("refuses without a passcode and keeps the session as is", async () => {
-    expect(await actions.lockNow()).toEqual({
+  it("shows the API's refusal without a passcode", async () => {
+    refuse(400, "PASSCODE_NOT_SET", "Chưa đặt mã khoá");
+
+    expect(await actions.lockNow()).toMatchObject({
       status: "error",
       message: "Chưa đặt mã khoá",
     });
-    expect(clearUnlock).not.toHaveBeenCalled();
-  });
-
-  it("works when the admin is already locked", async () => {
-    await withPasscode("1234");
-    state.unlocked = false;
-
-    expect(await actions.lockNow()).toEqual({ status: "success" });
-    expect(clearUnlock).toHaveBeenCalledTimes(1);
   });
 });

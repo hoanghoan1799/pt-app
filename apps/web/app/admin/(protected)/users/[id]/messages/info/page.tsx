@@ -1,25 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 
-import {
-  getAvatarUrl,
-  listAdminAvatarUrls,
-} from "@/features/avatar/services/avatar";
 import { ChatInfo } from "@/features/chat/components/ChatInfo";
 import { listGalleryPhotos } from "@/features/chat/services/chat-gallery";
-import { isChatEnabled } from "@/features/chat/services/chat-permission";
-import { loadChatProfile } from "@/features/chat/services/chat-profile";
-import {
-  findConversationByUserId,
-  getOrCreateConversation,
-} from "@/features/chat/services/chat-queries";
+import { findTraineeChatHeader } from "@/features/chat/services/chat-queries";
 import { chatPaths } from "@/features/chat/utils/chat-links";
 import { INFO_PREVIEW_COUNT } from "@/features/chat/utils/gallery-rules";
-import { adminActorKey } from "@/features/contact-aliases/utils/alias-rules";
 import { requireAdmin } from "@/services/auth-guard";
-import { canAdminAccessUser } from "@/services/hidden-users";
-import { findUserById } from "@/services/users";
 
 export const generateMetadata = async (): Promise<Metadata> => {
   const t = await getTranslations("adminPages.messagesInfo");
@@ -34,30 +22,22 @@ const AdminMessagesInfoPage = async ({
 }: PageProps<"/admin/users/[id]/messages/info">) => {
   const admin = await requireAdmin();
   const { id } = await params;
-  const locale = await getLocale();
-  const user = await findUserById(Number(id));
+  const userId = Number(id);
+  // The API answers "not found" for a trainee outside this admin's workspace
+  // and for one they hid and have not revealed.
+  const header = Number.isSafeInteger(userId)
+    ? await findTraineeChatHeader(userId)
+    : null;
 
-  if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
+  if (!header) {
     notFound();
   }
-  const chatEnabled = isChatEnabled(user);
-  // Same as the thread: the colour and hide actions need a conversation.
-  const conversation = chatEnabled
-    ? await getOrCreateConversation(user.id)
-    : await findConversationByUserId(user.id);
-  const [profile, traineeAvatar, gallery] = await Promise.all([
-    conversation
-      ? loadChatProfile(conversation.id, adminActorKey(admin.id))
-      : undefined,
-    getAvatarUrl("user", user.id),
-    conversation
-      ? listGalleryPhotos(conversation.id, {
-          limit: INFO_PREVIEW_COUNT,
-          locale,
-        })
-      : { items: [], nextCursor: null },
-    listAdminAvatarUrls(),
-  ]);
+  const conversationId = header.conversationId;
+  const gallery = await listGalleryPhotos(
+    conversationId,
+    INFO_PREVIEW_COUNT,
+    true,
+  );
 
   return (
     <ChatInfo
@@ -65,15 +45,15 @@ const AdminMessagesInfoPage = async ({
         role: "admin",
         adminId: admin.id,
         adminName: admin.username,
-        peerName: user.name,
+        peerName: header.userName,
       }}
-      userId={user.id}
-      conversationId={conversation?.id ?? null}
-      peerName={user.name}
-      initialProfile={profile ?? { nicknames: {}, colors: {} }}
-      chatEnabled={chatEnabled}
-      peerAvatarUrl={traineeAvatar}
-      paths={chatPaths("admin", user.id)}
+      userId={header.userId}
+      conversationId={conversationId}
+      peerName={header.userName}
+      initialProfile={header.profile}
+      chatEnabled={header.chatEnabled}
+      peerAvatarUrl={header.avatarUrl}
+      paths={chatPaths("admin", header.userId)}
       preview={gallery.items}
     />
   );

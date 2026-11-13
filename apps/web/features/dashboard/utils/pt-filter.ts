@@ -1,4 +1,4 @@
-import type { PtFilter } from "@/features/dashboard/services/dashboard-queries";
+import type { PtFilter } from "@/features/dashboard/types/dashboard";
 
 export const PT_FILTER_PARAM = "pt";
 

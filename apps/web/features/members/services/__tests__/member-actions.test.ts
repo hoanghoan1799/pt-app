@@ -1,227 +1,183 @@
-import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
-import {
-  adminHiddenUsers,
-  chatColorOverrides,
-  chatConversations,
-  chatMessages,
-  chatNicknames,
-  chatReads,
-  contactAliases,
-  pushSubscriptions,
-  users,
-} from "@/db/schema";
+import { INITIAL_FORM_STATE } from "@/constants/form";
+import type { FakeApi } from "@/services/api/testing";
+import { apiRefusal } from "@/services/api/testing";
 
-const state = vi.hoisted(() => ({ db: null as unknown }));
+const state = vi.hoisted(() => ({
+  fake: null as FakeApi | null,
+  admin: { id: 1, role: "super_admin" as "super_admin" | "pt" },
+}));
+const fake = () => state.fake as FakeApi;
 
 vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
-vi.mock("@/services/session", () => ({
-  readSession: vi.fn(async () => ({ role: "admin", adminId: 1 })),
+vi.mock("next/navigation", () => ({
+  redirect: vi.fn(),
+  unstable_rethrow: vi.fn(),
 }));
-vi.mock("@/services/admins", () => ({
-  findAdminById: vi.fn(async (id: number) => ({
-    id,
-    username: "pt",
-    role: "super_admin",
-    verified: false,
-  })),
-}));
-vi.mock("@/services/users", () => ({ findUserById: vi.fn() }));
-vi.mock("@/db", () => ({
-  db: new Proxy(
-    {},
-    { get: (_target, property) => Reflect.get(state.db as object, property) },
-  ),
+vi.mock("@/services/logger", () => ({ logServerError: vi.fn(() => ({ code: "UNKNOWN" })) }));
+vi.mock("@/services/api/call", async () => {
+  const { createFakeApi } = await import("@/services/api/testing");
+
+  state.fake = createFakeApi();
+  return { callApi: state.fake.callApi, tryApi: state.fake.tryApi };
+});
+vi.mock("@/services/auth-guard", () => ({
+  requireAdmin: vi.fn(async () => state.admin),
 }));
 
-const { deleteMemberAction } =
+const { createMemberAction, deleteMemberAction } =
   await import("@/features/members/services/member-actions");
 
-let db: TestDb;
+const toFormData = (fields: Record<string, string>) => {
+  const formData = new FormData();
 
-const seedTrainee = async (name: string) => {
-  const [user] = await db
-    .insert(users)
-    .values({ name, nameKey: name.toLowerCase() })
-    .returning({ id: users.id });
-  const [conversation] = await db
-    .insert(chatConversations)
-    .values({ userId: user.id })
-    .returning({ id: chatConversations.id });
-
-  await db.insert(chatMessages).values([
-    {
-      conversationId: conversation.id,
-      senderRole: "user",
-      body: `${name} hello`,
-      clientId: `${name}-1`,
-      createdAt: new Date(),
-    },
-    {
-      conversationId: conversation.id,
-      senderRole: "admin",
-      senderAdminId: 1,
-      body: `reply to ${name}`,
-      clientId: `${name}-2`,
-      createdAt: new Date(),
-    },
-  ]);
-  await db.insert(chatReads).values([
-    { conversationId: conversation.id, readerKey: "user" },
-    { conversationId: conversation.id, readerKey: "admin:1" },
-  ]);
-  return { userId: user.id, conversationId: conversation.id };
+  for (const [key, value] of Object.entries(fields)) {
+    formData.set(key, value);
+  }
+  return formData;
 };
 
-beforeEach(async () => {
-  db = await createTestDb();
-  state.db = db;
+const create = (fields: Record<string, string>) =>
+  createMemberAction(INITIAL_FORM_STATE, toFormData(fields));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  fake().reset();
+  state.admin = { id: 1, role: "super_admin" };
+  fake().respond = ({ init }) => ({
+    id: 20,
+    name: (init.body as { name: string }).name,
+    email: (init.body as { email: string }).email,
+    ptAdminId: (init.body as { ptAdminId: number | null }).ptAdminId,
+    password: "Generated-pass-1",
+  });
 });
 
-describe("deleteMemberAction chat cleanup", () => {
-  it("removes the trainee's chat rows and leaves another trainee's intact", async () => {
-    const gone = await seedTrainee("An");
-    const kept = await seedTrainee("Binh");
-
-    const result = await deleteMemberAction(gone.userId);
+// The name/email rules, duplicates, PT workspace checks and the password are the
+// API's: apps/api/test/trainees.e2e.test.ts ("POST /v1/trainees").
+describe("createMemberAction", () => {
+  it("creates through the API and shows the generated password once", async () => {
+    const result = await create({ name: "An", email: " an@example.com " });
 
     expect(result.status).toBe("success");
-    expect(
-      await db.select().from(users).where(eq(users.id, gone.userId)),
-    ).toHaveLength(0);
-    expect(
-      await db
-        .select()
-        .from(chatConversations)
-        .where(eq(chatConversations.userId, gone.userId)),
-    ).toHaveLength(0);
-    expect(
-      await db
-        .select()
-        .from(chatMessages)
-        .where(eq(chatMessages.conversationId, gone.conversationId)),
-    ).toHaveLength(0);
-    expect(
-      await db
-        .select()
-        .from(chatReads)
-        .where(eq(chatReads.conversationId, gone.conversationId)),
-    ).toHaveLength(0);
-
-    expect(await db.select().from(chatConversations)).toHaveLength(1);
-    expect(await db.select().from(chatMessages)).toHaveLength(2);
-    expect(await db.select().from(chatReads)).toHaveLength(2);
-    expect(
-      (await db.select().from(chatMessages)).map((row) => row.conversationId),
-    ).toEqual([kept.conversationId, kept.conversationId]);
-  });
-
-  it("removes the trainee's legacy nicknames, private nicknames and colour overrides only", async () => {
-    const gone = await seedTrainee("An");
-    const kept = await seedTrainee("Binh");
-
-    await db.insert(chatNicknames).values(
-      [gone, kept].map((member) => ({
-        conversationId: member.conversationId,
-        targetKey: "pt",
-        nickname: "Coach",
-        setByKey: "user",
-        updatedAt: new Date(),
-      })),
-    );
-    await db.insert(chatColorOverrides).values(
-      [gone, kept].map((member) => ({
-        conversationId: member.conversationId,
-        adminId: 1,
-        color: "green",
-      })),
-    );
-    await db.insert(contactAliases).values(
-      [
-        // Set by and for the removed member, and an unrelated pair.
-        ["user:" + gone.userId, "pt"],
-        ["admin:1", "user:" + gone.userId],
-        ["admin:1", "user:" + kept.userId],
-      ].map(([ownerKey, targetKey]) => ({
-        ownerKey,
-        targetKey,
-        alias: "Coach",
-        updatedAt: new Date(),
-      })),
-    );
-
-    await deleteMemberAction(gone.userId);
-
-    expect(
-      (await db.select().from(contactAliases)).map((r) => r.targetKey),
-    ).toEqual(["user:" + kept.userId]);
-    expect(
-      (await db.select().from(chatNicknames)).map((r) => r.conversationId),
-    ).toEqual([kept.conversationId]);
-    expect(
-      (await db.select().from(chatColorOverrides)).map((r) => r.conversationId),
-    ).toEqual([kept.conversationId]);
-  });
-
-  it("removes the trainee's hidden-chat rows for every admin, only theirs", async () => {
-    const gone = await seedTrainee("An");
-    const kept = await seedTrainee("Binh");
-
-    await db.insert(adminHiddenUsers).values([
-      { adminId: 1, userId: gone.userId },
-      { adminId: 2, userId: gone.userId },
-      { adminId: 1, userId: kept.userId },
+    expect(result.credentials).toEqual({
+      name: "An",
+      email: "an@example.com",
+      password: "Generated-pass-1",
+    });
+    expect(fake().calls).toMatchObject([
+      {
+        actor: "admin",
+        method: "POST",
+        path: "/v1/trainees",
+        init: { body: { name: "An", ptAdminId: null } },
+      },
     ]);
-
-    await deleteMemberAction(gone.userId);
-
-    expect(
-      (await db.select().from(adminHiddenUsers)).map((r) => [
-        r.adminId,
-        r.userId,
-      ]),
-    ).toEqual([[1, kept.userId]]);
+    expect(revalidatePath).toHaveBeenCalledWith("/admin");
   });
 
-  it("removes the trainee's push subscriptions only", async () => {
-    const gone = await seedTrainee("An");
-    const kept = await seedTrainee("Binh");
-    const sub = (ownerKey: string, n: number) => ({
-      ownerKey,
-      endpoint: `https://push.example/${n}`,
-      p256dh: "p",
-      auth: "a",
+  it("puts a PT's trainee in their own workspace and ignores a posted PT", async () => {
+    state.admin = { id: 7, role: "pt" };
+    await create({ name: "An", email: "an@example.com", ptAdminId: "9" });
+
+    expect(fake().calls[0].init.body).toMatchObject({ ptAdminId: 7 });
+  });
+
+  it("lets a super admin pick a PT", async () => {
+    await create({ name: "Chi", email: "chi@example.com", ptAdminId: "9" });
+
+    expect(fake().calls[0].init.body).toMatchObject({ ptAdminId: 9 });
+  });
+
+  it.each([
+    ["a non-numeric value", "abc"],
+    ["a negative id", "-1"],
+  ])("rejects %s before the API", async (_label, ptAdminId) => {
+    const result = await create({
+      name: "Dung",
+      email: "dung@example.com",
+      ptAdminId,
     });
 
-    await db
-      .insert(pushSubscriptions)
-      .values([
-        sub(`user:${gone.userId}`, 1),
-        sub(`user:${gone.userId}`, 2),
-        sub(`user:${kept.userId}`, 3),
-        sub("admin:1", 4),
-      ]);
-
-    await deleteMemberAction(gone.userId);
-
-    expect(
-      (await db.select().from(pushSubscriptions)).map((row) => row.endpoint),
-    ).toEqual(["https://push.example/3", "https://push.example/4"]);
+    expect(result.status).toBe("error");
+    expect(result.fieldErrors?.ptAdminId).toBeTruthy();
+    expect(fake().calls).toEqual([]);
   });
 
-  it("deletes a trainee who never opened a conversation", async () => {
-    const [user] = await db
-      .insert(users)
-      .values({ name: "Chi", nameKey: "chi" })
-      .returning({ id: users.id });
+  it.each([
+    ["NAME_TAKEN", "name", 409],
+    ["EMAIL_TAKEN", "email", 409],
+    ["PT_NOT_FOUND", "ptAdminId", 404],
+  ])(
+    "puts %s on the %s field and keeps what was typed",
+    async (code, field, status) => {
+      fake().respond = () => {
+        throw apiRefusal(status, code, `msg ${code}`);
+      };
+      const result = await create({ name: "An", email: "an@example.com" });
 
-    const result = await deleteMemberAction(user.id);
+      expect(result.status).toBe("error");
+      expect(result.fieldErrors).toEqual({ [field]: `msg ${code}` });
+      expect(result.values).toEqual({ name: "An", email: "an@example.com" });
+      expect(result.credentials).toBeUndefined();
+      expect(revalidatePath).not.toHaveBeenCalled();
+    },
+  );
 
-    expect(result.status).toBe("success");
-    expect(await db.select().from(users)).toHaveLength(0);
+  it("maps the API's validation message to field errors", async () => {
+    fake().respond = () => {
+      throw apiRefusal(
+        400,
+        "VALIDATION_FAILED",
+        "email: Email không hợp lệ; name: Nhập tên user",
+      );
+    };
+    const result = await create({ name: "", email: "x" });
+
+    expect(result.fieldErrors).toEqual({
+      email: "Email không hợp lệ",
+      name: "Nhập tên user",
+    });
+  });
+});
+
+describe("deleteMemberAction", () => {
+  it("deletes through the API, refreshes the dashboard and goes back to it", async () => {
+    fake().respond = () => undefined;
+
+    await deleteMemberAction(5);
+
+    expect(fake().calls).toMatchObject([
+      {
+        actor: "admin",
+        method: "DELETE",
+        path: "/v1/trainees/{userId}",
+        init: { params: { path: { userId: 5 } } },
+      },
+    ]);
+    expect(revalidatePath).toHaveBeenCalledWith("/admin");
+    expect(redirect).toHaveBeenCalledWith("/admin");
+  });
+
+  it("shows the API's message for a trainee outside the workspace or missing", async () => {
+    fake().respond = () => {
+      throw apiRefusal(404, "TRAINEE_NOT_FOUND", "Không tìm thấy user này");
+    };
+
+    expect(await deleteMemberAction(5)).toMatchObject({
+      status: "error",
+      message: "Không tìm thấy user này",
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("rejects a bad id before the API", async () => {
+    expect((await deleteMemberAction(0)).status).toBe("error");
+    expect(fake().calls).toEqual([]);
   });
 });

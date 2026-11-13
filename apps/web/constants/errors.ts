@@ -17,6 +17,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   DB_AUTH_FAILED:
     "Server không đăng nhập được vào database (sai DATABASE_AUTH_TOKEN?)",
   DB_UNREACHABLE: "Server không kết nối được tới database",
+  API_UNREACHABLE: "Server không kết nối được tới API (kiểm tra API_URL)",
+  API_TIMEOUT: "API không trả lời kịp thời gian cho phép",
   UNKNOWN: "Đã có lỗi không mong muốn trên server",
 };
 
@@ -39,4 +41,5 @@ export const DEFAULT_LOCAL_DATABASE_URL = "file:local.db";
 export const REQUIRED_ENV = {
   DATABASE_URL: "DATABASE_URL",
   SESSION_SECRET: "SESSION_SECRET",
+  API_URL: "API_URL",
 } as const;

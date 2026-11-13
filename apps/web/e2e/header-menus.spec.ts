@@ -136,7 +136,11 @@ test("the trainee menus hold no admin items and link to the password page", asyn
   await avatar(page).click();
   const avatarMenu = page.getByRole("menu", { name: "Tài khoản" });
 
+  // The menu grew after this spec was written: the social profile (KAN-157)
+  // and the profile photo sheet joined the password page and the log-out.
   await expect(avatarMenu.getByRole("menuitem")).toHaveText([
+    "Trang cá nhân",
+    "Ảnh đại diện",
     "Đổi mật khẩu",
     "Đăng xuất",
   ]);

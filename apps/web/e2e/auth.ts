@@ -1,6 +1,6 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
-import { E2E_USER_PASSWORD, e2eEmail } from "./config";
+import { E2E_ADMIN, E2E_USER_PASSWORD, e2eEmail } from "./config";
 import { answerConfirm } from "./confirm";
 
 // Fills the trainee login form at "/" (email + password) and submits it.
@@ -22,4 +22,13 @@ export const logOutViaMenu = async (page: Page) => {
     .click();
   await page.getByRole("menuitem", { name: "Đăng xuất" }).click();
   await answerConfirm(page, "Đăng xuất", "Đăng xuất khỏi thiết bị này?");
+};
+
+// Logs in at /admin/login with the e2e super admin and waits for the dashboard.
+export const logInAsAdmin = async (page: Page) => {
+  await page.goto("/admin/login");
+  await page.getByLabel("Tài khoản").fill(E2E_ADMIN.username);
+  await page.getByLabel("Mật khẩu").fill(E2E_ADMIN.password);
+  await page.getByRole("button", { name: "Đăng nhập" }).click();
+  await expect(page).toHaveURL(/\/admin(\?.*)?$/);
 };

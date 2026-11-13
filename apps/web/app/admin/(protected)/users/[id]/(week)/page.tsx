@@ -10,23 +10,23 @@ import { MemberSectionTabs } from "@/components/layout/MemberSectionTabs";
 import { ROUTES } from "@/constants/routes";
 import { ICON_BUTTON, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
-import { getTraineeDisplayName } from "@/features/chat/services/chat-queries";
 import { RecentActivityList } from "@/features/dashboard/components/RecentActivityList";
 import { MEMBER_ACTIVITY_LIMIT } from "@/features/dashboard/constants/dashboard";
-import { getRecentActivity } from "@/features/dashboard/services/dashboard-queries";
+import { getRecentActivity } from "@/features/dashboard/services/dashboard-api";
 import { DeleteMemberButton } from "@/features/members/components/DeleteMemberButton";
 import { HideUserButton } from "@/features/members/components/HideUserButton";
 import { MemberLoginCard } from "@/features/members/components/MemberLoginCard";
-import { listMembers } from "@/features/members/services/member-queries";
+import {
+  getTrainee,
+  listMembers,
+} from "@/features/members/services/member-queries";
 import { PtAssignSelect } from "@/features/pts/components/PtAssignSelect";
 import { listPtOptions } from "@/features/pts/services/pt-queries";
 import { CopyWeekButton } from "@/features/workouts/components/CopyWeekButton";
 import { WorkoutWeekEditor } from "@/features/workouts/components/WorkoutWeekEditor";
-import { getWeekScheduleWithSets } from "@/features/workouts/services/workout-queries";
-import { isSuperAdmin } from "@/services/admin-scope";
+import { getTraineeWeekSchedule } from "@/features/workouts/services/workout-api";
 import { requireAdmin } from "@/services/auth-guard";
-import { canAdminAccessUser, isUserHidden } from "@/services/hidden-users";
-import { findUserById } from "@/services/users";
+import { isSuperAdmin } from "@/utils/admin-role";
 import { getAdminPreviewPath, getAdminUserPath } from "@/utils/routes";
 import { readSearchParam } from "@/utils/search-params";
 import { getRequestTime } from "@/utils/time";
@@ -46,12 +46,14 @@ const AdminUserPage = async ({
   const t = await getTranslations("adminPages.userPage");
 
   const { id } = await params;
-  const user = await findUserById(Number(id));
+  // Scope, hiding and nicknames are the API's: it answers 404 for a trainee
+  // this admin may not see.
+  const user = await getTrainee(Number(id));
 
-  if (!user || !(await canAdminAccessUser(admin.id, user.id))) {
+  if (!user) {
     notFound();
   }
-  const displayName = await getTraineeDisplayName(admin.id, user);
+  const { displayName } = user;
 
   const query = await searchParams;
   const today = getTodayDate(TIME_ZONE);
@@ -60,11 +62,10 @@ const AdminUserPage = async ({
     today,
   );
   const ptOptions = isSuperAdmin(admin) ? await listPtOptions() : [];
-  const [days, members, activity, isHidden] = await Promise.all([
-    getWeekScheduleWithSets(user.id, schedule.weekStart),
+  const [days, members, activity] = await Promise.all([
+    getTraineeWeekSchedule(user.id, schedule.weekStart),
     listMembers(admin.id, user.id),
     getRecentActivity({ userId: user.id, limit: MEMBER_ACTIVITY_LIMIT }),
-    isUserHidden(admin.id, user.id),
   ]);
 
   return (
@@ -127,7 +128,7 @@ const AdminUserPage = async ({
           )}
           <HideUserButton
             userId={user.id}
-            isHidden={isHidden}
+            isHidden={user.hidden}
             hasPasscode={admin.hasPasscode}
           />
           <DeleteMemberButton userId={user.id} />

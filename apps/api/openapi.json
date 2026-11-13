@@ -168,6 +168,25 @@
                               "minimum": 0,
                               "exclusiveMinimum": true,
                               "maximum": 9007199254740991
+                            },
+                            "chatEnabled": {
+                              "type": "boolean"
+                            },
+                            "termsVersion": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "preferredMealCount": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "foodNote": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
@@ -176,7 +195,11 @@
                             "name",
                             "email",
                             "locale",
-                            "ptAdminId"
+                            "ptAdminId",
+                            "chatEnabled",
+                            "termsVersion",
+                            "preferredMealCount",
+                            "foodNote"
                           ],
                           "additionalProperties": false
                         },
@@ -545,6 +568,25 @@
                               "minimum": 0,
                               "exclusiveMinimum": true,
                               "maximum": 9007199254740991
+                            },
+                            "chatEnabled": {
+                              "type": "boolean"
+                            },
+                            "termsVersion": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "preferredMealCount": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "foodNote": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
@@ -553,7 +595,11 @@
                             "name",
                             "email",
                             "locale",
-                            "ptAdminId"
+                            "ptAdminId",
+                            "chatEnabled",
+                            "termsVersion",
+                            "preferredMealCount",
+                            "foodNote"
                           ],
                           "additionalProperties": false
                         },
@@ -882,6 +928,25 @@
                               "minimum": 0,
                               "exclusiveMinimum": true,
                               "maximum": 9007199254740991
+                            },
+                            "chatEnabled": {
+                              "type": "boolean"
+                            },
+                            "termsVersion": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "preferredMealCount": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "foodNote": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
@@ -890,7 +955,11 @@
                             "name",
                             "email",
                             "locale",
-                            "ptAdminId"
+                            "ptAdminId",
+                            "chatEnabled",
+                            "termsVersion",
+                            "preferredMealCount",
+                            "foodNote"
                           ],
                           "additionalProperties": false
                         },
@@ -1200,6 +1269,25 @@
                               "minimum": 0,
                               "exclusiveMinimum": true,
                               "maximum": 9007199254740991
+                            },
+                            "chatEnabled": {
+                              "type": "boolean"
+                            },
+                            "termsVersion": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "preferredMealCount": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "foodNote": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
@@ -1208,7 +1296,11 @@
                             "name",
                             "email",
                             "locale",
-                            "ptAdminId"
+                            "ptAdminId",
+                            "chatEnabled",
+                            "termsVersion",
+                            "preferredMealCount",
+                            "foodNote"
                           ],
                           "additionalProperties": false
                         },
@@ -5823,6 +5915,189 @@
         ]
       }
     },
+    "/v1/chat/team": {
+      "get": {
+        "operationId": "ChatConversationsController_team",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "admins": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "avatarUrl": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "verified": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "avatarUrl",
+                          "verified"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "admins"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "ref": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "ref"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired session, or wrong credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "ref": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "ref"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (role, passcode lock or wrong passcode)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "ref": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "ref"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "summary": "The admins with a photo or the blue tick, for the chat avatars and ticks",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
     "/v1/chat/conversations/me/messages": {
       "get": {
         "operationId": "ChatConversationsController_myThread",
@@ -6497,6 +6772,33 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "conversationId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "latestPt": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "name": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -6507,7 +6809,9 @@
                     "profile",
                     "chatEnabled",
                     "peerReadUpTo",
-                    "peerLastSeenAt"
+                    "peerLastSeenAt",
+                    "conversationId",
+                    "latestPt"
                   ],
                   "additionalProperties": false
                 }
@@ -9054,6 +9358,33 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "conversationId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "latestPt": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "name": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -9064,7 +9395,9 @@
                     "profile",
                     "chatEnabled",
                     "peerReadUpTo",
-                    "peerLastSeenAt"
+                    "peerLastSeenAt",
+                    "conversationId",
+                    "latestPt"
                   ],
                   "additionalProperties": false
                 }
@@ -10784,7 +11117,7 @@
             "bearer": []
           }
         ],
-        "summary": "Header of a trainee's chat; conversationId is null before the first message",
+        "summary": "Header of a trainee's chat; conversationId is created on this read when chat is on; null only while chat is off and nothing was ever sent",
         "tags": [
           "chat"
         ]
@@ -17418,6 +17751,28 @@
                     },
                     "isReadOnly": {
                       "type": "boolean"
+                    },
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "name": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
                     }
                   },
                   "required": [
@@ -17426,7 +17781,8 @@
                     "hasMore",
                     "otherReadUpTo",
                     "readOnlyReason",
-                    "isReadOnly"
+                    "isReadOnly",
+                    "members"
                   ],
                   "additionalProperties": false
                 }
@@ -39649,6 +40005,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
           }
         ],
         "responses": {
@@ -40281,7 +40645,16 @@
     "/v1/trainees/{userId}/nutrition-target": {
       "put": {
         "operationId": "PtNutritionController_saveTarget",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -40544,7 +40917,16 @@
     "/v1/trainees/{userId}/body-profile": {
       "put": {
         "operationId": "PtNutritionController_saveBodyProfile",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -40995,6 +41377,14 @@
             "in": "query",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
             }
           }
         ],
@@ -41624,7 +42014,16 @@
       },
       "post": {
         "operationId": "PtNutritionController_createDay",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -42054,6 +42453,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
           }
         ],
         "responses": {
@@ -42273,7 +42680,16 @@
     "/v1/trainees/{userId}/meal-plan-days/copy": {
       "post": {
         "operationId": "PtNutritionController_copyDay",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -42519,7 +42935,16 @@
     "/v1/trainees/{userId}/meal-plan-days/apply-last-week": {
       "post": {
         "operationId": "PtNutritionController_applyLastWeek",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {

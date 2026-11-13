@@ -1,12 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { checkPhoto, PHOTO_ERRORS } from "@/features/chat/utils/photo-rules";
+import { PHOTO_ERRORS } from "@/features/chat/utils/photo-rules";
 import { POST_PHOTO_MAX_BYTES } from "@/features/social/constants/social";
-import {
-  createPendingPostPhoto,
-  uploaderKeyOf,
-} from "@/features/social/services/post-photos";
-import { hasAcceptedTerms } from "@/features/social/services/terms";
+import { uploadApiBinary } from "@/services/api/binary";
+import { ApiError } from "@/services/api/errors";
 import { getApiAdmin, getApiUser } from "@/services/auth-guard";
 import { localizeResult } from "@/services/localize-message";
 import { logServerError } from "@/services/logger";
@@ -26,40 +23,23 @@ const isSameOrigin = (request: NextRequest) => {
   return origin === null || origin === request.nextUrl.origin;
 };
 
-type Uploader = { kind: "user" | "admin"; id: number } | "terms" | null;
-
-// A trainee (who accepted the terms) uploads as themselves; an admin names
-// `?as=admin`.
-const resolveUploader = async (request: NextRequest): Promise<Uploader> => {
-  if (request.nextUrl.searchParams.get("as") === "admin") {
-    const admin = await getApiAdmin();
-
-    return admin ? { kind: "admin", id: admin.id } : null;
-  }
-  const user = await getApiUser();
-
-  if (!user) {
-    return null;
-  }
-  return hasAcceptedTerms(user) ? { kind: "user", id: user.id } : "terms";
-};
-
 const tooLarge = () =>
   reply({ error: "too_large", message: PHOTO_ERRORS.TOO_LARGE }, 413);
 
-// POST: the raw image bytes (resized in the browser). Type and size are read
-// from the bytes; the photo stays pending until a post uses it.
+// POST: the raw image bytes (resized in the browser), sent on to the API as
+// they are. The API checks type and size and the terms; the photo stays
+// pending until a post uses it. A trainee uploads as themselves; an admin
+// names `?as=admin`.
 export const POST = async (request: NextRequest) => {
   if (!isSameOrigin(request)) {
     return reply({ error: "forbidden" }, 403);
   }
-  const uploader = await resolveUploader(request);
+  const actor =
+    request.nextUrl.searchParams.get("as") === "admin" ? "admin" : "user";
+  const signedIn = actor === "admin" ? await getApiAdmin() : await getApiUser();
 
-  if (!uploader) {
+  if (!signedIn) {
     return reply({ error: "unauthorized" }, 401);
-  }
-  if (uploader === "terms") {
-    return reply({ error: "terms_required" }, 403);
   }
   const declared = Number(request.headers.get("content-length"));
 
@@ -67,28 +47,25 @@ export const POST = async (request: NextRequest) => {
     return tooLarge();
   }
   try {
-    const bytes = new Uint8Array(await request.arrayBuffer());
+    const body = await request.arrayBuffer();
 
-    if (bytes.length > POST_PHOTO_MAX_BYTES) {
+    if (body.byteLength > POST_PHOTO_MAX_BYTES) {
       return tooLarge();
     }
-    const check = checkPhoto(bytes);
+    const created = await uploadApiBinary<{ photo: { id: number } }>(
+      actor,
+      "/v1/social/photos",
+      {
+        body,
+        contentType: request.headers.get("content-type") ?? "image/webp",
+      },
+    );
 
-    if (!check.ok) {
-      return check.error === "too_large"
-        ? tooLarge()
-        : reply({ error: "bad_image", message: PHOTO_ERRORS.BAD_IMAGE }, 400);
-    }
-    const id = await createPendingPostPhoto({
-      uploaderKey: uploaderKeyOf(uploader),
-      mime: check.mime,
-      width: check.width,
-      height: check.height,
-      bytes,
-    });
-
-    return reply({ photo: { id } }, 201);
+    return reply({ photo: { id: created.photo.id } }, 201);
   } catch (error) {
+    if (error instanceof ApiError && error.isClientError) {
+      return reply({ error: error.code, message: error.message }, error.status);
+    }
     logServerError("uploadSocialPhoto", error);
     return reply({ error: "failed", message: PHOTO_ERRORS.GENERIC }, 500);
   }

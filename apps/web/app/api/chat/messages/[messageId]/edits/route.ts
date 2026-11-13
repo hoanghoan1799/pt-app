@@ -1,40 +1,31 @@
-import { type NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { z } from "zod";
 
-import { findConversationByUserId } from "@/features/chat/services/chat-queries";
-import { loadEditHistory } from "@/features/chat/services/chat-thread";
-import { getApiUser } from "@/services/auth-guard";
-
-const NO_STORE = { "Cache-Control": "no-store" };
+import {
+  askApi,
+  routeData,
+  routeInvalid,
+} from "@/features/chat/services/chat-api";
 
 const idSchema = z.coerce.number().int().positive();
 
-const json = (body: unknown, status = 200) =>
-  NextResponse.json(body, { status, headers: NO_STORE });
-
-// Previous bodies of a message in the trainee's own conversation (KAN-138,
-// spec C4: both people see the history). In Next 16 `params` is a Promise.
+// Previous bodies of a message in the caller's conversation (KAN-138, spec C4:
+// both people see the history). In Next 16 `params` is a Promise. The API
+// answers "not found" for a message of another conversation.
 export const GET = async (
   _request: NextRequest,
   { params }: { params: Promise<{ messageId: string }> },
 ) => {
-  const user = await getApiUser();
-
-  if (!user) {
-    return json({ error: "unauthorized" }, 401);
-  }
   const messageId = idSchema.safeParse((await params).messageId);
 
   if (!messageId.success) {
-    return json({ error: "invalid_query" }, 400);
+    return routeInvalid();
   }
-  const conversation = await findConversationByUserId(user.id);
-  const edits = conversation
-    ? await loadEditHistory(conversation.id, messageId.data)
-    : null;
-
-  if (!edits) {
-    return json({ error: "not_found" }, 404);
-  }
-  return json({ edits });
+  return routeData(
+    await askApi("user", (api) =>
+      api.GET("/v1/chat/messages/{mid}/edits", {
+        params: { path: { mid: messageId.data } },
+      }),
+    ),
+  );
 };

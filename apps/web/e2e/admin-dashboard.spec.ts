@@ -1,12 +1,22 @@
 import { expect, type Page, test } from "@playwright/test";
 
+import { createPtViaApi } from "./api-seed-users";
 import { E2E_ADMIN } from "./config";
 
 // Admin dashboard "Thao tác" tiles and the add-user sheet (KAN-124).
-const logInAsAdmin = async (page: Page) => {
+// A PT account of this spec (the e2e admin is a super admin).
+const PT_ADMIN = {
+  username: "e2e-tiles-pt",
+  password: "e2e-only-pt-password",
+} as const;
+
+const logInAsAdmin = async (
+  page: Page,
+  account: { username: string; password: string } = E2E_ADMIN,
+) => {
   await page.goto("/admin/login");
-  await page.getByLabel("Tài khoản").fill(E2E_ADMIN.username);
-  await page.getByLabel("Mật khẩu").fill(E2E_ADMIN.password);
+  await page.getByLabel("Tài khoản").fill(account.username);
+  await page.getByLabel("Mật khẩu").fill(account.password);
   await page.getByRole("button", { name: "Đăng nhập" }).click();
   await expect(page).toHaveURL(/\/admin(\?.*)?$/);
 };
@@ -17,10 +27,16 @@ test.beforeEach(async ({ page }) => {
   await logInAsAdmin(page);
 });
 
-test("the Thư viện món and Tin nhắn tiles open their pages", async ({
+test("a super admin sees every tile; Thư viện món and Tin nhắn open their pages", async ({
   page,
 }) => {
-  await expect(actions(page).getByRole("link")).toHaveCount(2);
+  await expect(actions(page).getByRole("link")).toHaveText([
+    "Thư viện món",
+    "Quản lý PT",
+    /^Báo cáo/,
+    "Mạng xã hội",
+    /^Tin nhắn/,
+  ]);
 
   await actions(page).getByRole("link", { name: "Thư viện món" }).click();
   await expect(page).toHaveURL(/\/admin\/foods$/);
@@ -30,6 +46,22 @@ test("the Thư viện món and Tin nhắn tiles open their pages", async ({
     .getByRole("link", { name: /^Tin nhắn/ })
     .click();
   await expect(page).toHaveURL(/\/admin\/messages$/);
+});
+
+test("a PT sees only Mạng xã hội and Tin nhắn next to Thêm user", async ({
+  page,
+}) => {
+  await createPtViaApi(PT_ADMIN.username, PT_ADMIN.password);
+  await page.context().clearCookies();
+  await logInAsAdmin(page, PT_ADMIN);
+
+  await expect(actions(page).getByRole("link")).toHaveText([
+    "Mạng xã hội",
+    /^Tin nhắn/,
+  ]);
+  await expect(
+    actions(page).getByRole("button", { name: "Thêm user" }),
+  ).toBeVisible();
 });
 
 test("the dashboard does not scroll sideways at phone width", async ({

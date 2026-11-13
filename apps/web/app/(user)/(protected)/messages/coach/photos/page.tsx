@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 
 import { AppHeader } from "@/components/layout/AppHeader";
-import {
-  getAvatarUrl,
-  listAdminAvatarUrls,
-} from "@/features/avatar/services/avatar";
+import { getOwnAvatarUrl } from "@/features/avatar/services/own-avatar";
 import { GalleryView } from "@/features/chat/components/GalleryView";
 import { loadGalleryForTrainee } from "@/features/chat/services/chat-gallery";
-import { findConversationByUserId } from "@/features/chat/services/chat-queries";
+import { listAdminAvatarUrls } from "@/features/chat/services/chat-team";
 import { chatPaths } from "@/features/chat/utils/chat-links";
 import { parseGalleryTab } from "@/features/chat/utils/gallery-rules";
 import { requireUser } from "@/services/auth-guard";
@@ -26,13 +23,12 @@ const MessagesPhotosPage = async ({
 }: PageProps<"/messages/coach/photos">) => {
   const t = await getTranslations("chat.pages");
   const user = await requireUser();
-  const locale = await getLocale();
   const tab = parseGalleryTab((await searchParams).tab);
-  const conversation = await findConversationByUserId(user.id);
   const [result, adminAvatars, ownAvatar] = await Promise.all([
-    loadGalleryForTrainee(conversation?.id ?? null, undefined, tab, locale),
-    listAdminAvatarUrls(),
-    getAvatarUrl("user", user.id),
+    // Without a conversation the API answers an empty page.
+    loadGalleryForTrainee(true, undefined, tab),
+    listAdminAvatarUrls("user"),
+    getOwnAvatarUrl("user"),
   ]);
   const paths = chatPaths("user", user.id);
   const avatars: Record<string, string> = Object.fromEntries(

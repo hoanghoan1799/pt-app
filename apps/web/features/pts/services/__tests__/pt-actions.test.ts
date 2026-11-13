@@ -1,21 +1,25 @@
-import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { INITIAL_FORM_STATE } from "@/constants/form";
-import { createTestDb, type TestDb } from "@/db/__tests__/create-test-db";
-import { admins, users } from "@/db/schema";
+import type { FakeApi } from "@/services/api/testing";
+import { apiRefusal } from "@/services/api/testing";
 
-const state = vi.hoisted(() => ({ db: null as unknown, isSuper: true }));
+const state = vi.hoisted(() => ({
+  isSuper: true,
+  fake: null as FakeApi | null,
+}));
+const fake = () => state.fake as FakeApi;
 
 vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/services/logger", () => ({ logServerError: vi.fn() }));
-vi.mock("@/db", () => ({
-  db: new Proxy(
-    {},
-    { get: (_target, property) => Reflect.get(state.db as object, property) },
-  ),
-}));
+vi.mock("@/services/logger", () => ({ logServerError: vi.fn(() => ({ code: "UNKNOWN" })) }));
+vi.mock("@/services/api/call", async () => {
+  const { createFakeApi } = await import("@/services/api/testing");
+
+  state.fake = createFakeApi();
+  return { callApi: state.fake.callApi, tryApi: state.fake.tryApi };
+});
 vi.mock("@/services/auth-guard", () => ({
   requireSuperAdmin: vi.fn(async () => {
     if (!state.isSuper) {
@@ -29,9 +33,6 @@ vi.mock("@/services/auth-guard", () => ({
 
 const { createPtAction, setAdminVerifiedAction, assignTraineePtAction } =
   await import("@/features/pts/services/pt-actions");
-const { verifyPassword } = await import("@/services/password");
-
-let db: TestDb;
 
 const toFormData = (fields: Record<string, string>) => {
   const formData = new FormData();
@@ -42,47 +43,35 @@ const toFormData = (fields: Record<string, string>) => {
   return formData;
 };
 
-const addPt = async (name: string) => {
-  const [row] = await db
-    .insert(admins)
-    .values({
-      username: name,
-      usernameKey: name,
-      passwordHash: "x",
-      role: "pt",
-    })
-    .returning({ id: admins.id });
-
-  return row.id;
-};
-
-beforeEach(async () => {
-  db = await createTestDb();
-  state.db = db;
+beforeEach(() => {
+  fake().reset();
   state.isSuper = true;
+  vi.mocked(revalidatePath).mockClear();
 });
 
+// The hashing, the unique username (case-insensitive) and the missing tick are
+// the API's: apps/api/test/admins.e2e.test.ts ("creates a PT ...").
 describe("createPtAction", () => {
-  it("creates a PT with a hashed password and no tick", async () => {
+  it("posts the trimmed username and the password to the API", async () => {
+    fake().respond = () => ({ id: 5, username: "Coach.An" });
     const result = await createPtAction(
       INITIAL_FORM_STATE,
-      toFormData({ username: "Coach.An", password: "long-enough-1" }),
+      toFormData({ username: " Coach.An ", password: "long-enough-1" }),
     );
 
     expect(result.status).toBe("success");
-    const [row] = await db.select().from(admins);
-
-    expect(row).toMatchObject({
-      username: "Coach.An",
-      usernameKey: "coach.an",
-      role: "pt",
-      verifiedAt: null,
-    });
-    expect(row.passwordHash).not.toContain("long-enough-1");
-    expect(await verifyPassword("long-enough-1", row.passwordHash)).toBe(true);
+    expect(fake().calls).toMatchObject([
+      {
+        actor: "admin",
+        method: "POST",
+        path: "/v1/pts",
+        init: { body: { username: "Coach.An", password: "long-enough-1" } },
+      },
+    ]);
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/pts");
   });
 
-  it("rejects a bad username and a short password with field errors", async () => {
+  it("rejects a bad username and a short password with field errors, before the API", async () => {
     const result = await createPtAction(
       INITIAL_FORM_STATE,
       toFormData({ username: "a b", password: "short" }),
@@ -91,22 +80,25 @@ describe("createPtAction", () => {
     expect(result.status).toBe("error");
     expect(result.fieldErrors?.username).toBeTruthy();
     expect(result.fieldErrors?.password).toBeTruthy();
-    expect(await db.select().from(admins)).toHaveLength(0);
+    expect(fake().calls).toEqual([]);
   });
 
-  it("rejects a duplicate username, case-insensitively", async () => {
-    await addPt("coach");
+  it("puts a taken username on the username field and keeps what was typed", async () => {
+    fake().respond = () => {
+      throw apiRefusal(409, "USERNAME_TAKEN", "Tên đăng nhập này đã được dùng");
+    };
     const result = await createPtAction(
       INITIAL_FORM_STATE,
       toFormData({ username: "COACH", password: "long-enough-1" }),
     );
 
     expect(result.status).toBe("error");
-    expect(result.fieldErrors?.username).toBeTruthy();
-    expect(await db.select().from(admins)).toHaveLength(1);
+    expect(result.fieldErrors?.username).toBe("Tên đăng nhập này đã được dùng");
+    expect(result.values).toEqual({ username: "COACH" });
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("refuses a PT caller and writes nothing", async () => {
+  it("refuses a PT caller and calls nothing", async () => {
     state.isSuper = false;
     const result = await createPtAction(
       INITIAL_FORM_STATE,
@@ -116,69 +108,81 @@ describe("createPtAction", () => {
     expect(result).toMatchObject({
       digest: expect.stringContaining("REDIRECT"),
     });
-    expect(await db.select().from(admins)).toHaveLength(0);
+    expect(fake().calls).toEqual([]);
   });
 });
 
 describe("setAdminVerifiedAction", () => {
-  it("grants and removes the tick", async () => {
-    const id = await addPt("coach");
-
-    expect(await setAdminVerifiedAction(id, true)).toEqual({
+  it("grants and removes the tick through the API", async () => {
+    expect(await setAdminVerifiedAction(7, true)).toEqual({
       status: "success",
     });
-    expect((await db.select().from(admins))[0].verifiedAt).toBeInstanceOf(Date);
-    await setAdminVerifiedAction(id, false);
-    expect((await db.select().from(admins))[0].verifiedAt).toBeNull();
+    await setAdminVerifiedAction(7, false);
+
+    expect(fake().calls).toMatchObject([
+      {
+        method: "PUT",
+        path: "/v1/admins/{adminId}/verified",
+        init: { params: { path: { adminId: 7 } }, body: { verified: true } },
+      },
+      { init: { body: { verified: false } } },
+    ]);
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/pts");
   });
 
-  it("reports an unknown admin", async () => {
-    expect((await setAdminVerifiedAction(99, true)).status).toBe("error");
+  it("shows the API's message for an unknown admin", async () => {
+    fake().respond = () => {
+      throw apiRefusal(404, "ADMIN_NOT_FOUND", "Không tìm thấy tài khoản");
+    };
+
+    expect(await setAdminVerifiedAction(99, true)).toMatchObject({
+      status: "error",
+      message: "Không tìm thấy tài khoản",
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("rejects a bad id before the API", async () => {
+    expect((await setAdminVerifiedAction(0, true)).status).toBe("error");
+    expect(fake().calls).toEqual([]);
   });
 });
 
 describe("assignTraineePtAction", () => {
-  const addUser = async () =>
-    (
-      await db
-        .insert(users)
-        .values({ name: "Lan", nameKey: "lan" })
-        .returning({ id: users.id })
-    )[0].id;
-
   it("assigns and clears the PT of a trainee", async () => {
-    const pt = await addPt("coach");
-    const user = await addUser();
+    expect((await assignTraineePtAction(3, 9)).status).toBe("success");
+    await assignTraineePtAction(3, null);
 
-    expect((await assignTraineePtAction(user, pt)).status).toBe("success");
-    const [assigned] = await db.select().from(users).where(eq(users.id, user));
-
-    expect(assigned.ptAdminId).toBe(pt);
-    await assignTraineePtAction(user, null);
-    const [cleared] = await db.select().from(users).where(eq(users.id, user));
-
-    expect(cleared.ptAdminId).toBeNull();
+    expect(fake().calls).toMatchObject([
+      {
+        method: "PUT",
+        path: "/v1/trainees/{userId}/pt",
+        init: { params: { path: { userId: 3 } }, body: { ptAdminId: 9 } },
+      },
+      { init: { body: { ptAdminId: null } } },
+    ]);
+    expect(revalidatePath).toHaveBeenCalledWith("/admin");
   });
 
-  it("refuses a target that is not a PT account", async () => {
-    const [boss] = await db
-      .insert(admins)
-      .values({
-        username: "boss",
-        usernameKey: "boss",
-        passwordHash: "x",
-        role: "super_admin",
-      })
-      .returning({ id: admins.id });
-    const user = await addUser();
+  it("shows the API's message for a target that is not a PT account", async () => {
+    fake().respond = () => {
+      throw apiRefusal(404, "PT_NOT_FOUND", "Không tìm thấy PT");
+    };
 
-    expect((await assignTraineePtAction(user, boss.id)).status).toBe("error");
-    expect((await db.select().from(users))[0].ptAdminId).toBeNull();
+    expect(await assignTraineePtAction(3, 1)).toMatchObject({
+      status: "error",
+      message: "Không tìm thấy PT",
+    });
   });
 
   it("reports an unknown trainee", async () => {
-    const pt = await addPt("coach");
+    fake().respond = () => {
+      throw apiRefusal(404, "USER_NOT_FOUND", "Không tìm thấy học viên");
+    };
 
-    expect((await assignTraineePtAction(999, pt)).status).toBe("error");
+    expect(await assignTraineePtAction(999, 9)).toMatchObject({
+      status: "error",
+      message: "Không tìm thấy học viên",
+    });
   });
 });

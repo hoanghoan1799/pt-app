@@ -1,7 +1,6 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-import { createClient } from "@libsql/client";
 import {
   type Browser,
   expect,
@@ -9,21 +8,21 @@ import {
   type Page,
   test,
 } from "@playwright/test";
-import { toNameKey } from "@pt/contracts";
-import { drizzle } from "drizzle-orm/libsql";
 
-import * as schema from "@/db/schema";
-import { hashPassword } from "@/services/password";
-import { toEmailKey } from "@/utils/email";
-
+import {
+  completeApiExercise,
+  createApiTrainee,
+  deleteApiTrainee,
+  findTraineeId,
+  loginAdminApi,
+  loginTraineeApi,
+  planApiDay,
+} from "./api-seed-workouts";
 import { fillTraineeLogin } from "./auth";
 import {
   E2E_ADMIN,
   E2E_BASE_URL,
-  E2E_DB_URL,
   E2E_TMP_DIR,
-  E2E_USER_PASSWORD,
-  e2eEmail,
 } from "./config";
 
 // Week calendar card (KAN-153) on the trainee workouts and nutrition tabs and
@@ -86,94 +85,47 @@ const NEXT_WEEK = shift(THIS_WEEK, 7);
 
 let calendarUserId = 0;
 
-const withDb = async <T>(
-  run: (db: ReturnType<typeof drizzle<typeof schema>>) => Promise<T>,
-) => {
-  const client = createClient({ url: E2E_DB_URL });
+// Removes the calendar trainee (and its workouts) through the API, if a
+// previous run left it behind.
+const removeCalendarUser = async () => {
+  const admin = await loginAdminApi();
 
   try {
-    return await run(drizzle(client, { schema }));
-  } finally {
-    client.close();
+    await deleteApiTrainee(admin, await findTraineeId(admin, CALENDAR_NAME));
+  } catch {
+    // Not there: nothing to remove.
   }
 };
 
-const removeCalendarUser = (client: ReturnType<typeof createClient>) =>
-  client.batch([
-    {
-      sql: `DELETE FROM exercise_completions WHERE user_id IN (SELECT id FROM users WHERE name = ?)`,
-      args: [CALENDAR_NAME],
-    },
-    {
-      sql: `DELETE FROM exercises WHERE day_id IN (SELECT d.id FROM workout_days d JOIN users u ON u.id = d.user_id WHERE u.name = ?)`,
-      args: [CALENDAR_NAME],
-    },
-    {
-      sql: `DELETE FROM workout_days WHERE user_id IN (SELECT id FROM users WHERE name = ?)`,
-      args: [CALENDAR_NAME],
-    },
-    { sql: `DELETE FROM users WHERE name = ?`, args: [CALENDAR_NAME] },
-  ]);
-
 test.beforeAll(async () => {
-  const client = createClient({ url: E2E_DB_URL });
+  await removeCalendarUser();
+  const admin = await loginAdminApi();
 
-  try {
-    await removeCalendarUser(client);
-  } finally {
-    client.close();
-  }
-  const passwordHash = await hashPassword(E2E_USER_PASSWORD);
+  calendarUserId = await createApiTrainee(admin, CALENDAR_NAME);
+  const trainee = await loginTraineeApi(CALENDAR_NAME);
+  const plan = [
+    { date: LAST_WEEK, logged: 2 },
+    { date: shift(LAST_WEEK, 1), logged: 1 },
+    { date: shift(LAST_WEEK, 2), logged: 0 },
+  ];
 
-  await withDb(async (db) => {
-    const [user] = await db
-      .insert(schema.users)
-      .values({
-        name: CALENDAR_NAME,
-        nameKey: toNameKey(CALENDAR_NAME),
-        email: e2eEmail(CALENDAR_NAME),
-        emailKey: toEmailKey(e2eEmail(CALENDAR_NAME)),
-        passwordHash,
-      })
-      .returning();
+  for (const { date, logged } of plan) {
+    const rows = await planApiDay(
+      admin,
+      calendarUserId,
+      date,
+      ["A", "B"].map((key) => ({
+        title: `E2E Calendar ${key}`,
+        sets: 3,
+        reps: "10",
+        youtubeId: "e2ecalendar",
+      })),
+    );
 
-    calendarUserId = user.id;
-    const plan = [
-      { date: LAST_WEEK, logged: 2 },
-      { date: shift(LAST_WEEK, 1), logged: 1 },
-      { date: shift(LAST_WEEK, 2), logged: 0 },
-    ];
-
-    for (const { date, logged } of plan) {
-      const [day] = await db
-        .insert(schema.workoutDays)
-        .values({ userId: user.id, date, title: "E2E" })
-        .returning();
-      const rows = await db
-        .insert(schema.exercises)
-        .values(
-          ["A", "B"].map((key, position) => ({
-            dayId: day.id,
-            title: `E2E Calendar ${key}`,
-            sets: 3,
-            reps: "10",
-            position,
-            youtubeId: "e2ecalendar",
-          })),
-        )
-        .returning();
-
-      if (logged > 0) {
-        await db.insert(schema.exerciseCompletions).values(
-          rows.slice(0, logged).map((row) => ({
-            exerciseId: row.id,
-            userId: user.id,
-            completedAt: new Date(),
-          })),
-        );
-      }
+    for (const row of rows.slice(0, logged)) {
+      await completeApiExercise(trainee, row.id);
     }
-  });
+  }
 });
 
 test.beforeAll(async ({ browser }) => {
@@ -182,13 +134,7 @@ test.beforeAll(async ({ browser }) => {
 });
 
 test.afterAll(async () => {
-  const client = createClient({ url: E2E_DB_URL });
-
-  try {
-    await removeCalendarUser(client);
-  } finally {
-    client.close();
-  }
+  await removeCalendarUser();
 });
 
 interface Surface {
@@ -253,7 +199,9 @@ const SURFACES: Surface[] = [
 ];
 
 const getCard = (page: Page) => page.getByRole("region", { name: "Lịch tuần" });
-const getTitle = (page: Page) => getCard(page).locator("nav > p");
+// The title is the button that opens the week jump sheet.
+const getTitle = (page: Page) =>
+  getCard(page).getByRole("button", { name: /^Mở lịch/ });
 const getCells = (page: Page) =>
   getCard(page).locator('a:has([data-testid="day-status"])');
 const getCell = (page: Page, date: string) =>

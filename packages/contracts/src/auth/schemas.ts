@@ -77,6 +77,14 @@ export const userActorSchema = z.object({
   email: z.string().nullable(),
   locale: z.string().nullable(),
   ptAdminId: z.number().int().positive().nullable(),
+  // Realtime chat permission (only the admin switch sets it).
+  chatEnabled: z.boolean(),
+  // Version of the social terms the trainee accepted; null = never.
+  termsVersion: z.number().int().nullable(),
+  // The trainee's meal plan request: meals per day; null = no request.
+  preferredMealCount: z.number().int().nullable(),
+  // Foods the trainee likes or avoids, part of the same request.
+  foodNote: z.string().nullable(),
 });
 
 export const adminActorSchema = z.object({

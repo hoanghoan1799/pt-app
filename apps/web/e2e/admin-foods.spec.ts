@@ -1,8 +1,8 @@
-import { createClient } from "@libsql/client";
 import { expect, type Page, test } from "@playwright/test";
 
+import { queryApiDb } from "./api-seed-nutrition";
 import { fillTraineeLogin } from "./auth";
-import { E2E_ADMIN, E2E_DB_URL, E2E_USER_NAME } from "./config";
+import { E2E_ADMIN, E2E_USER_NAME } from "./config";
 import { answerConfirm } from "./confirm";
 import { E2E_FOODS } from "./seed";
 
@@ -20,19 +20,14 @@ const logInAsAdmin = async (page: Page) => {
   await expect(page).toHaveURL(/\/admin(\?.*)?$/);
 };
 
-const countFoods = async (where: string, value: string) => {
-  const client = createClient({ url: E2E_DB_URL });
+// The foods live in the API's PostgreSQL.
+const countFoods = async (column: "name" | "name_key", value: string) => {
+  const [row] = await queryApiDb<{ total: string }>(
+    `SELECT COUNT(*) AS total FROM foods WHERE ${column} = $1 AND archived_at IS NULL`,
+    [value],
+  );
 
-  try {
-    const result = await client.execute({
-      sql: `SELECT COUNT(*) AS total FROM foods WHERE ${where} AND archived_at IS NULL`,
-      args: [value],
-    });
-
-    return Number(result.rows[0].total);
-  } finally {
-    client.close();
-  }
+  return Number(row.total);
 };
 
 const getFoodLink = (page: Page, name: string) =>
@@ -82,6 +77,8 @@ test("F8: the PT adds, edits and deletes Phở bò, and the trainee list follows
   page,
   browser,
 }) => {
+  // Three trainee sign-ins plus the PT's steps: each page now reads the API.
+  test.slow();
   // Entry point: the Thư viện món tile in the admin home "Thao tác" section.
   await page.getByRole("link", { name: "Thư viện món" }).click();
   await expect(page).toHaveURL(/\/admin\/foods$/);
@@ -158,20 +155,14 @@ test("F8: the PT adds, edits and deletes Phở bò, and the trainee list follows
   expect(await traineeSees(browser, PHO_EDITED)).toBe(0);
 
   // The row is kept, only archived.
-  const client = createClient({ url: E2E_DB_URL });
+  const rows = await queryApiDb<{ archived_at: Date | null; kcal: number }>(
+    "SELECT archived_at, kcal FROM foods WHERE name = $1",
+    [PHO_EDITED],
+  );
 
-  try {
-    const result = await client.execute({
-      sql: "SELECT archived_at, kcal FROM foods WHERE name = ?",
-      args: [PHO_EDITED],
-    });
-
-    expect(result.rows).toHaveLength(1);
-    expect(result.rows[0].archived_at).not.toBeNull();
-    expect(Number(result.rows[0].kcal)).toBe(63);
-  } finally {
-    client.close();
-  }
+  expect(rows).toHaveLength(1);
+  expect(rows[0].archived_at).not.toBeNull();
+  expect(Number(rows[0].kcal)).toBe(63);
 });
 
 test("F4: a kcal far from the macros is refused until the PT ticks the check box", async ({
@@ -200,7 +191,7 @@ test("F4: a kcal far from the macros is refused until the PT ticks the check box
   await page.getByRole("button", { name: "Thêm món" }).click();
   await expect(page.getByText("Vui lòng kiểm tra lại thông tin")).toBeVisible();
   await expect(page).toHaveURL(/\/admin\/foods\/new$/);
-  expect(await countFoods("name = ?", NAME)).toBe(0);
+  expect(await countFoods("name", NAME)).toBe(0);
 
   // A kcal within 10 % hides the warning and the box.
   await page.getByLabel("Calo", { exact: true }).fill("165");
@@ -221,7 +212,7 @@ test("F4: a kcal far from the macros is refused until the PT ticks the check box
   await page.getByRole("button", { name: "Thêm món" }).click();
   await expect(page).toHaveURL(/\/admin\/foods$/);
   await expect(getFoodLink(page, NAME)).toContainText("65 kcal");
-  expect(await countFoods("name = ?", NAME)).toBe(1);
+  expect(await countFoods("name", NAME)).toBe(1);
 });
 
 test("F7: a second active food with the same name is refused", async ({
@@ -246,14 +237,14 @@ test("F7: a second active food with the same name is refused", async ({
       ),
   ).toBeVisible();
   await expect(page).toHaveURL(/\/admin\/foods\/new$/);
-  expect(await countFoods("name_key = ?", "uc ga (chin)")).toBe(1);
+  expect(await countFoods("name_key", "uc ga (chin)")).toBe(1);
 
   // The raw version is a different food.
   await page.getByLabel("Tên món", { exact: true }).fill("Ức gà (nướng)");
   await page.getByRole("button", { name: "Thêm món" }).click();
   await expect(page).toHaveURL(/\/admin\/foods$/);
   await expect(getFoodLink(page, "Ức gà \\(nướng\\)")).toBeVisible();
-  expect(await countFoods("name_key = ?", "uc ga (chin)")).toBe(1);
+  expect(await countFoods("name_key", "uc ga (chin)")).toBe(1);
 });
 
 test("F11: search ignores accents and the group chips narrow the list", async ({
