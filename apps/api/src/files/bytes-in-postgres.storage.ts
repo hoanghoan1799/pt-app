@@ -5,17 +5,21 @@ import { DataSource } from "typeorm";
 
 import { Clock } from "../common/clock.js";
 import { returnedRows } from "../common/sql.js";
-import { Admin } from "../database/entities/admin.entity.js";
-import { User } from "../database/entities/user.entity.js";
 import type { FileRef, FileStorage, StoredFile } from "./file-storage.js";
-import {
-  decodeAvatarDataUrl,
-  detectImageMime,
-  encodeDataUrl,
-} from "./image-rules.js";
+import { detectImageMime } from "./image-rules.js";
 
-const entityOf = (ref: FileRef) =>
-  ref.collection === "avatar-admin" ? Admin : User;
+// Avatars: one row per owner in its own table (bytes, mime, size); the cache
+// version also sits in `avatar_updated_at` of the owner row, so the many
+// readers that only build URLs never touch the bytes.
+const AVATAR_TABLES = {
+  "avatar-user": { table: "user_avatars", key: "user_id", owner: "users" },
+  "avatar-admin": { table: "admin_avatars", key: "admin_id", owner: "admins" },
+} as const;
+
+const avatarTable = (ref: FileRef) =>
+  ref.collection in AVATAR_TABLES
+    ? AVATAR_TABLES[ref.collection as keyof typeof AVATAR_TABLES]
+    : null;
 
 // Chat collections: the bytes sit in the `data` / `mime` / `size` columns of
 // the row the owning service created; `created_at` is the version.
@@ -34,23 +38,13 @@ const blobTable = (ref: FileRef) =>
 const wholeSeconds = (date: Date) =>
   new Date(Math.floor(date.getTime() / 1000) * 1000);
 
-// Avatars stay in the `avatar` / `avatar_updated_at` columns of users and
-// admins, as a data URL, exactly the format migrated from Turso (no data
-// conversion at cutover). Only this adapter knows that; it never selects the
-// bulky column except in `get`.
+// Only this adapter knows where the bytes live. `version` never reads them.
 @Injectable()
 export class BytesInPostgresStorage implements FileStorage {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly clock: Clock,
   ) {}
-
-  private repo(ref: FileRef) {
-    return this.dataSource.getRepository<{
-      avatar: string | null;
-      avatarUpdatedAt: Date | null;
-    }>(entityOf(ref) as never);
-  }
 
   async put(ref: FileRef, file: { mime: AvatarMime; bytes: Buffer }) {
     if (detectImageMime(file.bytes) !== file.mime) {
@@ -71,13 +65,33 @@ export class BytesInPostgresStorage implements FileStorage {
       }
       return wholeSeconds(rows[0].created_at);
     }
-    const version = new Date(
-      Math.floor(this.clock.now().getTime() / 1000) * 1000,
-    );
+    const avatar = avatarTable(ref);
 
-    await this.repo(ref).update({ id: ref.id } as never, {
-      avatar: encodeDataUrl(file.mime, file.bytes),
-      avatarUpdatedAt: version,
+    if (!avatar) {
+      throw new Error("Unknown file collection");
+    }
+    const version = wholeSeconds(this.clock.now());
+
+    // The bytes and the version change together or not at all.
+    await this.dataSource.transaction(async (manager) => {
+      const updated = returnedRows(
+        await manager.query(
+          `UPDATE ${avatar.owner} SET avatar_updated_at = $2 WHERE id = $1 RETURNING id`,
+          [ref.id, version],
+        ),
+      );
+
+      if (updated.length === 0) {
+        throw new Error("No row to store the file in");
+      }
+      await manager.query(
+        `INSERT INTO ${avatar.table} (${avatar.key}, mime, data, size, updated_at)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (${avatar.key}) DO UPDATE
+           SET mime = EXCLUDED.mime, data = EXCLUDED.data,
+               size = EXCLUDED.size, updated_at = EXCLUDED.updated_at`,
+        [ref.id, file.mime, file.bytes, file.bytes.length, version],
+      );
     });
     return version;
   }
@@ -103,22 +117,20 @@ export class BytesInPostgresStorage implements FileStorage {
           }
         : null;
     }
-    const row = await this.repo(ref).findOne({
-      where: { id: ref.id } as never,
-      select: { avatar: true, avatarUpdatedAt: true } as never,
-    });
+    const avatar = avatarTable(ref);
 
-    if (!row?.avatar || !row.avatarUpdatedAt) {
+    if (!avatar) {
       return null;
     }
-    const decoded = decodeAvatarDataUrl(row.avatar);
+    const rows: { data: Buffer; mime: AvatarMime; updated_at: Date }[] =
+      await this.dataSource.query(
+        `SELECT data, mime, updated_at FROM ${avatar.table} WHERE ${avatar.key} = $1`,
+        [ref.id],
+      );
+    const row = rows[0];
 
-    return decoded.ok
-      ? {
-          mime: decoded.mime,
-          bytes: decoded.bytes,
-          version: row.avatarUpdatedAt,
-        }
+    return row && row.data.length > 0 && detectImageMime(row.data) === row.mime
+      ? { mime: row.mime, bytes: row.data, version: row.updated_at }
       : null;
   }
 
@@ -133,12 +145,18 @@ export class BytesInPostgresStorage implements FileStorage {
 
       return rows[0] ? wholeSeconds(rows[0].created_at) : null;
     }
-    const row = await this.repo(ref).findOne({
-      where: { id: ref.id } as never,
-      select: { avatarUpdatedAt: true } as never,
-    });
+    const avatar = avatarTable(ref);
 
-    return row?.avatarUpdatedAt ?? null;
+    if (!avatar) {
+      return null;
+    }
+    const rows: { avatar_updated_at: Date | null }[] =
+      await this.dataSource.query(
+        `SELECT avatar_updated_at FROM ${avatar.owner} WHERE id = $1`,
+        [ref.id],
+      );
+
+    return rows[0]?.avatar_updated_at ?? null;
   }
 
   async remove(ref: FileRef) {
@@ -150,9 +168,20 @@ export class BytesInPostgresStorage implements FileStorage {
       ]);
       return;
     }
-    await this.repo(ref).update({ id: ref.id } as never, {
-      avatar: null,
-      avatarUpdatedAt: null,
+    const avatar = avatarTable(ref);
+
+    if (!avatar) {
+      return;
+    }
+    await this.dataSource.transaction(async (manager) => {
+      await manager.query(
+        `DELETE FROM ${avatar.table} WHERE ${avatar.key} = $1`,
+        [ref.id],
+      );
+      await manager.query(
+        `UPDATE ${avatar.owner} SET avatar_updated_at = NULL WHERE id = $1`,
+        [ref.id],
+      );
     });
   }
 }

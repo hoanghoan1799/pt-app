@@ -14,8 +14,13 @@ describe("migrations list", () => {
     const listed = migrations.map((migration) => migration.name);
 
     expect(listed).toHaveLength(files.length);
+    // The file is "<timestamp>-<name>.ts", the class "<Name><timestamp>"; the
+    // name may be kebab-case in the file (avatar-tables -> AvatarTables).
+    const normalize = (name: string) =>
+      name.replace(/[^a-z0-9]/gi, "").toLowerCase();
+
     expect(
-      files.map((file) => file.replace(/^(\d+)-(.+)\.ts$/, "$2$1")),
-    ).toEqual(listed);
+      files.map((file) => normalize(file.replace(/^(\d+)-(.+)\.ts$/, "$2$1"))),
+    ).toEqual(listed.map(normalize));
   });
 });

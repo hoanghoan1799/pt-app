@@ -3,12 +3,25 @@ import { writeFileSync } from "node:fs";
 import type { Client as LibsqlClient } from "@libsql/client";
 import { Client } from "pg";
 
-import { loadTursoColumns, type TursoColumns } from "../turso-columns.js";
+import {
+  loadTursoColumns,
+  type TableSpec,
+  type TursoColumns,
+} from "../turso-columns.js";
+import {
+  AVATAR_COLUMNS,
+  AVATAR_TARGET_TABLES,
+  avatarToken,
+  decodeSourceAvatar,
+  isMovedColumn,
+  movedAvatarOf,
+} from "./avatars.js";
 import { deriveId, findViolations, VIOLATION_COLUMNS } from "./account-refs.js";
 import {
   hashRow,
   normalizeSource,
   normalizeTarget,
+  sha256Hex,
   type SourceValue,
   tableChecksum,
   toPgValue,
@@ -81,12 +94,29 @@ type Analysis = {
   invalid: Report["invalidValues"];
   blobs: Report["blobs"];
   warnings: string[];
+  skippedAvatars: Report["skippedAvatars"];
 };
 
 const keyOf = (primaryKey: string[], row: Record<string, SourceValue>) =>
   primaryKey.map((column) => String(row[column])).join(":");
 
+// The columns of a table that are inserted and compared in the table itself
+// (not the avatar, which moved to its own table).
+const ownColumns = (spec: TableSpec, table: string) =>
+  spec.columns.filter((column) => !isMovedColumn(table, column.name));
+
+// The decoded avatar of a source row; null when the row has none. An
+// unusable one comes back as { ok: false } and is skipped, never fatal.
+const sourceAvatarOf = (
+  moved: NonNullable<ReturnType<typeof movedAvatarOf>>,
+  row: Record<string, SourceValue>,
+) =>
+  row[moved.column] === null
+    ? null
+    : decodeSourceAvatar(row[moved.column], row[moved.versionColumn]);
+
 const batchFor = (mapping: TursoColumns, table: string, batchSize: number) =>
+  movedAvatarOf(table) ||
   mapping.tables[table].columns.some((column) => column.kind === "blob")
     ? Math.min(batchSize, BLOB_BATCH)
     : batchSize;
@@ -105,6 +135,7 @@ const analyse = async (
   const invalid = new Map<string, Report["invalidValues"][number]>();
   const blobColumns = new Map<string, Report["blobs"]["byColumn"][number]>();
   const hashFormat = new Map<string, number>();
+  const skippedAvatars: Report["skippedAvatars"] = [];
 
   const flag = (
     table: string,
@@ -159,6 +190,30 @@ const analyse = async (
 
         for (const column of spec.columns) {
           const value = row[column.name];
+          const moved = movedAvatarOf(table);
+
+          // The avatar is cosmetic: an unusable one never aborts. It is
+          // reported as a warning (table, id, problem) and skipped; the owner
+          // row still loads, with avatar_updated_at NULL.
+          if (moved && column.name === moved.column) {
+            if (value !== null) {
+              const decoded = decodeSourceAvatar(
+                value,
+                row[moved.versionColumn],
+              );
+
+              if (!decoded.ok) {
+                skippedAvatars.push({
+                  table,
+                  id: key,
+                  problem: decoded.problem,
+                });
+              }
+            }
+
+            continue;
+          }
+
           const info = schema.columns.get(table)?.get(column.name);
 
           if (!info) {
@@ -260,6 +315,7 @@ const analyse = async (
       byColumn,
     },
     warnings,
+    skippedAvatars,
   };
 };
 
@@ -303,8 +359,10 @@ const loadTables = async (
   for (const table of plan.order) {
     const spec = mapping.tables[table];
     const extras = EXTRA_COLUMNS[table] ?? {};
+    const columns = ownColumns(spec, table);
+    const moved = movedAvatarOf(table);
     const insertColumns = [
-      ...spec.columns.map((column) => column.name),
+      ...columns.map((column) => column.name),
       ...Object.keys(extras),
     ];
     const deferred = new Set(
@@ -316,6 +374,7 @@ const loadTables = async (
       Math.floor(MAX_PARAMS / insertColumns.length),
     );
     let loaded = 0;
+    let loadedAvatars = 0;
 
     for await (const batch of readTable(
       source,
@@ -324,6 +383,7 @@ const loadTables = async (
       batchFor(mapping, table, batchSize),
     )) {
       const params: unknown[][] = [];
+      const avatars: unknown[][] = [];
 
       for (const row of batch) {
         const key = keyOf(spec.primaryKey, row);
@@ -332,8 +392,30 @@ const loadTables = async (
           continue;
         }
 
-        const values = spec.columns.map((column) => {
+        const avatar = moved ? sourceAvatarOf(moved, row) : null;
+
+        if (avatar?.ok) {
+          avatars.push([
+            row.id,
+            avatar.avatar.mime,
+            avatar.avatar.bytes,
+            avatar.avatar.bytes.length,
+            new Date(avatar.avatar.updatedAtMs),
+          ]);
+        }
+
+        const values = columns.map((column) => {
           if (adjust.isNulled(table, column.name, key)) {
+            return null;
+          }
+
+          // Skipped avatar: no version, so no avatar URL is built.
+          if (
+            moved &&
+            avatar &&
+            !avatar.ok &&
+            column.name === moved.versionColumn
+          ) {
             return null;
           }
 
@@ -366,9 +448,31 @@ const loadTables = async (
         );
         loaded += chunk.length;
       }
+
+      // The owner rows of this batch exist now, so the foreign key holds.
+      if (moved) {
+        for (let start = 0; start < avatars.length; start += BLOB_BATCH) {
+          const chunk = avatars.slice(start, start + BLOB_BATCH);
+
+          await target.query(
+            buildInsert(
+              moved.targetTable,
+              [moved.targetKey, ...AVATAR_COLUMNS],
+              chunk.length,
+              false,
+            ),
+            chunk.flat(),
+          );
+          loadedAvatars += chunk.length;
+        }
+      }
     }
 
     log(`  loaded ${table}: ${loaded} rows`);
+
+    if (moved) {
+      log(`  loaded ${moved.targetTable}: ${loadedAvatars} rows`);
+    }
   }
 
   // Second step for the FK columns that closed a cycle (or point at the same
@@ -436,12 +540,16 @@ const verifyTables = async (
   batchSize: number,
 ) => {
   const tables: Report["tables"] = [];
+  const avatars: Report["avatars"] = [];
 
   for (const table of plan.order) {
     const spec = mapping.tables[table];
-    const names = spec.columns.map((column) => column.name);
+    const columns = ownColumns(spec, table);
+    const names = columns.map((column) => column.name);
+    const moved = movedAvatarOf(table);
     const sourceHashes: string[] = [];
     const targetHashes: string[] = [];
+    const sourceAvatars: string[] = [];
 
     for await (const batch of readTable(
       source,
@@ -456,10 +564,28 @@ const verifyTables = async (
           continue;
         }
 
+        const avatar = moved ? sourceAvatarOf(moved, row) : null;
+
+        if (avatar?.ok) {
+          sourceAvatars.push(
+            avatarToken(
+              row.id as number,
+              avatar.avatar.mime,
+              avatar.avatar.bytes.length,
+              avatar.avatar.bytes,
+              avatar.avatar.updatedAtMs,
+            ),
+          );
+        }
+
         sourceHashes.push(
           hashRow(
-            spec.columns.map((column) =>
-              adjust.isNulled(table, column.name, key)
+            columns.map((column) =>
+              adjust.isNulled(table, column.name, key) ||
+              (moved &&
+                avatar &&
+                !avatar.ok &&
+                column.name === moved.versionColumn)
                 ? normalizeSource(column, null)
                 : normalizeSource(column, row[column.name]),
             ),
@@ -478,12 +604,57 @@ const verifyTables = async (
       for (const row of batch) {
         targetHashes.push(
           hashRow(
-            spec.columns.map((column) =>
-              normalizeTarget(column, row[column.name]),
-            ),
+            columns.map((column) => normalizeTarget(column, row[column.name])),
           ),
         );
       }
+    }
+
+    if (moved) {
+      const targetAvatars: string[] = [];
+
+      for await (const batch of readTarget(
+        target,
+        moved.targetTable,
+        [moved.targetKey, ...AVATAR_COLUMNS],
+        [moved.targetKey],
+        BLOB_BATCH,
+      )) {
+        for (const row of batch) {
+          targetAvatars.push(
+            avatarToken(
+              row[moved.targetKey] as number,
+              row.mime as string,
+              row.size as number,
+              row.data as Buffer,
+              (row.updated_at as Date).getTime(),
+            ),
+          );
+        }
+      }
+
+      const sourceAvatarChecksum = tableChecksum(
+        sourceAvatars.map((token) => sha256Hex(token)),
+      );
+      const targetAvatarChecksum = tableChecksum(
+        targetAvatars.map((token) => sha256Hex(token)),
+      );
+      // Owners skipped as orphans and skipped (unusable) avatars are not in
+      // sourceAvatars, so exactly those ids must be missing in PostgreSQL.
+      const expected = sourceAvatars.length;
+
+      avatars.push({
+        table: moved.targetTable,
+        sourceRows: expected,
+        expectedRows: expected,
+        targetRows: targetAvatars.length,
+        sourceChecksum: sourceAvatarChecksum,
+        targetChecksum: targetAvatarChecksum,
+        match:
+          targetAvatars.length === expected &&
+          sourceAvatarChecksum === targetAvatarChecksum,
+        note: `decoded bytes, mime, size and version of ${moved.table}.${moved.column}`,
+      });
     }
 
     const expectedRows =
@@ -526,7 +697,26 @@ const verifyTables = async (
     plan.order.filter((table) => schema.identityTables.has(table)),
   );
 
-  return { tables, sequences };
+  return { tables, avatars, sequences };
+};
+
+const printSkippedAvatars = (report: Report, log: Log) => {
+  if (report.skippedAvatars.length === 0) {
+    return;
+  }
+
+  log(
+    "\nWarnings: unusable avatars are skipped (the owner row still loads with avatar_updated_at NULL):",
+  );
+  log(
+    formatTable(
+      ["table", "id", "problem"],
+      report.skippedAvatars.map((item) => [item.table, item.id, item.problem]),
+    ),
+  );
+  report.warnings.push(
+    `${report.skippedAvatars.length} unusable avatar(s) skipped, see skippedAvatars`,
+  );
 };
 
 const printOrphans = (report: Report, log: Log) => {
@@ -568,6 +758,22 @@ const printVerification = (report: Report, log: Log) => {
     ),
   );
 
+  if (report.avatars.length > 0) {
+    log("\nAvatars (decoded from the source data URLs, per id):");
+    log(
+      formatTable(
+        ["table", "expected", "target", "checksum", "result"],
+        report.avatars.map((row) => [
+          row.table,
+          String(row.expectedRows),
+          String(row.targetRows ?? "-"),
+          (row.targetChecksum ?? "-").slice(0, 12),
+          row.match ? "ok" : "MISMATCH",
+        ]),
+      ),
+    );
+  }
+
   const badSequences = report.sequences.filter((sequence) => !sequence.ok);
 
   for (const sequence of badSequences) {
@@ -580,6 +786,7 @@ const printVerification = (report: Report, log: Log) => {
 const isVerified = (report: Report) =>
   report.tables.length > 0 &&
   report.tables.every((table) => table.match) &&
+  report.avatars.every((table) => table.match) &&
   report.sequences.every((sequence) => sequence.ok);
 
 const execute = async (options: RunOptions, report: Report, log: Log) => {
@@ -659,6 +866,8 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
     report.invalidValues = analysis.invalid;
     report.blobs = analysis.blobs;
     report.warnings.push(...analysis.warnings);
+    report.skippedAvatars = analysis.skippedAvatars;
+    printSkippedAvatars(report, log);
 
     if (analysis.invalid.length > 0) {
       log("\nInvalid values (nothing was written):");
@@ -753,6 +962,7 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
       );
 
       report.tables = result.tables;
+      report.avatars = result.avatars;
       report.sequences = result.sequences;
       printVerification(report, log);
       report.status = isVerified(report) ? "ok" : "failed";
@@ -777,9 +987,9 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
       // sessions references users and admins, so it goes in the same
       // statement; its rows belong to the old users anyway.
       await target.query(
-        `TRUNCATE ${[...tableNames, "sessions"].map(quote).join(", ")} RESTART IDENTITY`,
+        `TRUNCATE ${[...tableNames, ...AVATAR_TARGET_TABLES, "sessions"].map(quote).join(", ")} RESTART IDENTITY`,
       );
-      log("Reset: truncated the 44 tables and sessions.");
+      log("Reset: truncated the 44 tables, the avatar tables and sessions.");
     }
 
     await loadTables(
@@ -811,6 +1021,7 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
     );
 
     report.tables = result.tables;
+    report.avatars = result.avatars;
     report.sequences = result.sequences;
     printVerification(report, log);
 

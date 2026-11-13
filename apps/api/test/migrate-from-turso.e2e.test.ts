@@ -8,6 +8,7 @@ import { run, type RunOptions } from "../scripts/migrate/run.js";
 import { loadTursoColumns } from "../scripts/turso-columns.js";
 import { createTestDatabase, type TestDatabase } from "./support/database.js";
 import {
+  AVATAR_WEBP_BYTES,
   createTursoFixture,
   type FixtureVariant,
   PNG_BYTES,
@@ -174,6 +175,44 @@ describe("data migration from a Turso/SQLite copy", () => {
     );
 
     expect(link).toEqual({ post_photo: 1, photo_post: 1 });
+
+    // The avatar data URLs became rows of the avatar tables, decoded; the
+    // version stayed in the owner row.
+    const userAvatars = await db.dataSource.query(
+      `SELECT user_id, mime, data, size, updated_at FROM user_avatars`,
+    );
+    const adminAvatars = await db.dataSource.query(
+      `SELECT admin_id, mime, data, size, updated_at FROM admin_avatars`,
+    );
+
+    expect(userAvatars).toHaveLength(1);
+    expect(userAvatars[0]).toMatchObject({
+      user_id: 1,
+      mime: "image/png",
+      size: PNG_BYTES.length,
+      updated_at: new Date((1_700_000_000 + 24) * 1000),
+    });
+    expect(Buffer.compare(userAvatars[0].data, PNG_BYTES)).toBe(0);
+    expect(adminAvatars).toHaveLength(1);
+    expect(adminAvatars[0]).toMatchObject({
+      admin_id: 1,
+      mime: "image/webp",
+      size: AVATAR_WEBP_BYTES.length,
+    });
+    expect(Buffer.compare(adminAvatars[0].data, AVATAR_WEBP_BYTES)).toBe(0);
+    expect(
+      (
+        await db.dataSource.query(
+          `SELECT avatar_updated_at FROM users WHERE id = 1`,
+        )
+      )[0].avatar_updated_at,
+    ).toEqual(new Date((1_700_000_000 + 24) * 1000));
+    expect(
+      report.avatars.map((row) => [row.table, row.targetRows, row.match]),
+    ).toEqual([
+      ["admin_avatars", 1, true],
+      ["user_avatars", 1, true],
+    ]);
 
     // Blob sizes are reported.
     expect(report.blobs.total.rows).toBe(4);
@@ -517,6 +556,99 @@ describe("data migration from a Turso/SQLite copy", () => {
     expect(await count(db, "users")).toBe(0);
   });
 
+  it("loads, skips and reports unusable avatars (the owner rows still load)", async () => {
+    const { fixture, db } = await setup("bad-avatars");
+    const { exitCode, report, output } = await migrate(fixture, db);
+
+    expect(exitCode, output).toBe(0);
+    expect(report.status).toBe("ok");
+    expect(report.committed).toBe(true);
+    expect(report.invalidValues).toEqual([]);
+    expect(
+      report.skippedAvatars
+        .map((item) => [item.table, item.id])
+        .sort((x, y) => (x.join() < y.join() ? -1 : 1)),
+    ).toEqual([
+      ["admins", "3"],
+      ["users", "2"],
+      ["users", "5"],
+    ]);
+
+    const problems = report.skippedAvatars
+      .map((item) => item.problem)
+      .join("\n");
+
+    expect(problems).toMatch(/not a base64 image data URL/);
+    expect(problems).toMatch(/bytes are not a png, jpeg or webp image/);
+    expect(problems).toMatch(/avatar_updated_at/);
+    expect(report.warnings.join("\n")).toMatch(/3 unusable avatar/);
+    // Never the value itself.
+    expect(output).not.toContain("PHNjcmlwdD4");
+    expect(JSON.stringify(report)).not.toContain("PHNjcmlwdD4");
+
+    // Owner rows loaded, without a version; only the good avatar was copied.
+    expect(await count(db, "users")).toBe(3);
+    expect(await count(db, "admins")).toBe(2);
+    expect(
+      await db.dataSource.query(
+        `SELECT id FROM users WHERE avatar_updated_at IS NOT NULL ORDER BY id`,
+      ),
+    ).toEqual([{ id: 1 }]);
+    expect(
+      await db.dataSource.query(
+        `SELECT id FROM admins WHERE avatar_updated_at IS NOT NULL`,
+      ),
+    ).toEqual([{ id: 1 }]);
+    expect(
+      await db.dataSource.query(`SELECT user_id FROM user_avatars`),
+    ).toEqual([{ user_id: 1 }]);
+    expect(
+      await db.dataSource.query(`SELECT admin_id FROM admin_avatars`),
+    ).toEqual([{ admin_id: 1 }]);
+    expect(report.avatars.every((row) => row.match)).toBe(true);
+    expect(report.tables.every((row) => row.match)).toBe(true);
+
+    // verify expects exactly the skipped ids to be missing...
+    const lines: string[] = [];
+    const verified = await run(
+      {
+        mode: "verify",
+        source: fixture.url,
+        target: db.url,
+        orphans: "report",
+        reset: false,
+        allowRemote: false,
+        batchSize: 3,
+      },
+      (line) => lines.push(line),
+    );
+
+    expect(verified.exitCode, lines.join("\n")).toBe(0);
+
+    // ...and fails when a skipped id gets an avatar after all.
+    await db.dataSource.query(
+      `INSERT INTO user_avatars (user_id, mime, data, size, updated_at)
+       SELECT 2, mime, data, size, updated_at FROM user_avatars WHERE user_id = 1`,
+    );
+    const extra = await run(
+      {
+        mode: "verify",
+        source: fixture.url,
+        target: db.url,
+        orphans: "report",
+        reset: false,
+        allowRemote: false,
+        batchSize: 3,
+      },
+      () => undefined,
+    );
+
+    expect(extra.exitCode).toBe(1);
+    expect(
+      extra.report.avatars.filter((row) => !row.match).map((row) => row.table),
+    ).toEqual(["user_avatars"]);
+  });
+
   it("--dry-run reads and scans but writes nothing", async () => {
     const { fixture, db } = await setup("required-orphans");
     const { exitCode, report } = await migrate(fixture, db, {
@@ -593,6 +725,40 @@ describe("data migration from a Turso/SQLite copy", () => {
       expect(
         report.tables.find((t) => t.table === "weight_logs")?.targetRows,
       ).toBe(0);
+    });
+
+    it("detects a changed avatar byte, a changed version and a missing avatar row", async () => {
+      const { fixture, db } = await setup();
+
+      expect((await migrate(fixture, db)).exitCode).toBe(0);
+      expect((await verify(fixture, db)).exitCode).toBe(0);
+
+      await db.dataSource.query(
+        `UPDATE user_avatars SET data = set_byte(data, 9, 1) WHERE user_id = 1`,
+      );
+      await db.dataSource.query(`DELETE FROM admin_avatars`);
+
+      const { exitCode, report } = await verify(fixture, db);
+
+      expect(exitCode).toBe(1);
+      expect(
+        report.avatars.filter((row) => !row.match).map((row) => row.table),
+      ).toEqual(["admin_avatars", "user_avatars"]);
+      // The owner tables themselves still match: the avatar is not in their hash.
+      expect(report.tables.every((row) => row.match)).toBe(true);
+
+      await db.dataSource.query(
+        `UPDATE user_avatars SET data = set_byte(data, 9, get_byte(data, 9) # 1) WHERE user_id = 1`,
+      );
+      await db.dataSource.query(
+        `UPDATE users SET avatar_updated_at = avatar_updated_at + interval '1 second' WHERE id = 1`,
+      );
+
+      const version = await verify(fixture, db);
+
+      expect(
+        version.report.tables.filter((row) => !row.match).map((r) => r.table),
+      ).toEqual(["users"]);
     });
 
     it("fails when an identity sequence was not advanced", async () => {
