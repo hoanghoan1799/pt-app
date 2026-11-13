@@ -763,6 +763,127 @@ const dirtyKeys = (): Entry[] => [
   ],
 ];
 
+// Rows the DbChatSocial constraints would reject (and a NULL silent, which is
+// repaired to false instead): a reply across conversations, a last message of
+// another conversation, a photo attached to a message that does not point back,
+// a size that is not the byte length, unordered pairs, a requester outside the
+// pair, a duplicate open report and a resolved report without a resolution.
+const chatSocialDirty = (): Entry[] => [
+  ["chat_conversations", { id: 2, user_id: 2, created_at: S + 600 }],
+  [
+    "chat_conversations",
+    { id: 3, user_id: 5, last_message_id: 2, created_at: S + 601 },
+  ],
+  [
+    "chat_messages",
+    {
+      id: 92,
+      conversation_id: 2,
+      sender_role: "user",
+      body: "Trả lời tin của cuộc trò chuyện khác",
+      client_id: "92929292-9292-4292-8292-929292929292",
+      reply_to_message_id: 1,
+      created_at: MS + 6010,
+    },
+  ],
+  [
+    "chat_messages",
+    {
+      id: 93,
+      conversation_id: 1,
+      sender_role: "user",
+      body: "silent không có giá trị",
+      client_id: "93939393-9393-4393-8393-939393939393",
+      silent: null,
+      created_at: MS + 6020,
+    },
+  ],
+  [
+    "chat_photos",
+    {
+      id: 92,
+      conversation_id: 1,
+      message_id: 1,
+      uploader_key: "user",
+      mime: "image/png",
+      width: 1,
+      height: 1,
+      data: PNG_BYTES,
+      size: PNG_BYTES.length,
+      created_at: MS + 6030,
+    },
+  ],
+  [
+    "chat_custom_stickers",
+    {
+      id: 92,
+      owner_kind: "user",
+      owner_id: 1,
+      mime: "image/png",
+      data: PNG_BYTES,
+      size: 1,
+      created_at: MS + 6040,
+    },
+  ],
+  [
+    "social_friendships",
+    {
+      user_low: 5,
+      user_high: 2,
+      status: "pending",
+      requested_by: 5,
+      created_at: MS + 6050,
+    },
+  ],
+  [
+    "social_friendships",
+    {
+      user_low: 2,
+      user_high: 5,
+      status: "pending",
+      requested_by: 1,
+      created_at: MS + 6051,
+    },
+  ],
+  [
+    "dm_conversations",
+    { id: 92, user_low: 5, user_high: 2, created_at: MS + 6060 },
+  ],
+  [
+    "social_reports",
+    {
+      id: 92,
+      reporter_key: "user:5",
+      target_kind: "post",
+      target_id: 1,
+      status: "open",
+      created_at: MS + 6070,
+    },
+  ],
+  [
+    "social_reports",
+    {
+      id: 93,
+      reporter_key: "user:5",
+      target_kind: "post",
+      target_id: 1,
+      status: "open",
+      created_at: MS + 6071,
+    },
+  ],
+  [
+    "social_reports",
+    {
+      id: 94,
+      reporter_key: "user:1",
+      target_kind: "post",
+      target_id: 1,
+      status: "resolved",
+      created_at: MS + 6072,
+    },
+  ],
+];
+
 export type FixtureVariant =
   | "base"
   | "required-orphans"
@@ -770,6 +891,7 @@ export type FixtureVariant =
   | "sparse"
   | "invalid-enum"
   | "dirty-keys"
+  | "chat-social-dirty"
   | "bad-avatars";
 
 export type TursoFixture = {
@@ -809,6 +931,12 @@ export const createTursoFixture = async (
 
   if (variant === "dirty-keys") {
     for (const entry of dirtyKeys()) {
+      await insert(client, entry);
+    }
+  }
+
+  if (variant === "chat-social-dirty") {
+    for (const entry of chatSocialDirty()) {
       await insert(client, entry);
     }
   }

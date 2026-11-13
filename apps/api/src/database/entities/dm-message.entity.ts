@@ -27,6 +27,7 @@ import { User } from "./user.entity.js";
 @ForeignKey(() => DmPhoto, ["id", "photoId"], ["messageId", "id"], {
   name: "fk_dm_messages_photo",
   onDelete: "SET NULL",
+  deferrable: "INITIALLY DEFERRED",
 })
 @Index("dm_messages_sender_id_idx", ["senderId"])
 @Index("dm_messages_photo_id_idx", ["photoId"])

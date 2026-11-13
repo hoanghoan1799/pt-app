@@ -174,11 +174,13 @@ export const introspectTarget = async (
     cols: string[];
     pcols: string[];
     nullable: boolean;
+    nullables: boolean[];
   }>(
     `SELECT cl.relname AS child, pcl.relname AS parent,
             array_agg(a.attname::text ORDER BY k.ord) AS cols,
             array_agg(pa.attname::text ORDER BY k.ord) AS pcols,
-            bool_and(NOT a.attnotnull) AS nullable
+            bool_and(NOT a.attnotnull) AS nullable,
+            array_agg(NOT a.attnotnull ORDER BY k.ord) AS nullables
        FROM pg_constraint c
        JOIN pg_class cl ON cl.oid = c.conrelid
        JOIN pg_namespace n ON n.oid = cl.relnamespace
@@ -198,9 +200,25 @@ export const introspectTarget = async (
       continue;
     }
 
+    // A composite FK (DbChatSocial: "same conversation", "photo and message
+    // agree") is planned by its one nullable column and the parent column in
+    // the same position: load order, deferral and missing parents work as for
+    // a plain FK. The rule that the whole tuple matches is scanned separately
+    // (chat-social.ts), because the loader never sees a half-matching key.
     if (row.cols.length !== 1) {
-      problems.push(`composite foreign key on ${row.child} is not supported`);
-      continue;
+      const nullable = row.nullables.flatMap((flag, index) =>
+        flag ? [index] : [],
+      );
+
+      if (nullable.length !== 1) {
+        problems.push(
+          `composite foreign key on ${row.child} needs exactly one nullable column`,
+        );
+        continue;
+      }
+      row.cols = [row.cols[nullable[0]]];
+      row.pcols = [row.pcols[nullable[0]]];
+      row.nullable = true;
     }
 
     const mapped = mapping.tables[row.child].columns.some(

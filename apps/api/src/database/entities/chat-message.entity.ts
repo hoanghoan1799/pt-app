@@ -30,12 +30,13 @@ import { SocialPost } from "./social-post.entity.js";
   { name: "fk_chat_messages_reply_in_conversation", onDelete: "SET NULL" },
 )
 // message.photo_id and photo.message_id are two views of one link. This FK
-// (checked at once) and the one on ChatPhoto (deferred: the app sets the photo
+// and the one on ChatPhoto (both deferred to COMMIT: the app sets the photo
 // side first) make them agree. Deleting the photo clears photo_id only.
 // reply_post_id keeps a plain FK: a deleted post shows as removed.
 @ForeignKey(() => ChatPhoto, ["id", "photoId"], ["messageId", "id"], {
   name: "fk_chat_messages_photo",
   onDelete: "SET NULL",
+  deferrable: "INITIALLY DEFERRED",
 })
 @Check(`"sender_role" IN ('user', 'admin')`)
 // A trainee message never carries an admin id. The other way round is allowed:

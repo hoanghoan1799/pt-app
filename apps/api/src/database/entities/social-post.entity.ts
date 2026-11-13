@@ -37,6 +37,7 @@ import { User } from "./user.entity.js";
 @ForeignKey(() => SocialPostPhoto, ["id", "photoId"], ["postId", "id"], {
   name: "fk_social_posts_photo",
   onDelete: "SET NULL",
+  deferrable: "INITIALLY DEFERRED",
 })
 @Index(
   "social_posts_idempotency",

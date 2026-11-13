@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { type Client, createClient } from "@libsql/client";
 
 import type { TableSpec, TursoColumns } from "../turso-columns.js";
+import { repairSourceRow } from "./chat-social.js";
 import type { SourceValue } from "./convert.js";
 
 export type SourceRow = Record<string, SourceValue>;
@@ -138,14 +139,17 @@ export async function* readTable(
       return;
     }
 
-    yield result.rows.map((row) =>
-      Object.fromEntries(
+    yield result.rows.map((row) => {
+      const values = Object.fromEntries(
         spec.columns.map((column) => [
           column.name,
           toSourceValue(row[column.name]),
         ]),
-      ),
-    );
+      );
+
+      repairSourceRow(table, values);
+      return values;
+    });
 
     if (result.rows.length < batchSize) {
       return;

@@ -1,3 +1,4 @@
+import type { DerivedCheck } from "./chat-social.js";
 import type { OrphanGroup, OrphanMode } from "./plan.js";
 
 export type TableReport = {
@@ -59,6 +60,10 @@ export type Report = {
   nulledValues: { table: string; column: string; keys: string[] }[];
   invalidValues: InvalidValueGroup[];
   blobs: { total: { rows: number; bytes: number }; byColumn: BlobReport[] };
+  // Legacy source data PostgreSQL no longer has, dropped on request.
+  droppedLegacy: { item: string; count: number }[];
+  // Recomputed denormalised fields that differ (reported, never fixed).
+  derivedChecks: DerivedCheck[];
   warnings: string[];
   errors: string[];
 };
@@ -87,6 +92,8 @@ export const emptyReport = (
   nulledValues: [],
   invalidValues: [],
   blobs: { total: { rows: 0, bytes: 0 }, byColumn: [] },
+  droppedLegacy: [],
+  derivedChecks: [],
   warnings: [],
   errors: [],
 });

@@ -13,8 +13,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 //  5. last_message_id points at a message of its own conversation.
 //  6. Photo <-> message / post: both directions exist (photo.message_id and
 //     message.photo_id), and a pair of composite FKs makes them agree. The
-//     message side is checked immediately, the photo side DEFERRABLE INITIALLY
-//     DEFERRED because the app (and the data script) set one side first.
+//     sides are DEFERRABLE INITIALLY DEFERRED (checked at COMMIT) because the
+//     app and the data script set one side first, in either order.
 //  7. user_low < user_high on dm_conversations and social_friendships, and the
 //     requester of a friendship is one of the two.
 //  8. chat_nicknames dropped (replaced by contact_aliases; nothing reads it).
@@ -78,6 +78,7 @@ const FK = {
     parent: "chat_photos",
     parentColumns: `"message_id", "id"`,
     action: `SET NULL ("photo_id")`,
+    deferred: true,
   },
   chatPhotoMessage: {
     table: "chat_photos",
@@ -95,6 +96,7 @@ const FK = {
     parent: "dm_photos",
     parentColumns: `"message_id", "id"`,
     action: `SET NULL ("photo_id")`,
+    deferred: true,
   },
   dmPhotoMessage: {
     table: "dm_photos",
@@ -112,6 +114,7 @@ const FK = {
     parent: "social_post_photos",
     parentColumns: `"post_id", "id"`,
     action: `SET NULL ("photo_id")`,
+    deferred: true,
   },
   photoPost: {
     table: "social_post_photos",

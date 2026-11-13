@@ -2,7 +2,7 @@
 
 Hoan runs every step of this by hand, in this order. Claude never runs the data script against Turso or any remote database; every rehearsal uses a local SQLite file.
 
-The data script is `apps/api/scripts/migrate-from-turso.ts`. It copies all 44 tables into an empty PostgreSQL that already has the migrations, then proves the copy is complete. Its SQLite column description (`turso-columns.json`) and DDL (`turso-schema.sql`, frozen, from the retired Drizzle schema) stay in the repo until the cutover is over; the script, both files and the Turso/libSQL dev dependency are deleted afterwards (see "After the cutover").
+The data script is `apps/api/scripts/migrate-from-turso.ts`. It copies the 44 source tables (43 in PostgreSQL: `chat_nicknames` is gone, see below) into an empty PostgreSQL that already has the migrations, then proves the copy is complete. Its SQLite column description (`turso-columns.json`) and DDL (`turso-schema.sql`, frozen, from the retired Drizzle schema) stay in the repo until the cutover is over; the script, both files and the Turso/libSQL dev dependency are deleted afterwards (see "After the cutover").
 
 ## What the script does
 
@@ -14,7 +14,7 @@ The data script is `apps/api/scripts/migrate-from-turso.ts`. It copies all 44 ta
 5. Runs `setval` on every identity sequence (max id; an empty table gives 1 as the next value).
 6. Verifies row counts and checksums on both sides before `COMMIT`. A mismatch rolls the whole load back.
 
-`--reset` truncates the 44 tables, `user_avatars`, `admin_avatars` and `sessions` in the same transaction. Without it, a target that has any row is refused.
+`--reset` truncates the data tables, `user_avatars`, `admin_avatars` and `sessions` in the same transaction. Without it, a target that has any row is refused.
 
 ## Before the day: rehearse on a local copy (as often as needed)
 
@@ -47,6 +47,31 @@ The database also holds rules SQLite never had (migration `DbIntegrity`), and th
 - `--orphans=skip` drops those rows and, repeatedly, everything that pointed at them (a skipped message takes its reactions, edits and photos).
 - `--orphans=null` cannot null a text key or repair a CHECK: for these rows it aborts before any write with "use --orphans=skip". Decision: no partial repair of text keys; skip, or fix the source and re-run.
 - Generated columns are never inserted (the loader's column list comes from `turso-columns.json`, which stays unchanged).
+
+The `DbChatSocial` migration adds more rules; the scan reports each one with table, column, reason, count and primary keys (never content), and `--orphans=skip` drops the row and its dependents (`--orphans=null` aborts with "use --orphans=skip", as above). Parent `-` in the report means a rule rather than a missing parent:
+
+| Rule (table.column)                                                                  | Reason                              | Notes                                                                                                                      |
+| ------------------------------------------------------------------------------------ | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `chat_messages.reply_to_message_id`                                                  | `reply_in_other_conversation`       | a reply must be in the replied message's conversation (a missing target stays an ordinary orphan)                          |
+| `chat_conversations.last_message_id`, `dm_conversations.last_message_id`             | `last_message_in_other_conversation`| the last message belongs to its conversation                                                                               |
+| `chat_messages.photo_id` / `chat_photos.message_id`, `dm_messages` / `dm_photos`, `social_posts.photo_id` / `social_post_photos.post_id` | `photo_link_mismatch` | both directions must name each other; reported on whichever side disagrees. A pending photo (no owner) is fine |
+| `size` of `chat_photos`, `dm_photos`, `social_post_photos`, `chat_custom_stickers`   | `size_not_byte_length`              | `size` must equal the byte length. Avatars are decoded by the script, so their size is right by construction               |
+| `dm_conversations.user_low`, `social_friendships.user_low`                           | `pair_not_ordered`                  | `user_low < user_high`                                                                                                     |
+| `social_friendships.requested_by`                                                    | `requester_not_in_pair`             | the requester is `user_low` or `user_high`                                                                                 |
+| `social_reports.status`                                                              | `status_resolution_mismatch`        | `resolved` needs `resolution` and `resolved_at`; `open` needs `resolution`, `resolved_at` and `resolved_by` all empty       |
+| `social_reports.reporter_key`                                                        | `duplicate_open_report`             | one open report per reporter and target; the report with the lowest id stays, later duplicates are the violations           |
+
+Photo links are two foreign keys, both `DEFERRABLE INITIALLY DEFERRED`, so the loader may set either side first; they are checked at `COMMIT`. Composite foreign keys are planned by their one nullable column (`reply_to_message_id`, `last_message_id`, `photo_id`, `message_id`, `post_id`) like plain ones, so a missing parent is reported as `missing_parent` and the cycle columns are still loaded as NULL and set afterwards.
+
+Repaired while reading, not reported: `chat_messages.silent` NULL (the source allowed it, the app meant "not silent") is copied as false.
+
+Legacy data PostgreSQL no longer has (the source schema and `turso-columns.json` stay as they are):
+
+- `chat_messages.attachment_url` / `attachment_meta`: nothing reads or writes them (photos have their own table). If any message has a value, the run aborts in every mode (dry run, migrate, verify) with the count and "pass `--drop-legacy-attachments`". With the flag the values are dropped and the count is in the report (`droppedLegacy`) and a warning.
+- `chat_nicknames`: the table is gone (private `contact_aliases` replaced the shared nicknames). A non-empty source table aborts the same way unless `--drop-legacy-nicknames` is passed. In production these rows were already moved to aliases by the old setup script, so the expected count is 0.
+- Pass the same flags to `data:verify`.
+
+After the load (and in `data:verify`) the script recomputes `last_message_id` (the newest message id of the conversation) and `last_message_at` (that message's `created_at`) for `chat_conversations` and `dm_conversations` and compares them with the stored values. These fields are kept by the app, so a difference is a warning (`derivedChecks` in the report, conversation ids only), never an error and never rewritten. Look at the list before lifting the freeze.
 
 Nothing is dropped silently: skipped and nulled values are counted and listed in the console and in the report.
 
