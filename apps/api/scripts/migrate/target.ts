@@ -2,6 +2,7 @@ import type { Client } from "pg";
 
 import { migrations } from "../../src/migrations/index.js";
 import type { TursoColumns } from "../turso-columns.js";
+import { DERIVED_COLUMNS } from "./constraints.js";
 import type { PgColumnInfo } from "./convert.js";
 import type { ForeignKey } from "./plan.js";
 
@@ -113,6 +114,7 @@ export const introspectTarget = async (
         row.table_name === name &&
         !mapped.has(row.column_name) &&
         !(row.column_name in (EXTRA_COLUMNS[name] ?? {})) &&
+        !(DERIVED_COLUMNS[name] ?? []).includes(row.column_name) &&
         row.is_nullable === "NO" &&
         row.column_default === null &&
         row.is_identity !== "YES"
@@ -154,11 +156,9 @@ export const introspectTarget = async (
       continue;
     }
 
-    if (row.cols.length !== 1) {
-      problems.push(`composite foreign key on ${row.child} is not supported`);
-      continue;
-    }
-
+    // A composite key (child owner agrees with the parent's) is two checks:
+    // the parent exists (its first column pair, an ordinary orphan scan) and
+    // the owner agrees (constraints.ts, before any write).
     foreignKeys.push({
       table: row.child,
       column: row.cols[0],

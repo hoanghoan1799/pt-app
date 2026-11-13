@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { type Client, createClient } from "@libsql/client";
 
 import type { TableSpec, TursoColumns } from "../turso-columns.js";
+import { applyDefaults } from "./constraints.js";
 import type { SourceValue } from "./convert.js";
 
 export type SourceRow = Record<string, SourceValue>;
@@ -139,11 +140,14 @@ export async function* readTable(
     }
 
     yield result.rows.map((row) =>
-      Object.fromEntries(
-        spec.columns.map((column) => [
-          column.name,
-          toSourceValue(row[column.name]),
-        ]),
+      applyDefaults(
+        table,
+        Object.fromEntries(
+          spec.columns.map((column) => [
+            column.name,
+            toSourceValue(row[column.name]),
+          ]),
+        ),
       ),
     );
 

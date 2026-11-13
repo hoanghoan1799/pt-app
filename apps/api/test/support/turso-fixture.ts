@@ -673,8 +673,133 @@ const nullableOrphans = (): Entry[] => [
   ],
 ];
 
+// Rows that break the db-constraints migration: a day that does not exist, an
+// owner that differs from the parent's, numbers out of range, a duplicate
+// position, a meal log with neither food nor name, a mark item for another
+// meal than its mark's. Skipping the bad day must take its exercise and set.
+const constraintViolations = (): Entry[] => [
+  [
+    "workout_days",
+    { id: 20, user_id: 2, date: "2026-02-30", created_at: S + 120 },
+  ],
+  [
+    "exercises",
+    {
+      id: 20,
+      day_id: 20,
+      title: "Của ngày hỏng",
+      youtube_id: "x",
+      position: 0,
+      created_at: S + 121,
+    },
+  ],
+  [
+    "exercise_sets",
+    {
+      id: 30,
+      exercise_id: 20,
+      user_id: 2,
+      position: 0,
+      weight_kg: 10,
+      reps: 5,
+      created_at: S + 122,
+    },
+  ],
+  [
+    "exercises",
+    {
+      id: 21,
+      day_id: 1,
+      title: "Trùng vị trí",
+      youtube_id: "y",
+      position: 0,
+      created_at: S + 123,
+    },
+  ],
+  [
+    "exercise_sets",
+    {
+      id: 21,
+      exercise_id: 1,
+      user_id: 2,
+      position: 2,
+      weight_kg: 10,
+      reps: 5,
+      created_at: S + 124,
+    },
+  ],
+  [
+    "exercise_sets",
+    {
+      id: 22,
+      exercise_id: 1,
+      user_id: 1,
+      position: 3,
+      weight_kg: 10,
+      reps: 101,
+      created_at: S + 125,
+    },
+  ],
+  [
+    "meal_logs",
+    {
+      id: 21,
+      user_id: 1,
+      meal_id: 1,
+      custom_name: "Quá nặng",
+      grams: 5000,
+      created_at: S + 126,
+      updated_at: S + 126,
+    },
+  ],
+  [
+    "meal_logs",
+    {
+      id: 22,
+      user_id: 1,
+      meal_id: 1,
+      grams: 10,
+      created_at: S + 127,
+      updated_at: S + 127,
+    },
+  ],
+  [
+    "meal_plan_meals",
+    { id: 2, day_id: 1, position: 1, name: "Bữa trưa", created_at: S + 128 },
+  ],
+  [
+    "meal_mark_items",
+    {
+      id: 21,
+      mark_id: 1,
+      meal_id: 2,
+      food_id: 1,
+      grams: 10,
+      protein: 1,
+      carbs: 1,
+      fat: 1,
+      kcal: 1,
+    },
+  ],
+  [
+    "weight_logs",
+    {
+      id: 21,
+      user_id: 1,
+      date: "2026-11-02",
+      weight_kg: 20,
+      created_at: S + 129,
+    },
+  ],
+];
+
 export type FixtureVariant =
-  "base" | "required-orphans" | "nullable-orphans" | "sparse" | "invalid-enum";
+  | "base"
+  | "required-orphans"
+  | "nullable-orphans"
+  | "sparse"
+  | "invalid-enum"
+  | "constraint-violations";
 
 export type TursoFixture = {
   url: string;
@@ -707,6 +832,12 @@ export const createTursoFixture = async (
 
   if (variant === "required-orphans") {
     for (const entry of requiredOrphans()) {
+      await insert(client, entry);
+    }
+  }
+
+  if (variant === "constraint-violations") {
+    for (const entry of constraintViolations()) {
       await insert(client, entry);
     }
   }

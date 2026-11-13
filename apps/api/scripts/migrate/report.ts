@@ -1,3 +1,4 @@
+import type { Backfill, ViolationGroup } from "./constraints.js";
 import type { OrphanGroup, OrphanMode } from "./plan.js";
 
 export type TableReport = {
@@ -54,6 +55,10 @@ export type Report = {
   skippedRows: { table: string; keys: string[] }[];
   nulledValues: { table: string; column: string; keys: string[] }[];
   invalidValues: InvalidValueGroup[];
+  // NULLs the db-constraints migration backfills, converted the same way.
+  backfilledValues: Backfill[];
+  // Rows that would break a new constraint (see cutover-runbook.md).
+  constraintViolations: ViolationGroup[];
   blobs: { total: { rows: number; bytes: number }; byColumn: BlobReport[] };
   warnings: string[];
   errors: string[];
@@ -80,6 +85,8 @@ export const emptyReport = (
   skippedRows: [],
   nulledValues: [],
   invalidValues: [],
+  backfilledValues: [],
+  constraintViolations: [],
   blobs: { total: { rows: 0, bytes: 0 }, byColumn: [] },
   warnings: [],
   errors: [],

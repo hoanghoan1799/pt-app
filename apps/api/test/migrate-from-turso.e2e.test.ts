@@ -438,6 +438,135 @@ describe("data migration from a Turso/SQLite copy", () => {
     expect(await count(db, "users")).toBe(0);
   });
 
+  describe("constraints of the db-constraints migration", () => {
+    const rules = (
+      groups: {
+        table: string;
+        column: string;
+        rule: string;
+        sampleKeys: string[];
+      }[],
+    ) =>
+      Object.fromEntries(
+        groups.map((group) => [
+          `${group.table}.${group.column}:${group.rule}`,
+          group.sampleKeys,
+        ]),
+      );
+
+    it("converts NULLs to the new defaults, lists them, and loads days as dates", async () => {
+      const { fixture, db } = await setup();
+      const { exitCode, report, output } = await migrate(fixture, db);
+
+      expect(exitCode, output).toBe(0);
+      expect(
+        Object.fromEntries(
+          report.backfilledValues.map((item) => [
+            `${item.table}.${item.column}`,
+            { value: item.value, keys: item.sampleKeys },
+          ]),
+        ),
+      ).toMatchObject({
+        "admins.role": { value: "super_admin", keys: ["1"] },
+        "users.chat_enabled": { value: 0, keys: ["5"] },
+        "users.post_privacy_default": { value: "friends" },
+      });
+
+      const [admin] = await db.dataSource.query(
+        `SELECT role FROM admins WHERE id = 1`,
+      );
+      const [day] = await db.dataSource.query(
+        `SELECT date FROM workout_days WHERE id = 1`,
+      );
+      const [exercise] = await db.dataSource.query(
+        `SELECT user_id FROM exercises WHERE id = 1`,
+      );
+      const [meal] = await db.dataSource.query(
+        `SELECT user_id FROM meal_plan_meals WHERE id = 1`,
+      );
+
+      expect(admin.role).toBe("super_admin");
+      expect(day.date).toBe("2026-11-10");
+      // Exercises and meals take the owner of their day.
+      expect(exercise.user_id).toBe(1);
+      expect(meal.user_id).toBe(1);
+    });
+
+    it("reports every kind of violation with ids, and aborts without --orphans=skip", async () => {
+      const { fixture, db } = await setup("constraint-violations");
+      const result = await migrate(fixture, db, { mode: "dry-run" });
+
+      expect(result.exitCode).toBe(1);
+      expect(result.report.status).toBe("aborted");
+      expect(rules(result.report.constraintViolations)).toEqual({
+        "workout_days.date:date": ["20"],
+        "exercises.position:exercises_day_position_key": ["21"],
+        "exercise_sets.user_id:exercise_sets_exercise_owner_fkey": ["21"],
+        "exercise_sets.reps:exercise_sets_reps_range": ["22"],
+        "meal_logs.grams:meal_logs_grams_range": ["21"],
+        "meal_logs.food_id:meal_logs_food_or_name": ["22"],
+        "meal_mark_items.meal_id:meal_mark_items_mark_meal_fkey": ["21"],
+        "weight_logs.weight_kg:weight_logs_weight_range": ["21"],
+      });
+      expect(result.output).toMatch(/Rows that break a new constraint/);
+      expect(result.output).toMatch(/--orphans=skip/);
+      expect(await count(db, "users")).toBe(0);
+    });
+
+    it("--orphans=null cannot repair them", async () => {
+      const { fixture, db } = await setup("constraint-violations");
+      const result = await migrate(fixture, db, { orphans: "null" });
+
+      expect(result.exitCode).toBe(1);
+      expect(result.output).toMatch(
+        /cannot repair a value that breaks a constraint/,
+      );
+      expect(await count(db, "users")).toBe(0);
+    });
+
+    it("--orphans=skip leaves the rows and their dependents out and still verifies", async () => {
+      const { fixture, db } = await setup("constraint-violations");
+      const result = await migrate(fixture, db, { orphans: "skip" });
+
+      expect(result.exitCode, result.output).toBe(0);
+      expect(
+        Object.fromEntries(
+          result.report.skippedRows.map((row) => [
+            row.table,
+            [...row.keys].sort(),
+          ]),
+        ),
+      ).toMatchObject({
+        workout_days: ["20"],
+        // The exercise of the skipped day, and the duplicate position.
+        exercises: ["20", "21"],
+        // Its set, the other owner's, the out-of-range one.
+        exercise_sets: ["21", "22", "30"],
+        meal_logs: ["21", "22"],
+        meal_mark_items: ["21"],
+        weight_logs: ["21"],
+      });
+      expect(await count(db, "exercises")).toBe(2);
+      expect(await count(db, "exercise_sets")).toBe(2);
+      expect(result.report.tables.every((table) => table.match)).toBe(true);
+
+      const alone = await run(
+        {
+          mode: "verify",
+          source: fixture.url,
+          target: db.url,
+          orphans: "skip",
+          reset: false,
+          allowRemote: false,
+          batchSize: 5,
+        },
+        () => undefined,
+      );
+
+      expect(alone.exitCode).toBe(0);
+    });
+  });
+
   describe("verify", () => {
     const verify = async (fixture: TursoFixture, db: TestDatabase) => {
       const lines: string[] = [];

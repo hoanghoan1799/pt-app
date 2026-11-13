@@ -13,6 +13,9 @@ const PG_ONLY_COLUMNS: Record<string, string[]> = {
   social_posts: ["idempotency_key"],
   // Idempotency-Key of a chat photo upload (new in the API; NULL for old rows).
   chat_photos: ["client_id"],
+  // The owner of the row's day, copied by the load (constraints.ts).
+  exercises: ["user_id"],
+  meal_plan_meals: ["user_id"],
 };
 // Tables PostgreSQL has and SQLite never had.
 const PG_ONLY_TABLES = ["sessions"];
