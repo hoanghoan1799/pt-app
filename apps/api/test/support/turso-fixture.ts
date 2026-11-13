@@ -673,8 +673,71 @@ const nullableOrphans = (): Entry[] => [
   ],
 ];
 
+// Rows the DbIntegrity foreign keys, CHECK and unique indexes would reject:
+// text keys of accounts that do not exist, a user message with an admin id, a
+// (The unique client_id rules need no fixture: SQLite already had a stricter
+// UNIQUE (conversation_id, client_id).)
+const dirtyKeys = (): Entry[] => [
+  [
+    "social_comments",
+    {
+      id: 90,
+      post_id: 1,
+      author_key: "user:9999",
+      body: "Của tài khoản đã xóa",
+      created_at: MS + 4200,
+    },
+  ],
+  [
+    "social_reactions",
+    {
+      post_id: 1,
+      reactor_key: "admin:9999",
+      emoji: "👍",
+      created_at: MS + 4100,
+    },
+  ],
+  [
+    "social_reports",
+    {
+      id: 90,
+      reporter_key: "user:1",
+      target_kind: "user",
+      target_id: 9999,
+      status: "open",
+      created_at: MS + 4500,
+    },
+  ],
+  [
+    "chat_messages",
+    {
+      id: 91,
+      conversation_id: 1,
+      sender_role: "user",
+      sender_admin_id: 1,
+      body: "Tin của học viên mang id admin",
+      client_id: "91919191-9191-4191-8191-919191919191",
+      created_at: MS + 3000,
+    },
+  ],
+  [
+    "chat_reactions",
+    {
+      message_id: 91,
+      reactor_key: "admin:1",
+      emoji: "👍",
+      created_at: MS + 3100,
+    },
+  ],
+];
+
 export type FixtureVariant =
-  "base" | "required-orphans" | "nullable-orphans" | "sparse" | "invalid-enum";
+  | "base"
+  | "required-orphans"
+  | "nullable-orphans"
+  | "sparse"
+  | "invalid-enum"
+  | "dirty-keys";
 
 export type TursoFixture = {
   url: string;
@@ -707,6 +770,12 @@ export const createTursoFixture = async (
 
   if (variant === "required-orphans") {
     for (const entry of requiredOrphans()) {
+      await insert(client, entry);
+    }
+  }
+
+  if (variant === "dirty-keys") {
+    for (const entry of dirtyKeys()) {
       await insert(client, entry);
     }
   }

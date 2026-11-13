@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { deriveId } from "../scripts/migrate/account-refs.js";
 import { createTestDatabase, type TestDatabase } from "./support/database.js";
 
 // PostgreSQL error codes: 23514 check_violation, 23503 foreign_key_violation,
@@ -328,6 +329,46 @@ describe("account references have real foreign keys", () => {
         author_admin_id: null,
       },
     ]);
+  });
+
+  it("derives the same ids as the data migration script does", async () => {
+    const keys = [
+      `user:${ctx.user}`,
+      `admin:${ctx.admin}`,
+      "user:012",
+      "user:abc",
+      "user:1234567890",
+      "admin:0",
+      "someone",
+    ];
+
+    for (const key of keys) {
+      await query(
+        `INSERT INTO social_comments (post_id, author_key, body, created_at)
+         VALUES ($1, $2, 'derive', now())`,
+        [ctx.post, key],
+      );
+    }
+    const rows: {
+      author_key: string;
+      author_user_id: number | null;
+      author_admin_id: number | null;
+    }[] = await query(
+      `SELECT author_key, author_user_id, author_admin_id FROM social_comments
+       WHERE body = 'derive'`,
+    );
+
+    expect(rows).toHaveLength(keys.length);
+    for (const row of rows) {
+      const source = { author_key: row.author_key };
+
+      expect(row.author_user_id, row.author_key).toBe(
+        deriveId("social_comments", "author_user_id", source),
+      );
+      expect(row.author_admin_id, row.author_key).toBe(
+        deriveId("social_comments", "author_admin_id", source),
+      );
+    }
   });
 
   it("refuses to write a generated column", async () => {
