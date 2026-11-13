@@ -14,7 +14,10 @@ import { SocialCleanupService } from "../social/social-cleanup.service.js";
 // colours, nicknames, photos, workouts, sets, completions, nutrition, meal
 // plans, logs and marks, friendships, blocks, DMs, sessions) goes with it
 // through ON DELETE CASCADE. What is keyed by text ("user:<id>", owner kind +
-// id) has no foreign key, so it is removed here, in the same transaction:
+// id) is also cascaded now, through the generated account-id columns of the
+// DbIntegrity migration. The explicit deletes stay: they remove what the
+// cascades do not reach (content on the trainee's posts, reports about their
+// posts and comments) and keep working if a key is not account-shaped:
 // private nicknames, push subscriptions, custom stickers, and the social
 // content (SocialCleanupService owns that: posts, reactions, comments,
 // notifications, pending photos and reports by or about the trainee).
