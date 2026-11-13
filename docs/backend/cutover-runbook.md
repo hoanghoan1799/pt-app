@@ -1,6 +1,6 @@
 # Cutover runbook: Turso to PostgreSQL
 
-Hoan runs this himself, in this order. Claude never runs the data script against Turso or any remote database; every rehearsal uses a local SQLite file.
+Hoan runs every step of this by hand, in this order. Claude never runs the data script against Turso or any remote database; every rehearsal uses a local SQLite file.
 
 The data script is `apps/api/scripts/migrate-from-turso.ts`. It copies all 44 tables into an empty PostgreSQL that already has the migrations, then proves the copy is complete. Its SQLite column description (`turso-columns.json`) and DDL (`turso-schema.sql`, frozen, from the retired Drizzle schema) stay in the repo until the cutover is over; the script, both files and the Turso/libSQL dev dependency are deleted afterwards (see "After the cutover").
 
