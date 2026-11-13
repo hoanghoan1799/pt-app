@@ -20,7 +20,7 @@ export const getUserId = (name: string) =>
     return Number(result.rows[0].id);
   });
 
-const lockChat = `chat_enabled = NULL, chat_enabled_changed_at = NULL,
+const lockChat = `chat_enabled = FALSE, chat_enabled_changed_at = NULL,
   chat_enabled_by_admin_id = NULL`;
 
 // Back to the seeded state: no conversation (its messages, reads, reactions and
