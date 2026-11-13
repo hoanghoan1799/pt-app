@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "tsx scripts/setup-database.ts --prebuild && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings 0",
     "typecheck": "next typegen && tsc --noEmit",
@@ -12,20 +12,11 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "api:types": "openapi-typescript ../api/openapi.json -o services/api/schema.d.ts",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
-    "admin:create": "tsx --env-file-if-exists=.env.local scripts/create-admin.ts",
-    "db:seed-foods": "tsx --env-file-if-exists=.env.local scripts/seed-foods.ts",
-    "db:seed-demo": "tsx --env-file-if-exists=.env.local scripts/seed-demo.ts",
-    "pwa:icons": "tsx scripts/generate-pwa-icons.ts",
-    "db:setup": "tsx --env-file-if-exists=.env.local scripts/setup-database.ts"
+    "pwa:icons": "tsx scripts/generate-pwa-icons.ts"
   },
   "dependencies": {
-    "@libsql/client": "^0.18.0",
     "@pt/contracts": "workspace:*",
     "clsx": "^2.1.1",
-    "drizzle-orm": "^0.45.3",
-    "jose": "^6.2.12",
     "lucide-react": "^1.48.0",
     "next": "16.3.8",
     "next-intl": "^4.14.9",
@@ -49,7 +40,6 @@
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
     "babel-plugin-react-compiler": "1.0.0",
-    "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "eslint-plugin-simple-import-sort": "^14.0.0",

@@ -1,15 +1,13 @@
-import { createClient } from "@libsql/client";
-
 import {
   E2E_ADMIN,
   E2E_API_URL,
-  E2E_DB_URL,
+  E2E_SEEDED_TRAINEES,
   E2E_USER_PASSWORD,
+  e2eEmail,
 } from "./config";
 
-// Seeds the API (PostgreSQL) with the same people the legacy SQLite seed
-// created, through the API's own endpoints, in the same id order so a trainee
-// has the same id on both sides while feature areas still read SQLite:
+// Seeds the API (PostgreSQL) with the e2e trainees (E2E_SEEDED_TRAINEES, in that
+// order) through the API's own endpoints:
 //
 //   admin login -> POST /v1/trainees (API generates a password)
 //   -> trainee login -> POST /v1/users/me/password (to the shared e2e password)
@@ -56,15 +54,8 @@ export const waitForApi = async () => {
   throw new Error("e2e api seed: the API did not answer /v1/health");
 };
 
-export const seedApiFromLegacyDatabase = async () => {
+export const seedApiTrainees = async () => {
   await waitForApi();
-
-  const legacy = createClient({ url: E2E_DB_URL });
-  const rows = (
-    await legacy.execute("SELECT id, name, email FROM users ORDER BY id")
-  ).rows;
-
-  legacy.close();
 
   const { token: adminToken } = (await call("POST", "/v1/auth/admin/login", {
     body: {
@@ -74,24 +65,15 @@ export const seedApiFromLegacyDatabase = async () => {
     },
   })) as { token: string };
 
-  for (const row of rows) {
+  // One after the other: the API hands out ids in call order.
+  for (const name of E2E_SEEDED_TRAINEES) {
+    const email = e2eEmail(name);
     const created = (await call("POST", "/v1/trainees", {
       token: adminToken,
-      body: { name: String(row.name), email: String(row.email) },
+      body: { name, email },
     })) as { id: number; password: string };
-
-    if (created.id !== Number(row.id)) {
-      throw new Error(
-        `e2e api seed: trainee "${String(row.name)}" got API id ${created.id}, legacy id ${Number(row.id)}`,
-      );
-    }
-
     const { token } = (await call("POST", "/v1/auth/login", {
-      body: {
-        email: String(row.email),
-        password: created.password,
-        clientKind: "web",
-      },
+      body: { email, password: created.password, clientKind: "web" },
     })) as { token: string };
 
     await call("POST", "/v1/users/me/password", {

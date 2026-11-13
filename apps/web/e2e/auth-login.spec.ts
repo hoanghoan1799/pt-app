@@ -1,4 +1,3 @@
-import { createClient } from "@libsql/client";
 import { type Browser, expect, type Page, test } from "@playwright/test";
 
 import { GENERATED_PASSWORD_ALPHABET } from "@/constants/password";
@@ -6,12 +5,11 @@ import { AUTH_MESSAGES } from "@/features/auth/constants/messages";
 import { MEMBER_MESSAGES } from "@/features/members/constants/messages";
 import { toEmailKey } from "@/utils/email";
 
-import { restoreTraineeCredentials } from "./api-db";
+import { restoreTraineeCredentials, withApiDb } from "./api-db";
 import { fillTraineeLogin, logOutViaMenu } from "./auth";
 import {
   E2E_ADMIN,
   E2E_CHANGER_NAME,
-  E2E_DB_URL,
   E2E_EMPTY_NAME,
   E2E_LOCKED_NAME,
   E2E_RESET_NAME,
@@ -29,30 +27,17 @@ import { shot } from "./shots";
 const PASSWORD_PATTERN = new RegExp(`^[${GENERATED_PASSWORD_ALPHABET}]{12}$`);
 const NEW_PASSWORD = "e2e-brand-new-password";
 
-const withDb = async <T>(
-  run: (client: ReturnType<typeof createClient>) => Promise<T>,
-) => {
-  const client = createClient({ url: E2E_DB_URL });
-
-  try {
-    return await run(client);
-  } finally {
-    client.close();
-  }
-};
-
 // Back to the seeded state: shared password, no password change, no failures.
 // Logins live in the API's PostgreSQL now (see api-db.ts).
 const restoreCredentials = restoreTraineeCredentials;
 
-// Until the members area moves to the API, the admin UI still lists trainees
-// from the legacy SQLite database, so ids for /admin/users/<id> come from there.
+// Ids for /admin/users/<id>, read from the API's PostgreSQL.
 const getUserId = (email: string) =>
-  withDb(async (client) => {
-    const result = await client.execute({
-      sql: "SELECT id FROM users WHERE email_key = ?",
-      args: [toEmailKey(email)],
-    });
+  withApiDb(async (client) => {
+    const result = await client.query(
+      "SELECT id FROM users WHERE email_key = $1",
+      [toEmailKey(email)],
+    );
 
     return Number(result.rows[0].id);
   });

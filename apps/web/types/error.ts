@@ -1,10 +1,6 @@
 export type ErrorCode =
   | "CONFIG_MISSING"
   | "CONFIG_INVALID"
-  | "DB_FILE_UNAVAILABLE"
-  | "DB_NOT_MIGRATED"
-  | "DB_AUTH_FAILED"
-  | "DB_UNREACHABLE"
   | "API_UNREACHABLE"
   | "API_TIMEOUT"
   | "UNKNOWN";

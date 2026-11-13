@@ -4,9 +4,12 @@
 #
 #   1. installs dependencies from the lock file
 #   2. builds packages/contracts (the apps import it from dist/)
-#   3. creates apps/web/.env.local from apps/web/.env.example when it is missing, with a random
-#      SESSION_SECRET and the local SQLite file (never a Turso URL)
-#   4. creates the tables, the first admin and the starter foods in local.db (in apps/web)
+#   3. creates apps/web/.env.local from apps/web/.env.example when it is missing
+#      (API_URL, NEXT_PUBLIC_API_URL: the local API on :4000)
+#
+# It does not start PostgreSQL or the API: the web reads everything through the
+# API, so a database needs Docker (`docker compose up -d --build db api`, see
+# docs/claude-code-setup.md). Unit tests, lint and typecheck need neither.
 #
 # Runs only in cloud sessions (CLAUDE_CODE_REMOTE=true); local sessions keep
 # their own setup. Safe to run many times: each step skips work already done.
@@ -38,25 +41,8 @@ pnpm --silent build:contracts
 
 env_file="apps/web/.env.local"
 if [ ! -f "$env_file" ]; then
-  echo "▸ pt-app cloud setup: creating $env_file from the template (local SQLite)"
-  secret="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))')"
-  sed -e "s|^SESSION_SECRET=.*|SESSION_SECRET=${secret}|" \
-    -e "s|^DATABASE_URL=.*|DATABASE_URL=file:local.db|" \
-    apps/web/.env.example >"$env_file"
+  echo "▸ pt-app cloud setup: creating $env_file from the template"
+  cp apps/web/.env.example "$env_file"
 fi
 
-# Never point the setup at a remote database: apps/web/drizzle.config.ts and
-# apps/web/services/env.ts prefer TURSO_DATABASE_URL, then DATABASE_URL, from the
-# environment over .env.local.
-for name in TURSO_DATABASE_URL DATABASE_URL; do
-  value="${!name:-}"
-  if [ -n "$value" ] && [[ "$value" != file:* ]]; then
-    echo "⚠ pt-app cloud setup: $name points at a remote database; skipping the database step"
-    exit 0
-  fi
-done
-
-echo "▸ pt-app cloud setup: preparing local.db"
-pnpm --silent --filter @pt/web db:setup
-
-echo "✔ pt-app cloud setup done: pnpm verify, pnpm dev (http://localhost:3000)"
+echo "✔ pt-app cloud setup done: pnpm verify (the API e2e tests and Playwright need Docker)"

@@ -10,5 +10,3 @@ const DAY_IN_SECONDS = 60 * 60 * 24;
 // to log in again. Admins get a fixed 7 days.
 export const USER_SESSION_MAX_AGE = DAY_IN_SECONDS * 400;
 export const ADMIN_SESSION_MAX_AGE = DAY_IN_SECONDS * 7;
-
-export const MIN_SESSION_SECRET_LENGTH = 32;

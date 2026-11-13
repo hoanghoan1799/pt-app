@@ -7,7 +7,7 @@ import { shot } from "./shots";
 
 // Conversation settings (KAN-142, docs/specs/chat-ux-v2.md D1, D4): private
 // nicknames (docs/specs/private-nicknames.md) and bubble colour, on the
-// polling transport (no Ably key in e2e). The spec owns E2E_CHAT_NAME and
+// polling transport (no realtime socket in e2e). The spec owns E2E_CHAT_NAME and
 // resets its chat rows first and last.
 const SEND_TIMEOUT_MS = 60_000;
 const SYNC_TIMEOUT_MS = 20_000;

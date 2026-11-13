@@ -13,9 +13,7 @@ import { E2E_ADMIN, E2E_CHAT_NAME } from "./config";
 const resetState = async (enabled: boolean) => {
   await clearAvatarsViaApi(E2E_CHAT_NAME);
   // Chat on with an empty conversation, or back to the seeded (off) state.
-  return enabled
-    ? prepareChatTrainee(E2E_CHAT_NAME)
-    : resetChat(E2E_CHAT_NAME);
+  return enabled ? prepareChatTrainee(E2E_CHAT_NAME) : resetChat(E2E_CHAT_NAME);
 };
 
 // A solid-colour 40x20 PNG built in memory: wide, so the square crop matters.

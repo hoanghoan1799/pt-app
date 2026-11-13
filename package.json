@@ -21,12 +21,10 @@
     "test:e2e": "pnpm build:contracts && pnpm --filter @pt/web test:e2e",
     "format": "prettier --write .",
     "verify": "pnpm build:contracts && pnpm -r --no-bail verify && pnpm test:tools",
-    "db:push": "pnpm --filter @pt/web db:push",
-    "db:studio": "pnpm --filter @pt/web db:studio",
-    "db:setup": "pnpm --filter @pt/web db:setup",
-    "db:seed-foods": "pnpm --filter @pt/web db:seed-foods",
-    "db:seed-demo": "pnpm --filter @pt/web db:seed-demo",
-    "admin:create": "pnpm --filter @pt/web admin:create",
+    "db:migrate": "pnpm --filter @pt/api migration:run",
+    "db:seed-foods": "pnpm --filter @pt/api foods:seed",
+    "db:seed-demo": "pnpm --filter @pt/api demo:seed",
+    "admin:create": "pnpm --filter @pt/api admin:create",
     "pwa:icons": "pnpm --filter @pt/web pwa:icons"
   },
   "devDependencies": {

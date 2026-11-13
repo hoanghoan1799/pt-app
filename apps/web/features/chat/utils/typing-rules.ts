@@ -24,7 +24,7 @@ export interface TypingEventData {
   senderKey: string;
 }
 
-// Ably payloads are untrusted input: anything that is not the exact shape of
+// Realtime payloads are untrusted input: anything that is not the exact shape of
 // `typingEvent` is dropped.
 export const parseTypingEvent = (data: unknown): TypingEventData | null => {
   if (typeof data !== "object" || data === null) {
@@ -38,7 +38,7 @@ export const parseTypingEvent = (data: unknown): TypingEventData | null => {
   return { role, senderKey };
 };
 
-// Only the other side's typing shows. Our own echo (same Ably client id, e.g.
+// Only the other side's typing shows. Our own echo (same realtime client id, e.g.
 // a second tab of the same person) and events from our own role are ignored.
 export const isPeerTyping = (
   event: TypingEventData,

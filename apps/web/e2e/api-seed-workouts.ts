@@ -229,9 +229,8 @@ export const countApiPlannedDays = async (
     token: adminToken,
   });
 
-  return days.filter(
-    (day) => day.title || day.note || day.exercises.length > 0,
-  ).length;
+  return days.filter((day) => day.title || day.note || day.exercises.length > 0)
+    .length;
 };
 
 // The API has no "delete a day" route; this clears planned days of one trainee
