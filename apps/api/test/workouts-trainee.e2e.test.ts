@@ -69,6 +69,7 @@ describe("GET /v1/me/workout-days", () => {
     // Same day, listed first by position although created later.
     await w.ds.getRepository(Exercise).save({
       dayId: tuesday.dayId,
+      userId: w.ids.mine,
       title: "Warm-up",
       youtubeId: LINK_B,
       position: 0,

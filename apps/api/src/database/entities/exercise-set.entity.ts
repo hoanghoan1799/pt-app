@@ -23,8 +23,20 @@ export class ExerciseSet {
   @Column({ type: "integer" })
   exerciseId!: number;
 
+  // With user_id: the row's owner must be the owner of the exercise.
   @ManyToOne(() => Exercise, { onDelete: "CASCADE" })
-  @JoinColumn({ name: "exercise_id" })
+  @JoinColumn([
+    {
+      name: "exercise_id",
+      referencedColumnName: "id",
+      foreignKeyConstraintName: "exercise_sets_exercise_owner_fkey",
+    },
+    {
+      name: "user_id",
+      referencedColumnName: "userId",
+      foreignKeyConstraintName: "exercise_sets_exercise_owner_fkey",
+    },
+  ])
   exercise!: Relation<Exercise>;
 
   @Column({ type: "integer" })

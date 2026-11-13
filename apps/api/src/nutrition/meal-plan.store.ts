@@ -202,6 +202,7 @@ export class MealPlanStore {
       MealPlanMeal,
       plan.meals.map((meal) => ({
         dayId,
+        userId,
         position: meal.position,
         name: meal.name,
         sharePercent: meal.sharePercent,

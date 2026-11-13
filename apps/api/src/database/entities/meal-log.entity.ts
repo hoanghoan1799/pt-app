@@ -30,8 +30,20 @@ export class MealLog {
   @Column({ type: "integer" })
   mealId!: number;
 
+  // With user_id: the row's owner must be the owner of the meal's day.
   @ManyToOne(() => MealPlanMeal, { onDelete: "CASCADE" })
-  @JoinColumn({ name: "meal_id" })
+  @JoinColumn([
+    {
+      name: "meal_id",
+      referencedColumnName: "id",
+      foreignKeyConstraintName: "meal_logs_meal_owner_fkey",
+    },
+    {
+      name: "user_id",
+      referencedColumnName: "userId",
+      foreignKeyConstraintName: "meal_logs_meal_owner_fkey",
+    },
+  ])
   meal!: Relation<MealPlanMeal>;
 
   @Column({ type: "integer", nullable: true })

@@ -122,7 +122,12 @@ export class MealPlansService {
 
         await manager.insert(
           MealPlanMeal,
-          names.map((name, position) => ({ dayId: day.id, position, name })),
+          names.map((name, position) => ({
+            dayId: day.id,
+            userId,
+            position,
+            name,
+          })),
         );
         return day.id;
       });
@@ -158,6 +163,7 @@ export class MealPlansService {
       }
       await manager.insert(MealPlanMeal, {
         dayId: day.id,
+        userId: day.userId,
         position: meals.length ? meals[meals.length - 1].position + 1 : 0,
         name: getNextMealName(meals.map((meal) => meal.name)),
       });

@@ -151,12 +151,24 @@ export const seedExercise = async (
   (
     await ds.getRepository(Exercise).save({
       dayId,
+      userId: (await ds.getRepository(WorkoutDay).findOneByOrFail({ id: dayId }))
+        .userId,
       title: fields.title ?? "Squat",
       description: fields.description ?? "",
       sets: fields.sets ?? null,
       reps: fields.reps ?? "",
       youtubeId: fields.youtubeId ?? LINK_A,
-      position: fields.position ?? 0,
+      // Positions are unique in a day: the next free one unless given.
+      position:
+        fields.position ??
+        Number(
+          (
+            await ds.query(
+              `SELECT COALESCE(MAX(position), -1) + 1 AS next FROM exercises WHERE day_id = $1`,
+              [dayId],
+            )
+          )[0].next,
+        ),
     })
   ).id;
 

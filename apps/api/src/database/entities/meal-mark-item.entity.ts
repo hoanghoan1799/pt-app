@@ -23,8 +23,21 @@ export class MealMarkItem {
   @Column({ type: "integer" })
   markId!: number;
 
+  // With meal_id: the item names the same meal as its mark (meal_id is kept
+  // for the queries that start from a meal).
   @ManyToOne(() => MealMark, { onDelete: "CASCADE" })
-  @JoinColumn({ name: "mark_id" })
+  @JoinColumn([
+    {
+      name: "mark_id",
+      referencedColumnName: "id",
+      foreignKeyConstraintName: "meal_mark_items_mark_meal_fkey",
+    },
+    {
+      name: "meal_id",
+      referencedColumnName: "mealId",
+      foreignKeyConstraintName: "meal_mark_items_mark_meal_fkey",
+    },
+  ])
   mark!: Relation<MealMark>;
 
   @Column({ type: "integer" })

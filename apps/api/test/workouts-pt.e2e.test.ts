@@ -519,13 +519,13 @@ describe("POST /v1/trainees/:userId/exercises/:exerciseId/move", () => {
   const move = (id: number, direction: string, userId = w.ids.mine) =>
     api.post(`${exercises(userId, id)}/move`, w.tokens.ptA, { direction });
 
-  it("swaps with the neighbour, renumbering repairs duplicates, edges are no-ops", async () => {
+  it("swaps with the neighbour, renumbering repairs gaps, edges are no-ops", async () => {
     const dayId = await seedDay(w.ds, w.ids.mine, "2026-12-14");
     const a = await seedExercise(w.ds, dayId, { title: "A", position: 0 });
-    const b = await seedExercise(w.ds, dayId, { title: "B", position: 0 });
+    const b = await seedExercise(w.ds, dayId, { title: "B", position: 3 });
     const c = await seedExercise(w.ds, dayId, { title: "C", position: 5 });
 
-    // Order is by position then id: A, B, C (A and B share position 0).
+    // Order is by position: A, B, C (positions 0, 3, 5).
     expect((await move(b, "down")).status).toBe(204);
     expect(await positionsOf(dayId)).toEqual([
       ["A", 0],

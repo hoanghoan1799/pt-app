@@ -120,7 +120,7 @@ const seedGraph = async ({ userId, otherId, adminId, foodId }: Cast) => {
   await insertRow(ds, PushSubscription, { ownerKey: key });
   // Workouts
   const dayId = await insertRow(ds, WorkoutDay, { userId });
-  const exerciseId = await insertRow(ds, Exercise, { dayId });
+  const exerciseId = await insertRow(ds, Exercise, { dayId, userId });
   await insertRow(ds, ExerciseSet, { exerciseId, userId });
   await insertRow(ds, ExerciseCompletion, { exerciseId, userId });
   // Nutrition
@@ -134,7 +134,10 @@ const seedGraph = async ({ userId, otherId, adminId, foodId }: Cast) => {
   });
   await insertRow(ds, WeightLog, { userId });
   const planDayId = await insertRow(ds, MealPlanDay, { userId });
-  const mealId = await insertRow(ds, MealPlanMeal, { dayId: planDayId });
+  const mealId = await insertRow(ds, MealPlanMeal, {
+    dayId: planDayId,
+    userId,
+  });
   await insertRow(ds, MealPlanItem, { mealId, foodId });
   await insertRow(ds, MealLog, { userId, mealId, foodId });
   const markId = await insertRow(ds, MealMark, { mealId, userId });

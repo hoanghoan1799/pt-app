@@ -155,8 +155,8 @@ const seedDemo = async (dataSource: DataSource) => {
 
     for (const [position, item] of day.exercises.entries()) {
       const [exercise] = (await dataSource.query(
-        `INSERT INTO exercises (day_id, position, title, youtube_id, sets, reps)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+        `INSERT INTO exercises (day_id, user_id, position, title, youtube_id, sets, reps)
+         VALUES ($1, $7, $2, $3, $4, $5, $6) RETURNING id`,
         [
           created.id,
           position,
@@ -164,6 +164,7 @@ const seedDemo = async (dataSource: DataSource) => {
           item.youtubeId,
           item.sets,
           item.reps,
+          demo.id,
         ],
       )) as { id: number }[];
 

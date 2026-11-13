@@ -128,8 +128,8 @@ describe("constraints", () => {
         [userId],
       );
       const [{ id: exerciseId }] = await query(
-        `INSERT INTO exercises (day_id, title, youtube_id) VALUES ($1, 'Squat', 'abc') RETURNING id`,
-        [dayId],
+        `INSERT INTO exercises (day_id, user_id, title, youtube_id) VALUES ($1, $2, 'Squat', 'abc') RETURNING id`,
+        [dayId, userId],
       );
       await query(
         `INSERT INTO exercise_sets (exercise_id, user_id, position, reps) VALUES ($1, $2, 1, 10)`,
@@ -204,8 +204,8 @@ describe("constraints", () => {
         [userId],
       );
       const [{ id: mealId }] = await query(
-        `INSERT INTO meal_plan_meals (day_id, position, name) VALUES ($1, 1, 'Lunch') RETURNING id`,
-        [dayId],
+        `INSERT INTO meal_plan_meals (day_id, user_id, position, name) VALUES ($1, $2, 1, 'Lunch') RETURNING id`,
+        [dayId, userId],
       );
       await query(
         `INSERT INTO meal_plan_items (meal_id, food_id, grams) VALUES ($1, $2, 150)`,
@@ -371,6 +371,206 @@ describe("constraints", () => {
              VALUES ('n-${column}', 'n-${column}', NULL)`;
 
       expect(await sqlState(query(insert))).toBe("23502");
+    });
+  });
+
+  describe("owner agreement and list positions", () => {
+    const seedOwners = async (tag: string) => {
+      const user = async (name: string) =>
+        (
+          await query(
+            `INSERT INTO users (name, name_key) VALUES ($1, $1) RETURNING id`,
+            [`${tag}-${name}`],
+          )
+        )[0].id as number;
+      const [alice, bob] = [await user("alice"), await user("bob")];
+      const [{ id: workoutDay }] = await query(
+        `INSERT INTO workout_days (user_id, date) VALUES ($1, '2026-05-01') RETURNING id`,
+        [alice],
+      );
+      const [{ id: exercise }] = await query(
+        `INSERT INTO exercises (day_id, user_id, position, title, youtube_id)
+         VALUES ($1, $2, 0, 'Squat', 'abc') RETURNING id`,
+        [workoutDay, alice],
+      );
+      const [{ id: planDay }] = await query(
+        `INSERT INTO meal_plan_days (user_id, date) VALUES ($1, '2026-05-01') RETURNING id`,
+        [alice],
+      );
+      const [{ id: meal }] = await query(
+        `INSERT INTO meal_plan_meals (day_id, user_id, position, name)
+         VALUES ($1, $2, 0, 'Lunch') RETURNING id`,
+        [planDay, alice],
+      );
+
+      return { alice, bob, workoutDay, exercise, planDay, meal };
+    };
+
+    it("refuses an exercise whose owner is not the owner of its day", async () => {
+      const { bob, workoutDay } = await seedOwners("ex");
+
+      expect(
+        await sqlState(
+          query(
+            `INSERT INTO exercises (day_id, user_id, position, title, youtube_id)
+             VALUES ($1, $2, 1, 'Row', 'abc')`,
+            [workoutDay, bob],
+          ),
+        ),
+      ).toBe("23503");
+    });
+
+    it("refuses sets and a completion that name another trainee's exercise", async () => {
+      const { alice, bob, exercise } = await seedOwners("sets");
+      const set = (userId: number) =>
+        query(
+          `INSERT INTO exercise_sets (exercise_id, user_id, position, reps) VALUES ($1, $2, 0, 10)`,
+          [exercise, userId],
+        );
+      const completion = (userId: number) =>
+        query(
+          `INSERT INTO exercise_completions (exercise_id, user_id, completed_at) VALUES ($1, $2, now())`,
+          [exercise, userId],
+        );
+
+      expect(await sqlState(set(bob))).toBe("23503");
+      expect(await sqlState(completion(bob))).toBe("23503");
+      await set(alice);
+      await completion(alice);
+    });
+
+    it("refuses a meal, a log and a mark of another owner than the day's", async () => {
+      const { alice, bob, planDay, meal } = await seedOwners("meal");
+
+      expect(
+        await sqlState(
+          query(
+            `INSERT INTO meal_plan_meals (day_id, user_id, position, name) VALUES ($1, $2, 1, 'Dinner')`,
+            [planDay, bob],
+          ),
+        ),
+      ).toBe("23503");
+      expect(
+        await sqlState(
+          query(
+            `INSERT INTO meal_logs (user_id, meal_id, custom_name, grams) VALUES ($1, $2, 'x', 10)`,
+            [bob, meal],
+          ),
+        ),
+      ).toBe("23503");
+      expect(
+        await sqlState(
+          query(`INSERT INTO meal_marks (meal_id, user_id) VALUES ($1, $2)`, [
+            meal,
+            bob,
+          ]),
+        ),
+      ).toBe("23503");
+      await query(
+        `INSERT INTO meal_logs (user_id, meal_id, custom_name, grams) VALUES ($1, $2, 'x', 10)`,
+        [alice, meal],
+      );
+      await query(`INSERT INTO meal_marks (meal_id, user_id) VALUES ($1, $2)`, [
+        meal,
+        alice,
+      ]);
+    });
+
+    it("refuses a mark item that names another meal than its mark", async () => {
+      const { alice, planDay, meal } = await seedOwners("item");
+      const [{ id: otherMeal }] = await query(
+        `INSERT INTO meal_plan_meals (day_id, user_id, position, name) VALUES ($1, $2, 1, 'Dinner') RETURNING id`,
+        [planDay, alice],
+      );
+      const [{ id: mark }] = await query(
+        `INSERT INTO meal_marks (meal_id, user_id) VALUES ($1, $2) RETURNING id`,
+        [meal, alice],
+      );
+      const item = (mealId: number) =>
+        query(
+          `INSERT INTO meal_mark_items (mark_id, meal_id, grams, protein, carbs, fat, kcal)
+           VALUES ($1, $2, 100, 1, 1, 1, 1)`,
+          [mark, mealId],
+        );
+
+      expect(await sqlState(item(otherMeal))).toBe("23503");
+      await item(meal);
+    });
+
+    it("cascades from a workout day through exercises, sets and completions", async () => {
+      const { alice, workoutDay, exercise } = await seedOwners("cascade");
+
+      await query(
+        `INSERT INTO exercise_sets (exercise_id, user_id, position, reps) VALUES ($1, $2, 0, 10)`,
+        [exercise, alice],
+      );
+      await query(`DELETE FROM workout_days WHERE id = $1`, [workoutDay]);
+
+      const [{ count }] = await query(
+        `SELECT count(*)::int AS count FROM exercise_sets WHERE exercise_id = $1`,
+        [exercise],
+      );
+
+      expect(count).toBe(0);
+    });
+
+    it("refuses two exercises or two meals at one position of a day", async () => {
+      const { alice, workoutDay, planDay } = await seedOwners("pos");
+
+      expect(
+        await sqlState(
+          query(
+            `INSERT INTO exercises (day_id, user_id, position, title, youtube_id)
+             VALUES ($1, $2, 0, 'Dup', 'abc')`,
+            [workoutDay, alice],
+          ),
+        ),
+      ).toBe("23505");
+      expect(
+        await sqlState(
+          query(
+            `INSERT INTO meal_plan_meals (day_id, user_id, position, name) VALUES ($1, $2, 0, 'Dup')`,
+            [planDay, alice],
+          ),
+        ),
+      ).toBe("23505");
+    });
+
+    it("lets a transaction swap positions, checking only at commit", async () => {
+      const { alice, workoutDay } = await seedOwners("swap");
+      const [{ id: second }] = await query(
+        `INSERT INTO exercises (day_id, user_id, position, title, youtube_id)
+         VALUES ($1, $2, 1, 'Second', 'abc') RETURNING id`,
+        [workoutDay, alice],
+      );
+
+      await db.dataSource.transaction(async (manager) => {
+        await manager.query(
+          `UPDATE exercises SET position = 1 WHERE day_id = $1 AND position = 0`,
+          [workoutDay],
+        );
+        await manager.query(`UPDATE exercises SET position = 0 WHERE id = $1`, [
+          second,
+        ]);
+      });
+
+      const rows = await query(
+        `SELECT title FROM exercises WHERE day_id = $1 ORDER BY position`,
+        [workoutDay],
+      );
+
+      expect(rows).toEqual([{ title: "Second" }, { title: "Squat" }]);
+      // A swap that is not finished is refused when the transaction commits.
+      expect(
+        await sqlState(
+          db.dataSource.transaction(async (manager) => {
+            await manager.query(
+              `UPDATE exercises SET position = 1 WHERE id = $1`,
+              [second],
+            );
+          }),
+        ),
+      ).toBe("23505");
     });
   });
 });

@@ -230,6 +230,7 @@ export class WorkoutDaysService {
         Exercise,
         source.exercises.map((exercise, position) => ({
           dayId,
+          userId,
           title: exercise.title,
           description: exercise.description,
           sets: exercise.sets,
