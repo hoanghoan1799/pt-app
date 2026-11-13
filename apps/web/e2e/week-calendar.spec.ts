@@ -19,11 +19,7 @@ import {
   planApiDay,
 } from "./api-seed-workouts";
 import { fillTraineeLogin } from "./auth";
-import {
-  E2E_ADMIN,
-  E2E_BASE_URL,
-  E2E_TMP_DIR,
-} from "./config";
+import { E2E_ADMIN, E2E_BASE_URL, E2E_TMP_DIR } from "./config";
 
 // Week calendar card (KAN-153) on the trainee workouts and nutrition tabs and
 // the admin member week. KAN-152 already asserts the legend and data-future in

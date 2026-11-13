@@ -5,11 +5,7 @@ import {
   logApiSets,
   loginTraineeApi,
 } from "./api-seed-workouts";
-import {
-  E2E_ADMIN,
-  E2E_EMPTY_NAME,
-  E2E_LIFTER_NAME,
-} from "./config";
+import { E2E_ADMIN, E2E_EMPTY_NAME, E2E_LIFTER_NAME } from "./config";
 import { answerConfirm } from "./confirm";
 import { E2E_NEW_VIDEO_ID, E2E_PT_EXERCISES, getE2eDates } from "./seed";
 

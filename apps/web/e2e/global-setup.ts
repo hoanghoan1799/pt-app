@@ -1,47 +1,19 @@
-import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
-import { relative } from "node:path";
+import { mkdirSync, rmSync } from "node:fs";
 
-import { seedApiFromLegacyDatabase } from "./api-seed";
+import { seedApiTrainees } from "./api-seed";
 import { seedNutritionInApi } from "./api-seed-nutrition";
 import { seedApiWorkouts } from "./api-seed-workouts";
-import { E2E_DB_PATH, E2E_DB_URL, E2E_ENV, E2E_TMP_DIR } from "./config";
-import { seedE2eDatabase } from "./seed";
+import { E2E_TMP_DIR } from "./config";
 
-// Refuses anything but a scratch SQLite file inside e2e/.tmp, so a misread
-// env can never point the suite at Turso.
-const assertScratchDatabase = () => {
-  const urls = [E2E_ENV.DATABASE_URL, E2E_ENV.TURSO_DATABASE_URL];
-  const isScratch = urls.every(
-    (url) =>
-      url === E2E_DB_URL &&
-      url.startsWith("file:") &&
-      !relative(E2E_TMP_DIR, E2E_DB_PATH).startsWith(".."),
-  );
-
-  if (!isScratch) {
-    throw new Error("e2e: the database must be a file: URL inside e2e/.tmp");
-  }
-};
-
+// The API and its PostgreSQL are started by the first webServer entry of
+// playwright.config.ts (e2e/api-server.mjs, which empties and migrates the e2e
+// database and refuses any database whose name lacks "e2e"). Everything the
+// specs start from is created through the API's own endpoints.
 const globalSetup = async () => {
-  assertScratchDatabase();
   rmSync(E2E_TMP_DIR, { recursive: true, force: true });
   mkdirSync(E2E_TMP_DIR, { recursive: true });
 
-  // Same variables as the web server; the shell's own values are overridden.
-  execSync("pnpm exec drizzle-kit push", {
-    stdio: "inherit",
-    env: { ...process.env, ...E2E_ENV },
-  });
-
-  if (!existsSync(E2E_DB_PATH)) {
-    throw new Error("e2e: drizzle-kit push did not create the scratch DB");
-  }
-  await seedE2eDatabase(E2E_DB_URL);
-  // The API (PostgreSQL) is started by the first webServer entry of
-  // playwright.config.ts; its trainees are created through its endpoints.
-  await seedApiFromLegacyDatabase();
+  await seedApiTrainees();
   await seedApiWorkouts();
   await seedNutritionInApi();
 };

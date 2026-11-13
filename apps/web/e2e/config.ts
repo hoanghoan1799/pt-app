@@ -1,14 +1,11 @@
 import { resolve } from "node:path";
 
-// Single source of truth for the e2e database. Everything the e2e touches
-// (Next server, drizzle-kit push, seed) gets this URL, never one from the
-// shell or `.env.local`.
+// Single source of truth for the e2e setup. The Next server gets the variables
+// of E2E_ENV, never the ones from the shell or `.env.local`.
 export const E2E_PORT = Number(process.env.E2E_PORT ?? 3100);
 export const E2E_BASE_URL = `http://localhost:${E2E_PORT}`;
+// Test results (and optional videos) of a run; recreated by the global setup.
 export const E2E_TMP_DIR = resolve(__dirname, ".tmp");
-export const E2E_DB_PATH = resolve(E2E_TMP_DIR, "e2e.db");
-// Forward slashes so the URL is also valid for libSQL on Windows.
-export const E2E_DB_URL = `file:${E2E_DB_PATH.replaceAll("\\", "/")}`;
 
 // The API the web server calls (BFF), with its own PostgreSQL. Locally the API
 // script (e2e/api-server.mjs) starts a throwaway PostgreSQL 17 container on
@@ -23,14 +20,9 @@ export const E2E_DATABASE_URL =
   process.env.E2E_DATABASE_URL ||
   `postgres://pt:pt_e2e_only@localhost:${E2E_PG_PORT}/ptapp_e2e`;
 
-// services/env.ts prefers the TURSO_* pair, so both pairs are pinned and the
-// tokens blanked. Blank values are ignored by readEnv, not used as fallbacks.
+// Environment of the web server under test. Blank values are ignored by
+// services/env.ts, so a value in the shell cannot leak in.
 export const E2E_ENV = {
-  DATABASE_URL: E2E_DB_URL,
-  TURSO_DATABASE_URL: E2E_DB_URL,
-  DATABASE_AUTH_TOKEN: "",
-  TURSO_AUTH_TOKEN: "",
-  SESSION_SECRET: "e2e-only-secret-at-least-32-characters-long",
   API_URL: E2E_API_URL,
   VERCEL: "",
   // Registers public/sw.js under `next dev` (the worker is production-only otherwise).
@@ -45,7 +37,7 @@ export const E2E_ENV = {
 
 export const E2E_USER_NAME = "E2E Trainee";
 
-// Throwaway admin for the PT specs. It only exists in the scratch DB.
+// Throwaway admin for the PT specs. It only exists in the e2e database.
 export const E2E_ADMIN = {
   username: "e2e-admin",
   password: "e2e-only-admin-password",
@@ -65,7 +57,7 @@ export const E2E_PLANNER_NAME = "E2E Planner";
 export const E2E_LOGGER_NAME = "E2E Logger";
 
 // Trainee of the nutrition tab spec (KAN-125): a marked and an unmarked day, an
-// extra food and a manual target (see seedRings in seed.ts).
+// extra food and a manual target (see seedNutritionInApi).
 export const E2E_RINGS_NAME = "E2E Rings";
 export const E2E_RINGS_EXTRA_FOOD = "E2E Bánh quy";
 
@@ -86,3 +78,20 @@ export const E2E_USER_PASSWORD = "e2e-trainee-password";
 
 export const e2eEmail = (name: string) =>
   `${name.toLowerCase().replaceAll(" ", ".")}@e2e.test`;
+
+// Every trainee created by the global setup, in creation order: ids follow it
+// and no spec depends on them. Nutrition, workouts and plans are added to these
+// people afterwards (api-seed-workouts.ts, api-seed-nutrition.ts).
+export const E2E_SEEDED_TRAINEES = [
+  E2E_USER_NAME,
+  E2E_LIFTER_NAME,
+  E2E_EMPTY_NAME,
+  E2E_LOCKED_NAME,
+  E2E_CHANGER_NAME,
+  E2E_RESET_NAME,
+  E2E_CHAT_OFF_NAME,
+  E2E_CHAT_NAME,
+  E2E_PLANNER_NAME,
+  E2E_LOGGER_NAME,
+  E2E_RINGS_NAME,
+] as const;
