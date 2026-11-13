@@ -2,6 +2,12 @@ import type { Client } from "pg";
 
 import { migrations } from "../../src/migrations/index.js";
 import type { TursoColumns } from "../turso-columns.js";
+import { isDerived } from "./account-refs.js";
+import {
+  AVATAR_TARGET_TABLES,
+  isMovedColumn,
+  MOVED_AVATARS,
+} from "./avatars.js";
 import { DERIVED_COLUMNS } from "./constraints.js";
 import type { PgColumnInfo } from "./convert.js";
 import type { ForeignKey } from "./plan.js";
@@ -46,6 +52,23 @@ export const parseCheckValues = (definition: string) => {
   );
 };
 
+// The tables the avatar columns of users and admins moved to.
+const AVATAR_TABLE_COLUMNS: Record<
+  string,
+  Record<string, string>
+> = Object.fromEntries(
+  MOVED_AVATARS.map(({ targetTable: table, targetKey: key }) => [
+    table,
+    {
+      [key]: "integer",
+      mime: "text",
+      data: "bytea",
+      size: "integer",
+      updated_at: "timestamp with time zone",
+    },
+  ]),
+);
+
 // Reads the target schema (never the data): columns, identity columns, foreign
 // keys and CHECK values. The migration is driven by what PostgreSQL has, and
 // compared with the frozen mapping so drift fails before any write.
@@ -67,7 +90,7 @@ export const introspectTarget = async (
     `SELECT table_name, column_name, data_type, is_nullable, is_identity, column_default
        FROM information_schema.columns
       WHERE table_schema = current_schema() AND table_name = ANY($1)`,
-    [names],
+    [[...names, ...AVATAR_TARGET_TABLES]],
   );
 
   const columns = new Map<string, Map<string, PgColumnInfo>>();
@@ -96,6 +119,11 @@ export const introspectTarget = async (
     }
 
     for (const column of spec.columns) {
+      // Moved to its own table (see avatars.ts): not a column here any more.
+      if (isMovedColumn(name, column.name)) {
+        continue;
+      }
+
       const info = table.get(column.name);
 
       if (!info) {
@@ -121,6 +149,23 @@ export const introspectTarget = async (
       ) {
         problems.push(
           `target column ${name}.${row.column_name} is NOT NULL with no default and not in the mapping`,
+        );
+      }
+    }
+  }
+
+  for (const [table, expected] of Object.entries(AVATAR_TABLE_COLUMNS)) {
+    const actual = columns.get(table);
+
+    if (!actual) {
+      problems.push(`target is missing table ${table}`);
+      continue;
+    }
+
+    for (const [column, dataType] of Object.entries(expected)) {
+      if (actual.get(column)?.dataType !== dataType) {
+        problems.push(
+          `target ${table}.${column} should be ${dataType}, found ${actual.get(column)?.dataType ?? "no such column"}`,
         );
       }
     }
@@ -159,12 +204,25 @@ export const introspectTarget = async (
     // A composite key (child owner agrees with the parent's) is two checks:
     // the parent exists (its first column pair, an ordinary orphan scan) and
     // the owner agrees (constraints.ts, before any write).
+    const mapped = mapping.tables[row.child].columns.some(
+      (column) => column.name === row.cols[0],
+    );
+    const derived = !mapped && isDerived(row.child, row.cols[0]);
+
+    if (!mapped && !derived) {
+      problems.push(
+        `foreign key ${row.child}.${row.cols[0]} is neither a source column nor a known derived account id (scripts/migrate/account-refs.ts)`,
+      );
+      continue;
+    }
+
     foreignKeys.push({
       table: row.child,
       column: row.cols[0],
       parentTable: row.parent,
       parentColumn: row.pcols[0],
       nullable: row.nullable,
+      ...(derived ? { derived: true } : {}),
     });
   }
 
@@ -212,11 +270,11 @@ export const pendingMigrations = async (client: Client) => {
     .filter((name) => !done.has(name));
 };
 
-// Tables with rows, over the 44 and sessions.
+// Tables with rows, over the 44, the avatar tables and sessions.
 export const tablesWithRows = async (client: Client, tables: string[]) => {
   const filled: string[] = [];
 
-  for (const table of [...tables, "sessions"]) {
+  for (const table of [...tables, ...AVATAR_TARGET_TABLES, "sessions"]) {
     const result = await client.query<{ present: boolean }>(
       `SELECT EXISTS (SELECT 1 FROM ${quote(table)}) AS present`,
     );

@@ -82,9 +82,10 @@ export class MealPlansService {
   // Serialises writers of one day, so the count and position checks below see
   // fresh data.
   private lockDay(manager: EntityManager, dayId: number) {
-    return manager.query(`SELECT id FROM meal_plan_days WHERE id = $1 FOR UPDATE`, [
-      dayId,
-    ]);
+    return manager.query(
+      `SELECT id FROM meal_plan_days WHERE id = $1 FOR UPDATE`,
+      [dayId],
+    );
   }
 
   private async view(dayId: number): Promise<PlanDayResponse> {
@@ -104,7 +105,10 @@ export class MealPlansService {
   ): Promise<PlanDayResponse> {
     const member = await this.dataSource
       .getRepository(User)
-      .findOne({ where: { id: userId }, select: { id: true, preferredMealCount: true } });
+      .findOne({
+        where: { id: userId },
+        select: { id: true, preferredMealCount: true },
+      });
 
     if (!member) {
       throw planErrors.memberNotFound();
@@ -168,7 +172,11 @@ export class MealPlansService {
         name: getNextMealName(meals.map((meal) => meal.name)),
       });
       // A custom split would no longer total 100: back to equal.
-      await manager.update(MealPlanMeal, { dayId: day.id }, { sharePercent: null });
+      await manager.update(
+        MealPlanMeal,
+        { dayId: day.id },
+        { sharePercent: null },
+      );
     });
     return this.view(day.id);
   }

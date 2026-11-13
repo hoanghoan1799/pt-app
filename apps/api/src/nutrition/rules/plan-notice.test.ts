@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  getPlanKcalNotices,
-} from "./plan-notice.js";
+import { getPlanKcalNotices } from "./plan-notice.js";
 
 describe("getPlanKcalNotices", () => {
   it("flags a plan above the target and keeps the sign", () => {

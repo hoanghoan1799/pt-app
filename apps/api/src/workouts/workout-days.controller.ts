@@ -61,7 +61,9 @@ export class WorkoutDaysController {
     @Param({ schema: traineePathSchema }) params: { userId: number },
     @Query({ schema: dateRangeQuerySchema }) range: DateRangeQuery,
   ) {
-    return toScheduleResponse(await this.days.getSchedule(params.userId, range));
+    return toScheduleResponse(
+      await this.days.getSchedule(params.userId, range),
+    );
   }
 
   // The copy sheet's month picker: days that have a workout and days that are

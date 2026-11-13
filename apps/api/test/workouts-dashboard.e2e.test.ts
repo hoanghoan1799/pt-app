@@ -22,10 +22,10 @@ const rename = (id: number, name: string) =>
   w.ds.getRepository(User).update(id, { name, nameKey: name.toLowerCase() });
 
 const stampSets = (exerciseId: number, at: string) =>
-  w.ds.query(`UPDATE exercise_sets SET created_at = $2 WHERE exercise_id = $1`, [
-    exerciseId,
-    at,
-  ]);
+  w.ds.query(
+    `UPDATE exercise_sets SET created_at = $2 WHERE exercise_id = $1`,
+    [exerciseId, at],
+  );
 
 // One exercise on a day of a trainee, with optional sets and completion.
 const seed = async (
@@ -52,7 +52,12 @@ const seed = async (
     await stampSets(exerciseId, options.setsAt ?? "2026-11-09T09:00:00Z");
   }
   if (options.completedAt) {
-    await seedCompletion(w.ds, exerciseId, userId, new Date(options.completedAt));
+    await seedCompletion(
+      w.ds,
+      exerciseId,
+      userId,
+      new Date(options.completedAt),
+    );
   }
 };
 
@@ -203,7 +208,10 @@ describe("GET /v1/dashboard/summary", () => {
   });
 
   it("defaults to the current week", async () => {
-    const response = await api.get("/v1/dashboard/summary", w.tokens.superAdmin);
+    const response = await api.get(
+      "/v1/dashboard/summary",
+      w.tokens.superAdmin,
+    );
 
     expect(response.body.weekStart).toBe("2026-11-09");
   });
@@ -225,8 +233,12 @@ describe("GET /v1/dashboard/summary", () => {
   it("lets a super admin filter by PT, by none, and falls back to all on garbage", async () => {
     const get = async (query: string) =>
       names(
-        (await api.get(`/v1/dashboard/summary?pt=${query}`, w.tokens.superAdmin))
-          .body,
+        (
+          await api.get(
+            `/v1/dashboard/summary?pt=${query}`,
+            w.tokens.superAdmin,
+          )
+        ).body,
       );
 
     expect(await get(String(w.ids.ptB))).toEqual(["Cuc"]);
@@ -259,7 +271,9 @@ describe("GET /v1/dashboard/summary", () => {
       ["Binh", "Bé Bình"],
     ]);
     expect(asSuper.body.members[1].displayName).toBe("Binh");
-    expect(asPt.body.members[1].avatarUpdatedAt).toBe("2023-11-14T22:13:20.000Z");
+    expect(asPt.body.members[1].avatarUpdatedAt).toBe(
+      "2023-11-14T22:13:20.000Z",
+    );
   });
 
   it("leaves a trainee the admin hid out of the list and the totals, for that admin only", async () => {
@@ -280,9 +294,9 @@ describe("GET /v1/dashboard/summary", () => {
       (await api.get("/v1/dashboard/summary?week=nope", w.tokens.ptA)).status,
     ).toBe(400);
     expect((await api.get("/v1/dashboard/summary")).status).toBe(401);
-    expect(
-      (await api.get("/v1/dashboard/summary", w.tokens.mine)).status,
-    ).toBe(403);
+    expect((await api.get("/v1/dashboard/summary", w.tokens.mine)).status).toBe(
+      403,
+    );
   });
 });
 
@@ -343,8 +357,12 @@ describe("GET /v1/dashboard/activity", () => {
 
     for (const limit of ["0", "51", "x"]) {
       expect(
-        (await api.get(`/v1/dashboard/activity?limit=${limit}`, w.tokens.superAdmin))
-          .status,
+        (
+          await api.get(
+            `/v1/dashboard/activity?limit=${limit}`,
+            w.tokens.superAdmin,
+          )
+        ).status,
       ).toBe(400);
     }
     expect(
@@ -379,9 +397,9 @@ describe("GET /v1/dashboard/activity", () => {
 
   it("refuses trainees and anonymous callers", async () => {
     expect((await api.get("/v1/dashboard/activity")).status).toBe(401);
-    expect((await api.get("/v1/dashboard/activity", w.tokens.mine)).status).toBe(
-      403,
-    );
+    expect(
+      (await api.get("/v1/dashboard/activity", w.tokens.mine)).status,
+    ).toBe(403);
   });
 });
 
@@ -411,7 +429,8 @@ describe("GET /v1/trainees/:userId/activity", () => {
       (await api.get(`/v1/trainees/${ids.cuc}/activity`, w.tokens.ptA)).status,
     ).toBe(404);
     expect(
-      (await api.get(`/v1/trainees/${ids.binh}/activity`, w.tokens.mine)).status,
+      (await api.get(`/v1/trainees/${ids.binh}/activity`, w.tokens.mine))
+        .status,
     ).toBe(403);
     expect((await api.get(`/v1/trainees/${ids.binh}/activity`)).status).toBe(
       401,
@@ -504,9 +523,12 @@ describe("GET /v1/trainees/:userId/progress", () => {
     await w.ds.query(`DELETE FROM admin_hidden_users`);
 
     expect(
-      (await api.get(`/v1/trainees/${ids.binh}/progress`, w.tokens.mine)).status,
+      (await api.get(`/v1/trainees/${ids.binh}/progress`, w.tokens.mine))
+        .status,
     ).toBe(403);
-    expect((await api.get(`/v1/trainees/${ids.binh}/progress`)).status).toBe(401);
+    expect((await api.get(`/v1/trainees/${ids.binh}/progress`)).status).toBe(
+      401,
+    );
   });
 });
 
@@ -526,11 +548,9 @@ describe("copy racing a trainee's save", () => {
       await seed(`race${round}`, trainee.id, targetWeek, { title: "Target" });
 
       const [save, copy] = await Promise.all([
-        api.put(
-          `/v1/me/exercises/${exerciseIds[`race${round}`]}/sets`,
-          token,
-          { sets: [{ weightKg: 40, reps: 10 }] },
-        ),
+        api.put(`/v1/me/exercises/${exerciseIds[`race${round}`]}/sets`, token, {
+          sets: [{ weightKg: 40, reps: 10 }],
+        }),
         api.post(
           `/v1/trainees/${trainee.id}/workout-days/copy-week`,
           w.tokens.ptA,

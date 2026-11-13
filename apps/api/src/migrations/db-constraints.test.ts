@@ -9,7 +9,7 @@ import {
 } from "@pt/contracts";
 import { describe, expect, it } from "vitest";
 
-import { LIMITS } from "./1795100000000-db-constraints.js";
+import { LIMITS } from "./1795100000000-DbConstraints.js";
 
 // The migration keeps its own copy of the limits (it must not change when the
 // contracts do); this is what tells you that the copy and the contract differ.

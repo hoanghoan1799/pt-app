@@ -128,7 +128,9 @@ export class NotificationsService {
         };
       }),
       nextCursor:
-        rows.length > limit && last ? timeCursor(last.created_at, last.id) : null,
+        rows.length > limit && last
+          ? timeCursor(last.created_at, last.id)
+          : null,
       unreadCount: await this.unreadCount(recipientKey),
     };
   }
@@ -255,16 +257,23 @@ export class NotificationsService {
   }): Promise<{ id: number; recipientKey: string }[]> {
     const ids: { id: number; recipientKey: string }[] = [];
 
-    for (let start = 0; start < input.recipientIds.length; start += INSERT_CHUNK) {
+    for (
+      let start = 0;
+      start < input.recipientIds.length;
+      start += INSERT_CHUNK
+    ) {
       const chunk = input.recipientIds.slice(start, start + INSERT_CHUNK);
-      const rows: { id: number; recipient_key: string }[] = await this.dataSource.query(
-        `INSERT INTO social_notifications (recipient_key, kind, actor_key, post_id, created_at)
+      const rows: { id: number; recipient_key: string }[] =
+        await this.dataSource.query(
+          `INSERT INTO social_notifications (recipient_key, kind, actor_key, post_id, created_at)
          SELECT 'user:' || r, 'admin_post', $1, $2, $3 FROM unnest($4::int[]) AS r
          RETURNING id, recipient_key`,
-        [`admin:${input.adminId}`, input.postId, input.at, chunk],
-      );
+          [`admin:${input.adminId}`, input.postId, input.at, chunk],
+        );
 
-      ids.push(...rows.map((row) => ({ id: row.id, recipientKey: row.recipient_key })));
+      ids.push(
+        ...rows.map((row) => ({ id: row.id, recipientKey: row.recipient_key })),
+      );
     }
     return ids;
   }

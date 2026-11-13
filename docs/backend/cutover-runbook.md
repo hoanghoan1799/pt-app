@@ -10,10 +10,11 @@ The data script is `apps/api/scripts/migrate-from-turso.ts`. It copies all 44 ta
 2. Refuses to start when the target has pending migrations. Apply them first: `DATABASE_URL=<target> pnpm --filter @pt/api migrate`. The script never changes the schema.
 3. Validates every value (enum CHECK values, integer ranges, NUL characters, timestamp units, NOT NULL), converts the NULLs the schema now forbids, checks the new constraints (next section), then scans every foreign key for orphan rows.
 4. Loads in one transaction, parents first, with `OVERRIDING SYSTEM VALUE` (ids are kept). A foreign key that closes a cycle (`chat_conversations.last_message_id`, `chat_messages.photo_id`, `chat_messages.reply_to_message_id`, the DM and social photo links) is loaded as NULL and set by an `UPDATE` after all tables are loaded. No superuser rights are needed.
+   Profile photos: in Turso `users.avatar` and `admins.avatar` are base64 data URLs in a text column; in PostgreSQL they are rows of `user_avatars` / `admin_avatars` (migration `AvatarTables1795000000000`, `bytea` + `mime` + `size` + `updated_at`). The script decodes each non-null source avatar while copying (`scripts/migrate/avatars.ts`) and inserts it right after its owner row; `avatar_updated_at` stays in `users` / `admins` and is the row's `updated_at`. Avatars are cosmetic, so an unusable one never aborts the run: a value that is not a base64 `data:image/png|jpeg|webp` URL, whose bytes are not that image type, that is over the 80 KB avatar limit, or that has no `avatar_updated_at` is skipped and listed under "Warnings" (table, id, problem, never the content; also `skippedAvatars` in the JSON report). The owner row still loads, with `avatar_updated_at` set to NULL so no avatar URL is built. Review the warning list after the run; a user whose avatar was skipped simply has no photo. The SQL migration `AvatarTables1795000000000` (used when the API is upgraded in place) treats avatars the same way: an unusable one, or one without `avatar_updated_at`, is skipped with a `WARNING` (table and id) and its owner's `avatar_updated_at` is set to NULL; nothing is invented.
 5. Runs `setval` on every identity sequence (max id; an empty table gives 1 as the next value).
 6. Verifies row counts and checksums on both sides before `COMMIT`. A mismatch rolls the whole load back.
 
-`--reset` truncates the 44 tables and `sessions` in the same transaction. Without it, a target that has any row is refused.
+`--reset` truncates the 44 tables, `user_avatars`, `admin_avatars` and `sessions` in the same transaction. Without it, a target that has any row is refused.
 
 ## Constraints checked before the load (db-constraints migration)
 
@@ -72,6 +73,16 @@ Read the orphan report and decide. SQLite never enforced its foreign keys, so so
 - `--orphans=null`: set the FK column to NULL. Only for nullable columns; a NOT NULL column aborts.
 - Pass the same `--orphans` value to `data:verify` later, so it knows what was left out.
 
+The database also holds rules SQLite never had (migration `DbIntegrity`), and the scan reports their violations in the same table, so the dry run shows them before anything is written:
+
+- Text keys that point at an account (`user:<id>`, `admin:<id>`, the chat form `admin:<id>`, and kind + id pairs such as `social_posts.author_kind/author_id`, `chat_custom_stickers`, `social_reports` about a user) are real foreign keys through generated columns, so a key whose account does not exist is an orphan. The report names the generated column (for example `social_comments.author_user_id`, parent `users`) and lists the row ids.
+- Malformed keys: every covered text key must match its scheme (social and push `user:<id>` / `admin:<id>`; chat `user` / `admin:<id>`; alias targets also `pt`; ids at most 9 digits, no leading zero) and `author_id`, `owner_id`, `target_id` of kind + id pairs must be above 0 (format CHECKs). Rows that break this are reported with reason `malformed_key` and follow the same `skip` / `null` rule as dangling keys.
+- A trainee chat message with an admin id (`chat_messages_user_has_no_admin`): reported with reason `user_message_with_admin` and parent `-`.
+- The sender-scoped `client_id` unique indexes need no scan: the SQLite schema already had a stricter `UNIQUE (conversation_id, client_id)`.
+- `--orphans=skip` drops those rows and, repeatedly, everything that pointed at them (a skipped message takes its reactions, edits and photos).
+- `--orphans=null` cannot null a text key or repair a CHECK: for these rows it aborts before any write with "use --orphans=skip". Decision: no partial repair of text keys; skip, or fix the source and re-run.
+- Generated columns are never inserted (the loader's column list comes from `turso-columns.json`, which stays unchanged).
+
 Nothing is dropped silently: skipped and nulled values are counted and listed in the console and in the report.
 
 Also prepare, without changing production: the API host and its production PostgreSQL (empty database, a user that can create tables), and the values for the environment list in step 4.
@@ -107,6 +118,8 @@ pnpm --filter @pt/api data:verify -- \
 ```
 
 `data:verify` writes nothing and exits 1 on any mismatch. Keep `cutover-report.json`: counts, checksums, orphans, skipped and nulled values, blob totals, duration.
+
+Avatars are checked separately, per id: the report's `avatars` list (printed as "Avatars") has one entry per avatar table with the expected and loaded row counts and a checksum over `id | mime | size | SHA-256 of the decoded bytes | version`. The source side is derived from the decoded data URL, the PostgreSQL side from the stored row. `data:verify` expects exactly the skipped ids to be missing from the avatar tables (and their owners' `avatar_updated_at` to be NULL) and fails on any other difference. The `users` / `admins` row checksums leave the avatar column out (it no longer exists there).
 
 What the checksum covers: for each row a SHA-256 over every column, normalized (ids, timestamps as epoch milliseconds, booleans as 0/1, numbers, text byte for byte, blobs as their SHA-256), then a SHA-256 over the sorted row hashes. Password and passcode hashes (`scrypt$N$salt$hash`) are text and are compared exactly, so every password keeps working.
 

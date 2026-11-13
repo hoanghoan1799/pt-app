@@ -15,11 +15,18 @@ import { ChatPhoto } from "./chat-photo.entity.js";
 import { SocialPost } from "./social-post.entity.js";
 
 @Entity("chat_messages")
-@Index("chat_messages_conversation_client", ["conversationId", "clientId"], {
-  unique: true,
-})
 @Index("chat_messages_conversation_id", ["conversationId", "id"])
 @Check(`"sender_role" IN ('user', 'admin')`)
+// A trainee message never carries an admin id. The other way round is allowed:
+// NULL on an admin message means the admin was removed (ON DELETE SET NULL).
+@Check(
+  "chat_messages_user_has_no_admin",
+  `"sender_role" <> 'user' OR "sender_admin_id" IS NULL`,
+)
+// PG only: unique (conversation_id, sender_role, COALESCE(sender_admin_id, 0),
+// client_id), created by the DbIntegrity migration. A retry by the same sender
+// finds the original; another sender may reuse a client_id.
+@Index("chat_messages_conversation_sender_client", { synchronize: false })
 @Index("chat_messages_sender_admin_id_idx", ["senderAdminId"])
 @Index("chat_messages_hidden_by_admin_id_idx", ["hiddenByAdminId"])
 @Index("chat_messages_reply_to_message_id_idx", ["replyToMessageId"])
@@ -41,6 +48,8 @@ export class ChatMessage {
   @Column({ type: "text" })
   senderRole!: "user" | "admin";
 
+  // NULL on an admin message means the admin account was removed; the
+  // history stays (ON DELETE SET NULL). Always NULL on a trainee message.
   @Column({ type: "integer", nullable: true })
   senderAdminId!: number | null;
 

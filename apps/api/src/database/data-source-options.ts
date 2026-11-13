@@ -14,7 +14,10 @@ export const pgTypes = {
   getTypeParser: ((oid: number, format?: "text" | "binary") =>
     oid === DATE_OID
       ? (value: string) => value
-      : pg.types.getTypeParser(oid, format as "text")) as typeof pg.types.getTypeParser,
+      : pg.types.getTypeParser(
+          oid,
+          format as "text",
+        )) as typeof pg.types.getTypeParser,
 };
 
 // One definition for the running app, the TypeORM CLI and the tests, so the

@@ -14,9 +14,11 @@ import { SocialPost } from "./social-post.entity.js";
 import { User } from "./user.entity.js";
 
 @Entity("dm_messages")
-@Index("dm_messages_conversation_client", ["conversationId", "clientId"], {
-  unique: true,
-})
+@Index(
+  "dm_messages_conversation_sender_client",
+  ["conversationId", "senderId", "clientId"],
+  { unique: true },
+)
 @Index("dm_messages_conversation_id", ["conversationId", "id"])
 @Index("dm_messages_sender_id_idx", ["senderId"])
 @Index("dm_messages_photo_id_idx", ["photoId"])

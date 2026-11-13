@@ -28,11 +28,36 @@ const NOT_NULLS: {
 }[] = [
   // NULL role = super admin (admins from before roles existed). New rows
   // without a role get the least privilege.
-  { table: "admins", column: "role", backfill: "'super_admin'", default: "'pt'" },
-  { table: "admins", column: "passcode_failed_count", backfill: "0", default: "0" },
-  { table: "admins", column: "presence_hidden", backfill: "false", default: "false" },
-  { table: "users", column: "chat_enabled", backfill: "false", default: "false" },
-  { table: "users", column: "post_privacy_default", backfill: "'friends'", default: "'friends'" },
+  {
+    table: "admins",
+    column: "role",
+    backfill: "'super_admin'",
+    default: "'pt'",
+  },
+  {
+    table: "admins",
+    column: "passcode_failed_count",
+    backfill: "0",
+    default: "0",
+  },
+  {
+    table: "admins",
+    column: "presence_hidden",
+    backfill: "false",
+    default: "false",
+  },
+  {
+    table: "users",
+    column: "chat_enabled",
+    backfill: "false",
+    default: "false",
+  },
+  {
+    table: "users",
+    column: "post_privacy_default",
+    backfill: "'friends'",
+    default: "'friends'",
+  },
 ];
 
 // A child row repeats the owner of its parent (sets, completions, meal logs and
@@ -48,14 +73,63 @@ const OWNER_LINKS: {
   parent: string;
   parentColumns: [string, string];
 }[] = [
-  { table: "exercises", oldFk: "FK_0aa23eeae74ff072b5916aff9ba", fk: "exercises_day_owner_fkey", columns: ["day_id", "user_id"], parent: "workout_days", parentColumns: ["id", "user_id"] },
-  { table: "exercise_sets", oldFk: "FK_4a55381605cbd66540d782388e7", fk: "exercise_sets_exercise_owner_fkey", columns: ["exercise_id", "user_id"], parent: "exercises", parentColumns: ["id", "user_id"] },
-  { table: "exercise_completions", oldFk: "FK_e7d3448a111825db29bbea4cbcf", fk: "exercise_completions_exercise_owner_fkey", columns: ["exercise_id", "user_id"], parent: "exercises", parentColumns: ["id", "user_id"] },
-  { table: "meal_plan_meals", oldFk: "FK_7419493715532800750474faf70", fk: "meal_plan_meals_day_owner_fkey", columns: ["day_id", "user_id"], parent: "meal_plan_days", parentColumns: ["id", "user_id"] },
-  { table: "meal_logs", oldFk: "FK_6f778cbda281c94f88cc66d4af2", fk: "meal_logs_meal_owner_fkey", columns: ["meal_id", "user_id"], parent: "meal_plan_meals", parentColumns: ["id", "user_id"] },
-  { table: "meal_marks", oldFk: "FK_c75921581862e4efdd92cb7968d", fk: "meal_marks_meal_owner_fkey", columns: ["meal_id", "user_id"], parent: "meal_plan_meals", parentColumns: ["id", "user_id"] },
+  {
+    table: "exercises",
+    oldFk: "FK_0aa23eeae74ff072b5916aff9ba",
+    fk: "exercises_day_owner_fkey",
+    columns: ["day_id", "user_id"],
+    parent: "workout_days",
+    parentColumns: ["id", "user_id"],
+  },
+  {
+    table: "exercise_sets",
+    oldFk: "FK_4a55381605cbd66540d782388e7",
+    fk: "exercise_sets_exercise_owner_fkey",
+    columns: ["exercise_id", "user_id"],
+    parent: "exercises",
+    parentColumns: ["id", "user_id"],
+  },
+  {
+    table: "exercise_completions",
+    oldFk: "FK_e7d3448a111825db29bbea4cbcf",
+    fk: "exercise_completions_exercise_owner_fkey",
+    columns: ["exercise_id", "user_id"],
+    parent: "exercises",
+    parentColumns: ["id", "user_id"],
+  },
+  {
+    table: "meal_plan_meals",
+    oldFk: "FK_7419493715532800750474faf70",
+    fk: "meal_plan_meals_day_owner_fkey",
+    columns: ["day_id", "user_id"],
+    parent: "meal_plan_days",
+    parentColumns: ["id", "user_id"],
+  },
+  {
+    table: "meal_logs",
+    oldFk: "FK_6f778cbda281c94f88cc66d4af2",
+    fk: "meal_logs_meal_owner_fkey",
+    columns: ["meal_id", "user_id"],
+    parent: "meal_plan_meals",
+    parentColumns: ["id", "user_id"],
+  },
+  {
+    table: "meal_marks",
+    oldFk: "FK_c75921581862e4efdd92cb7968d",
+    fk: "meal_marks_meal_owner_fkey",
+    columns: ["meal_id", "user_id"],
+    parent: "meal_plan_meals",
+    parentColumns: ["id", "user_id"],
+  },
   // The item names the same meal as its mark.
-  { table: "meal_mark_items", oldFk: "FK_26918ace9cee4310f4eab5892cc", fk: "meal_mark_items_mark_meal_fkey", columns: ["mark_id", "meal_id"], parent: "meal_marks", parentColumns: ["id", "meal_id"] },
+  {
+    table: "meal_mark_items",
+    oldFk: "FK_26918ace9cee4310f4eab5892cc",
+    fk: "meal_mark_items_mark_meal_fkey",
+    columns: ["mark_id", "meal_id"],
+    parent: "meal_marks",
+    parentColumns: ["id", "meal_id"],
+  },
 ];
 
 // Targets of the composite foreign keys, in creation order.
@@ -71,9 +145,24 @@ const OWNER_KEYS: [table: string, name: string, columns: string][] = [
 // their parent (keeping the order the app showed: position, then id) before
 // the constraint goes on. Deferred, so a reorder inside a transaction may pass
 // through a duplicate.
-const POSITIONS: { table: string; parent: string; name: string; oldIndex: string }[] = [
-  { table: "exercises", parent: "day_id", name: "exercises_day_position_key", oldIndex: "exercises_day_id_idx" },
-  { table: "meal_plan_meals", parent: "day_id", name: "meal_plan_meals_day_position_key", oldIndex: "meal_plan_meals_day" },
+const POSITIONS: {
+  table: string;
+  parent: string;
+  name: string;
+  oldIndex: string;
+}[] = [
+  {
+    table: "exercises",
+    parent: "day_id",
+    name: "exercises_day_position_key",
+    oldIndex: "exercises_day_id_idx",
+  },
+  {
+    table: "meal_plan_meals",
+    parent: "day_id",
+    name: "meal_plan_meals_day_position_key",
+    oldIndex: "meal_plan_meals_day",
+  },
 ];
 
 // The numbers of the range CHECKs: copies of the limits the API validates in
@@ -123,29 +212,101 @@ const nonNegative = (columns: string[], nullable: boolean) =>
 // declare with @Check, so the schema builder sees no difference.
 const CHECKS: [table: string, name: string, expression: string][] = [
   ["exercises", "exercises_sets_range", orNull("sets", LIMITS.exerciseSets)],
-  ["exercise_sets", "exercise_sets_reps_range", between("reps", LIMITS.setReps)],
-  ["exercise_sets", "exercise_sets_weight_range", orNull("weight_kg", LIMITS.setWeightKg)],
+  [
+    "exercise_sets",
+    "exercise_sets_reps_range",
+    between("reps", LIMITS.setReps),
+  ],
+  [
+    "exercise_sets",
+    "exercise_sets_weight_range",
+    orNull("weight_kg", LIMITS.setWeightKg),
+  ],
   // A planned food needs an amount (0 g showed the trainee a blank).
-  ["meal_plan_items", "meal_plan_items_grams_range", `"grams" > 0 AND "grams" <= ${LIMITS.mealGrams.max}`],
-  ["meal_plan_meals", "meal_plan_meals_share_range", orNull("share_percent", LIMITS.sharePercent)],
+  [
+    "meal_plan_items",
+    "meal_plan_items_grams_range",
+    `"grams" > 0 AND "grams" <= ${LIMITS.mealGrams.max}`,
+  ],
+  [
+    "meal_plan_meals",
+    "meal_plan_meals_share_range",
+    orNull("share_percent", LIMITS.sharePercent),
+  ],
   // A free food may be logged with 0 g.
-  ["meal_logs", "meal_logs_grams_range", `"grams" >= 0 AND "grams" <= ${LIMITS.mealGrams.max}`],
+  [
+    "meal_logs",
+    "meal_logs_grams_range",
+    `"grams" >= 0 AND "grams" <= ${LIMITS.mealGrams.max}`,
+  ],
   // No upper bound: a library food logged at 3000 g may exceed what a typed
   // number may.
-  ["meal_logs", "meal_logs_numbers_range", nonNegative(["kcal", "protein", "carbs", "fat"], true)],
-  ["meal_logs", "meal_logs_food_or_name", `"food_id" IS NOT NULL OR "custom_name" IS NOT NULL`],
-  ["meal_mark_items", "meal_mark_items_numbers_range", nonNegative(["grams", "protein", "carbs", "fat", "kcal"], false)],
-  ["food_entries", "food_entries_grams_range", ["carbs", "protein", "fat"].map((c) => `(${orNull(c, { min: 0, max: LIMITS.nutritionGrams.max })})`).join(" AND ")],
-  ["nutrition_targets", "nutrition_targets_grams_range", ["carbs", "protein", "fat"].map((c) => between(c, { min: 0, max: LIMITS.nutritionGrams.max })).join(" AND ")],
-  ["body_profiles", "body_profiles_birth_year_range", between("birth_year", LIMITS.birthYear)],
-  ["body_profiles", "body_profiles_height_range", between("height_cm", LIMITS.heightCm)],
-  ["body_profiles", "body_profiles_weight_range", between("weight_kg", LIMITS.weightKg)],
-  ["body_profiles", "body_profiles_kcal_adjustment_range", orNull("kcal_adjustment", LIMITS.kcalAdjustment)],
-  ["body_profiles", "body_profiles_protein_per_kg_range", orNull("protein_per_kg", LIMITS.proteinPerKg)],
-  ["weight_logs", "weight_logs_weight_range", between("weight_kg", LIMITS.weightKg)],
+  [
+    "meal_logs",
+    "meal_logs_numbers_range",
+    nonNegative(["kcal", "protein", "carbs", "fat"], true),
+  ],
+  [
+    "meal_logs",
+    "meal_logs_food_or_name",
+    `"food_id" IS NOT NULL OR "custom_name" IS NOT NULL`,
+  ],
+  [
+    "meal_mark_items",
+    "meal_mark_items_numbers_range",
+    nonNegative(["grams", "protein", "carbs", "fat", "kcal"], false),
+  ],
+  [
+    "food_entries",
+    "food_entries_grams_range",
+    ["carbs", "protein", "fat"]
+      .map((c) => `(${orNull(c, { min: 0, max: LIMITS.nutritionGrams.max })})`)
+      .join(" AND "),
+  ],
+  [
+    "nutrition_targets",
+    "nutrition_targets_grams_range",
+    ["carbs", "protein", "fat"]
+      .map((c) => between(c, { min: 0, max: LIMITS.nutritionGrams.max }))
+      .join(" AND "),
+  ],
+  [
+    "body_profiles",
+    "body_profiles_birth_year_range",
+    between("birth_year", LIMITS.birthYear),
+  ],
+  [
+    "body_profiles",
+    "body_profiles_height_range",
+    between("height_cm", LIMITS.heightCm),
+  ],
+  [
+    "body_profiles",
+    "body_profiles_weight_range",
+    between("weight_kg", LIMITS.weightKg),
+  ],
+  [
+    "body_profiles",
+    "body_profiles_kcal_adjustment_range",
+    orNull("kcal_adjustment", LIMITS.kcalAdjustment),
+  ],
+  [
+    "body_profiles",
+    "body_profiles_protein_per_kg_range",
+    orNull("protein_per_kg", LIMITS.proteinPerKg),
+  ],
+  [
+    "weight_logs",
+    "weight_logs_weight_range",
+    between("weight_kg", LIMITS.weightKg),
+  ],
   // A web push subscription is useless without its keys (expo/fcm rows keep
   // the device token in `endpoint` and have none).
-  ["push_subscriptions", "push_subscriptions_web_keys", `"kind" <> 'web' OR ("p256dh" IS NOT NULL AND "auth" IS NOT NULL)`],
+  [
+    "push_subscriptions",
+    "push_subscriptions_web_keys",
+    `"kind" <> 'web' OR ("p256dh" IS NOT NULL AND "auth" IS NOT NULL)`,
+  ],
 ];
 
 export class DbConstraints1795100000000 implements MigrationInterface {
@@ -235,7 +396,9 @@ export class DbConstraints1795100000000 implements MigrationInterface {
     );
 
     for (const [table, name] of [...CHECKS].reverse()) {
-      await queryRunner.query(`ALTER TABLE "${table}" DROP CONSTRAINT "${name}"`);
+      await queryRunner.query(
+        `ALTER TABLE "${table}" DROP CONSTRAINT "${name}"`,
+      );
     }
 
     for (const link of [...OWNER_LINKS].reverse()) {
@@ -249,17 +412,23 @@ export class DbConstraints1795100000000 implements MigrationInterface {
     }
 
     for (const [table, name] of [...OWNER_KEYS].reverse()) {
-      await queryRunner.query(`ALTER TABLE "${table}" DROP CONSTRAINT "${name}"`);
+      await queryRunner.query(
+        `ALTER TABLE "${table}" DROP CONSTRAINT "${name}"`,
+      );
     }
 
     for (const { table, parent, name, oldIndex } of [...POSITIONS].reverse()) {
       await queryRunner.query(
         `CREATE INDEX "${oldIndex}" ON "${table}" ("${parent}")`,
       );
-      await queryRunner.query(`ALTER TABLE "${table}" DROP CONSTRAINT "${name}"`);
+      await queryRunner.query(
+        `ALTER TABLE "${table}" DROP CONSTRAINT "${name}"`,
+      );
     }
 
-    await queryRunner.query(`ALTER TABLE "meal_plan_meals" DROP COLUMN "user_id"`);
+    await queryRunner.query(
+      `ALTER TABLE "meal_plan_meals" DROP COLUMN "user_id"`,
+    );
     await queryRunner.query(`ALTER TABLE "exercises" DROP COLUMN "user_id"`);
 
     // The backfilled values stay; only the NOT NULL goes.

@@ -20,8 +20,11 @@ import {
   buildWeekCompletion,
   type DayCompletion,
 } from "./rules/day-completion.js";
-import { macrosOf,resolveLogNutrition, sumMacros } from "./rules/meal-log.js";
-import { calculateCalories, findTargetForDate } from "./rules/nutrition-math.js";
+import { macrosOf, resolveLogNutrition, sumMacros } from "./rules/meal-log.js";
+import {
+  calculateCalories,
+  findTargetForDate,
+} from "./rules/nutrition-math.js";
 import {
   getPlanKcalNotices,
   NOTICE_HORIZON_DAYS,
@@ -336,7 +339,13 @@ export class MealPlanQueries {
     }
 
     const rows = await this.dataSource.manager.query<
-      { dayId: number; grams: number; protein: number; carbs: number; fat: number }[]
+      {
+        dayId: number;
+        grams: number;
+        protein: number;
+        carbs: number;
+        fat: number;
+      }[]
     >(
       `SELECT m.day_id AS "dayId", i.grams, f.protein, f.carbs, f.fat
          FROM meal_plan_items i

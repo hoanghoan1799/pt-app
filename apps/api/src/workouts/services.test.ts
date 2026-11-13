@@ -20,9 +20,13 @@ describe("TraineeWorkoutsService", () => {
     youtubeId: "dQw4w9WgXcQ",
   };
 
-  const build = (overrides: Partial<Record<keyof ScheduleQueries, unknown>>) => {
+  const build = (
+    overrides: Partial<Record<keyof ScheduleQueries, unknown>>,
+  ) => {
     const em = {
-      query: vi.fn<(sql: string, params?: unknown[]) => Promise<unknown[]>>(async () => []),
+      query: vi.fn<(sql: string, params?: unknown[]) => Promise<unknown[]>>(
+        async () => [],
+      ),
       insert: vi.fn(),
     };
     const queries = {
@@ -75,7 +79,10 @@ describe("TraineeWorkoutsService", () => {
 
   it("refuses a future day before opening a transaction", async () => {
     const { service, dataSource } = build({
-      findOwnedExercise: vi.fn(async () => ({ ...exercise, date: "2026-11-13" })),
+      findOwnedExercise: vi.fn(async () => ({
+        ...exercise,
+        date: "2026-11-13",
+      })),
     });
 
     await expect(service.saveSets(1, 5, [])).rejects.toMatchObject({
@@ -89,7 +96,9 @@ describe("TraineeWorkoutsService", () => {
 
   it("answers not found when the row vanished or its link changed under the lock", async () => {
     for (const locked of [null, { id: 5, youtubeId: "newLink00001" }]) {
-      const { service, em } = build({ lockExercise: vi.fn(async () => locked) });
+      const { service, em } = build({
+        lockExercise: vi.fn(async () => locked),
+      });
 
       await expect(
         service.saveSets(1, 5, [{ weightKg: 40, reps: 10 }]),
@@ -108,9 +117,15 @@ describe("TraineeWorkoutsService", () => {
 
     const statements = em.query.mock.calls.map((call) => String(call[0]));
 
-    expect(statements.some((sql) => sql.includes("DELETE FROM exercise_sets"))).toBe(false);
+    expect(
+      statements.some((sql) => sql.includes("DELETE FROM exercise_sets")),
+    ).toBe(false);
     expect(em.insert).not.toHaveBeenCalled();
-    expect(statements.some((sql) => sql.includes("INSERT INTO exercise_completions"))).toBe(true);
+    expect(
+      statements.some((sql) =>
+        sql.includes("INSERT INTO exercise_completions"),
+      ),
+    ).toBe(true);
   });
 
   it("keeps a stored save when the personal-best read fails", async () => {
@@ -135,8 +150,14 @@ describe("TraineeWorkoutsService", () => {
 
     const statements = em.query.mock.calls.map((call) => String(call[0]));
 
-    expect(statements.some((sql) => sql.includes("DELETE FROM exercise_sets"))).toBe(true);
-    expect(statements.some((sql) => sql.includes("INSERT INTO exercise_completions"))).toBe(false);
+    expect(
+      statements.some((sql) => sql.includes("DELETE FROM exercise_sets")),
+    ).toBe(true);
+    expect(
+      statements.some((sql) =>
+        sql.includes("INSERT INTO exercise_completions"),
+      ),
+    ).toBe(false);
   });
 });
 
@@ -153,7 +174,10 @@ describe("DashboardService", () => {
 
     return {
       queries,
-      service: new DashboardService(queries as unknown as InsightsQueries, clock),
+      service: new DashboardService(
+        queries as unknown as InsightsQueries,
+        clock,
+      ),
     };
   };
 
@@ -210,7 +234,11 @@ describe("DashboardService", () => {
       { id: 2, assigned: 0, completed: 0 },
     ] as never);
 
-    const result = await service.summary(admin({ role: "pt" }), undefined, "all");
+    const result = await service.summary(
+      admin({ role: "pt" }),
+      undefined,
+      "all",
+    );
 
     expect(result.summary).toEqual({
       memberCount: 2,

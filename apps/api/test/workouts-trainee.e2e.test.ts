@@ -333,14 +333,12 @@ describe("PUT /v1/me/exercises/:id/sets", () => {
     const { exerciseId } = await seedWorkout(w.ds, w.ids.mine, "2026-11-08");
 
     expect(
-      (
-        await api.put(`/v1/me/exercises/${exerciseId}/sets`, w.tokens.mine, {})
-      ).status,
+      (await api.put(`/v1/me/exercises/${exerciseId}/sets`, w.tokens.mine, {}))
+        .status,
     ).toBe(400);
     expect(
-      (
-        await api.put("/v1/me/exercises/abc/sets", w.tokens.mine, { sets: [] })
-      ).status,
+      (await api.put("/v1/me/exercises/abc/sets", w.tokens.mine, { sets: [] }))
+        .status,
     ).toBe(400);
   });
 
@@ -375,12 +373,15 @@ describe("PUT /v1/me/exercises/:id/sets", () => {
     expect(response.status).toBe(409);
     expect(response.body.code).toBe("COMPLETION_TOO_EARLY");
     expect(response.body.message).toBe("Chưa tới ngày tập bài này");
-    expect(await countRows(w.ds, ExerciseSet, { exerciseId: future.exerciseId })).toBe(0);
+    expect(
+      await countRows(w.ds, ExerciseSet, { exerciseId: future.exerciseId }),
+    ).toBe(0);
   });
 
   it("answers 401 without a session and 403 to an admin", async () => {
     expect(
-      (await api.put("/v1/me/exercises/1/sets", undefined, { sets: [] })).status,
+      (await api.put("/v1/me/exercises/1/sets", undefined, { sets: [] }))
+        .status,
     ).toBe(401);
     expect(
       (await api.put("/v1/me/exercises/1/sets", w.tokens.ptA, { sets: [] }))
@@ -408,7 +409,11 @@ describe("PUT /v1/me/exercises/:id/sets", () => {
       Array(6).fill(200),
     );
     expect(
-      (await setsOf(exerciseId)).map((set) => [set.position, set.weightKg, set.reps]),
+      (await setsOf(exerciseId)).map((set) => [
+        set.position,
+        set.weightKg,
+        set.reps,
+      ]),
     ).toEqual([
       [0, 70, 5],
       [1, 70, 4],
@@ -480,8 +485,14 @@ describe("PUT /v1/me/exercises/:id/sets", () => {
 
     expect(response.status).toBe(404);
     expect(response.body.code).toBe("EXERCISE_NOT_FOUND");
-    expect(await w.ds.getRepository(ExerciseSet).count({ where: { exerciseId } })).toBe(0);
-    expect(await w.ds.getRepository(ExerciseCompletion).count({ where: { exerciseId } })).toBe(0);
+    expect(
+      await w.ds.getRepository(ExerciseSet).count({ where: { exerciseId } }),
+    ).toBe(0);
+    expect(
+      await w.ds
+        .getRepository(ExerciseCompletion)
+        .count({ where: { exerciseId } }),
+    ).toBe(0);
   });
 });
 
@@ -541,7 +552,9 @@ describe("PUT /v1/me/exercises/:id/completion", () => {
     expect(early.status).toBe(409);
     expect(early.body.code).toBe("COMPLETION_TOO_EARLY");
     expect(
-      await countRows(w.ds, ExerciseCompletion, { exerciseId: future.exerciseId }),
+      await countRows(w.ds, ExerciseCompletion, {
+        exerciseId: future.exerciseId,
+      }),
     ).toBe(0);
   });
 
@@ -562,7 +575,9 @@ describe("PUT /v1/me/exercises/:id/completion", () => {
       expect(response.body.code).toBe("EXERCISE_NOT_FOUND");
     }
     expect(
-      await countRows(w.ds, ExerciseCompletion, { exerciseId: theirs.exerciseId }),
+      await countRows(w.ds, ExerciseCompletion, {
+        exerciseId: theirs.exerciseId,
+      }),
     ).toBe(0);
     expect(
       (
@@ -577,10 +592,18 @@ describe("PUT /v1/me/exercises/:id/completion", () => {
 
   it("answers 401 without a session and 403 to an admin", async () => {
     expect(
-      (await api.put("/v1/me/exercises/1/completion", undefined, { completed: true })).status,
+      (
+        await api.put("/v1/me/exercises/1/completion", undefined, {
+          completed: true,
+        })
+      ).status,
     ).toBe(401);
     expect(
-      (await api.put("/v1/me/exercises/1/completion", w.tokens.ptA, { completed: true })).status,
+      (
+        await api.put("/v1/me/exercises/1/completion", w.tokens.ptA, {
+          completed: true,
+        })
+      ).status,
     ).toBe(403);
   });
 
@@ -608,7 +631,9 @@ describe("PUT /v1/me/exercises/:id/completion", () => {
     );
 
     expect(mixed.every((response) => response.status === 200)).toBe(true);
-    expect(await countRows(w.ds, ExerciseCompletion, { exerciseId })).toBeLessThanOrEqual(1);
+    expect(
+      await countRows(w.ds, ExerciseCompletion, { exerciseId }),
+    ).toBeLessThanOrEqual(1);
   });
 
   it("writes no completion for an exercise the PT deleted meanwhile", async () => {
@@ -636,7 +661,9 @@ describe("PUT /v1/me/exercises/:id/completion", () => {
     expect(response.status).toBe(404);
     expect(response.body.code).toBe("EXERCISE_NOT_FOUND");
     expect(
-      await w.ds.getRepository(ExerciseCompletion).count({ where: { exerciseId } }),
+      await w.ds
+        .getRepository(ExerciseCompletion)
+        .count({ where: { exerciseId } }),
     ).toBe(0);
   });
 });

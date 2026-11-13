@@ -1,4 +1,5 @@
 import { Admin } from "./admin.entity.js";
+import { AdminAvatar } from "./admin-avatar.entity.js";
 import { AdminHiddenUser } from "./admin-hidden-user.entity.js";
 import { BodyProfile } from "./body-profile.entity.js";
 import { ChatColorOverride } from "./chat-color-override.entity.js";
@@ -41,11 +42,13 @@ import { SocialPostPhoto } from "./social-post-photo.entity.js";
 import { SocialReaction } from "./social-reaction.entity.js";
 import { SocialReport } from "./social-report.entity.js";
 import { User } from "./user.entity.js";
+import { UserAvatar } from "./user-avatar.entity.js";
 import { WeightLog } from "./weight-log.entity.js";
 import { WorkoutDay } from "./workout-day.entity.js";
 
 // Every entity registered with TypeORM: the app, the CLI data source and the tests share this list.
 export const entities = [
+  AdminAvatar,
   AdminHiddenUser,
   Admin,
   BodyProfile,
@@ -89,12 +92,14 @@ export const entities = [
   SocialReaction,
   SocialReport,
   User,
+  UserAvatar,
   WeightLog,
   WorkoutDay,
 ];
 
 export {
   Admin,
+  AdminAvatar,
   AdminHiddenUser,
   BodyProfile,
   ChatColorOverride,
@@ -137,6 +142,7 @@ export {
   SocialReaction,
   SocialReport,
   User,
+  UserAvatar,
   WeightLog,
   WorkoutDay,
 };

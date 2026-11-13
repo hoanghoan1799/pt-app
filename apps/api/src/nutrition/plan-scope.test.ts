@@ -19,37 +19,62 @@ const scopeFor = (
   facts: { userId: number; ptAdminId: number | null; hidden: boolean } | null,
 ) =>
   new PlanScope(
-    { findByUserId: () => Promise.resolve(facts) } as unknown as TraineeScopeQueries,
+    {
+      findByUserId: () => Promise.resolve(facts),
+    } as unknown as TraineeScopeQueries,
     new PtScopePolicy(),
   );
 
 describe("PlanScope", () => {
   it("lets a PT reach a trainee of their own workspace", async () => {
     expect(
-      await scopeFor({ userId: 1, ptAdminId: 10, hidden: false }).canAccess(admin(), 1),
+      await scopeFor({ userId: 1, ptAdminId: 10, hidden: false }).canAccess(
+        admin(),
+        1,
+      ),
     ).toBe(true);
   });
 
   it("refuses another PT's trainee, an unassigned one and a missing one", async () => {
-    expect(await scopeFor({ userId: 1, ptAdminId: 11, hidden: false }).canAccess(admin(), 1)).toBe(false);
-    expect(await scopeFor({ userId: 1, ptAdminId: null, hidden: false }).canAccess(admin(), 1)).toBe(false);
+    expect(
+      await scopeFor({ userId: 1, ptAdminId: 11, hidden: false }).canAccess(
+        admin(),
+        1,
+      ),
+    ).toBe(false);
+    expect(
+      await scopeFor({ userId: 1, ptAdminId: null, hidden: false }).canAccess(
+        admin(),
+        1,
+      ),
+    ).toBe(false);
     expect(await scopeFor(null).canAccess(admin(), 1)).toBe(false);
   });
 
   it("gives a super admin every existing trainee", async () => {
     expect(
-      await scopeFor({ userId: 1, ptAdminId: 11, hidden: false }).canAccess(admin({ role: "super_admin" }), 1),
+      await scopeFor({ userId: 1, ptAdminId: 11, hidden: false }).canAccess(
+        admin({ role: "super_admin" }),
+        1,
+      ),
     ).toBe(true);
-    expect(await scopeFor(null).canAccess(admin({ role: "super_admin" }), 1)).toBe(false);
+    expect(
+      await scopeFor(null).canAccess(admin({ role: "super_admin" }), 1),
+    ).toBe(false);
   });
 
   it("hides a hidden trainee until revealed, and never serves a locked admin", async () => {
     const hidden = { userId: 1, ptAdminId: 10, hidden: true };
 
     expect(await scopeFor(hidden).canAccess(admin(), 1)).toBe(false);
-    expect(await scopeFor(hidden).canAccess(admin({ revealed: true }), 1)).toBe(true);
+    expect(await scopeFor(hidden).canAccess(admin({ revealed: true }), 1)).toBe(
+      true,
+    );
     expect(
-      await scopeFor({ ...hidden, hidden: false }).canAccess(admin({ locked: true }), 1),
+      await scopeFor({ ...hidden, hidden: false }).canAccess(
+        admin({ locked: true }),
+        1,
+      ),
     ).toBe(false);
   });
 });
@@ -88,7 +113,9 @@ describe("OpenAPI for the nutrition module", () => {
     };
 
     for (const [path, methods] of Object.entries(expected)) {
-      expect(Object.keys(document.paths[path] ?? {}).sort(), path).toEqual([...methods].sort());
+      expect(Object.keys(document.paths[path] ?? {}).sort(), path).toEqual(
+        [...methods].sort(),
+      );
     }
   });
 });

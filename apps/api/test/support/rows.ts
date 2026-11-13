@@ -15,7 +15,9 @@ const filler = (type: unknown) => {
       return new Date("2026-11-12T10:00:00.000Z");
     case "date":
       // A different day each time: (user, date) is unique in most tables.
-      return new Date(Date.UTC(2026, 0, 1 + counter)).toISOString().slice(0, 10);
+      return new Date(Date.UTC(2026, 0, 1 + counter))
+        .toISOString()
+        .slice(0, 10);
     case "bytea":
       return Buffer.from([1, 2, 3]);
     default:

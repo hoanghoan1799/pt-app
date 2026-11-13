@@ -48,6 +48,10 @@ export type Report = {
   options: { orphans: OrphanMode; reset: boolean; batchSize: number };
   committed: boolean;
   tables: TableReport[];
+  // user_avatars / admin_avatars: users.avatar and admins.avatar decoded.
+  avatars: TableReport[];
+  // Unusable source avatars that were skipped (id, problem; never content).
+  skippedAvatars: { table: string; id: string; problem: string }[];
   sequences: SequenceReport[];
   loadOrder: string[];
   deferredColumns: string[];
@@ -78,6 +82,8 @@ export const emptyReport = (
   options,
   committed: false,
   tables: [],
+  avatars: [],
+  skippedAvatars: [],
   sequences: [],
   loadOrder: [],
   deferredColumns: [],

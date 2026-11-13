@@ -1,4 +1,4 @@
-import { LIMITS } from "../../src/migrations/1795100000000-db-constraints.js";
+import { LIMITS } from "../../src/migrations/1795100000000-DbConstraints.js";
 import type { SourceValue } from "./convert.js";
 import type { OrphanMode, OrphanResolution } from "./plan.js";
 

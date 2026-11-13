@@ -97,7 +97,9 @@ describe("mappers", () => {
       unreadCount: 1,
     });
 
-    expect(socialNotificationPageResponseSchema.parse(notifications)).toEqual(notifications);
+    expect(socialNotificationPageResponseSchema.parse(notifications)).toEqual(
+      notifications,
+    );
 
     const profile = toProfileResponse({
       kind: "user",
@@ -142,7 +144,17 @@ describe("parseSearchEmail", () => {
   });
 
   it("rejects prefixes, fragments and non-strings", () => {
-    for (const value of ["an", "an@", "@mail.com", "an@mail", "", "   ", null, 5, undefined]) {
+    for (const value of [
+      "an",
+      "an@",
+      "@mail.com",
+      "an@mail",
+      "",
+      "   ",
+      null,
+      5,
+      undefined,
+    ]) {
       expect(parseSearchEmail(value), String(value)).toBeNull();
     }
   });

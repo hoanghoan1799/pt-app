@@ -25,10 +25,7 @@ import type {
   TargetRow,
   WeightPoint,
 } from "./rules/types.js";
-import {
-  getRecentWeekStarts,
-  groupWeightsByWeek,
-} from "./rules/weight.js";
+import { getRecentWeekStarts, groupWeightsByWeek } from "./rules/weight.js";
 
 export const toTargetRow = (row: NutritionTarget): TargetRow => ({
   effectiveFrom: row.effectiveFrom,

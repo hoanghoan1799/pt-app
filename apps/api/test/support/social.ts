@@ -207,10 +207,13 @@ export const revealHidden = async (
 };
 
 export const hide = (ds: DataSource, adminId: number, userId: number) =>
-  ds.query(`INSERT INTO admin_hidden_users (admin_id, user_id) VALUES ($1, $2)`, [
-    adminId,
-    userId,
-  ]);
+  ds.query(
+    `INSERT INTO admin_hidden_users (admin_id, user_id) VALUES ($1, $2)`,
+    [adminId, userId],
+  );
 
-export const count = async (ds: DataSource, sql: string, params: unknown[] = []) =>
-  (await ds.query(sql, params))[0].count as number;
+export const count = async (
+  ds: DataSource,
+  sql: string,
+  params: unknown[] = [],
+) => (await ds.query(sql, params))[0].count as number;

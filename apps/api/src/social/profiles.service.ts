@@ -8,7 +8,10 @@ import {
 import { DataSource } from "typeorm";
 
 import { Clock } from "../common/clock.js";
-import { AccountDirectory,type ProfileRow } from "../users/account-directory.service.js";
+import {
+  AccountDirectory,
+  type ProfileRow,
+} from "../users/account-directory.service.js";
 import { getTodayDate } from "../workouts/domain/week.js";
 import { canViewTrainingStats, computeDayStreak } from "./domain/streak.js";
 import { PostAccess } from "./post-access.service.js";
@@ -89,7 +92,9 @@ export class ProfilesService {
         relationship,
       });
     const [friendCount, stats, composerPrivacy] = await Promise.all([
-      isTrainee ? this.relationships.friendIds(target.id).then((ids) => ids.length) : null,
+      isTrainee
+        ? this.relationships.friendIds(target.id).then((ids) => ids.length)
+        : null,
       showStats ? this.trainingStats(target.id) : null,
       isOwn
         ? viewer.kind === "user"

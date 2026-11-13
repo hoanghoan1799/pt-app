@@ -41,6 +41,7 @@ import { SocialPost } from "../src/database/entities/social-post.entity.js";
 import { SocialPostPhoto } from "../src/database/entities/social-post-photo.entity.js";
 import { SocialReaction } from "../src/database/entities/social-reaction.entity.js";
 import { SocialReport } from "../src/database/entities/social-report.entity.js";
+import { UserAvatar } from "../src/database/entities/user-avatar.entity.js";
 import { WeightLog } from "../src/database/entities/weight-log.entity.js";
 import { WorkoutDay } from "../src/database/entities/workout-day.entity.js";
 import { createTestApp } from "./support/app.js";
@@ -79,6 +80,13 @@ const seedGraph = async ({ userId, otherId, adminId, foodId }: Cast) => {
   const now = new Date();
 
   await insertRow(ds, AdminHiddenUser, { adminId, userId });
+  await insertRow(ds, UserAvatar, {
+    userId,
+    mime: "image/png",
+    data: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    size: 8,
+    updatedAt: now,
+  });
   // Chat
   const conversationId = await insertRow(ds, ChatConversation, { userId });
   const messageId = await insertRow(ds, ChatMessage, {
@@ -86,9 +94,9 @@ const seedGraph = async ({ userId, otherId, adminId, foodId }: Cast) => {
     senderRole: "user",
     createdAt: now,
   });
-  await insertRow(ds, ChatReaction, { messageId, reactorKey: key });
+  await insertRow(ds, ChatReaction, { messageId, reactorKey: "user" });
   await insertRow(ds, ChatMessageEdit, { messageId });
-  await insertRow(ds, ChatRead, { conversationId, readerKey: key });
+  await insertRow(ds, ChatRead, { conversationId, readerKey: "user" });
   await insertRow(ds, ChatColorOverride, { conversationId, adminId });
   await insertRow(ds, ChatNickname, {
     conversationId,
@@ -97,7 +105,7 @@ const seedGraph = async ({ userId, otherId, adminId, foodId }: Cast) => {
   });
   await insertRow(ds, ChatPhoto, {
     conversationId,
-    uploaderKey: key,
+    uploaderKey: "user",
     mime: "image/png",
   });
   await insertRow(ds, ChatHiddenConversation, { adminId, conversationId });
@@ -323,6 +331,7 @@ describe("DELETE /v1/trainees/:userId removes exactly the trainee's data", () =>
         "social_posts",
         "social_reactions",
         "social_reports",
+        "user_avatars",
         "weight_logs",
         "workout_days",
       ].sort(),

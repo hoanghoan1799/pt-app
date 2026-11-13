@@ -8,13 +8,7 @@ import { ExerciseCompletion } from "../../src/database/entities/exercise-complet
 import { ExerciseSet } from "../../src/database/entities/exercise-set.entity.js";
 import { WorkoutDay } from "../../src/database/entities/workout-day.entity.js";
 import { createTestApp } from "./app.js";
-import {
-  bearer,
-  FakeClock,
-  seedAdmin,
-  seedUser,
-  tokenOf,
-} from "./auth.js";
+import { bearer, FakeClock, seedAdmin, seedUser, tokenOf } from "./auth.js";
 import { createTestDatabase, type TestDatabase } from "./database.js";
 
 export const LINK_A = "dQw4w9WgXcQ";
@@ -151,8 +145,9 @@ export const seedExercise = async (
   (
     await ds.getRepository(Exercise).save({
       dayId,
-      userId: (await ds.getRepository(WorkoutDay).findOneByOrFail({ id: dayId }))
-        .userId,
+      userId: (
+        await ds.getRepository(WorkoutDay).findOneByOrFail({ id: dayId })
+      ).userId,
       title: fields.title ?? "Squat",
       description: fields.description ?? "",
       sets: fields.sets ?? null,
@@ -206,7 +201,9 @@ export const seedCompletion = (
   userId: number,
   completedAt = new Date("2026-11-10T12:00:00Z"),
 ) =>
-  ds.getRepository(ExerciseCompletion).save({ exerciseId, userId, completedAt });
+  ds
+    .getRepository(ExerciseCompletion)
+    .save({ exerciseId, userId, completedAt });
 
 // A snapshot of a trainee's plan without ids, for exact comparisons.
 export const planOf = async (ds: DataSource, userId: number) => {

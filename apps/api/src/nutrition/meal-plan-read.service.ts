@@ -60,21 +60,25 @@ export class MealPlanReadService {
     week?: string,
   ): Promise<TraineeMealPlanWeekResponse> {
     const base = await this.week(userId, week);
-    const [lastWeekPlanCount, nextWeekPlanDates, planKcalNotices, datesWithLogs] =
-      await Promise.all([
-        this.queries.countPlanDays(userId, addDays(base.weekStart, -7)),
-        this.queries.planDates(
-          userId,
-          addDays(base.weekStart, 7),
-          addDays(base.weekStart, 13),
-        ),
-        this.queries.planKcalNoticesFrom(userId, base.weekStart),
-        this.queries.datesWithLogs(
-          userId,
-          base.weekStart,
-          addDays(base.weekStart, 13),
-        ),
-      ]);
+    const [
+      lastWeekPlanCount,
+      nextWeekPlanDates,
+      planKcalNotices,
+      datesWithLogs,
+    ] = await Promise.all([
+      this.queries.countPlanDays(userId, addDays(base.weekStart, -7)),
+      this.queries.planDates(
+        userId,
+        addDays(base.weekStart, 7),
+        addDays(base.weekStart, 13),
+      ),
+      this.queries.planKcalNoticesFrom(userId, base.weekStart),
+      this.queries.datesWithLogs(
+        userId,
+        base.weekStart,
+        addDays(base.weekStart, 13),
+      ),
+    ]);
 
     return {
       ...base,

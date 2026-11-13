@@ -1,4 +1,4 @@
-import { calculateCalories,MACROS } from "./nutrition-math.js";
+import { calculateCalories, MACROS } from "./nutrition-math.js";
 import type { MacroAmounts } from "./types.js";
 
 // Total of the meal shares when the PT splits the day by percent (Q4).

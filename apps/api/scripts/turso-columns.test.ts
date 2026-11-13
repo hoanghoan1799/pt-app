@@ -3,22 +3,51 @@ import { DataSource } from "typeorm";
 import { describe, expect, it } from "vitest";
 
 import { buildDataSourceOptions } from "../src/database/data-source-options.js";
+import { MOVED_AVATARS } from "./migrate/avatars.js";
 import { loadTursoColumns } from "./turso-columns.js";
 import { loadTursoSchemaStatements } from "./turso-schema.js";
 
-// Columns PostgreSQL has and SQLite never had; the migration fills them.
+// Columns PostgreSQL has and SQLite never had. The loader never inserts the
+// generated ones (STORED account ids of the DbIntegrity migration: PostgreSQL
+// derives them from the text key or kind + id pair); its column list comes
+// from turso-columns.json.
 const PG_ONLY_COLUMNS: Record<string, string[]> = {
-  push_subscriptions: ["kind"],
-  // Nullable, filled only by API clients that send an Idempotency-Key.
-  social_posts: ["idempotency_key"],
-  // Idempotency-Key of a chat photo upload (new in the API; NULL for old rows).
-  chat_photos: ["client_id"],
-  // The owner of the row's day, copied by the load (constraints.ts).
+  // exercises and meal_plan_meals: the owner of the row's day, copied by the
+  // load (constraints.ts).
   exercises: ["user_id"],
   meal_plan_meals: ["user_id"],
+  push_subscriptions: ["kind", "owner_user_id", "owner_admin_id"],
+  social_posts: ["idempotency_key", "author_user_id", "author_admin_id"],
+  chat_photos: ["client_id", "uploader_admin_id"],
+  social_comments: ["author_user_id", "author_admin_id"],
+  social_reactions: ["reactor_user_id", "reactor_admin_id"],
+  social_notifications: [
+    "recipient_user_id",
+    "recipient_admin_id",
+    "actor_user_id",
+    "actor_admin_id",
+  ],
+  social_reports: ["reporter_user_id", "reporter_admin_id", "target_user_id"],
+  social_post_photos: ["uploader_user_id", "uploader_admin_id"],
+  chat_custom_stickers: ["owner_user_id", "owner_admin_id"],
+  contact_aliases: [
+    "owner_user_id",
+    "owner_admin_id",
+    "target_user_id",
+    "target_admin_id",
+  ],
+  chat_reactions: ["reactor_admin_id"],
+  chat_reads: ["reader_admin_id"],
+};
+// Columns SQLite has and PostgreSQL moved to another table: the avatar data
+// URLs became rows of user_avatars / admin_avatars (scripts/migrate/avatars.ts
+// decodes them while copying).
+const SOURCE_ONLY_COLUMNS: Record<string, string[]> = {
+  users: ["avatar"],
+  admins: ["avatar"],
 };
 // Tables PostgreSQL has and SQLite never had.
-const PG_ONLY_TABLES = ["sessions"];
+const PG_ONLY_TABLES = ["sessions", "user_avatars", "admin_avatars"];
 
 const buildMetadata = async () => {
   const dataSource = new DataSource(
@@ -123,9 +152,35 @@ describe("turso-columns.json against the PostgreSQL entities", () => {
         .sort();
 
       expect(
-        spec.columns.map((column) => column.name).sort(),
+        spec.columns
+          .map((column) => column.name)
+          .filter(
+            (name) => !SOURCE_ONLY_COLUMNS[entity.tableName]?.includes(name),
+          )
+          .sort(),
         entity.tableName,
       ).toEqual(entityColumns);
+    }
+  });
+
+  it("moves exactly the columns the avatar transform handles", () => {
+    expect(
+      Object.fromEntries(
+        MOVED_AVATARS.map((moved) => [moved.table, [moved.column]]),
+      ),
+    ).toEqual(SOURCE_ONLY_COLUMNS);
+    expect(MOVED_AVATARS.map((moved) => moved.targetTable).sort()).toEqual(
+      PG_ONLY_TABLES.filter((name) => name !== "sessions").sort(),
+    );
+
+    for (const moved of MOVED_AVATARS) {
+      const columns = mapping.tables[moved.table].columns;
+
+      // Text data URL plus the version column that stays behind.
+      expect(columns.find((c) => c.name === moved.column)?.kind).toBe("text");
+      expect(columns.find((c) => c.name === moved.versionColumn)?.kind).toBe(
+        "timestamp_s",
+      );
     }
   });
 

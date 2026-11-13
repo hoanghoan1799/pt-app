@@ -1,4 +1,8 @@
-import { BODY_LIMITS, KCAL_ADJUSTMENT_LIMITS, PROTEIN_PER_KG_LIMITS } from "@pt/contracts";
+import {
+  BODY_LIMITS,
+  KCAL_ADJUSTMENT_LIMITS,
+  PROTEIN_PER_KG_LIMITS,
+} from "@pt/contracts";
 import {
   Check,
   Column,

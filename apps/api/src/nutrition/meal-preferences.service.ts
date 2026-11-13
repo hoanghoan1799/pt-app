@@ -15,10 +15,12 @@ export class MealPreferencesService {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
   async save(userId: number, body: MealPreferencesBody) {
-    await this.dataSource.getRepository(User).update(
-      { id: userId },
-      { preferredMealCount: body.mealCount, foodNote: body.foodNote },
-    );
+    await this.dataSource
+      .getRepository(User)
+      .update(
+        { id: userId },
+        { preferredMealCount: body.mealCount, foodNote: body.foodNote },
+      );
     return { preferredMealCount: body.mealCount, foodNote: body.foodNote };
   }
 }

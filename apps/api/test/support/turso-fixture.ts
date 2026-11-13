@@ -28,6 +28,16 @@ export const WEBP_BYTES = Buffer.concat([
   Buffer.from([0x00, 0x00, 0xff]),
 ]);
 
+// A webp header the API accepts as an avatar (RIFF....WEBP).
+export const AVATAR_WEBP_BYTES = Buffer.concat([
+  Buffer.from("RIFF"),
+  Buffer.from([0x20, 0x01, 0x00, 0x00]),
+  Buffer.from("WEBPVP8 "),
+  Buffer.alloc(40, 0x5a),
+]);
+export const dataUrl = (mime: string, bytes: Buffer) =>
+  `data:${mime};base64,${bytes.toString("base64")}`;
+
 type Row = Record<string, string | number | Buffer | null>;
 type Entry = [table: string, row: Row];
 
@@ -52,7 +62,7 @@ const baseRows = (): Entry[] => [
       password_hash: SCRYPT_HASH,
       last_seen_at: S + 10,
       chat_color: "blue",
-      avatar: "data:image/webp;base64,AAAA",
+      avatar: dataUrl("image/webp", AVATAR_WEBP_BYTES),
       avatar_updated_at: S + 11,
       passcode_hash: SCRYPT_HASH,
       passcode_failed_count: 2,
@@ -94,7 +104,8 @@ const baseRows = (): Entry[] => [
       chat_enabled_by_admin_id: 1,
       last_seen_at: S + 22,
       chat_color: "green",
-      avatar: null,
+      avatar: dataUrl("image/png", PNG_BYTES),
+      avatar_updated_at: S + 24,
       pt_admin_id: 3,
       bio: "Tập mỗi ngày",
       terms_version: 1,
@@ -793,13 +804,94 @@ const constraintViolations = (): Entry[] => [
   ],
 ];
 
+// Rows the DbIntegrity foreign keys, CHECK and unique indexes would reject:
+// text keys of accounts that do not exist, a user message with an admin id, a
+// (The unique client_id rules need no fixture: SQLite already had a stricter
+// UNIQUE (conversation_id, client_id).)
+const dirtyKeys = (): Entry[] => [
+  // Malformed keys: the format CHECKs refuse them (a key like this was never
+  // checked in SQLite).
+  [
+    "social_comments",
+    {
+      id: 95,
+      post_id: 1,
+      author_key: "user:abc",
+      body: "Khóa sai định dạng",
+      created_at: MS + 4210,
+    },
+  ],
+  [
+    "chat_reads",
+    {
+      conversation_id: 1,
+      reader_key: "admin:x",
+      last_read_message_id: 0,
+      updated_at: S + 74,
+    },
+  ],
+  [
+    "social_comments",
+    {
+      id: 90,
+      post_id: 1,
+      author_key: "user:9999",
+      body: "Của tài khoản đã xóa",
+      created_at: MS + 4200,
+    },
+  ],
+  [
+    "social_reactions",
+    {
+      post_id: 1,
+      reactor_key: "admin:9999",
+      emoji: "👍",
+      created_at: MS + 4100,
+    },
+  ],
+  [
+    "social_reports",
+    {
+      id: 90,
+      reporter_key: "user:1",
+      target_kind: "user",
+      target_id: 9999,
+      status: "open",
+      created_at: MS + 4500,
+    },
+  ],
+  [
+    "chat_messages",
+    {
+      id: 91,
+      conversation_id: 1,
+      sender_role: "user",
+      sender_admin_id: 1,
+      body: "Tin của học viên mang id admin",
+      client_id: "91919191-9191-4191-8191-919191919191",
+      created_at: MS + 3000,
+    },
+  ],
+  [
+    "chat_reactions",
+    {
+      message_id: 91,
+      reactor_key: "admin:1",
+      emoji: "👍",
+      created_at: MS + 3100,
+    },
+  ],
+];
+
 export type FixtureVariant =
   | "base"
   | "required-orphans"
   | "nullable-orphans"
   | "sparse"
   | "invalid-enum"
-  | "constraint-violations";
+  | "constraint-violations"
+  | "dirty-keys"
+  | "bad-avatars";
 
 export type TursoFixture = {
   url: string;
@@ -842,6 +934,12 @@ export const createTursoFixture = async (
     }
   }
 
+  if (variant === "dirty-keys") {
+    for (const entry of dirtyKeys()) {
+      await insert(client, entry);
+    }
+  }
+
   if (variant === "nullable-orphans") {
     for (const entry of nullableOrphans()) {
       await insert(client, entry);
@@ -855,6 +953,21 @@ export const createTursoFixture = async (
     await client.execute(
       "UPDATE users SET bio = 'nul' || char(0) || 'byte' WHERE id = 2",
     );
+  }
+
+  if (variant === "bad-avatars") {
+    // users 2: not base64; users 5: base64 of something that is not an image;
+    // admins 3: an image without avatar_updated_at; users 1 keeps a good one.
+    await client.execute(
+      "UPDATE users SET avatar = 'data:image/png;base64,@@@@', avatar_updated_at = 1700000000 WHERE id = 2",
+    );
+    await client.execute(
+      `UPDATE users SET avatar = 'data:image/png;base64,${Buffer.from("<script>").toString("base64")}', avatar_updated_at = 1700000000 WHERE id = 5`,
+    );
+    await client.execute({
+      sql: "UPDATE admins SET avatar = ? WHERE id = 3",
+      args: [dataUrl("image/png", PNG_BYTES)],
+    });
   }
 
   return {

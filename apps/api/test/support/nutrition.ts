@@ -5,13 +5,7 @@ import type { DataSource } from "typeorm";
 import { Clock } from "../../src/common/clock.js";
 import { Food } from "../../src/database/entities/food.entity.js";
 import { createTestApp } from "./app.js";
-import {
-  bearer,
-  FakeClock,
-  seedAdmin,
-  seedUser,
-  tokenOf,
-} from "./auth.js";
+import { bearer, FakeClock, seedAdmin, seedUser, tokenOf } from "./auth.js";
 import { createTestDatabase, type TestDatabase } from "./database.js";
 
 // Per 100 g, the same seed values the web tests use.

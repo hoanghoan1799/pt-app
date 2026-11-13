@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { type EntityManager,In } from "typeorm";
+import { type EntityManager, In } from "typeorm";
 
 import { MealPlanDay } from "../database/entities/meal-plan-day.entity.js";
 import { MealPlanItem } from "../database/entities/meal-plan-item.entity.js";

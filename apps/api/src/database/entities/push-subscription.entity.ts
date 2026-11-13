@@ -1,6 +1,37 @@
-import { Check, Column, Entity, Index, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Check,
+  Column,
+  Entity,
+  ForeignKey,
+  Index,
+  PrimaryGeneratedColumn,
+} from "typeorm";
+
+import {
+  adminKeyId,
+  GeneratedId,
+  socialKeyCheck,
+  userKeyId,
+} from "./actor-ids.js";
+import { Admin } from "./admin.entity.js";
+import { User } from "./user.entity.js";
 
 @Entity("push_subscriptions")
+@Check("push_subscriptions_owner_key_format", socialKeyCheck("owner_key"))
+@ForeignKey(() => User, ["ownerUserId"], ["id"], {
+  name: "fk_push_subscriptions_owner_user_id",
+  onDelete: "CASCADE",
+})
+@Index("push_subscriptions_owner_user_id_idx", ["ownerUserId"], {
+  where: `"owner_user_id" IS NOT NULL`,
+})
+@ForeignKey(() => Admin, ["ownerAdminId"], ["id"], {
+  name: "fk_push_subscriptions_owner_admin_id",
+  onDelete: "CASCADE",
+})
+@Index("push_subscriptions_owner_admin_id_idx", ["ownerAdminId"], {
+  where: `"owner_admin_id" IS NOT NULL`,
+})
 @Index("push_subscriptions_owner_key", ["ownerKey"])
 @Check(`"kind" IN ('web', 'expo', 'fcm')`)
 // A web push subscription is useless without its keys.
@@ -37,4 +68,10 @@ export class PushSubscription {
 
   @Column({ type: "timestamptz", default: () => "now()" })
   createdAt!: Date;
+
+  @GeneratedId(userKeyId("owner_key"))
+  ownerUserId!: number | null;
+
+  @GeneratedId(adminKeyId("owner_key"))
+  ownerAdminId!: number | null;
 }

@@ -51,12 +51,6 @@ export const chatErrors = {
       "STICKER_NOT_EDITABLE",
       CHAT_MESSAGES.STICKER_NOT_EDITABLE,
     ),
-  keyReused: () =>
-    rule(
-      HttpStatus.CONFLICT,
-      "IDEMPOTENCY_KEY_REUSED",
-      CHAT_MESSAGES.KEY_REUSED,
-    ),
   photoTooLarge: () =>
     payloadTooLargeError("PHOTO_TOO_LARGE", CHAT_PHOTO_ERRORS.TOO_LARGE),
   badImage: () =>

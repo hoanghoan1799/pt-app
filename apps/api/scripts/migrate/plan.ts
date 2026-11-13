@@ -4,6 +4,9 @@ export type ForeignKey = {
   parentTable: string;
   parentColumn: string;
   nullable: boolean;
+  // A STORED generated account id (DbIntegrity): derived by PostgreSQL from a
+  // text key or a kind + id pair, so it cannot be set to NULL or loaded.
+  derived?: boolean;
 };
 
 export type LoadPlan = {
@@ -110,6 +113,7 @@ export const planLoad = (
       .filter(
         (fk) =>
           fk.nullable &&
+          !fk.derived &&
           stuck.has(fk.table) &&
           stuck.has(fk.parentTable) &&
           dependsOn(fk.parentTable, fk.table, active, stuck),
@@ -142,7 +146,9 @@ export type OrphanGroup = {
   parentTable: string;
   // missing_parent: the parent never existed in the source.
   // parent_skipped: the parent row is skipped (--orphans=skip cascade).
-  reason: "missing_parent" | "parent_skipped";
+  // Any other string is a RowViolation reason: a row PostgreSQL rejects for a
+  // constraint other than a foreign key (parentTable is then "-").
+  reason: string;
   count: number;
   sampleKeys: string[];
 };
@@ -162,10 +168,21 @@ const SAMPLE_SIZE = 10;
 // Finds every row whose FK points at a missing parent. Pure function of the
 // ids: `report` only lists them, `null` clears nullable columns, `skip` drops
 // the row and, repeating, every row that pointed at a dropped row.
+// A row that breaks a CHECK or unique index, found by the caller. Like an
+// orphan: listed in every mode, dropped (with its dependents) by `skip`, and
+// not repairable by `null`.
+export type RowViolation = {
+  table: string;
+  column: string;
+  key: string;
+  reason: string;
+};
+
 export const resolveOrphans = (
   foreignKeys: ForeignKey[],
   sourceRows: Record<string, RowRef[]>,
   mode: OrphanMode,
+  violations: RowViolation[] = [],
 ): OrphanResolution => {
   const fks = [...foreignKeys].sort(byName);
   // Work on copies: the caller keeps the original rows.
@@ -200,7 +217,7 @@ export const resolveOrphans = (
   const record = (
     target: Map<string, OrphanGroup>,
     fk: ForeignKey,
-    reason: OrphanGroup["reason"],
+    reason: string,
     key: string,
   ) => {
     const id = `${fk.table}|${fk.column}|${reason}`;
@@ -230,6 +247,28 @@ export const resolveOrphans = (
     const parents = new Map<string, Set<number | string>>();
     const toSkip: { table: string; key: string }[] = [];
 
+    if (round === 1) {
+      for (const violation of violations) {
+        const fk: ForeignKey = {
+          table: violation.table,
+          column: violation.column,
+          parentTable: "-",
+          parentColumn: "-",
+          nullable: false,
+        };
+
+        if (mode === "null") {
+          record(unnullable, fk, violation.reason, violation.key);
+        } else {
+          record(groups, fk, violation.reason, violation.key);
+
+          if (mode === "skip") {
+            toSkip.push({ table: violation.table, key: violation.key });
+          }
+        }
+      }
+    }
+
     for (const fk of fks) {
       const id = `${fk.parentTable}.${fk.parentColumn}`;
       let known = parents.get(id);
@@ -247,7 +286,7 @@ export const resolveOrphans = (
         }
 
         if (mode === "null") {
-          if (fk.nullable) {
+          if (fk.nullable && !fk.derived) {
             record(groups, fk, reason, row.key);
 
             const columns = nulledKeys.get(fk.table) ?? new Map();

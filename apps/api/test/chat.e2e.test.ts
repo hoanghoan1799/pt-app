@@ -234,16 +234,57 @@ describe("sending (trainee)", () => {
     ).toBe(0);
   });
 
-  it("does not hand one person's message to another who reuses the key", async () => {
+  it("scopes the key by sender: a retry returns the original, another sender's same key is a new message", async () => {
     const me = await trainee();
     const pt = await admin("super_admin");
+    const other = await admin("super_admin");
     const key = newKey();
 
-    await sendAs(me.token, { body: "của học viên" }, key);
-    const clash = await ptSend(pt, me.id, { body: "của PT" }, key);
+    const mine = await sendAs(me.token, { body: "của học viên" }, key);
+    const theirs = await ptSend(pt, me.id, { body: "của PT" }, key);
+    const another = await ptSend(other, me.id, { body: "của PT khác" }, key);
 
-    expect(clash.status).toBe(409);
-    expect(clash.body.code).toBe("IDEMPOTENCY_KEY_REUSED");
+    expect(mine.status).toBe(201);
+    expect(theirs.status).toBe(201);
+    expect(another.status).toBe(201);
+    expect(
+      new Set([
+        mine.body.message.id,
+        theirs.body.message.id,
+        another.body.message.id,
+      ]).size,
+    ).toBe(3);
+
+    // The same sender retrying still gets its own message back.
+    const retry = await ptSend(pt, me.id, { body: "của PT" }, key);
+
+    expect(retry.status).toBe(200);
+    expect(retry.body.message.id).toBe(theirs.body.message.id);
+    expect(retry.body.message.body).toBe("của PT");
+    const retryMine = await sendAs(me.token, { body: "của học viên" }, key);
+
+    expect(retryMine.status).toBe(200);
+    expect(retryMine.body.message.id).toBe(mine.body.message.id);
+    expect(await ds.getRepository(ChatMessage).countBy({ clientId: key })).toBe(
+      3,
+    );
+  });
+
+  it("stores the admin id on every admin message and none on a trainee's", async () => {
+    const me = await trainee();
+    const pt = await admin("super_admin");
+
+    await sendAs(me.token, { body: "học viên" });
+    await ptSend(pt, me.id, { body: "PT" });
+    const rows = await ds
+      .getRepository(ChatMessage)
+      .find({ where: { conversationId: await ensureConversation(ds, me.id) } });
+
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      expect(row.senderAdminId).toBe(row.senderRole === "admin" ? pt.id : null);
+    }
+    expect(rows.some((row) => row.senderRole === "admin")).toBe(true);
   });
 
   it("validates the body: trimmed, not empty, not too long, text xor sticker", async () => {
