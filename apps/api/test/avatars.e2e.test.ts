@@ -5,7 +5,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { Clock } from "../src/common/clock.js";
 import { Admin } from "../src/database/entities/admin.entity.js";
+import { AdminAvatar } from "../src/database/entities/admin-avatar.entity.js";
 import { User } from "../src/database/entities/user.entity.js";
+import { UserAvatar } from "../src/database/entities/user-avatar.entity.js";
 import { createTestApp } from "./support/app.js";
 import {
   FakeClock,
@@ -53,6 +55,14 @@ const admin = async () => {
 const jpegUrl = (bytes: number) =>
   `data:image/jpeg;base64,${Buffer.from([0xff, 0xd8, 0xff, ...new Array(bytes - 3).fill(1)]).toString("base64")}`;
 
+const PNG_BYTES = Buffer.from(PNG_BASE64, "base64");
+
+const storedUser = (id: number) =>
+  ds.getRepository(UserAvatar).findOneBy({ userId: id });
+
+const storedAdmin = (id: number) =>
+  ds.getRepository(AdminAvatar).findOneBy({ adminId: id });
+
 const versionOf = (url: string) =>
   new URL(url, "http://x").searchParams.get("v");
 
@@ -70,20 +80,17 @@ describe("PUT /v1/users/me/avatar", () => {
     );
     const row = await ds.getRepository(User).findOneOrFail({
       where: { id: me.id },
-      select: { id: true, avatar: true, avatarUpdatedAt: true },
+      select: { id: true, avatarUpdatedAt: true },
     });
+    const stored = await storedUser(me.id);
+    const seconds = Math.floor(clock.now().getTime() / 1000) * 1000;
 
-    expect(row.avatar).toBe(PNG_URL);
-    expect(row.avatarUpdatedAt?.getTime()).toBe(
-      Math.floor(clock.now().getTime() / 1000) * 1000,
-    );
+    expect(stored).toMatchObject({ mime: "image/png", size: PNG_BYTES.length });
+    expect(Buffer.compare(stored!.data, PNG_BYTES)).toBe(0);
+    expect(stored!.updatedAt.getTime()).toBe(seconds);
+    expect(row.avatarUpdatedAt?.getTime()).toBe(seconds);
     // Only their own row.
-    const untouched = await ds.getRepository(User).findOneOrFail({
-      where: { id: other.id },
-      select: { id: true, avatar: true },
-    });
-
-    expect(untouched.avatar).toBeNull();
+    expect(await storedUser(other.id)).toBeNull();
   });
 
   it("accepts exactly 80 KB and rejects one byte more with the too-large message", async () => {
@@ -129,14 +136,7 @@ describe("PUT /v1/users/me/avatar", () => {
 
     expect(missing.status).toBe(400);
     expect(missing.body.code).toBe("VALIDATION_FAILED");
-    expect(
-      (
-        await ds.getRepository(User).findOneOrFail({
-          where: { id: me.id },
-          select: { id: true, avatar: true },
-        })
-      ).avatar,
-    ).toBeNull();
+    expect(await storedUser(me.id)).toBeNull();
   });
 
   it("refuses a body over the JSON limit with 413 and no stack", async () => {
@@ -182,14 +182,10 @@ describe("PUT /v1/admins/me/avatar and removal", () => {
     expect(set.body.avatarUrl).toMatch(
       new RegExp(`^/v1/avatars/admin/${pt.id}\\?v=\\d+$`),
     );
-    expect(
-      (
-        await ds.getRepository(Admin).findOneOrFail({
-          where: { id: pt.id },
-          select: { id: true, avatar: true },
-        })
-      ).avatar,
-    ).toBe(PNG_URL);
+    const stored = await storedAdmin(pt.id);
+
+    expect(stored).toMatchObject({ mime: "image/png", size: PNG_BYTES.length });
+    expect(Buffer.compare(stored!.data, PNG_BYTES)).toBe(0);
     expect(
       (
         await call(app, "put", "/v1/admins/me/avatar", me.token, {
@@ -213,10 +209,12 @@ describe("PUT /v1/admins/me/avatar and removal", () => {
     expect(goneAdmin.body).toEqual({ avatarUrl: null });
     const row = await ds.getRepository(User).findOneOrFail({
       where: { id: me.id },
-      select: { id: true, avatar: true, avatarUpdatedAt: true },
+      select: { id: true, avatarUpdatedAt: true },
     });
 
-    expect(row).toMatchObject({ avatar: null, avatarUpdatedAt: null });
+    expect(row.avatarUpdatedAt).toBeNull();
+    expect(await storedUser(me.id)).toBeNull();
+    expect(await storedAdmin(pt.id)).toBeNull();
     expect(
       (await call(app, "get", `/v1/avatars/user/${me.id}`, me.token)).status,
     ).toBe(404);
@@ -390,16 +388,117 @@ describe("GET /v1/avatars/:kind/:id", () => {
     const me = await trainee();
     const pt = await admin();
 
-    await ds.getRepository(User).update(
-      { id: me.id },
-      {
-        avatar: "data:image/png;base64,PHNjcmlwdD4=",
-        avatarUpdatedAt: new Date(),
-      },
-    );
+    await ds
+      .getRepository(User)
+      .update({ id: me.id }, { avatarUpdatedAt: new Date() });
+    await ds.getRepository(UserAvatar).insert({
+      userId: me.id,
+      mime: "image/png",
+      data: Buffer.from("<script>"),
+      size: 8,
+      updatedAt: new Date(),
+    });
 
     expect(
       (await call(app, "get", `/v1/avatars/user/${me.id}`, pt.token)).status,
     ).toBe(404);
+  });
+});
+
+const WEBP_BYTES = Buffer.concat([
+  Buffer.from("RIFF"),
+  Buffer.from([1, 2, 3, 4]),
+  Buffer.from("WEBPVP8 "),
+  Buffer.alloc(16, 7),
+]);
+const WEBP_URL = `data:image/webp;base64,${WEBP_BYTES.toString("base64")}`;
+
+describe("avatar rows: replace, remove, cascade", () => {
+  it("replaces a user's photo in place: one row, new bytes, newer version", async () => {
+    const me = await trainee();
+    const first = await call(app, "put", "/v1/users/me/avatar", me.token, {
+      dataUrl: PNG_URL,
+    });
+
+    clock.advance(5000);
+    const second = await call(app, "put", "/v1/users/me/avatar", me.token, {
+      dataUrl: WEBP_URL,
+    });
+
+    expect(second.status).toBe(200);
+    expect(Number(versionOf(second.body.avatarUrl))).toBe(
+      Number(versionOf(first.body.avatarUrl)) + 5,
+    );
+    const rows = await ds.getRepository(UserAvatar).findBy({ userId: me.id });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].mime).toBe("image/webp");
+    expect(rows[0].size).toBe(WEBP_BYTES.length);
+    expect(Buffer.compare(rows[0].data, WEBP_BYTES)).toBe(0);
+    const served = await call(
+      app,
+      "get",
+      `/v1/avatars/user/${me.id}`,
+      me.token,
+    );
+
+    expect(served.status).toBe(200);
+    expect(served.headers["content-type"]).toBe("image/webp");
+  });
+
+  it("replaces and removes an admin's photo", async () => {
+    const pt = await admin();
+
+    await call(app, "put", "/v1/admins/me/avatar", pt.token, {
+      dataUrl: PNG_URL,
+    });
+    await call(app, "put", "/v1/admins/me/avatar", pt.token, {
+      dataUrl: WEBP_URL,
+    });
+
+    expect(
+      await ds.getRepository(AdminAvatar).countBy({ adminId: pt.id }),
+    ).toBe(1);
+    expect((await storedAdmin(pt.id))?.mime).toBe("image/webp");
+
+    await call(app, "delete", "/v1/admins/me/avatar", pt.token);
+    expect(await storedAdmin(pt.id)).toBeNull();
+    // Removing again is harmless.
+    expect(
+      (await call(app, "delete", "/v1/admins/me/avatar", pt.token)).body,
+    ).toEqual({ avatarUrl: null });
+  });
+
+  it("keeps the old photo when the new one is rejected", async () => {
+    const me = await trainee();
+
+    await call(app, "put", "/v1/users/me/avatar", me.token, {
+      dataUrl: PNG_URL,
+    });
+    await call(app, "put", "/v1/users/me/avatar", me.token, {
+      dataUrl: "data:image/png;base64,AAAA",
+    });
+
+    expect((await storedUser(me.id))?.mime).toBe("image/png");
+  });
+
+  it("deleting the user or the admin deletes its avatar row", async () => {
+    const me = await trainee();
+    const pt = await admin();
+
+    await call(app, "put", "/v1/users/me/avatar", me.token, {
+      dataUrl: PNG_URL,
+    });
+    await call(app, "put", "/v1/admins/me/avatar", pt.token, {
+      dataUrl: PNG_URL,
+    });
+    expect(await storedUser(me.id)).not.toBeNull();
+    expect(await storedAdmin(pt.id)).not.toBeNull();
+
+    await ds.getRepository(User).delete({ id: me.id });
+    await ds.getRepository(Admin).delete({ id: pt.id });
+
+    expect(await storedUser(me.id)).toBeNull();
+    expect(await storedAdmin(pt.id)).toBeNull();
   });
 });

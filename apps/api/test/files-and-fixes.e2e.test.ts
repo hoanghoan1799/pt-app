@@ -6,7 +6,7 @@ import { Clock } from "../src/common/clock.js";
 import { Admin } from "../src/database/entities/admin.entity.js";
 import { ChatNickname } from "../src/database/entities/chat-nickname.entity.js";
 import { ContactAlias } from "../src/database/entities/contact-alias.entity.js";
-import { User } from "../src/database/entities/user.entity.js";
+import { UserAvatar } from "../src/database/entities/user-avatar.entity.js";
 import { BytesInPostgresStorage } from "../src/files/bytes-in-postgres.storage.js";
 import {
   moveChatNicknamesToAliases,
@@ -20,7 +20,7 @@ import {
   seedUser,
 } from "./support/auth.js";
 import { createTestDatabase, type TestDatabase } from "./support/database.js";
-import { PNG_BASE64, PNG_URL } from "./support/http.js";
+import { PNG_BASE64 } from "./support/http.js";
 import { insertRow } from "./support/rows.js";
 
 let db: TestDatabase;
@@ -65,13 +65,14 @@ describe("BytesInPostgresStorage", () => {
     expect(stored?.bytes.equals(png)).toBe(true);
     expect(stored?.version.getTime()).toBe(version.getTime());
     expect((await storage.version(ref))?.getTime()).toBe(version.getTime());
-    // Kept in the existing column, in the format migrated from Turso.
-    const row = await ds.getRepository(User).findOneOrFail({
-      where: { id: user.id },
-      select: { id: true, avatar: true },
+    // Kept in its own table, next to the version column of the owner.
+    const row = await ds.getRepository(UserAvatar).findOneByOrFail({
+      userId: user.id,
     });
 
-    expect(row.avatar).toBe(PNG_URL);
+    expect(row.mime).toBe("image/png");
+    expect(row.data.equals(png)).toBe(true);
+    expect(row.size).toBe(png.length);
     await storage.remove(ref);
     expect(await storage.get(ref)).toBeNull();
   });
@@ -113,13 +114,13 @@ describe("BytesInPostgresStorage", () => {
   it("does not return a stored value that is not an image", async () => {
     const user = await seedUser(ds);
 
-    await ds.getRepository(User).update(
-      { id: user.id },
-      {
-        avatar: "data:image/png;base64,PHNjcmlwdD4=",
-        avatarUpdatedAt: new Date(),
-      },
-    );
+    await ds.getRepository(UserAvatar).insert({
+      userId: user.id,
+      mime: "image/png",
+      data: Buffer.from("<script>"),
+      size: 8,
+      updatedAt: new Date(),
+    });
 
     expect(
       await storage.get({ collection: "avatar-user", id: user.id }),

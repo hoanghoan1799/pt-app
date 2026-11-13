@@ -17,7 +17,6 @@ const userRow = {
   email: "lan@example.com",
   emailKey: "lan@example.com",
   passwordHash: "scrypt$16384$salt$hash",
-  avatar: "data:image/png;base64,AAAA",
   avatarUpdatedAt: new Date(1_700_000_000_000),
   ptAdminId: 3,
   chatEnabled: null,

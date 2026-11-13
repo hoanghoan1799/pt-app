@@ -65,9 +65,6 @@ export class User {
   @Column({ type: "text", nullable: true })
   chatColor!: string | null;
 
-  @Column({ type: "text", nullable: true })
-  avatar!: string | null;
-
   @Column({ type: "timestamptz", nullable: true })
   avatarUpdatedAt!: Date | null;
 
