@@ -21,7 +21,10 @@ name: CI web
 # One workflow per workspace (ci-web, ci-api, ci-contracts), each started only
 # by the paths it owns. packages/contracts also starts ci-web and ci-api, and
 # apps/api/openapi.json (input of the typed API client, apps/web/services/api/
-# schema.d.ts, which a unit test keeps in sync) starts ci-web too. The
+# schema.d.ts, which a unit test keeps in sync) starts ci-web too. So do API
+# code and migrations (apps/api/src/**): the Playwright suite runs the web on
+# that API and database, and is the only check of the two together (a schema
+# change once broke e2e without touching the web). The
 # required status check is `checks-web`. The web app imports @pt/contracts from
 # its dist/ folder, so every job builds contracts first, and a contracts change
 # runs every web unit test (the affected-only mode cannot follow the package
@@ -35,6 +38,7 @@ on:
     paths:
       - "apps/web/**"
       - "apps/api/openapi.json"
+      - "apps/api/src/**"
       - "packages/contracts/**"
       - ".claude/**"
       - "vitest.config.mjs"
@@ -98,7 +102,7 @@ jobs:
           if echo "$changed" | grep -qE '\.(ts|tsx|js|jsx|mjs|cjs)$|^apps/api/openapi\.json$|^apps/web/(tsconfig\.json|next\.config\.ts|eslint\.config\.mjs|vitest\.config\.ts)$|^packages/contracts/(tsconfig(\.build)?\.json|eslint\.config\.mjs|vitest\.config\.ts)$'; then
             code=true
           fi
-          if echo "$changed" | grep -qE '^apps/web/(app|components|constants|db|e2e|features|hooks|public|services|types|utils)/|^apps/web/(proxy\.ts|instrumentation\.ts|next\.config\.ts|playwright\.config\.ts|postcss\.config\.mjs|tsconfig\.json)$|^packages/contracts/src/|^apps/api/openapi\.json$'; then
+          if echo "$changed" | grep -qE '^apps/web/(app|components|constants|db|e2e|features|hooks|public|services|types|utils)/|^apps/web/(proxy\.ts|instrumentation\.ts|next\.config\.ts|playwright\.config\.ts|postcss\.config\.mjs|tsconfig\.json)$|^packages/contracts/src/|^apps/api/openapi\.json$|^apps/api/src/'; then
             e2e=true
           fi
           if echo "$changed" | grep -qE '^packages/contracts/'; then
