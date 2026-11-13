@@ -119,6 +119,6 @@ export class PhotosController {
       "X-Content-Type-Options": "nosniff",
       "Content-Security-Policy": "default-src 'none'; sandbox",
     });
-    return new StreamableFile(photo.data);
+    return new StreamableFile(photo.bytes);
   }
 }

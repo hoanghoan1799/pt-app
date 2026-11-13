@@ -4,6 +4,7 @@ import { AuthModule } from "../auth/auth.module.js";
 import { ChatModule } from "../chat/chat.module.js";
 import { ContactAliasesModule } from "../contact-aliases/contact-aliases.module.js";
 import { FilesModule } from "../files/files.module.js";
+import { SocialModule } from "../social/social.module.js";
 import { ProfileService } from "./profile.service.js";
 import { TraineeDeletionService } from "./trainee-deletion.service.js";
 import { TraineesController } from "./trainees.controller.js";
@@ -12,7 +13,13 @@ import { TraineesService } from "./trainees.service.js";
 import { MeController, UsersMeController } from "./users-me.controller.js";
 
 @Module({
-  imports: [AuthModule, ChatModule, ContactAliasesModule, FilesModule],
+  imports: [
+    AuthModule,
+    ChatModule,
+    ContactAliasesModule,
+    FilesModule,
+    SocialModule,
+  ],
   controllers: [TraineesController, UsersMeController, MeController],
   providers: [
     TraineesService,

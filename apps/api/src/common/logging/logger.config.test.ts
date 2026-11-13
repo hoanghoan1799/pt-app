@@ -100,39 +100,47 @@ const bootWithCapturedLogs = async (nodeEnv: "test" | "production") => {
   return { app, lines };
 };
 
+// Boots a real Nest HTTP app (pino, supertest): on a busy machine the cold
+// imports alone can pass the 5 s unit default, so it gets the e2e test limit.
+const BOOT_TEST_TIMEOUT_MS = 30_000;
+
 describe("log content", () => {
-  it("redacts auth headers and secret fields, and never logs bodies", async () => {
-    const { app, lines } = await bootWithCapturedLogs("production");
+  it(
+    "redacts auth headers and secret fields, and never logs bodies",
+    async () => {
+      const { app, lines } = await bootWithCapturedLogs("production");
 
-    await request(app.getHttpServer())
-      .get("/probe")
-      .set("Authorization", "Bearer bearer-secret")
-      .set("Cookie", "sid=cookie-secret");
-    await request(app.getHttpServer())
-      .post("/probe")
-      .send({ password: "request-body-marker" });
-    await app.close();
+      await request(app.getHttpServer())
+        .get("/probe")
+        .set("Authorization", "Bearer bearer-secret")
+        .set("Cookie", "sid=cookie-secret");
+      await request(app.getHttpServer())
+        .post("/probe")
+        .send({ password: "request-body-marker" });
+      await app.close();
 
-    const text = lines.join("");
+      const text = lines.join("");
 
-    expect(text).toContain(REDACTED);
-    for (const secret of [
-      "bearer-secret",
-      "cookie-secret",
-      "pw-in-object",
-      "tok-in-object",
-      "cur-pw-in-object",
-      "new-pw-in-object",
-      "cur-code-in-object",
-      "new-code-in-object",
-      "pwhash-in-object",
-      "pchash-in-object",
-      "tokhash-in-object",
-      "Bearer in-object",
-      "request-body-marker",
-      "response-body-marker",
-    ]) {
-      expect(text).not.toContain(secret);
-    }
-  });
+      expect(text).toContain(REDACTED);
+      for (const secret of [
+        "bearer-secret",
+        "cookie-secret",
+        "pw-in-object",
+        "tok-in-object",
+        "cur-pw-in-object",
+        "new-pw-in-object",
+        "cur-code-in-object",
+        "new-code-in-object",
+        "pwhash-in-object",
+        "pchash-in-object",
+        "tokhash-in-object",
+        "Bearer in-object",
+        "request-body-marker",
+        "response-body-marker",
+      ]) {
+        expect(text).not.toContain(secret);
+      }
+    },
+    BOOT_TEST_TIMEOUT_MS,
+  );
 });

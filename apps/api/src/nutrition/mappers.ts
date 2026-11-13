@@ -7,7 +7,7 @@ import type {
 import type { planFoodResponseSchema } from "@pt/contracts";
 import type { z } from "zod";
 
-import type { FoodFacts } from "./foods-reader.js";
+import type { FoodFacts } from "../foods/food-facts.service.js";
 import { calculateEnergyPlan } from "./rules/energy.js";
 import type {
   BodyProfileValues,

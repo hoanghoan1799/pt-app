@@ -48,8 +48,8 @@ import type { AuthActor } from "../auth/actor.js";
 import { Actor } from "../auth/decorators/index.js";
 import { ApiErrors } from "../common/openapi/api-errors.js";
 import { toOpenApiSchema } from "../common/openapi/zod-schema.js";
+import { AccountDirectory } from "../users/account-directory.service.js";
 import { ApiPathParams, ApiQueries } from "../workouts/workouts.openapi.js";
-import { SocialAccountQueries } from "./accounts.queries.js";
 import { decodeIdCursor } from "./domain/cursor.js";
 import {
   toPostPageResponse,
@@ -80,7 +80,7 @@ export class PostsController {
     private readonly posts: PostsService,
     private readonly queries: PostQueries,
     private readonly profiles: ProfilesService,
-    private readonly accounts: SocialAccountQueries,
+    private readonly accounts: AccountDirectory,
     private readonly notifications: NotificationsService,
   ) {}
 

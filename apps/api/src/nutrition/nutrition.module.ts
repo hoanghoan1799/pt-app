@@ -3,8 +3,8 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 
 import { AuthModule } from "../auth/auth.module.js";
 import { User } from "../database/entities/user.entity.js";
+import { FoodsModule } from "../foods/foods.module.js";
 import { BodyProfileService } from "./body-profile.service.js";
-import { FoodsReader } from "./foods-reader.js";
 import { MealLogsService } from "./meal-logs.service.js";
 import { MealPlanQueries } from "./meal-plan.queries.js";
 import { MealPlanStore } from "./meal-plan.store.js";
@@ -26,7 +26,7 @@ import { TargetsService } from "./targets/targets.service.js";
 import { TraineeNutritionController } from "./trainee-nutrition.controller.js";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User]), AuthModule],
+  imports: [TypeOrmModule.forFeature([User]), AuthModule, FoodsModule],
   controllers: [
     TraineeNutritionController,
     PtNutritionController,
@@ -47,7 +47,6 @@ import { TraineeNutritionController } from "./trainee-nutrition.controller.js";
     NutritionQueries,
     NutritionService,
     BodyProfileService,
-    FoodsReader,
     MealPlanStore,
     MealPlanQueries,
     MealPlanReadService,

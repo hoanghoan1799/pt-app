@@ -18,7 +18,7 @@ import { MealPlanDay } from "../database/entities/meal-plan-day.entity.js";
 import { MealPlanItem } from "../database/entities/meal-plan-item.entity.js";
 import { MealPlanMeal } from "../database/entities/meal-plan-meal.entity.js";
 import { User } from "../database/entities/user.entity.js";
-import { FoodsReader } from "./foods-reader.js";
+import { FoodFactsService } from "../foods/food-facts.service.js";
 import { MealPlanQueries } from "./meal-plan.queries.js";
 import { MealPlanStore } from "./meal-plan.store.js";
 import { isUniqueViolation, planErrors } from "./nutrition.errors.js";
@@ -44,7 +44,7 @@ export class MealPlansService {
     private readonly store: MealPlanStore,
     private readonly queries: MealPlanQueries,
     private readonly nutrition: NutritionQueries,
-    private readonly foods: FoodsReader,
+    private readonly foods: FoodFactsService,
     private readonly scope: PlanScope,
   ) {}
 

@@ -3,7 +3,7 @@ import { InjectDataSource } from "@nestjs/typeorm";
 import type { SocialAuthorKind, SocialPostPrivacy } from "@pt/contracts";
 import { DataSource } from "typeorm";
 
-import { SocialAccountQueries } from "./accounts.queries.js";
+import { AccountDirectory } from "../users/account-directory.service.js";
 import { idCursor } from "./domain/cursor.js";
 import { PostPolicy } from "./domain/post.policy.js";
 import {
@@ -63,7 +63,7 @@ const SUPER_ADMIN_IDS = `(SELECT id FROM admins WHERE role IS NULL OR role = 'su
 export class PostQueries {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    private readonly accounts: SocialAccountQueries,
+    private readonly accounts: AccountDirectory,
     private readonly relationships: RelationshipQueries,
     private readonly policy: PostPolicy,
     private readonly access: PostAccess,
