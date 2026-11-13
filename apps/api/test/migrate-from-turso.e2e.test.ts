@@ -465,39 +465,97 @@ describe("data migration from a Turso/SQLite copy", () => {
     expect(await count(db, "users")).toBe(0);
   });
 
-  it("reports every unusable avatar and writes nothing (none is dropped silently)", async () => {
+  it("loads, skips and reports unusable avatars (the owner rows still load)", async () => {
     const { fixture, db } = await setup("bad-avatars");
     const { exitCode, report, output } = await migrate(fixture, db);
 
-    expect(exitCode).toBe(1);
-    expect(report.status).toBe("aborted");
-
-    const users = report.invalidValues.find(
-      (group) => group.table === "users" && group.column === "avatar",
-    );
-    const admins = report.invalidValues.find(
-      (group) => group.table === "admins" && group.column === "avatar",
-    );
-
-    expect(users?.count).toBe(2);
-    expect(users?.samples.map((sample) => sample.key).sort()).toEqual([
-      "2",
-      "5",
+    expect(exitCode, output).toBe(0);
+    expect(report.status).toBe("ok");
+    expect(report.committed).toBe(true);
+    expect(report.invalidValues).toEqual([]);
+    expect(
+      report.skippedAvatars
+        .map((item) => [item.table, item.id])
+        .sort((x, y) => (x.join() < y.join() ? -1 : 1)),
+    ).toEqual([
+      ["admins", "3"],
+      ["users", "2"],
+      ["users", "5"],
     ]);
-    expect(users?.samples.map((sample) => sample.problem).join("\n")).toMatch(
-      /not valid base64|not a base64 image data URL/,
-    );
-    expect(users?.samples.map((sample) => sample.problem).join("\n")).toMatch(
-      /bytes are not a png, jpeg or webp image/,
-    );
-    expect(admins?.samples[0]).toMatchObject({
-      key: "3",
-      problem: expect.stringMatching(/avatar_updated_at/),
-    });
+
+    const problems = report.skippedAvatars
+      .map((item) => item.problem)
+      .join("\n");
+
+    expect(problems).toMatch(/not a base64 image data URL/);
+    expect(problems).toMatch(/bytes are not a png, jpeg or webp image/);
+    expect(problems).toMatch(/avatar_updated_at/);
+    expect(report.warnings.join("\n")).toMatch(/3 unusable avatar/);
     // Never the value itself.
     expect(output).not.toContain("PHNjcmlwdD4");
-    expect(await count(db, "users")).toBe(0);
-    expect(await count(db, "user_avatars")).toBe(0);
+    expect(JSON.stringify(report)).not.toContain("PHNjcmlwdD4");
+
+    // Owner rows loaded, without a version; only the good avatar was copied.
+    expect(await count(db, "users")).toBe(3);
+    expect(await count(db, "admins")).toBe(2);
+    expect(
+      await db.dataSource.query(
+        `SELECT id FROM users WHERE avatar_updated_at IS NOT NULL ORDER BY id`,
+      ),
+    ).toEqual([{ id: 1 }]);
+    expect(
+      await db.dataSource.query(
+        `SELECT id FROM admins WHERE avatar_updated_at IS NOT NULL`,
+      ),
+    ).toEqual([{ id: 1 }]);
+    expect(
+      await db.dataSource.query(`SELECT user_id FROM user_avatars`),
+    ).toEqual([{ user_id: 1 }]);
+    expect(
+      await db.dataSource.query(`SELECT admin_id FROM admin_avatars`),
+    ).toEqual([{ admin_id: 1 }]);
+    expect(report.avatars.every((row) => row.match)).toBe(true);
+    expect(report.tables.every((row) => row.match)).toBe(true);
+
+    // verify expects exactly the skipped ids to be missing...
+    const lines: string[] = [];
+    const verified = await run(
+      {
+        mode: "verify",
+        source: fixture.url,
+        target: db.url,
+        orphans: "report",
+        reset: false,
+        allowRemote: false,
+        batchSize: 3,
+      },
+      (line) => lines.push(line),
+    );
+
+    expect(verified.exitCode, lines.join("\n")).toBe(0);
+
+    // ...and fails when a skipped id gets an avatar after all.
+    await db.dataSource.query(
+      `INSERT INTO user_avatars (user_id, mime, data, size, updated_at)
+       SELECT 2, mime, data, size, updated_at FROM user_avatars WHERE user_id = 1`,
+    );
+    const extra = await run(
+      {
+        mode: "verify",
+        source: fixture.url,
+        target: db.url,
+        orphans: "report",
+        reset: false,
+        allowRemote: false,
+        batchSize: 3,
+      },
+      () => undefined,
+    );
+
+    expect(extra.exitCode).toBe(1);
+    expect(
+      extra.report.avatars.filter((row) => !row.match).map((row) => row.table),
+    ).toEqual(["user_avatars"]);
   });
 
   it("--dry-run reads and scans but writes nothing", async () => {

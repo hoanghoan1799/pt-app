@@ -93,6 +93,7 @@ type Analysis = {
   invalid: Report["invalidValues"];
   blobs: Report["blobs"];
   warnings: string[];
+  skippedAvatars: Report["skippedAvatars"];
 };
 
 const keyOf = (primaryKey: string[], row: Record<string, SourceValue>) =>
@@ -102,6 +103,16 @@ const keyOf = (primaryKey: string[], row: Record<string, SourceValue>) =>
 // (not the avatar, which moved to its own table).
 const ownColumns = (spec: TableSpec, table: string) =>
   spec.columns.filter((column) => !isMovedColumn(table, column.name));
+
+// The decoded avatar of a source row; null when the row has none. An
+// unusable one comes back as { ok: false } and is skipped, never fatal.
+const sourceAvatarOf = (
+  moved: NonNullable<ReturnType<typeof movedAvatarOf>>,
+  row: Record<string, SourceValue>,
+) =>
+  row[moved.column] === null
+    ? null
+    : decodeSourceAvatar(row[moved.column], row[moved.versionColumn]);
 
 const batchFor = (mapping: TursoColumns, table: string, batchSize: number) =>
   movedAvatarOf(table) ||
@@ -123,6 +134,7 @@ const analyse = async (
   const invalid = new Map<string, Report["invalidValues"][number]>();
   const blobColumns = new Map<string, Report["blobs"]["byColumn"][number]>();
   const hashFormat = new Map<string, number>();
+  const skippedAvatars: Report["skippedAvatars"] = [];
 
   const flag = (
     table: string,
@@ -176,8 +188,9 @@ const analyse = async (
           const value = row[column.name];
           const moved = movedAvatarOf(table);
 
-          // The avatar is checked for what it will become: a decoded row of
-          // the avatar table. A bad value is reported, never dropped.
+          // The avatar is cosmetic: an unusable one never aborts. It is
+          // reported as a warning (table, id, problem) and skipped; the owner
+          // row still loads, with avatar_updated_at NULL.
           if (moved && column.name === moved.column) {
             if (value !== null) {
               const decoded = decodeSourceAvatar(
@@ -186,7 +199,11 @@ const analyse = async (
               );
 
               if (!decoded.ok) {
-                flag(table, column.name, key, decoded.problem);
+                skippedAvatars.push({
+                  table,
+                  id: key,
+                  problem: decoded.problem,
+                });
               }
             }
 
@@ -290,6 +307,7 @@ const analyse = async (
       byColumn,
     },
     warnings,
+    skippedAvatars,
   };
 };
 
@@ -366,27 +384,30 @@ const loadTables = async (
           continue;
         }
 
-        if (moved && row[moved.column] !== null) {
-          const decoded = decodeSourceAvatar(
-            row[moved.column],
-            row[moved.versionColumn],
-          );
+        const avatar = moved ? sourceAvatarOf(moved, row) : null;
 
-          if (!decoded.ok) {
-            throw new Error(`${table} ${key}: ${decoded.problem}`);
-          }
-
+        if (avatar?.ok) {
           avatars.push([
             row.id,
-            decoded.avatar.mime,
-            decoded.avatar.bytes,
-            decoded.avatar.bytes.length,
-            new Date(decoded.avatar.updatedAtMs),
+            avatar.avatar.mime,
+            avatar.avatar.bytes,
+            avatar.avatar.bytes.length,
+            new Date(avatar.avatar.updatedAtMs),
           ]);
         }
 
         const values = columns.map((column) => {
           if (adjust.isNulled(table, column.name, key)) {
+            return null;
+          }
+
+          // Skipped avatar: no version, so no avatar URL is built.
+          if (
+            moved &&
+            avatar &&
+            !avatar.ok &&
+            column.name === moved.versionColumn
+          ) {
             return null;
           }
 
@@ -535,23 +556,16 @@ const verifyTables = async (
           continue;
         }
 
-        if (moved && row[moved.column] !== null) {
-          const decoded = decodeSourceAvatar(
-            row[moved.column],
-            row[moved.versionColumn],
-          );
+        const avatar = moved ? sourceAvatarOf(moved, row) : null;
 
-          if (!decoded.ok) {
-            throw new Error(`${table} ${key}: ${decoded.problem}`);
-          }
-
+        if (avatar?.ok) {
           sourceAvatars.push(
             avatarToken(
               row.id as number,
-              decoded.avatar.mime,
-              decoded.avatar.bytes.length,
-              decoded.avatar.bytes,
-              decoded.avatar.updatedAtMs,
+              avatar.avatar.mime,
+              avatar.avatar.bytes.length,
+              avatar.avatar.bytes,
+              avatar.avatar.updatedAtMs,
             ),
           );
         }
@@ -559,7 +573,11 @@ const verifyTables = async (
         sourceHashes.push(
           hashRow(
             columns.map((column) =>
-              adjust.isNulled(table, column.name, key)
+              adjust.isNulled(table, column.name, key) ||
+              (moved &&
+                avatar &&
+                !avatar.ok &&
+                column.name === moved.versionColumn)
                 ? normalizeSource(column, null)
                 : normalizeSource(column, row[column.name]),
             ),
@@ -613,7 +631,8 @@ const verifyTables = async (
       const targetAvatarChecksum = tableChecksum(
         targetAvatars.map((token) => sha256Hex(token)),
       );
-      // Owners skipped as orphans are not in sourceAvatars (skipped above).
+      // Owners skipped as orphans and skipped (unusable) avatars are not in
+      // sourceAvatars, so exactly those ids must be missing in PostgreSQL.
       const expected = sourceAvatars.length;
 
       avatars.push({
@@ -671,6 +690,25 @@ const verifyTables = async (
   );
 
   return { tables, avatars, sequences };
+};
+
+const printSkippedAvatars = (report: Report, log: Log) => {
+  if (report.skippedAvatars.length === 0) {
+    return;
+  }
+
+  log(
+    "\nWarnings: unusable avatars are skipped (the owner row still loads with avatar_updated_at NULL):",
+  );
+  log(
+    formatTable(
+      ["table", "id", "problem"],
+      report.skippedAvatars.map((item) => [item.table, item.id, item.problem]),
+    ),
+  );
+  report.warnings.push(
+    `${report.skippedAvatars.length} unusable avatar(s) skipped, see skippedAvatars`,
+  );
 };
 
 const printOrphans = (report: Report, log: Log) => {
@@ -818,6 +856,8 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
     report.invalidValues = analysis.invalid;
     report.blobs = analysis.blobs;
     report.warnings.push(...analysis.warnings);
+    report.skippedAvatars = analysis.skippedAvatars;
+    printSkippedAvatars(report, log);
 
     if (analysis.invalid.length > 0) {
       log("\nInvalid values (nothing was written):");

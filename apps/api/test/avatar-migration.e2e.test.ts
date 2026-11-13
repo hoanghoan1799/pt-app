@@ -84,20 +84,25 @@ describe("AvatarTables migration", () => {
       updated_at: Date;
     }[] = await ds.query(`SELECT * FROM user_avatars ORDER BY user_id`);
 
-    // Only the two valid ones; the broken, wrong-type and null ones are not copied.
-    expect(users.map((row) => row.user_id)).toEqual(
-      [ids.png, ids.unversioned].sort((a, b) => a - b),
-    );
+    // Only the valid one: broken, wrong-type, unversioned and null are not copied.
+    expect(users.map((row) => row.user_id)).toEqual([ids.png]);
     const png = users.find((row) => row.user_id === ids.png)!;
 
     expect(png.mime).toBe("image/png");
     expect(Buffer.compare(png.data, Buffer.from(PNG_BASE64, "base64"))).toBe(0);
     expect(png.size).toBe(png.data.length);
     expect(png.updated_at).toEqual(UPDATED);
-    // No version before: the copy still gets a timestamp (NOT NULL).
-    expect(
-      users.find((row) => row.user_id === ids.unversioned)?.updated_at,
-    ).toBeInstanceOf(Date);
+    // Unusable avatars leave no version behind, so no avatar URL is built.
+    const versions: { id: number; avatar_updated_at: Date | null }[] =
+      await ds.query(`SELECT id, avatar_updated_at FROM users ORDER BY id`);
+    const versionOf = (id: number) =>
+      versions.find((row) => row.id === id)?.avatar_updated_at;
+
+    expect(versionOf(ids.png)).toEqual(UPDATED);
+    expect(versionOf(ids.broken)).toBeNull();
+    expect(versionOf(ids.wrongMime)).toBeNull();
+    expect(versionOf(ids.unversioned)).toBeNull();
+    expect(versionOf(ids.none)).toBeNull();
 
     const admins: {
       admin_id: number;

@@ -4,8 +4,11 @@ const CHECK = `"mime" IN ('image/webp', 'image/jpeg', 'image/png')`;
 
 // Copies the data-URL avatars of `owner` ("users" -> "user_avatars") into the
 // new table. A value that is not a base64 image data URL could never be served
-// (the avatar route 404s on it), so it is not copied; each one is reported as a
-// WARNING with its id and never its content.
+// (the avatar route 404s on it), and one without avatar_updated_at has no
+// version to build the URL from, so neither is copied (nothing is invented).
+// Avatars are cosmetic: each one is reported as a WARNING with its id and never
+// its content, and the owner's avatar_updated_at is set to NULL so no avatar
+// URL is built for it.
 const copyAvatars = (owner: "users" | "admins", target: string, fk: string) => `
   DO $$
   DECLARE
@@ -16,6 +19,9 @@ const copyAvatars = (owner: "users" | "admins", target: string, fk: string) => `
       SELECT id, avatar, avatar_updated_at FROM ${owner} WHERE avatar IS NOT NULL
     LOOP
       BEGIN
+        IF r.avatar_updated_at IS NULL THEN
+          RAISE EXCEPTION 'no avatar_updated_at';
+        END IF;
         IF r.avatar !~ '^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$' THEN
           RAISE EXCEPTION 'not a base64 image data URL';
         END IF;
@@ -24,11 +30,12 @@ const copyAvatars = (owner: "users" | "admins", target: string, fk: string) => `
                substring(r.avatar FROM '^data:([^;]+);'),
                bytes,
                octet_length(bytes),
-               COALESCE(r.avatar_updated_at, now())
+               r.avatar_updated_at
           FROM (SELECT decode(substring(r.avatar FROM ',(.*)$'), 'base64') AS bytes) AS decoded
          WHERE octet_length(bytes) > 0;
       EXCEPTION WHEN OTHERS THEN
         skipped := skipped + 1;
+        UPDATE ${owner} SET avatar_updated_at = NULL WHERE id = r.id;
         RAISE WARNING '${owner}.avatar of id % was not copied (%)', r.id, SQLERRM;
       END;
     END LOOP;
