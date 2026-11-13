@@ -47,6 +47,8 @@ export type Report = {
   options: { orphans: OrphanMode; reset: boolean; batchSize: number };
   committed: boolean;
   tables: TableReport[];
+  // user_avatars / admin_avatars: users.avatar and admins.avatar decoded.
+  avatars: TableReport[];
   sequences: SequenceReport[];
   loadOrder: string[];
   deferredColumns: string[];
@@ -73,6 +75,7 @@ export const emptyReport = (
   options,
   committed: false,
   tables: [],
+  avatars: [],
   sequences: [],
   loadOrder: [],
   deferredColumns: [],

@@ -3,6 +3,7 @@ import { DataSource } from "typeorm";
 import { describe, expect, it } from "vitest";
 
 import { buildDataSourceOptions } from "../src/database/data-source-options.js";
+import { MOVED_AVATARS } from "./migrate/avatars.js";
 import { loadTursoColumns } from "./turso-columns.js";
 import { loadTursoSchemaStatements } from "./turso-schema.js";
 
@@ -14,8 +15,15 @@ const PG_ONLY_COLUMNS: Record<string, string[]> = {
   // Idempotency-Key of a chat photo upload (new in the API; NULL for old rows).
   chat_photos: ["client_id"],
 };
+// Columns SQLite has and PostgreSQL moved to another table: the avatar data
+// URLs became rows of user_avatars / admin_avatars (scripts/migrate/avatars.ts
+// decodes them while copying).
+const SOURCE_ONLY_COLUMNS: Record<string, string[]> = {
+  users: ["avatar"],
+  admins: ["avatar"],
+};
 // Tables PostgreSQL has and SQLite never had.
-const PG_ONLY_TABLES = ["sessions"];
+const PG_ONLY_TABLES = ["sessions", "user_avatars", "admin_avatars"];
 
 const buildMetadata = async () => {
   const dataSource = new DataSource(
@@ -120,9 +128,35 @@ describe("turso-columns.json against the PostgreSQL entities", () => {
         .sort();
 
       expect(
-        spec.columns.map((column) => column.name).sort(),
+        spec.columns
+          .map((column) => column.name)
+          .filter(
+            (name) => !SOURCE_ONLY_COLUMNS[entity.tableName]?.includes(name),
+          )
+          .sort(),
         entity.tableName,
       ).toEqual(entityColumns);
+    }
+  });
+
+  it("moves exactly the columns the avatar transform handles", () => {
+    expect(
+      Object.fromEntries(
+        MOVED_AVATARS.map((moved) => [moved.table, [moved.column]]),
+      ),
+    ).toEqual(SOURCE_ONLY_COLUMNS);
+    expect(MOVED_AVATARS.map((moved) => moved.targetTable).sort()).toEqual(
+      PG_ONLY_TABLES.filter((name) => name !== "sessions").sort(),
+    );
+
+    for (const moved of MOVED_AVATARS) {
+      const columns = mapping.tables[moved.table].columns;
+
+      // Text data URL plus the version column that stays behind.
+      expect(columns.find((c) => c.name === moved.column)?.kind).toBe("text");
+      expect(columns.find((c) => c.name === moved.versionColumn)?.kind).toBe(
+        "timestamp_s",
+      );
     }
   });
 
