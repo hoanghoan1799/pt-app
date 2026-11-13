@@ -25,10 +25,10 @@ const buildMetadata = async () => {
 };
 
 describe("entities", () => {
-  it("registers every *.entity.ts file exactly once (44 tables + sessions)", () => {
-    expect(entityFiles).toHaveLength(45);
-    expect(entities).toHaveLength(45);
-    expect(new Set(entities).size).toBe(45);
+  it("registers every *.entity.ts file exactly once (44 tables, sessions and the two avatar tables)", () => {
+    expect(entityFiles).toHaveLength(47);
+    expect(entities).toHaveLength(47);
+    expect(new Set(entities).size).toBe(47);
   });
 
   it("has valid metadata: unique table names, real FKs with explicit ON DELETE", async () => {
@@ -36,9 +36,9 @@ describe("entities", () => {
     const tables = metadata.map((entity) => entity.tableName);
     const foreignKeys = metadata.flatMap((entity) => entity.foreignKeys);
 
-    expect(new Set(tables).size).toBe(45);
-    // 24 declared + 43 formerly logical + 2 on sessions.
-    expect(foreignKeys).toHaveLength(69);
+    expect(new Set(tables).size).toBe(47);
+    // 24 declared + 43 formerly logical + 2 on sessions + 2 on the avatar tables.
+    expect(foreignKeys).toHaveLength(71);
     expect(foreignKeys.every((fk) => fk.onDelete !== undefined)).toBe(true);
   });
 

@@ -28,6 +28,16 @@ export const WEBP_BYTES = Buffer.concat([
   Buffer.from([0x00, 0x00, 0xff]),
 ]);
 
+// A webp header the API accepts as an avatar (RIFF....WEBP).
+export const AVATAR_WEBP_BYTES = Buffer.concat([
+  Buffer.from("RIFF"),
+  Buffer.from([0x20, 0x01, 0x00, 0x00]),
+  Buffer.from("WEBPVP8 "),
+  Buffer.alloc(40, 0x5a),
+]);
+export const dataUrl = (mime: string, bytes: Buffer) =>
+  `data:${mime};base64,${bytes.toString("base64")}`;
+
 type Row = Record<string, string | number | Buffer | null>;
 type Entry = [table: string, row: Row];
 
@@ -52,7 +62,7 @@ const baseRows = (): Entry[] => [
       password_hash: SCRYPT_HASH,
       last_seen_at: S + 10,
       chat_color: "blue",
-      avatar: "data:image/webp;base64,AAAA",
+      avatar: dataUrl("image/webp", AVATAR_WEBP_BYTES),
       avatar_updated_at: S + 11,
       passcode_hash: SCRYPT_HASH,
       passcode_failed_count: 2,
@@ -94,7 +104,8 @@ const baseRows = (): Entry[] => [
       chat_enabled_by_admin_id: 1,
       last_seen_at: S + 22,
       chat_color: "green",
-      avatar: null,
+      avatar: dataUrl("image/png", PNG_BYTES),
+      avatar_updated_at: S + 24,
       pt_admin_id: 3,
       bio: "Tập mỗi ngày",
       terms_version: 1,
@@ -674,7 +685,12 @@ const nullableOrphans = (): Entry[] => [
 ];
 
 export type FixtureVariant =
-  "base" | "required-orphans" | "nullable-orphans" | "sparse" | "invalid-enum";
+  | "base"
+  | "required-orphans"
+  | "nullable-orphans"
+  | "sparse"
+  | "invalid-enum"
+  | "bad-avatars";
 
 export type TursoFixture = {
   url: string;
@@ -724,6 +740,21 @@ export const createTursoFixture = async (
     await client.execute(
       "UPDATE users SET bio = 'nul' || char(0) || 'byte' WHERE id = 2",
     );
+  }
+
+  if (variant === "bad-avatars") {
+    // users 2: not base64; users 5: base64 of something that is not an image;
+    // admins 3: an image without avatar_updated_at; users 1 keeps a good one.
+    await client.execute(
+      "UPDATE users SET avatar = 'data:image/png;base64,@@@@', avatar_updated_at = 1700000000 WHERE id = 2",
+    );
+    await client.execute(
+      `UPDATE users SET avatar = 'data:image/png;base64,${Buffer.from("<script>").toString("base64")}', avatar_updated_at = 1700000000 WHERE id = 5`,
+    );
+    await client.execute({
+      sql: "UPDATE admins SET avatar = ? WHERE id = 3",
+      args: [dataUrl("image/png", PNG_BYTES)],
+    });
   }
 
   return {
