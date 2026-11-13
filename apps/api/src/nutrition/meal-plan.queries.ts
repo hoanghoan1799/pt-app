@@ -12,7 +12,7 @@ import { DataSource, type EntityManager, In } from "typeorm";
 
 import { MealPlanItem } from "../database/entities/meal-plan-item.entity.js";
 import { MealPlanMeal } from "../database/entities/meal-plan-meal.entity.js";
-import { FoodsReader } from "./foods-reader.js";
+import { FoodFactsService } from "../foods/food-facts.service.js";
 import { toPlanFoodResponse } from "./mappers.js";
 import { type DayRow, MealPlanStore } from "./meal-plan.store.js";
 import { NutritionQueries } from "./nutrition.queries.js";
@@ -55,7 +55,7 @@ export class MealPlanQueries {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly store: MealPlanStore,
-    private readonly foods: FoodsReader,
+    private readonly foods: FoodFactsService,
     private readonly nutrition: NutritionQueries,
   ) {}
 
