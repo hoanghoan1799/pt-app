@@ -1,6 +1,6 @@
 # pt-app NestJS + PostgreSQL backend: handoff plan
 
-Status: steps 0-9 are implemented on the integration branches (see the list below); step 10 (removing Turso, Ably, jose and Drizzle from the web) remains.
+Status: steps 0-9 are implemented on the integration branches (see the list below); step 10a (cleanup of the web: Turso, Ably, jose and Drizzle removed, e2e seeded through the API, setup scripts moved to the API) is done on `feat/cleanup-web`; step 10b (the production data run and deploy, `cutover-runbook.md`) is Hoan's and remains.
 Full detail: `nest-blueprint.html` in this folder (44 tables as TypeORM entity specs, 137 endpoints, libraries, patterns, migration plan). Live copy: https://claude.ai/artifact/HXsPG38gg9rYp58RG5reLZ
 
 ## Decisions (all agreed by Hoan, 2026-11-11)
@@ -33,7 +33,7 @@ Modular monolith, one Nest module per feature. Inside a module: controller/gatew
 6. DONE: users, PTs, admins, avatars, nicknames, hidden trainees.
 7. DONE: social (profiles, posts, comments, reactions, friends, feed, notifications).
 8. DONE: chat, Socket.IO realtime, push, stickers/GIPHY, read-only DMs; the conversation is created when chat is switched on.
-9. DONE in the web: every runtime read and write goes through the API and the Playwright suite runs on web + API + PostgreSQL; Turso/Ably/jose/Drizzle removal (step 10) and the production data run follow `cutover-runbook.md`.
+9. DONE in the web: every runtime read and write goes through the API and the Playwright suite runs on web + API + PostgreSQL; Turso/Ably/jose/Drizzle removal is step 10a (DONE on `feat/cleanup-web`; the SQLite DDL for the data script is frozen in `apps/api/scripts/turso-schema.sql`); the production data run and deploy (step 10b) follow `cutover-runbook.md`.
 Per module: entity + migration, contracts, service/policy/controller, Vitest with real PG, then switch the web server action behind the `API_MODULES` flag.
 
 ## Conventions (project rules)

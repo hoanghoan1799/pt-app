@@ -206,10 +206,10 @@ jobs:
 
   # Pinned: ubuntu-latest moved to 26.04, which Playwright 1.56 cannot install
   # Chromium deps on ("Playwright does not support chromium on ubuntu26.04").
-  # Playwright e2e against web + API + PostgreSQL. The web keeps a throwaway
-  # SQLite file (e2e/.tmp) for the helpers still on Drizzle; the API runs from
-  # this checkout (e2e/api-server.mjs builds and starts it) on the PostgreSQL
-  # service container below, which it empties first.
+  # Playwright e2e against web + API + PostgreSQL. The API runs from this
+  # checkout (e2e/api-server.mjs builds and starts it) on the PostgreSQL service
+  # container below, which it empties first; the specs' data is created through
+  # the API (e2e/global-setup.ts).
   # The whole suite does not fit one 15-minute job (it was cancelled at the
   # limit), so it is split with `--shard=N/3`. A shard is a runner of its own:
   # its own service container, API, web server and seed, so the specs, which
