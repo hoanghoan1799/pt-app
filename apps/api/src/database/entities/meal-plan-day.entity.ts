@@ -23,7 +23,7 @@ export class MealPlanDay {
   @JoinColumn({ name: "user_id" })
   user!: Relation<User>;
 
-  @Column({ type: "text" })
+  @Column({ type: "date" })
   date!: string;
 
   @Column({ type: "timestamptz", default: () => "now()" })

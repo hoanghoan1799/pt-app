@@ -25,7 +25,7 @@ export class FoodEntry {
   @JoinColumn({ name: "user_id" })
   user!: Relation<User>;
 
-  @Column({ type: "text" })
+  @Column({ type: "date" })
   date!: string;
 
   @Column({ type: "text" })

@@ -206,7 +206,7 @@ export class WorkoutDaysService {
     dates: string[],
   ) {
     await em.query(
-      `DELETE FROM workout_days WHERE user_id = $1 AND date = ANY($2::text[])`,
+      `DELETE FROM workout_days WHERE user_id = $1 AND date = ANY($2::date[])`,
       [userId, dates],
     );
   }

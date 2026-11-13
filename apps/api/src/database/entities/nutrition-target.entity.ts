@@ -27,7 +27,7 @@ export class NutritionTarget {
   @JoinColumn({ name: "user_id" })
   user!: Relation<User>;
 
-  @Column({ type: "text" })
+  @Column({ type: "date" })
   effectiveFrom!: string;
 
   @Column({ type: "integer" })

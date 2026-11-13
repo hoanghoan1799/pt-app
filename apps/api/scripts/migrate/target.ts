@@ -28,7 +28,8 @@ const COMPATIBLE: Record<string, string[]> = {
   timestamp_s: ["timestamp with time zone"],
   timestamp_ms: ["timestamp with time zone"],
   real: ["double precision", "real"],
-  text: ["text", "character varying"],
+  // `date` holds the YYYY-MM-DD text columns; constraints.ts checks each value.
+  text: ["text", "character varying", "date"],
   json: ["text", "jsonb", "json"],
   blob: ["bytea"],
 };

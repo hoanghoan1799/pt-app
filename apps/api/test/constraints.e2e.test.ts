@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { WorkoutDay } from "../src/database/entities/workout-day.entity.js";
 import { createTestDatabase, type TestDatabase } from "./support/database.js";
 
 // PostgreSQL error codes: 23514 check_violation, 23503 foreign_key_violation,
@@ -213,6 +214,111 @@ describe("constraints", () => {
       expect(
         await sqlState(query(`DELETE FROM foods WHERE id = $1`, [foodId])),
       ).toBe("23503");
+    });
+  });
+
+  describe("calendar days", () => {
+    const DATE_COLUMNS = [
+      ["workout_days", "date"],
+      ["meal_plan_days", "date"],
+      ["weight_logs", "date"],
+      ["food_entries", "date"],
+      ["nutrition_targets", "effective_from"],
+    ];
+
+    it("stores every day column as a date", async () => {
+      const rows: { table_name: string; column_name: string; data_type: string }[] =
+        await query(
+          `SELECT table_name, column_name, data_type FROM information_schema.columns
+            WHERE table_schema = 'public' AND (table_name, column_name) IN
+              (${DATE_COLUMNS.map(([t, c]) => `('${t}', '${c}')`).join(", ")})`,
+        );
+
+      expect(rows).toHaveLength(DATE_COLUMNS.length);
+      expect(rows.every((row) => row.data_type === "date")).toBe(true);
+    });
+
+    it("rejects text that is not a real day", async () => {
+      const [{ id: userId }] = await query(
+        `INSERT INTO users (name, name_key) VALUES ('Days', 'days') RETURNING id`,
+      );
+      const insert = (date: string) =>
+        query(`INSERT INTO workout_days (user_id, date) VALUES ($1, $2)`, [
+          userId,
+          date,
+        ]);
+
+      expect(await sqlState(insert("2026-02-30"))).toBe("22008");
+      expect(await sqlState(insert("not-a-day"))).toBe("22007");
+    });
+
+    // The driver would turn a date into a Date at local midnight; a server in
+    // Ho Chi Minh (UTC+7) or Kiritimati (UTC+14) would then shift the day.
+    it.each(["Asia/Ho_Chi_Minh", "Pacific/Kiritimati", "America/Los_Angeles"])(
+      "reads a day back as the same YYYY-MM-DD text in %s",
+      async (zone) => {
+        const before = process.env.TZ;
+        const [{ id: userId }] = await query(
+          `INSERT INTO users (name, name_key) VALUES ($1, $1) RETURNING id`,
+          [`tz-${zone}`],
+        );
+
+        process.env.TZ = zone;
+        try {
+          await query(
+            `INSERT INTO workout_days (user_id, date) VALUES ($1, '2026-03-01'), ($1, '2026-01-01'), ($1, '2026-12-31')`,
+            [userId],
+          );
+
+          const rows: { date: unknown }[] = await query(
+            `SELECT date FROM workout_days WHERE user_id = $1 ORDER BY date`,
+            [userId],
+          );
+          const viaOrm = await db.dataSource
+            .getRepository(WorkoutDay)
+            .find({ where: { userId }, order: { date: "ASC" } });
+          const viaOrmDate = await db.dataSource
+            .getRepository(WorkoutDay)
+            .findOneByOrFail({ userId, date: "2026-03-01" });
+
+          expect(rows.map((row) => row.date)).toEqual([
+            "2026-01-01",
+            "2026-03-01",
+            "2026-12-31",
+          ]);
+          expect(viaOrm.map((day) => day.date)).toEqual([
+            "2026-01-01",
+            "2026-03-01",
+            "2026-12-31",
+          ]);
+          expect(viaOrmDate.date).toBe("2026-03-01");
+        } finally {
+          if (before === undefined) {
+            delete process.env.TZ;
+          } else {
+            process.env.TZ = before;
+          }
+        }
+      },
+    );
+
+    it("orders and filters ranges as days, not as text", async () => {
+      const [{ id: userId }] = await query(
+        `INSERT INTO users (name, name_key) VALUES ('Range', 'range') RETURNING id`,
+      );
+
+      await query(
+        `INSERT INTO weight_logs (user_id, date, weight_kg)
+         VALUES ($1, '2026-02-28', 70), ($1, '2026-03-01', 71), ($1, '2026-03-02', 72)`,
+        [userId],
+      );
+
+      const rows: { date: string }[] = await query(
+        `SELECT date FROM weight_logs WHERE user_id = $1 AND date BETWEEN $2 AND $3 ORDER BY date`,
+        [userId, "2026-03-01", "2026-03-02"],
+      );
+
+      expect(rows.map((row) => row.date)).toEqual(["2026-03-01", "2026-03-02"]);
     });
   });
 });

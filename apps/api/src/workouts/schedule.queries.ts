@@ -279,7 +279,7 @@ export class ScheduleQueries {
   ): Promise<boolean> {
     await em.query(
       `SELECT e.id FROM exercises e JOIN workout_days d ON d.id = e.day_id
-       WHERE d.user_id = $1 AND d.date = ANY($2::text[])
+       WHERE d.user_id = $1 AND d.date = ANY($2::date[])
        ORDER BY e.id FOR UPDATE OF e`,
       [userId, dates],
     );
@@ -288,7 +288,7 @@ export class ScheduleQueries {
       `SELECT 1 FROM exercise_sets s
        JOIN exercises e ON e.id = s.exercise_id
        JOIN workout_days d ON d.id = e.day_id
-       WHERE d.user_id = $1 AND d.date = ANY($2::text[]) LIMIT 1`,
+       WHERE d.user_id = $1 AND d.date = ANY($2::date[]) LIMIT 1`,
       [userId, dates],
     );
 

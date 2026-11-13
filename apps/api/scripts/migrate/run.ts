@@ -3,6 +3,7 @@ import { writeFileSync } from "node:fs";
 import type { Client as LibsqlClient } from "@libsql/client";
 import { Client } from "pg";
 
+import { pgTypes } from "../../src/database/data-source-options.js";
 import { loadTursoColumns, type TursoColumns } from "../turso-columns.js";
 import {
   hashRow,
@@ -601,7 +602,7 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
   }
 
   const source = openSource(options.source, options.authToken);
-  const target = new Client({ connectionString: options.target });
+  const target = new Client({ connectionString: options.target, types: pgTypes });
   let inTransaction = false;
 
   try {
