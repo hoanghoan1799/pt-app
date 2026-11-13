@@ -1,4 +1,4 @@
-import { DB_ERROR_PATTERNS, ERROR_MESSAGES } from "@/constants/errors";
+import { ERROR_MESSAGES } from "@/constants/errors";
 import { describeReferenceFor } from "@/i18n/localize-message";
 import { ApiError } from "@/services/api/errors";
 import type { ClassifiedError, ErrorCode } from "@/types/error";
@@ -15,7 +15,7 @@ export class AppError extends Error {
   }
 }
 
-// libsql/drizzle wrap the driver error in `cause`, so read the whole chain.
+// Walks `cause` so the detail keeps the whole chain of an error.
 const collectMessages = (error: unknown, depth = 0): string[] => {
   if (!(error instanceof Error) || depth > 5) {
     return error === undefined || error === null ? [] : [String(error)];
@@ -48,10 +48,10 @@ export const classifyError = (error: unknown): ClassifiedError => {
     };
   }
 
-  const detail = collectMessages(error).join(" | ") || "Unknown error";
-  const match = DB_ERROR_PATTERNS.find(([, pattern]) => pattern.test(detail));
-
-  return { code: match?.[0] ?? "UNKNOWN", detail };
+  return {
+    code: "UNKNOWN",
+    detail: collectMessages(error).join(" | ") || "Unknown error",
+  };
 };
 
 export const getErrorMessage = ({ code }: ClassifiedError) =>
@@ -69,9 +69,3 @@ export const describeErrorReference = (
   reference: string | undefined,
   locale: Locale = getPageLocale(),
 ) => (reference ? describeReferenceFor(locale, reference) : undefined);
-
-// True when the database refused a write because of a UNIQUE index or key.
-export const isUniqueViolation = (error: unknown) =>
-  collectMessages(error).some((message) =>
-    /UNIQUE constraint failed|SQLITE_CONSTRAINT_UNIQUE/i.test(message),
-  );
