@@ -2,6 +2,7 @@ import {
   Check,
   Column,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
@@ -9,9 +10,27 @@ import {
   type Relation,
 } from "typeorm";
 
+import { adminKeyId,GeneratedId, userKeyId } from "./actor-ids.js";
+import { Admin } from "./admin.entity.js";
 import { SocialPost } from "./social-post.entity.js";
+import { User } from "./user.entity.js";
 
 @Entity("social_post_photos")
+@Index("social_post_photos_uploader_key_idx", ["uploaderKey"])
+@ForeignKey(() => User, ["uploaderUserId"], ["id"], {
+  name: "fk_social_post_photos_uploader_user_id",
+  onDelete: "CASCADE",
+})
+@Index("social_post_photos_uploader_user_id_idx", ["uploaderUserId"], {
+  where: `"uploader_user_id" IS NOT NULL`,
+})
+@ForeignKey(() => Admin, ["uploaderAdminId"], ["id"], {
+  name: "fk_social_post_photos_uploader_admin_id",
+  onDelete: "CASCADE",
+})
+@Index("social_post_photos_uploader_admin_id_idx", ["uploaderAdminId"], {
+  where: `"uploader_admin_id" IS NOT NULL`,
+})
 @Index("social_post_photos_post", ["postId"])
 @Check(`"mime" IN ('image/webp', 'image/jpeg', 'image/png')`)
 export class SocialPostPhoto {
@@ -45,4 +64,10 @@ export class SocialPostPhoto {
 
   @Column({ type: "timestamptz" })
   createdAt!: Date;
+
+  @GeneratedId(userKeyId("uploader_key"))
+  uploaderUserId!: number | null;
+
+  @GeneratedId(adminKeyId("uploader_key"))
+  uploaderAdminId!: number | null;
 }

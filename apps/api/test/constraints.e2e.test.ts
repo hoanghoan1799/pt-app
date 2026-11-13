@@ -54,17 +54,22 @@ describe("constraints", () => {
     });
 
     it("rejects an unknown push_subscriptions.kind and defaults to web", async () => {
+      const [{ id: ownerId }] = await query(
+        `INSERT INTO users (name, name_key) VALUES ('Pusher', 'pusher') RETURNING id`,
+      );
+      const ownerKey = `user:${ownerId}`;
       const insert = (endpoint: string, kind: string | null) =>
         query(
           `INSERT INTO push_subscriptions (owner_key, endpoint, kind)
-           VALUES ('user:1', $1, COALESCE($2, 'web'))`,
-          [endpoint, kind],
+           VALUES ($1, $2, COALESCE($3, 'web'))`,
+          [ownerKey, endpoint, kind],
         );
 
       expect(await sqlState(insert("e1", "sms"))).toBe("23514");
       await insert("e3", "expo");
       await query(
-        `INSERT INTO push_subscriptions (owner_key, endpoint) VALUES ('user:1', 'e2')`,
+        `INSERT INTO push_subscriptions (owner_key, endpoint) VALUES ($1, 'e2')`,
+        [ownerKey],
       );
 
       const rows: { kind: string; p256dh: string | null }[] = await query(

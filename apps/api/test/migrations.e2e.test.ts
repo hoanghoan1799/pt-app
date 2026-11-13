@@ -9,7 +9,7 @@ const EXPECTED_TABLES = 45; // 44 from db/schema.ts plus sessions
 const publicTables = async (db: TestDatabase) => {
   const rows: { table_name: string }[] = await db.dataSource.query(
     `SELECT table_name FROM information_schema.tables
-     WHERE table_schema = 'public' AND table_name <> 'migrations'`,
+     WHERE table_schema = 'public' AND table_name NOT IN ('migrations', 'typeorm_metadata')`,
   );
 
   return rows.map((row) => row.table_name).sort();

@@ -6,13 +6,33 @@ import { buildDataSourceOptions } from "../src/database/data-source-options.js";
 import { loadTursoColumns } from "./turso-columns.js";
 import { loadTursoSchemaStatements } from "./turso-schema.js";
 
-// Columns PostgreSQL has and SQLite never had; the migration fills them.
+// Columns PostgreSQL has and SQLite never had. The loader never inserts the
+// generated ones (STORED account ids of the DbIntegrity migration: PostgreSQL
+// derives them from the text key or kind + id pair); its column list comes
+// from turso-columns.json.
 const PG_ONLY_COLUMNS: Record<string, string[]> = {
-  push_subscriptions: ["kind"],
-  // Nullable, filled only by API clients that send an Idempotency-Key.
-  social_posts: ["idempotency_key"],
-  // Idempotency-Key of a chat photo upload (new in the API; NULL for old rows).
-  chat_photos: ["client_id"],
+  push_subscriptions: ["kind", "owner_user_id", "owner_admin_id"],
+  social_posts: ["idempotency_key", "author_user_id", "author_admin_id"],
+  chat_photos: ["client_id", "uploader_admin_id"],
+  social_comments: ["author_user_id", "author_admin_id"],
+  social_reactions: ["reactor_user_id", "reactor_admin_id"],
+  social_notifications: [
+    "recipient_user_id",
+    "recipient_admin_id",
+    "actor_user_id",
+    "actor_admin_id",
+  ],
+  social_reports: ["reporter_user_id", "reporter_admin_id", "target_user_id"],
+  social_post_photos: ["uploader_user_id", "uploader_admin_id"],
+  chat_custom_stickers: ["owner_user_id", "owner_admin_id"],
+  contact_aliases: [
+    "owner_user_id",
+    "owner_admin_id",
+    "target_user_id",
+    "target_admin_id",
+  ],
+  chat_reactions: ["reactor_admin_id"],
+  chat_reads: ["reader_admin_id"],
 };
 // Tables PostgreSQL has and SQLite never had.
 const PG_ONLY_TABLES = ["sessions"];

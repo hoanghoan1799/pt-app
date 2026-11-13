@@ -251,7 +251,7 @@ describe("reaction and comment notifications", () => {
     ).toBe(1);
   });
 
-  it("shows the recipient's own nickname for the actor, and a placeholder for a deleted account", async () => {
+  it("shows the recipient's own nickname for the actor, and drops a deleted account's notifications", async () => {
     await w.ds.query(
       `INSERT INTO contact_aliases (owner_key, target_key, alias, updated_at) VALUES ($1, $2, $3, now())`,
       [`user:${w.ids.cat}`, `user:${w.ids.ben}`, "Bạn Ben"],
@@ -264,14 +264,31 @@ describe("reaction and comment notifications", () => {
     expect(named?.actorName).toBe("Bạn Ben");
     expect(named?.text).toBe("Bạn Ben đã bày tỏ cảm xúc về bài viết của bạn");
 
-    await w.ds.query(
-      `INSERT INTO social_notifications (recipient_key, kind, actor_key, post_id, created_at)
-       VALUES ($1, 'post_comment', 'user:99999', $2, now())`,
-      [`user:${w.ids.cat}`, id],
+    // A key of an account that does not exist is refused by the database, and
+    // a deleted account takes its notifications with it (foreign key cascade).
+    const [{ id: ghostId }] = await w.ds.query(
+      `INSERT INTO users (name, name_key) VALUES ('Ghost', 'ghost-notify') RETURNING id`,
     );
-    const ghost = (await notificationsOf("cat")).items.find((n) => n.actorKey === "user:99999");
+    const ghostKey = `user:${ghostId}`;
+    const insertGhost = (key: string) =>
+      w.ds.query(
+        `INSERT INTO social_notifications (recipient_key, kind, actor_key, post_id, created_at)
+         VALUES ($1, 'post_comment', $2, $3, now())`,
+        [`user:${w.ids.cat}`, key, id],
+      );
 
-    expect(ghost?.actorName).toBe("Đã xóa");
+    await expect(insertGhost("user:99999")).rejects.toMatchObject({
+      driverError: { code: "23503" },
+    });
+    await insertGhost(ghostKey);
+    expect(
+      (await notificationsOf("cat")).items.some((n) => n.actorKey === ghostKey),
+    ).toBe(true);
+
+    await w.ds.query(`DELETE FROM users WHERE id = $1`, [ghostId]);
+    expect(
+      (await notificationsOf("cat")).items.some((n) => n.actorKey === ghostKey),
+    ).toBe(false);
   });
 
   it("writes the text in the recipient's language", async () => {

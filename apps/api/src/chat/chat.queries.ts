@@ -183,19 +183,16 @@ export class ChatQueries {
 
   async findStoredByClientId(
     conversationId: number,
+    senderRole: "user" | "admin",
+    senderAdminId: number | null,
     clientId: string,
     manager?: EntityManager,
   ) {
-    const rows = await this.run<
-      {
-        id: number;
-        senderRole: "user" | "admin";
-        senderAdminId: number | null;
-      }[]
-    >(
-      `SELECT id, sender_role AS "senderRole", sender_admin_id AS "senderAdminId"
-       FROM chat_messages WHERE conversation_id = $1 AND client_id = $2`,
-      [conversationId, clientId],
+    const rows = await this.run<{ id: number }[]>(
+      `SELECT id FROM chat_messages
+       WHERE conversation_id = $1 AND sender_role = $2
+         AND COALESCE(sender_admin_id, 0) = COALESCE($3::integer, 0) AND client_id = $4`,
+      [conversationId, senderRole, senderAdminId, clientId],
       manager,
     );
 
@@ -306,13 +303,6 @@ export class ChatQueries {
       `${MESSAGE_SELECT} WHERE m.id = $1`,
       [messageId],
       manager,
-    ).then((rows) => rows[0] ?? null);
-  }
-
-  findMessageRowByClientId(conversationId: number, clientId: string) {
-    return this.run<MessageRow[]>(
-      `${MESSAGE_SELECT} WHERE m.conversation_id = $1 AND m.client_id = $2`,
-      [conversationId, clientId],
     ).then((rows) => rows[0] ?? null);
   }
 

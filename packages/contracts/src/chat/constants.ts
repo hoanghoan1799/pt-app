@@ -37,7 +37,6 @@ export const CHAT_MESSAGES = {
   MESSAGE_UNSENT: "Tin nhắn đã bị thu hồi",
   POST_NOT_FOUND: "Không thể trả lời bài viết này.",
   POST_NEEDS_TEXT: "Hãy viết tin nhắn để trả lời bài viết.",
-  KEY_REUSED: "Khoá gửi lại đã được dùng cho một tin nhắn khác.",
 } as const;
 
 // Photos in chat (KAN-160).

@@ -136,7 +136,7 @@ export class ChatService {
            (conversation_id, sender_role, sender_admin_id, body, sticker_ref, sticker_url,
             photo_id, client_id, reply_to_message_id, reply_post_id, silent, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, NULL, $7, $8, $9, $10, $11)
-         ON CONFLICT (conversation_id, client_id) DO NOTHING
+         ON CONFLICT (conversation_id, sender_role, (COALESCE(sender_admin_id, 0)), client_id) DO NOTHING
          RETURNING id`,
         [
           conversation.id,
@@ -190,7 +190,7 @@ export class ChatService {
       const winner = await this.findRetry(actor, conversation.id, clientId);
 
       if (!winner) {
-        throw chatErrors.keyReused();
+        throw chatErrors.messageNotFound();
       }
       return { message: winner, created: false };
     }
@@ -240,8 +240,8 @@ export class ChatService {
     };
   }
 
-  // The stored message of this key, if any. Another sender's message under the
-  // same key is a conflict, never someone else's content.
+  // The stored message of this sender under this key, if any. The key is
+  // scoped by sender: another person reusing it is a different message.
   private async findRetry(
     actor: AuthActor,
     conversationId: number,
@@ -249,21 +249,12 @@ export class ChatService {
   ) {
     const stored = await this.queries.findStoredByClientId(
       conversationId,
+      actor.kind === "admin" ? "admin" : "user",
+      actor.kind === "admin" ? actor.id : null,
       clientId,
     );
 
-    if (!stored) {
-      return null;
-    }
-    const own =
-      actor.kind === "user"
-        ? stored.senderRole === "user"
-        : stored.senderRole === "admin" && stored.senderAdminId === actor.id;
-
-    if (!own) {
-      throw chatErrors.keyReused();
-    }
-    return this.views.one(stored.id, actor);
+    return stored ? this.views.one(stored.id, actor) : null;
   }
 
   // Own messages only, no time limit. The previous body is kept so both people
