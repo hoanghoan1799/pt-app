@@ -23,6 +23,7 @@ const BLOB_TABLES = {
   "chat-photo": "chat_photos",
   "chat-sticker": "chat_custom_stickers",
   "dm-photo": "dm_photos",
+  "social-photo": "social_post_photos",
 } as const;
 
 const blobTable = (ref: FileRef) =>

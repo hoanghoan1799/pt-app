@@ -6,9 +6,15 @@ export const FILE_STORAGE = Symbol("FILE_STORAGE");
 
 // Avatars belong to a user or admin row. The chat collections belong to a row
 // the owning service creates first (a chat photo, a personal sticker, a DM
-// photo carries its own metadata) and the storage fills with the bytes.
+// photo, a post photo carries its own metadata) and the storage fills with
+// the bytes.
 export type FileCollection =
-  "avatar-user" | "avatar-admin" | "chat-photo" | "chat-sticker" | "dm-photo";
+  | "avatar-user"
+  | "avatar-admin"
+  | "chat-photo"
+  | "chat-sticker"
+  | "dm-photo"
+  | "social-photo";
 
 export type FileRef = {
   collection: FileCollection;
