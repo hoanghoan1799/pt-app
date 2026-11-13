@@ -9,7 +9,6 @@ import {
   createTraineeRequestSchema,
   emailSchema,
   hideUsersRequestSchema,
-  mapLegacyNickname,
   MEMBER_MESSAGES,
   parseActorRef,
   PT_MESSAGES,
@@ -81,38 +80,6 @@ describe("checkAliasTarget", () => {
     expect(checkAliasTarget("admin:1", "admin:2")).toBe("ok");
     expect(checkAliasTarget("user:1", "nobody")).toBe("invalid");
     expect(checkAliasTarget("bogus", "user:2")).toBe("invalid");
-  });
-});
-
-describe("mapLegacyNickname", () => {
-  const row = {
-    targetKey: "pt",
-    setByKey: "user",
-    nickname: " Coach ",
-    conversationUserId: 4,
-  };
-
-  it("turns a shared nickname into the setter's alias", () => {
-    expect(mapLegacyNickname(row)).toEqual({
-      ownerKey: "user:4",
-      targetKey: "pt",
-      alias: "Coach",
-    });
-    expect(
-      mapLegacyNickname({
-        targetKey: "user",
-        setByKey: "admin:2",
-        nickname: "An",
-        conversationUserId: 4,
-      }),
-    ).toEqual({ ownerKey: "admin:2", targetKey: "user:4", alias: "An" });
-  });
-
-  it("drops rows that cannot be private aliases", () => {
-    expect(mapLegacyNickname({ ...row, nickname: "   " })).toBeNull();
-    expect(mapLegacyNickname({ ...row, targetKey: "user" })).toBeNull();
-    expect(mapLegacyNickname({ ...row, setByKey: "admin:2" })).toBeNull();
-    expect(mapLegacyNickname({ ...row, targetKey: "zzz" })).toBeNull();
   });
 });
 

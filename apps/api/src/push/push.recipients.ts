@@ -26,7 +26,7 @@ export class PushRecipients {
     const rows: { id: number; locale: string | null }[] =
       await this.dataSource.query(
         `SELECT a.id, a.locale FROM admins a
-         WHERE (a.role IS NULL OR a.role <> 'pt'
+         WHERE (a.role <> 'pt'
                 OR a.id = (SELECT pt_admin_id FROM users WHERE id = $1))
            AND NOT EXISTS (SELECT 1 FROM admin_hidden_users h
                            WHERE h.admin_id = a.id AND h.user_id = $1)

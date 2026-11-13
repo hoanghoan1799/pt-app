@@ -15,9 +15,25 @@ const assertE2eDatabase = () => {
   }
 };
 
+// `date` columns come back as "YYYY-MM-DD" strings, like in the API (a Date
+// would shift the day with the machine's time zone).
+const DATE_OID = 1082;
+const pgTypes = {
+  getTypeParser: ((oid: number, format?: "text" | "binary") =>
+    oid === DATE_OID
+      ? (value: string) => value
+      : pg.types.getTypeParser(
+          oid,
+          format as "text",
+        )) as typeof pg.types.getTypeParser,
+};
+
 export const withApiDb = async <T>(run: (client: pg.Client) => Promise<T>) => {
   assertE2eDatabase();
-  const client = new pg.Client({ connectionString: E2E_DATABASE_URL });
+  const client = new pg.Client({
+    connectionString: E2E_DATABASE_URL,
+    types: pgTypes,
+  });
 
   await client.connect();
   try {

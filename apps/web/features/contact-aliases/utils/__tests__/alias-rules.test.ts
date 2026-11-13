@@ -7,7 +7,6 @@ import {
   canSaveAlias,
   checkAliasTarget,
   conversationKeyToTarget,
-  mapLegacyNickname,
   overlayName,
   parseActorRef,
   setAliasInputSchema,
@@ -212,63 +211,5 @@ describe("conversationKeyToTarget", () => {
     expect(conversationKeyToTarget("user", 8)).toBe("user:8");
     expect(conversationKeyToTarget("pt", 8)).toBe("pt");
     expect(conversationKeyToTarget("admin:2", 8)).toBe("admin:2");
-  });
-});
-
-describe("mapLegacyNickname (KAN-141 -> private aliases)", () => {
-  const row = (
-    targetKey: string,
-    setByKey: string,
-    nickname = "Biệt danh",
-    conversationUserId = 7,
-  ) => ({ targetKey, setByKey, nickname, conversationUserId });
-
-  it("makes the trainee's nickname for the PT side theirs", () => {
-    expect(mapLegacyNickname(row("pt", "user"))).toEqual({
-      ownerKey: "user:7",
-      targetKey: "pt",
-      alias: "Biệt danh",
-    });
-  });
-
-  it("maps 'user' to the conversation's trainee on either end", () => {
-    expect(mapLegacyNickname(row("user", "admin:2"))).toEqual({
-      ownerKey: "admin:2",
-      targetKey: "user:7",
-      alias: "Biệt danh",
-    });
-    expect(mapLegacyNickname(row("admin:2", "user"))).toEqual({
-      ownerKey: "user:7",
-      targetKey: "admin:2",
-      alias: "Biệt danh",
-    });
-  });
-
-  it("keeps admin-to-admin nicknames", () => {
-    expect(mapLegacyNickname(row("admin:3", "admin:2"))).toEqual({
-      ownerKey: "admin:2",
-      targetKey: "admin:3",
-      alias: "Biệt danh",
-    });
-  });
-
-  it("skips people who named themselves", () => {
-    expect(mapLegacyNickname(row("user", "user"))).toBeNull();
-    expect(mapLegacyNickname(row("admin:2", "admin:2"))).toBeNull();
-  });
-
-  it("skips what cannot be a private alias", () => {
-    // An admin naming the PT side as a whole has no meaning.
-    expect(mapLegacyNickname(row("pt", "admin:2"))).toBeNull();
-    expect(mapLegacyNickname(row("everyone", "user"))).toBeNull();
-    expect(mapLegacyNickname(row("user", "nobody"))).toBeNull();
-    expect(mapLegacyNickname(row("pt", "user", "   "))).toBeNull();
-    expect(mapLegacyNickname(row("pt", "user", "x".repeat(31)))).toBeNull();
-  });
-
-  it("normalises the stored value", () => {
-    expect(mapLegacyNickname(row("pt", "user", "  Big   Coach "))?.alias).toBe(
-      "Big Coach",
-    );
   });
 });

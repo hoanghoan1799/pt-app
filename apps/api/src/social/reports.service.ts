@@ -101,32 +101,25 @@ export class ReportsService {
   }
 
   // Files a report; an open report by the same person on the same target is
-  // kept as it is (no duplicates, no error).
+  // kept as it is (no duplicates, no error). The partial unique index
+  // social_reports_open_unique decides, so parallel requests cannot both insert.
   async create(actor: SocialActor, input: SocialReportRequest) {
     if (!(await this.canReport(actor, input.targetKind, input.targetId))) {
       throw userNotFound();
     }
-    const reporterKey = keyOf(actor);
-    const existing: unknown[] = await this.dataSource.query(
-      `SELECT 1 FROM social_reports
-       WHERE reporter_key = $1 AND target_kind = $2 AND target_id = $3
-         AND status = 'open' LIMIT 1`,
-      [reporterKey, input.targetKind, input.targetId],
+    await this.dataSource.query(
+      `INSERT INTO social_reports (reporter_key, target_kind, target_id, reason, status, created_at)
+       VALUES ($1, $2, $3, $4, 'open', $5)
+       ON CONFLICT (reporter_key, target_kind, target_id) WHERE status = 'open'
+       DO NOTHING`,
+      [
+        keyOf(actor),
+        input.targetKind,
+        input.targetId,
+        input.reason.trim(),
+        this.clock.now(),
+      ],
     );
-
-    if (existing.length === 0) {
-      await this.dataSource.query(
-        `INSERT INTO social_reports (reporter_key, target_kind, target_id, reason, status, created_at)
-         VALUES ($1, $2, $3, $4, 'open', $5)`,
-        [
-          reporterKey,
-          input.targetKind,
-          input.targetId,
-          input.reason.trim(),
-          this.clock.now(),
-        ],
-      );
-    }
   }
 
   // Super admin only (A14). "kept" leaves the content alone; "deleted" removes

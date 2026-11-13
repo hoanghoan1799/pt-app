@@ -11,7 +11,6 @@ import { ChatCustomSticker } from "../src/database/entities/chat-custom-sticker.
 import { ChatHiddenConversation } from "../src/database/entities/chat-hidden-conversation.entity.js";
 import { ChatMessage } from "../src/database/entities/chat-message.entity.js";
 import { ChatMessageEdit } from "../src/database/entities/chat-message-edit.entity.js";
-import { ChatNickname } from "../src/database/entities/chat-nickname.entity.js";
 import { ChatPhoto } from "../src/database/entities/chat-photo.entity.js";
 import { ChatReaction } from "../src/database/entities/chat-reaction.entity.js";
 import { ChatRead } from "../src/database/entities/chat-read.entity.js";
@@ -47,7 +46,12 @@ import { WorkoutDay } from "../src/database/entities/workout-day.entity.js";
 import { createTestApp } from "./support/app.js";
 import { bearer, seedAdmin, seedUser, tokenOf } from "./support/auth.js";
 import { createTestDatabase, type TestDatabase } from "./support/database.js";
-import { countAllTables, diffCounts, insertRow } from "./support/rows.js";
+import {
+  countAllTables,
+  diffCounts,
+  insertRow,
+  linkPhoto,
+} from "./support/rows.js";
 
 let db: TestDatabase;
 let app: INestApplication;
@@ -98,11 +102,6 @@ const seedGraph = async ({ userId, otherId, adminId, foodId }: Cast) => {
   await insertRow(ds, ChatMessageEdit, { messageId });
   await insertRow(ds, ChatRead, { conversationId, readerKey: "user" });
   await insertRow(ds, ChatColorOverride, { conversationId, adminId });
-  await insertRow(ds, ChatNickname, {
-    conversationId,
-    targetKey: "pt",
-    setByKey: "user",
-  });
   await insertRow(ds, ChatPhoto, {
     conversationId,
     uploaderKey: "user",
@@ -188,11 +187,12 @@ const seedGraph = async ({ userId, otherId, adminId, foodId }: Cast) => {
     authorId: userId,
     privacy: "everyone",
   });
-  await insertRow(ds, SocialPostPhoto, {
+  const postPhotoId = await insertRow(ds, SocialPostPhoto, {
     uploaderKey: key,
-    postId,
     mime: "image/png",
   });
+
+  await linkPhoto(ds, "social", postId, postPhotoId);
   await insertRow(ds, SocialPostPhoto, { uploaderKey: key, mime: "image/png" });
   await insertRow(ds, SocialReaction, { postId, reactorKey: otherKey });
   const ownPostCommentId = await insertRow(ds, SocialComment, {
@@ -302,7 +302,6 @@ describe("DELETE /v1/trainees/:userId removes exactly the trainee's data", () =>
         "chat_hidden_conversations",
         "chat_message_edits",
         "chat_messages",
-        "chat_nicknames",
         "chat_photos",
         "chat_reactions",
         "chat_reads",

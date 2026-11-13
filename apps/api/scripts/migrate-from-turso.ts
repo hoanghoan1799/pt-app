@@ -16,10 +16,12 @@ const USAGE = `Usage: data:migrate -- --source <url> --target <postgres url> [op
   --source <url>        SQLite copy (file:./copy.db). Remote URLs need --allow-remote.
   --target <url>        PostgreSQL URL; the baseline migration must be applied.
   --orphans <mode>      report (default: abort), null (nullable FK columns only), skip
-  --reset               truncate the 44 tables and sessions first (target must be a rehearsal or empty)
+  --reset               truncate the data tables and sessions first (target must be a rehearsal or empty)
   --verify              only compare row counts and checksums, write nothing
   --dry-run             read, validate and scan orphans, write nothing
   --report <path>       write a machine-readable JSON report
+  --drop-legacy-attachments  accept losing chat_messages.attachment_url/attachment_meta values (PostgreSQL dropped them)
+  --drop-legacy-nicknames    accept losing chat_nicknames rows (PostgreSQL dropped the table)
   --batch-size <n>      rows per read/insert batch (default 500)
   --allow-remote        allow a libsql:// or https:// source (token from TURSO_AUTH_TOKEN)
 `;
@@ -44,6 +46,8 @@ const main = async () => {
       report: { type: "string" },
       "batch-size": { type: "string", default: "500" },
       "allow-remote": { type: "boolean", default: false },
+      "drop-legacy-attachments": { type: "boolean", default: false },
+      "drop-legacy-nicknames": { type: "boolean", default: false },
       help: { type: "boolean", default: false },
     },
   });
@@ -79,6 +83,8 @@ const main = async () => {
     orphans: values.orphans as RunOptions["orphans"],
     reset: values.reset,
     allowRemote: values["allow-remote"],
+    dropLegacyAttachments: values["drop-legacy-attachments"],
+    dropLegacyNicknames: values["drop-legacy-nicknames"],
     batchSize,
     reportPath: values.report,
   };

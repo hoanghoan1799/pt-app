@@ -723,6 +723,21 @@ describe("reports", () => {
     expect(await openCount()).toBe(4);
   });
 
+  it("parallel duplicate reports keep exactly one open report and none fails", async () => {
+    const results = await Promise.all(
+      Array.from({ length: 6 }, () => report("dan", "comment", comment, "dup")),
+    );
+
+    expect(results.map((r) => r.status)).toEqual(Array(6).fill(204));
+    expect(
+      await count(
+        w.ds,
+        `SELECT count(*)::int FROM social_reports
+         WHERE reporter_key = 'user:${w.ids.dan}' AND target_kind = 'comment' AND status = 'open'`,
+      ),
+    ).toBe(1);
+  });
+
   it("refuses what the reporter cannot see, their own content and themselves", async () => {
     const hidden = (
       await api.post("/posts", w.tokens.ann, {

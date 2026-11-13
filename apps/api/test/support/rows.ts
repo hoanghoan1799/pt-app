@@ -47,6 +47,10 @@ export const insertRow = async (
     }
     row[column.propertyName] = filler(column.type);
   }
+  // size = octet_length(data) is a CHECK on every table that stores bytes.
+  if (Buffer.isBuffer(row.data) && !("size" in values)) {
+    row.size = row.data.length;
+  }
   const result = await dataSource.getRepository(entity).insert(row);
 
   return (result.identifiers[0]?.id as number | undefined) ?? 0;
@@ -75,3 +79,37 @@ export const diffCounts = (
       .map((table) => [table, after[table] - (before[table] ?? 0)] as const)
       .filter(([, delta]) => delta !== 0),
   );
+
+const PHOTO_LINKS = {
+  chat: { photos: "chat_photos", owners: "chat_messages", column: "message_id" },
+  dm: { photos: "dm_photos", owners: "dm_messages", column: "message_id" },
+  social: {
+    photos: "social_post_photos",
+    owners: "social_posts",
+    column: "post_id",
+  },
+} as const;
+
+// Attaches a photo row (inserted with no owner) to its message or post the way
+// the app does: the photo side first, then the owner's photo_id, in one
+// transaction. The deferred foreign key on the photo side is checked at COMMIT
+// and agrees with the owner's pointer.
+export const linkPhoto = (
+  dataSource: DataSource,
+  kind: keyof typeof PHOTO_LINKS,
+  ownerId: number,
+  photoId: number,
+) => {
+  const link = PHOTO_LINKS[kind];
+
+  return dataSource.transaction(async (manager) => {
+    await manager.query(
+      `UPDATE ${link.photos} SET ${link.column} = $1 WHERE id = $2`,
+      [ownerId, photoId],
+    );
+    await manager.query(`UPDATE ${link.owners} SET photo_id = $1 WHERE id = $2`, [
+      photoId,
+      ownerId,
+    ]);
+  });
+};

@@ -19,6 +19,15 @@ import {
   movedAvatarOf,
 } from "./avatars.js";
 import {
+  checkLastMessages,
+  countLegacy,
+  derivedValues as scanValues,
+  findChatSocialViolations,
+  legacyProblems,
+  SCAN_COLUMNS,
+  withoutLegacy,
+} from "./chat-social.js";
+import {
   backfills,
   DERIVED_COLUMNS,
   derivedValues,
@@ -82,6 +91,9 @@ export type RunOptions = {
   orphans: OrphanMode;
   reset: boolean;
   allowRemote: boolean;
+  // Accept losing legacy source data PostgreSQL no longer has (chat-social.ts).
+  dropLegacyAttachments?: boolean;
+  dropLegacyNicknames?: boolean;
   batchSize: number;
   reportPath?: string;
 };
@@ -167,7 +179,10 @@ const analyse = async (
   };
 
   for (const [table, spec] of Object.entries(mapping.tables)) {
-    const needed = new Set<string>(VIOLATION_COLUMNS[table] ?? []);
+    const needed = new Set<string>([
+      ...(VIOLATION_COLUMNS[table] ?? []),
+      ...(SCAN_COLUMNS[table] ?? []),
+    ]);
     const derived: string[] = [];
 
     for (const fk of schema.foreignKeys) {
@@ -287,6 +302,8 @@ const analyse = async (
         for (const column of derived) {
           values[column] = deriveId(table, column, row);
         }
+
+        Object.assign(values, scanValues(table, row));
 
         rows[table].push({ key, values });
       }
@@ -835,6 +852,24 @@ const printVerification = (report: Report, log: Log) => {
   }
 };
 
+// last_message_id / last_message_at are kept by the app; recomputed from the
+// loaded messages and compared. A difference is a warning (the fields are never
+// rewritten here), listed with conversation ids only.
+const recomputeDerived = async (target: Client, report: Report, log: Log) => {
+  report.derivedChecks = await checkLastMessages(target);
+
+  for (const check of report.derivedChecks) {
+    if (check.count > 0) {
+      log(
+        `\nWarning: ${check.table}: ${check.count} conversation(s) where ${check.rule}: ${check.sampleIds.join(", ")}`,
+      );
+      report.warnings.push(
+        `${check.table}: ${check.count} conversation(s) where ${check.rule}`,
+      );
+    }
+  }
+};
+
 const isVerified = (report: Report) =>
   report.tables.length > 0 &&
   report.tables.every((table) => table.match) &&
@@ -843,7 +878,10 @@ const isVerified = (report: Report) =>
 
 const execute = async (options: RunOptions, report: Report, log: Log) => {
   resetConstraintState();
-  const mapping = loadTursoColumns();
+  // Without the table and columns PostgreSQL dropped (chat-social.ts); the
+  // source schema check below still uses the full description.
+  const sourceMapping = loadTursoColumns();
+  const mapping = withoutLegacy(sourceMapping);
   const tableNames = Object.keys(mapping.tables).sort();
   const targetUrl = new URL(options.target);
 
@@ -891,12 +929,34 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
 
     const schema = await introspectTarget(target, mapping);
     const problems = [
-      ...(await checkSourceSchema(source, mapping)),
+      ...(await checkSourceSchema(source, sourceMapping)),
       ...schema.problems,
     ];
 
     if (problems.length > 0) {
       throw new Abort(`Schema mismatch:\n  - ${problems.join("\n  - ")}`);
+    }
+
+    const legacy = await countLegacy(source);
+    const blocked = legacyProblems(legacy, {
+      attachments: options.dropLegacyAttachments,
+      nicknames: options.dropLegacyNicknames,
+    });
+
+    if (blocked.length > 0) {
+      throw new Abort(
+        `Legacy data would be lost:\n  - ${blocked.join("\n  - ")}`,
+      );
+    }
+
+    for (const [item, count] of [
+      ["chat_messages.attachment_url / attachment_meta (messages)", legacy.attachments],
+      ["chat_nicknames (rows)", legacy.nicknames],
+    ] as const) {
+      if (count > 0) {
+        report.droppedLegacy.push({ item, count });
+        report.warnings.push(`dropped legacy source data: ${item} = ${count}`);
+      }
     }
 
     const plan = planLoad(tableNames, schema.foreignKeys);
@@ -957,7 +1017,12 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
       schema.foreignKeys,
       withoutSkipped(analysis.rows, violations.skipped),
       options.orphans,
-      findViolations(analysis.rows),
+      [
+        ...findViolations(analysis.rows),
+        ...findChatSocialViolations(
+          withoutSkipped(analysis.rows, violations.skipped),
+        ),
+      ],
     );
 
     for (const [table, keys] of Object.entries(violations.skipped)) {
@@ -1048,6 +1113,7 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
       report.tables = result.tables;
       report.avatars = result.avatars;
       report.sequences = result.sequences;
+      await recomputeDerived(target, report, log);
       printVerification(report, log);
       report.status = isVerified(report) ? "ok" : "failed";
       return;
@@ -1058,7 +1124,7 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
 
       if (filled.length > 0) {
         throw new Abort(
-          `The target already has rows (${filled.join(", ")}). Pass --reset to truncate the 44 tables and sessions first.`,
+          `The target already has rows (${filled.join(", ")}). Pass --reset to truncate the data tables and sessions first.`,
         );
       }
     }
@@ -1073,7 +1139,7 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
       await target.query(
         `TRUNCATE ${[...tableNames, ...AVATAR_TARGET_TABLES, "sessions"].map(quote).join(", ")} RESTART IDENTITY`,
       );
-      log("Reset: truncated the 44 tables, the avatar tables and sessions.");
+      log("Reset: truncated the data tables, the avatar tables and sessions.");
     }
 
     await loadTables(
@@ -1107,6 +1173,7 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
     report.tables = result.tables;
     report.avatars = result.avatars;
     report.sequences = result.sequences;
+    await recomputeDerived(target, report, log);
     printVerification(report, log);
 
     if (!isVerified(report)) {

@@ -8,7 +8,6 @@ import { ChatCustomSticker } from "./chat-custom-sticker.entity.js";
 import { ChatHiddenConversation } from "./chat-hidden-conversation.entity.js";
 import { ChatMessage } from "./chat-message.entity.js";
 import { ChatMessageEdit } from "./chat-message-edit.entity.js";
-import { ChatNickname } from "./chat-nickname.entity.js";
 import { ChatPhoto } from "./chat-photo.entity.js";
 import { ChatReaction } from "./chat-reaction.entity.js";
 import { ChatRead } from "./chat-read.entity.js";
@@ -58,7 +57,6 @@ export const entities = [
   ChatHiddenConversation,
   ChatMessageEdit,
   ChatMessage,
-  ChatNickname,
   ChatPhoto,
   ChatReaction,
   ChatRead,
@@ -108,7 +106,6 @@ export {
   ChatHiddenConversation,
   ChatMessage,
   ChatMessageEdit,
-  ChatNickname,
   ChatPhoto,
   ChatReaction,
   ChatRead,

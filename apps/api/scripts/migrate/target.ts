@@ -177,11 +177,13 @@ export const introspectTarget = async (
     cols: string[];
     pcols: string[];
     nullable: boolean;
+    nullables: boolean[];
   }>(
     `SELECT cl.relname AS child, pcl.relname AS parent,
             array_agg(a.attname::text ORDER BY k.ord) AS cols,
             array_agg(pa.attname::text ORDER BY k.ord) AS pcols,
-            bool_and(NOT a.attnotnull) AS nullable
+            bool_and(NOT a.attnotnull) AS nullable,
+            array_agg(NOT a.attnotnull ORDER BY k.ord) AS nullables
        FROM pg_constraint c
        JOIN pg_class cl ON cl.oid = c.conrelid
        JOIN pg_namespace n ON n.oid = cl.relnamespace
@@ -200,6 +202,23 @@ export const introspectTarget = async (
     if (!mapping.tables[row.child] || !mapping.tables[row.parent]) {
       continue;
     }
+
+    // A composite FK is planned by one column pair. DbChatSocial's ("same
+    // conversation", "photo and message agree") have exactly one nullable
+    // column, which is the pair used (load order, deferral and missing parents
+    // work as for a plain FK); the tuple rule is scanned in chat-social.ts.
+    // DbConstraints' owner keys have no nullable column: the first pair.
+    if (row.cols.length !== 1) {
+      const nullable = row.nullables.flatMap((flag, index) =>
+        flag ? [index] : [],
+      );
+      const pick = nullable.length === 1 ? nullable[0] : 0;
+
+      row.cols = [row.cols[pick]];
+      row.pcols = [row.pcols[pick]];
+      row.nullable = nullable.length === 1 ? true : row.nullable;
+    }
+
 
     // A composite key (child owner agrees with the parent's) is two checks:
     // the parent exists (its first column pair, an ordinary orphan scan) and

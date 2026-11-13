@@ -12,6 +12,7 @@ import { Admin } from "./admin.entity.js";
 import { User } from "./user.entity.js";
 
 @Entity("chat_custom_stickers")
+@Check("chat_custom_stickers_size_matches_data", `"size" = octet_length("data")`)
 @Check("chat_custom_stickers_owner_id_positive", `"owner_id" > 0`)
 @ForeignKey(() => User, ["ownerUserId"], ["id"], {
   name: "fk_chat_custom_stickers_owner_user_id",

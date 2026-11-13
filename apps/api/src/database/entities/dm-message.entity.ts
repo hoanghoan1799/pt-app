@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
@@ -19,7 +20,15 @@ import { User } from "./user.entity.js";
   ["conversationId", "senderId", "clientId"],
   { unique: true },
 )
-@Index("dm_messages_conversation_id", ["conversationId", "id"])
+@Index("dm_messages_conversation_id", ["conversationId", "id"], {
+  unique: true,
+})
+@Index("dm_messages_id_photo", ["id", "photoId"], { unique: true })
+@ForeignKey(() => DmPhoto, ["id", "photoId"], ["messageId", "id"], {
+  name: "fk_dm_messages_photo",
+  onDelete: "SET NULL",
+  deferrable: "INITIALLY DEFERRED",
+})
 @Index("dm_messages_sender_id_idx", ["senderId"])
 @Index("dm_messages_photo_id_idx", ["photoId"])
 @Index("dm_messages_reply_post_id_idx", ["replyPostId"])
@@ -46,10 +55,6 @@ export class DmMessage {
 
   @Column({ type: "integer", nullable: true })
   photoId!: number | null;
-
-  @ManyToOne(() => DmPhoto, { onDelete: "SET NULL", nullable: true })
-  @JoinColumn({ name: "photo_id" })
-  photo!: Relation<DmPhoto> | null;
 
   @Column({ type: "integer", nullable: true })
   replyPostId!: number | null;

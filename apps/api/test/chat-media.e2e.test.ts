@@ -27,6 +27,7 @@ import {
   upload,
 } from "./support/chat.js";
 import { createTestDatabase, type TestDatabase } from "./support/database.js";
+import { linkPhoto } from "./support/rows.js";
 
 let db: TestDatabase;
 let app: INestApplication;
@@ -541,19 +542,16 @@ const seedPhotoMessages = async (
     });
     const photo = await ds.getRepository(ChatPhoto).save({
       conversationId,
-      messageId: message.id,
       uploaderKey: "user",
       mime: "image/png",
       width: 10 + index,
       height: 20,
       data: pngBytes(),
-      size: 33,
+      size: pngBytes().length,
       createdAt: clock.now(),
     });
 
-    await ds
-      .getRepository(ChatMessage)
-      .update({ id: message.id }, { photoId: photo.id });
+    await linkPhoto(ds, "chat", message.id, photo.id);
     ids.push(message.id);
   }
   return ids;

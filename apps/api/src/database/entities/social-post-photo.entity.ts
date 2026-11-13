@@ -4,10 +4,7 @@ import {
   Entity,
   ForeignKey,
   Index,
-  JoinColumn,
-  ManyToOne,
   PrimaryGeneratedColumn,
-  type Relation,
 } from "typeorm";
 
 import {
@@ -37,7 +34,16 @@ import { User } from "./user.entity.js";
 @Index("social_post_photos_uploader_admin_id_idx", ["uploaderAdminId"], {
   where: `"uploader_admin_id" IS NOT NULL`,
 })
-@Index("social_post_photos_post", ["postId"])
+@Index("social_post_photos_post_photo", ["postId", "id"], { unique: true })
+@ForeignKey(() => SocialPost, ["postId", "id"], ["id", "photoId"], {
+  name: "fk_social_post_photos_post",
+  onDelete: "CASCADE",
+  deferrable: "INITIALLY DEFERRED",
+})
+@Check(
+  "social_post_photos_size_matches_data",
+  `"size" = octet_length("data")`,
+)
 @Check(`"mime" IN ('image/webp', 'image/jpeg', 'image/png')`)
 export class SocialPostPhoto {
   @PrimaryGeneratedColumn("identity", { generatedIdentity: "ALWAYS" })
@@ -48,10 +54,6 @@ export class SocialPostPhoto {
 
   @Column({ type: "integer", nullable: true })
   postId!: number | null;
-
-  @ManyToOne(() => SocialPost, { onDelete: "CASCADE", nullable: true })
-  @JoinColumn({ name: "post_id" })
-  post!: Relation<SocialPost> | null;
 
   @Column({ type: "text" })
   mime!: "image/webp" | "image/jpeg" | "image/png";

@@ -47,6 +47,18 @@ import { User } from "./user.entity.js";
   where: `"target_user_id" IS NOT NULL`,
 })
 @Index("social_reports_status", ["status", "createdAt"])
+// One open report per reporter and target; ReportsService.create relies on it.
+@Index(
+  "social_reports_open_unique",
+  ["reporterKey", "targetKind", "targetId"],
+  { unique: true, where: `"status" = 'open'` },
+)
+// resolved <=> resolution and resolved_at are set; open <=> all three are null.
+// resolved_by may be null on a resolved report (the admin was removed).
+@Check(
+  "social_reports_status_resolution",
+  `("status" = 'open' AND "resolution" IS NULL AND "resolved_at" IS NULL AND "resolved_by" IS NULL) OR ("status" = 'resolved' AND "resolution" IS NOT NULL AND "resolved_at" IS NOT NULL)`,
+)
 @Check(`"target_kind" IN ('post', 'comment', 'user')`)
 @Check(`"status" IN ('open', 'resolved')`)
 @Check(`"resolution" IN ('kept', 'deleted')`)

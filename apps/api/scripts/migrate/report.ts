@@ -1,3 +1,4 @@
+import type { DerivedCheck } from "./chat-social.js";
 import type { Backfill, ViolationGroup } from "./constraints.js";
 import type { OrphanGroup, OrphanMode } from "./plan.js";
 
@@ -64,6 +65,10 @@ export type Report = {
   // Rows that would break a new constraint (see cutover-runbook.md).
   constraintViolations: ViolationGroup[];
   blobs: { total: { rows: number; bytes: number }; byColumn: BlobReport[] };
+  // Legacy source data PostgreSQL no longer has, dropped on request.
+  droppedLegacy: { item: string; count: number }[];
+  // Recomputed denormalised fields that differ (reported, never fixed).
+  derivedChecks: DerivedCheck[];
   warnings: string[];
   errors: string[];
 };
@@ -94,6 +99,8 @@ export const emptyReport = (
   backfilledValues: [],
   constraintViolations: [],
   blobs: { total: { rows: 0, bytes: 0 }, byColumn: [] },
+  droppedLegacy: [],
+  derivedChecks: [],
   warnings: [],
   errors: [],
 });

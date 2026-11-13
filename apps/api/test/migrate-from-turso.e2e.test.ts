@@ -53,6 +53,8 @@ const migrate = async (
       orphans: "report",
       reset: false,
       allowRemote: false,
+      dropLegacyAttachments: true,
+      dropLegacyNicknames: true,
       batchSize: 2,
       ...extra,
     },
@@ -94,7 +96,15 @@ describe("data migration from a Turso/SQLite copy", () => {
     expect(exitCode, output).toBe(0);
     expect(report.status).toBe("ok");
     expect(report.committed).toBe(true);
-    expect(report.tables).toHaveLength(44);
+    // 44 source tables minus chat_nicknames (dropped, see DbChatSocial).
+    expect(report.tables).toHaveLength(43);
+    expect(report.droppedLegacy).toEqual([
+      {
+        item: "chat_messages.attachment_url / attachment_meta (messages)",
+        count: 1,
+      },
+      { item: "chat_nicknames (rows)", count: 1 },
+    ]);
 
     for (const row of report.tables) {
       const expected = Number(
@@ -128,9 +138,7 @@ describe("data migration from a Turso/SQLite copy", () => {
 
     expect(message.created_at).toEqual(new Date(1_700_000_002_000));
     expect(message.silent).toBe(true);
-    expect(message.attachment_meta).toBe(
-      '{"width":640,"height":480,"alt":"ảnh"}',
-    );
+    expect(message).not.toHaveProperty("attachment_meta");
     // Columns that closed a cycle or point at the same table were set afterwards.
     expect(message.reply_to_message_id).toBe(1);
     expect(message.photo_id).toBe(1);
@@ -223,7 +231,7 @@ describe("data migration from a Turso/SQLite copy", () => {
     // The JSON report is machine readable and holds no connection string.
     const written = readFileSync(reportPath, "utf8");
 
-    expect(JSON.parse(written).tables).toHaveLength(44);
+    expect(JSON.parse(written).tables).toHaveLength(43);
     expect(written).not.toContain(db.url);
   });
 
@@ -313,6 +321,8 @@ describe("data migration from a Turso/SQLite copy", () => {
         orphans: "report",
         reset: false,
         allowRemote: false,
+        dropLegacyAttachments: true,
+        dropLegacyNicknames: true,
         batchSize: 10,
       },
       (line) => lines.push(line),
@@ -410,6 +420,8 @@ describe("data migration from a Turso/SQLite copy", () => {
           orphans: "skip",
           reset: false,
           allowRemote: false,
+          dropLegacyAttachments: true,
+          dropLegacyNicknames: true,
           batchSize: 5,
         },
         () => undefined,
@@ -538,6 +550,173 @@ describe("data migration from a Turso/SQLite copy", () => {
     });
   });
 
+  describe("chat and social rules (DbChatSocial)", () => {
+    const base = {
+      allowRemote: false,
+      batchSize: 5,
+      reset: false,
+    } as const;
+
+    it("aborts when the source still has legacy attachments or nicknames, and says which flag accepts the loss", async () => {
+      const { fixture, db } = await setup();
+      const result = await run(
+        {
+          ...base,
+          mode: "dry-run",
+          source: fixture.url,
+          target: db.url,
+          orphans: "report",
+        },
+        () => undefined,
+      );
+      const errors = result.report.errors.join("\n");
+
+      expect(result.exitCode).toBe(1);
+      expect(result.report.status).toBe("aborted");
+      expect(errors).toMatch(
+        /1 chat message\(s\) have attachment_url or attachment_meta.*--drop-legacy-attachments/s,
+      );
+      expect(errors).toMatch(
+        /chat_nicknames has 1 row\(s\).*--drop-legacy-nicknames/s,
+      );
+
+      // One flag is not enough.
+      const partial = await run(
+        {
+          ...base,
+          mode: "dry-run",
+          source: fixture.url,
+          target: db.url,
+          orphans: "report",
+          dropLegacyAttachments: true,
+        },
+        () => undefined,
+      );
+      const partialErrors = partial.report.errors.join("\n");
+
+      expect(partial.exitCode).toBe(1);
+      expect(partialErrors).not.toMatch(/--drop-legacy-attachments/);
+      expect(partialErrors).toMatch(/--drop-legacy-nicknames/);
+      expect(await count(db, "users")).toBe(0);
+    });
+
+    it("reports every rule with table, column, rule and primary keys, never content", async () => {
+      const { fixture, db } = await setup("chat-social-dirty");
+      const { exitCode, report } = await migrate(fixture, db);
+      const keys = (table: string, column: string, reason: string) =>
+        report.orphans.find(
+          (item) =>
+            item.table === table &&
+            item.column === column &&
+            item.reason === reason,
+        )?.sampleKeys;
+
+      expect(exitCode).toBe(1);
+      expect(report.status).toBe("aborted");
+      expect(
+        keys("chat_messages", "reply_to_message_id", "reply_in_other_conversation"),
+      ).toEqual(["92"]);
+      expect(
+        keys("chat_conversations", "last_message_id", "last_message_in_other_conversation"),
+      ).toEqual(["3"]);
+      expect(keys("chat_photos", "message_id", "photo_link_mismatch")).toEqual(["92"]);
+      expect(keys("chat_custom_stickers", "size", "size_not_byte_length")).toEqual(["92"]);
+      expect(keys("social_friendships", "user_low", "pair_not_ordered")).toEqual(["5:2"]);
+      expect(keys("dm_conversations", "user_low", "pair_not_ordered")).toEqual(["92"]);
+      expect(
+        keys("social_friendships", "requested_by", "requester_not_in_pair"),
+      ).toEqual(["2:5"]);
+      expect(keys("social_reports", "reporter_key", "duplicate_open_report")).toEqual(["93"]);
+      expect(keys("social_reports", "status", "status_resolution_mismatch")).toEqual(["94"]);
+      expect(await count(db, "users")).toBe(0);
+    });
+
+    it("--orphans=null cannot repair them and points at skip", async () => {
+      const { fixture, db } = await setup("chat-social-dirty");
+      const { exitCode, output } = await migrate(fixture, db, {
+        orphans: "null",
+      });
+
+      expect(exitCode).toBe(1);
+      expect(output).toMatch(/use --orphans=skip/);
+      expect(output).toMatch(/chat_messages\.reply_to_message_id/);
+    });
+
+    it("--orphans=skip drops exactly those rows, repairs a NULL silent to false and verifies", async () => {
+      const { fixture, db } = await setup("chat-social-dirty");
+      const { exitCode, report, output } = await migrate(fixture, db, {
+        orphans: "skip",
+      });
+
+      expect(exitCode, output).toBe(0);
+      expect(report.skippedRows).toEqual(
+        expect.arrayContaining([
+          { table: "chat_messages", keys: ["92"] },
+          { table: "chat_conversations", keys: ["3"] },
+          { table: "chat_photos", keys: ["92"] },
+          { table: "chat_custom_stickers", keys: ["92"] },
+          {
+            table: "social_friendships",
+            keys: expect.arrayContaining(["5:2", "2:5"]),
+          },
+          { table: "dm_conversations", keys: ["92"] },
+          {
+            table: "social_reports",
+            keys: expect.arrayContaining(["93", "94"]),
+          },
+        ]),
+      );
+      expect(report.tables.every((row) => row.match)).toBe(true);
+
+      const [silent] = await db.dataSource.query(
+        `SELECT silent FROM chat_messages WHERE id = 93`,
+      );
+
+      expect(silent.silent).toBe(false);
+      // The first of the duplicate open reports stays.
+      const reports: { id: number }[] = await db.dataSource.query(
+        `SELECT id FROM social_reports ORDER BY id`,
+      );
+
+      expect(reports.map((row) => row.id)).toEqual([1, 92]);
+    });
+
+    it("recomputes last_message_id / last_message_at after the load and warns about a difference", async () => {
+      const { fixture, db } = await setup();
+      const flags = { dropLegacyAttachments: true, dropLegacyNicknames: true };
+      const first = await migrate(fixture, db, flags);
+
+      expect(first.exitCode, first.output).toBe(0);
+      expect(first.report.derivedChecks.map((check) => check.count)).toEqual([
+        0, 0,
+      ]);
+
+      await db.dataSource.query(
+        `UPDATE chat_conversations SET last_message_id = NULL`,
+      );
+      const verify = await run(
+        {
+          ...base,
+          ...flags,
+          mode: "verify",
+          source: fixture.url,
+          target: db.url,
+          orphans: "report",
+        },
+        () => undefined,
+      );
+
+      expect(verify.report.derivedChecks[0]).toMatchObject({
+        table: "chat_conversations",
+        count: 1,
+        sampleIds: ["1"],
+      });
+      expect(verify.report.warnings.join("\n")).toMatch(
+        /chat_conversations: 1 conversation/,
+      );
+    });
+  });
+
   it("aborts on values PostgreSQL would reject, and writes nothing", async () => {
     const { fixture, db } = await setup("invalid-enum");
     const { exitCode, report } = await migrate(fixture, db);
@@ -618,6 +797,8 @@ describe("data migration from a Turso/SQLite copy", () => {
         orphans: "report",
         reset: false,
         allowRemote: false,
+        dropLegacyAttachments: true,
+        dropLegacyNicknames: true,
         batchSize: 3,
       },
       (line) => lines.push(line),
@@ -638,6 +819,8 @@ describe("data migration from a Turso/SQLite copy", () => {
         orphans: "report",
         reset: false,
         allowRemote: false,
+        dropLegacyAttachments: true,
+        dropLegacyNicknames: true,
         batchSize: 3,
       },
       () => undefined,
@@ -781,6 +964,8 @@ describe("data migration from a Turso/SQLite copy", () => {
           orphans: "skip",
           reset: false,
           allowRemote: false,
+          dropLegacyAttachments: true,
+          dropLegacyNicknames: true,
           batchSize: 5,
         },
         () => undefined,
@@ -801,6 +986,8 @@ describe("data migration from a Turso/SQLite copy", () => {
           orphans: "report",
           reset: false,
           allowRemote: false,
+          dropLegacyAttachments: true,
+          dropLegacyNicknames: true,
           batchSize: 3,
         },
         (line) => lines.push(line),

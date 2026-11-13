@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { type Client, createClient } from "@libsql/client";
 
 import type { TableSpec, TursoColumns } from "../turso-columns.js";
+import { repairSourceRow } from "./chat-social.js";
 import { applyDefaults } from "./constraints.js";
 import type { SourceValue } from "./convert.js";
 
@@ -139,17 +140,17 @@ export async function* readTable(
       return;
     }
 
-    yield result.rows.map((row) =>
-      applyDefaults(
-        table,
-        Object.fromEntries(
-          spec.columns.map((column) => [
-            column.name,
-            toSourceValue(row[column.name]),
-          ]),
-        ),
-      ),
-    );
+    yield result.rows.map((row) => {
+      const values = Object.fromEntries(
+        spec.columns.map((column) => [
+          column.name,
+          toSourceValue(row[column.name]),
+        ]),
+      );
+
+      repairSourceRow(table, values);
+      return applyDefaults(table, values);
+    });
 
     if (result.rows.length < batchSize) {
       return;

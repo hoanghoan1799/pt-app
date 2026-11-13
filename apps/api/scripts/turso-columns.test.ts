@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { buildDataSourceOptions } from "../src/database/data-source-options.js";
 import { MOVED_AVATARS } from "./migrate/avatars.js";
+import { LEGACY_COLUMNS, LEGACY_TABLES } from "./migrate/chat-social.js";
 import { loadTursoColumns } from "./turso-columns.js";
 import { loadTursoSchemaStatements } from "./turso-schema.js";
 
@@ -46,6 +47,13 @@ const SOURCE_ONLY_COLUMNS: Record<string, string[]> = {
   users: ["avatar"],
   admins: ["avatar"],
 };
+// Columns and tables SQLite has and PostgreSQL dropped (DbChatSocial): the data
+// script counts them and aborts unless told to drop them
+// (scripts/migrate/chat-social.ts).
+const DROPPED_COLUMNS: Record<string, string[]> = {
+  chat_messages: ["attachment_url", "attachment_meta"],
+};
+const DROPPED_TABLES = ["chat_nicknames"];
 // Tables PostgreSQL has and SQLite never had.
 const PG_ONLY_TABLES = ["sessions", "user_avatars", "admin_avatars"];
 
@@ -133,7 +141,11 @@ describe("turso-columns.json against the PostgreSQL entities", () => {
       .filter((name) => !PG_ONLY_TABLES.includes(name))
       .sort();
 
-    expect(Object.keys(mapping.tables).sort()).toEqual(entityTables);
+    expect(
+      Object.keys(mapping.tables)
+        .filter((name) => !DROPPED_TABLES.includes(name))
+        .sort(),
+    ).toEqual(entityTables);
   });
 
   it("has the same column names as the entities, table by table", async () => {
@@ -155,7 +167,9 @@ describe("turso-columns.json against the PostgreSQL entities", () => {
         spec.columns
           .map((column) => column.name)
           .filter(
-            (name) => !SOURCE_ONLY_COLUMNS[entity.tableName]?.includes(name),
+            (name) =>
+              !SOURCE_ONLY_COLUMNS[entity.tableName]?.includes(name) &&
+              !DROPPED_COLUMNS[entity.tableName]?.includes(name),
           )
           .sort(),
         entity.tableName,
@@ -181,6 +195,20 @@ describe("turso-columns.json against the PostgreSQL entities", () => {
       expect(columns.find((c) => c.name === moved.versionColumn)?.kind).toBe(
         "timestamp_s",
       );
+    }
+  });
+
+  it("drops exactly the legacy columns and tables the data script handles", () => {
+    expect(DROPPED_COLUMNS).toEqual(LEGACY_COLUMNS);
+    expect(DROPPED_TABLES).toEqual(LEGACY_TABLES);
+
+    for (const [table, columns] of Object.entries(DROPPED_COLUMNS)) {
+      for (const name of columns) {
+        expect(
+          mapping.tables[table].columns.some((column) => column.name === name),
+          `${table}.${name}`,
+        ).toBe(true);
+      }
     }
   });
 

@@ -2,6 +2,7 @@ import {
   Check,
   Column,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
@@ -14,7 +15,13 @@ import { DmMessage } from "./dm-message.entity.js";
 import { User } from "./user.entity.js";
 
 @Entity("dm_photos")
-@Index("dm_photos_message", ["messageId"])
+@Index("dm_photos_message_photo", ["messageId", "id"], { unique: true })
+@ForeignKey(() => DmMessage, ["messageId", "id"], ["id", "photoId"], {
+  name: "fk_dm_photos_message",
+  onDelete: "CASCADE",
+  deferrable: "INITIALLY DEFERRED",
+})
+@Check("dm_photos_size_matches_data", `"size" = octet_length("data")`)
 @Index("dm_photos_conversation", ["conversationId"])
 @Check(`"mime" IN ('image/webp', 'image/jpeg', 'image/png')`)
 @Index("dm_photos_uploader_id_idx", ["uploaderId"])
@@ -31,10 +38,6 @@ export class DmPhoto {
 
   @Column({ type: "integer", nullable: true })
   messageId!: number | null;
-
-  @ManyToOne(() => DmMessage, { onDelete: "CASCADE", nullable: true })
-  @JoinColumn({ name: "message_id" })
-  message!: Relation<DmMessage> | null;
 
   @Column({ type: "integer" })
   uploaderId!: number;
