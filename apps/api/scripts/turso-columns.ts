@@ -39,7 +39,8 @@ export type TursoColumns = {
   tables: Record<string, TableSpec>;
 };
 
-// Frozen by generate-turso-columns.ts; the migration never reads apps/web.
+// Frozen description of the Turso columns (checked against turso-schema.sql by
+// turso-columns.test.ts); the migration never reads apps/web.
 export const loadTursoColumns = (): TursoColumns =>
   JSON.parse(
     readFileSync(
