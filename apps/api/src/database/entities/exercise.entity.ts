@@ -1,4 +1,6 @@
+import { EXERCISE_LIMITS } from "@pt/contracts";
 import {
+  Check,
   Column,
   Entity,
   JoinColumn,
@@ -11,6 +13,10 @@ import {
 import { WorkoutDay } from "./workout-day.entity.js";
 
 @Entity("exercises")
+@Check(
+  "exercises_sets_range",
+  `"sets" IS NULL OR "sets" BETWEEN 1 AND ${EXERCISE_LIMITS.MAX_SETS}`,
+)
 // The target of the composite foreign keys of the sets and completions a
 // trainee logs (their user_id must be the owner of the exercise's day).
 @Unique("exercises_id_user_key", ["id", "userId"])

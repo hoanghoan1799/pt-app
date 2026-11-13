@@ -1,4 +1,5 @@
 import {
+  Check,
   Column,
   Entity,
   JoinColumn,
@@ -11,6 +12,10 @@ import {
 import { MealPlanDay } from "./meal-plan-day.entity.js";
 
 @Entity("meal_plan_meals")
+@Check(
+  "meal_plan_meals_share_range",
+  `"share_percent" IS NULL OR "share_percent" BETWEEN 0 AND 100`,
+)
 // The target of the composite foreign keys of meal_logs and meal_marks: what a
 // trainee logs for a meal carries the owner of the meal's day.
 @Unique("meal_plan_meals_id_user_key", ["id", "userId"])

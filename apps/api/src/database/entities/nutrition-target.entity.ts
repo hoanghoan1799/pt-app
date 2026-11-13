@@ -1,3 +1,4 @@
+import { NUTRITION_LIMITS } from "@pt/contracts";
 import {
   Check,
   Column,
@@ -12,6 +13,12 @@ import {
 import { User } from "./user.entity.js";
 
 @Entity("nutrition_targets")
+@Check(
+  "nutrition_targets_grams_range",
+  [`"carbs"`, `"protein"`, `"fat"`]
+    .map((column) => `${column} BETWEEN 0 AND ${NUTRITION_LIMITS.MAX_GRAMS}`)
+    .join(" AND "),
+)
 @Index("nutrition_targets_user_from", ["userId", "effectiveFrom"], {
   unique: true,
 })

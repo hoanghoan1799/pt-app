@@ -1,4 +1,6 @@
+import { SET_LIMITS } from "@pt/contracts";
 import {
+  Check,
   Column,
   Entity,
   Index,
@@ -12,6 +14,14 @@ import { Exercise } from "./exercise.entity.js";
 import { User } from "./user.entity.js";
 
 @Entity("exercise_sets")
+@Check(
+  "exercise_sets_reps_range",
+  `"reps" BETWEEN ${SET_LIMITS.MIN_REPS} AND ${SET_LIMITS.MAX_REPS}`,
+)
+@Check(
+  "exercise_sets_weight_range",
+  `"weight_kg" IS NULL OR "weight_kg" BETWEEN ${SET_LIMITS.MIN_WEIGHT_KG} AND ${SET_LIMITS.MAX_WEIGHT_KG}`,
+)
 @Index("exercise_sets_exercise_position", ["exerciseId", "position"], {
   unique: true,
 })

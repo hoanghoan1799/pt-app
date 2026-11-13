@@ -58,22 +58,22 @@ describe("constraints", () => {
     it("rejects an unknown push_subscriptions.kind and defaults to web", async () => {
       const insert = (endpoint: string, kind: string | null) =>
         query(
-          `INSERT INTO push_subscriptions (owner_key, endpoint, kind)
-           VALUES ('user:1', $1, COALESCE($2, 'web'))`,
+          `INSERT INTO push_subscriptions (owner_key, endpoint, kind, p256dh, auth)
+           VALUES ('user:1', $1, COALESCE($2, 'web'), 'k', 'a')`,
           [endpoint, kind],
         );
 
       expect(await sqlState(insert("e1", "sms"))).toBe("23514");
       await insert("e3", "expo");
       await query(
-        `INSERT INTO push_subscriptions (owner_key, endpoint) VALUES ('user:1', 'e2')`,
+        `INSERT INTO push_subscriptions (owner_key, endpoint, p256dh, auth) VALUES ('user:1', 'e2', 'k', 'a')`,
       );
 
       const rows: { kind: string; p256dh: string | null }[] = await query(
         `SELECT kind, p256dh FROM push_subscriptions WHERE endpoint = 'e2'`,
       );
 
-      expect(rows).toEqual([{ kind: "web", p256dh: null }]);
+      expect(rows).toEqual([{ kind: "web", p256dh: "k" }]);
     });
   });
 
@@ -228,12 +228,15 @@ describe("constraints", () => {
     ];
 
     it("stores every day column as a date", async () => {
-      const rows: { table_name: string; column_name: string; data_type: string }[] =
-        await query(
-          `SELECT table_name, column_name, data_type FROM information_schema.columns
+      const rows: {
+        table_name: string;
+        column_name: string;
+        data_type: string;
+      }[] = await query(
+        `SELECT table_name, column_name, data_type FROM information_schema.columns
             WHERE table_schema = 'public' AND (table_name, column_name) IN
               (${DATE_COLUMNS.map(([t, c]) => `('${t}', '${c}')`).join(", ")})`,
-        );
+      );
 
       expect(rows).toHaveLength(DATE_COLUMNS.length);
       expect(rows.every((row) => row.data_type === "date")).toBe(true);
@@ -571,6 +574,243 @@ describe("constraints", () => {
           }),
         ),
       ).toBe("23505");
+    });
+  });
+
+  describe("range and presence CHECKs", () => {
+    type Ids = { userId: number; exercise: number; meal: number; food: number };
+    let ids: Ids;
+
+    beforeAll(async () => {
+      const [{ id: userId }] = await query(
+        `INSERT INTO users (name, name_key) VALUES ('Ranges', 'ranges') RETURNING id`,
+      );
+      const [{ id: day }] = await query(
+        `INSERT INTO workout_days (user_id, date) VALUES ($1, '2026-06-01') RETURNING id`,
+        [userId],
+      );
+      const [{ id: exercise }] = await query(
+        `INSERT INTO exercises (day_id, user_id, position, title, youtube_id)
+         VALUES ($1, $2, 0, 'Squat', 'abc') RETURNING id`,
+        [day, userId],
+      );
+      const [{ id: planDay }] = await query(
+        `INSERT INTO meal_plan_days (user_id, date) VALUES ($1, '2026-06-01') RETURNING id`,
+        [userId],
+      );
+      const [{ id: meal }] = await query(
+        `INSERT INTO meal_plan_meals (day_id, user_id, position, name)
+         VALUES ($1, $2, 0, 'Lunch') RETURNING id`,
+        [planDay, userId],
+      );
+      const [{ id: food }] = await query(
+        `INSERT INTO foods (name, name_key, "group", kcal, protein, carbs, fat)
+         VALUES ('Rice', 'rice-ranges', 'starch', 130, 2, 28, 0.3) RETURNING id`,
+      );
+
+      ids = { userId, exercise, meal, food };
+    });
+
+    const profile = (
+      values: { birth?: number; height?: number; weight?: number } = {},
+      extra: [column: string, value: number] | null = null,
+    ) =>
+      `INSERT INTO body_profiles (user_id, sex, birth_year, height_cm, weight_kg, activity_level, goal${extra ? `, ${extra[0]}` : ""})
+       VALUES ($1, 'male', ${values.birth ?? 1990}, ${values.height ?? 170}, ${values.weight ?? 70}, 'light', 'cut'${extra ? `, ${extra[1]}` : ""})`;
+
+    // $1 user, $2 exercise, $3 meal, $4 food
+    const rejected: [string, string][] = [
+      [
+        "exercises.sets 0",
+        `INSERT INTO exercises (day_id, user_id, position, title, youtube_id, sets) SELECT day_id, user_id, 9, 't', 'y', 0 FROM exercises WHERE id = $2`,
+      ],
+      [
+        "exercises.sets 51",
+        `INSERT INTO exercises (day_id, user_id, position, title, youtube_id, sets) SELECT day_id, user_id, 9, 't', 'y', 51 FROM exercises WHERE id = $2`,
+      ],
+      [
+        "exercise_sets.reps 0",
+        `INSERT INTO exercise_sets (exercise_id, user_id, position, reps) VALUES ($2, $1, 1, 0)`,
+      ],
+      [
+        "exercise_sets.reps 101",
+        `INSERT INTO exercise_sets (exercise_id, user_id, position, reps) VALUES ($2, $1, 1, 101)`,
+      ],
+      [
+        "exercise_sets.weight 0.4",
+        `INSERT INTO exercise_sets (exercise_id, user_id, position, reps, weight_kg) VALUES ($2, $1, 1, 5, 0.4)`,
+      ],
+      [
+        "exercise_sets.weight 501",
+        `INSERT INTO exercise_sets (exercise_id, user_id, position, reps, weight_kg) VALUES ($2, $1, 1, 5, 501)`,
+      ],
+      [
+        "meal_plan_items.grams 0",
+        `INSERT INTO meal_plan_items (meal_id, food_id, grams) VALUES ($3, $4, 0)`,
+      ],
+      [
+        "meal_plan_items.grams 3001",
+        `INSERT INTO meal_plan_items (meal_id, food_id, grams) VALUES ($3, $4, 3001)`,
+      ],
+      [
+        "meal_plan_meals.share_percent 101",
+        `INSERT INTO meal_plan_meals (day_id, user_id, position, name, share_percent) SELECT day_id, user_id, 9, 'x', 101 FROM meal_plan_meals WHERE id = $3`,
+      ],
+      [
+        "meal_plan_meals.share_percent -1",
+        `INSERT INTO meal_plan_meals (day_id, user_id, position, name, share_percent) SELECT day_id, user_id, 9, 'x', -1 FROM meal_plan_meals WHERE id = $3`,
+      ],
+      [
+        "meal_logs.grams -1",
+        `INSERT INTO meal_logs (user_id, meal_id, custom_name, grams) VALUES ($1, $3, 'x', -1)`,
+      ],
+      [
+        "meal_logs.grams 3001",
+        `INSERT INTO meal_logs (user_id, meal_id, custom_name, grams) VALUES ($1, $3, 'x', 3001)`,
+      ],
+      [
+        "meal_logs.kcal -1",
+        `INSERT INTO meal_logs (user_id, meal_id, custom_name, grams, kcal) VALUES ($1, $3, 'x', 1, -1)`,
+      ],
+      [
+        "meal_logs.fat -0.1",
+        `INSERT INTO meal_logs (user_id, meal_id, custom_name, grams, fat) VALUES ($1, $3, 'x', 1, -0.1)`,
+      ],
+      [
+        "meal_logs without a food or a name",
+        `INSERT INTO meal_logs (user_id, meal_id, grams) VALUES ($1, $3, 1)`,
+      ],
+      [
+        "food_entries.carbs 2001",
+        `INSERT INTO food_entries (user_id, date, meal, carbs) VALUES ($1, '2026-06-02', 'lunch', 2001)`,
+      ],
+      [
+        "food_entries.fat -1",
+        `INSERT INTO food_entries (user_id, date, meal, fat) VALUES ($1, '2026-06-02', 'lunch', -1)`,
+      ],
+      [
+        "nutrition_targets.protein 2001",
+        `INSERT INTO nutrition_targets (user_id, effective_from, carbs, protein, fat) VALUES ($1, '2026-06-02', 1, 2001, 1)`,
+      ],
+      [
+        "nutrition_targets.carbs -1",
+        `INSERT INTO nutrition_targets (user_id, effective_from, carbs, protein, fat) VALUES ($1, '2026-06-02', -1, 1, 1)`,
+      ],
+      ["body_profiles.birth_year 1899", profile({ birth: 1899 })],
+      ["body_profiles.height 119", profile({ height: 119 })],
+      ["body_profiles.weight 251", profile({ weight: 251 })],
+      [
+        "body_profiles.kcal_adjustment 1501",
+        profile({}, ["kcal_adjustment", 1501]),
+      ],
+      [
+        "body_profiles.protein_per_kg 3.1",
+        profile({}, ["protein_per_kg", 3.1]),
+      ],
+      [
+        "weight_logs.weight 29.9",
+        `INSERT INTO weight_logs (user_id, date, weight_kg) VALUES ($1, '2026-06-03', 29.9)`,
+      ],
+      [
+        "weight_logs.weight 250.1",
+        `INSERT INTO weight_logs (user_id, date, weight_kg) VALUES ($1, '2026-06-03', 250.1)`,
+      ],
+    ];
+
+    // The ids are our own integers: spliced in, because a statement that does
+    // not use every placeholder cannot be prepared.
+    const fill = (sql: string) =>
+      sql.replace(/\$(\d)/g, (_all, n: string) =>
+        String([ids.userId, ids.exercise, ids.meal, ids.food][Number(n) - 1]),
+      );
+
+    it.each(rejected)("rejects %s", async (_name, sql) => {
+      expect(await sqlState(query(fill(sql)))).toBe("23514");
+    });
+
+    it("rejects a mark item with a negative number", async () => {
+      const [{ id: mark }] = await query(
+        `INSERT INTO meal_marks (meal_id, user_id) VALUES ($1, $2) RETURNING id`,
+        [ids.meal, ids.userId],
+      );
+
+      expect(
+        await sqlState(
+          query(
+            `INSERT INTO meal_mark_items (mark_id, meal_id, grams, protein, carbs, fat, kcal)
+             VALUES ($1, $2, 1, -1, 0, 0, 0)`,
+            [mark, ids.meal],
+          ),
+        ),
+      ).toBe("23514");
+    });
+
+    it("accepts the edges of every range", async () => {
+      const run = (sql: string) => query(fill(sql));
+
+      await run(
+        `INSERT INTO exercise_sets (exercise_id, user_id, position, reps, weight_kg)
+         VALUES ($2, $1, 1, 1, 0.5), ($2, $1, 2, 100, 500), ($2, $1, 3, 10, NULL)`,
+      );
+      await run(
+        `INSERT INTO meal_plan_items (meal_id, food_id, grams) VALUES ($3, $4, 3000)`,
+      );
+      await run(`UPDATE meal_plan_meals SET share_percent = 100 WHERE id = $3`);
+      await run(
+        `INSERT INTO meal_logs (user_id, meal_id, custom_name, grams, kcal, protein, carbs, fat)
+         VALUES ($1, $3, 'free', 0, 0, 0, 0, 0)`,
+      );
+      await run(
+        `INSERT INTO meal_logs (user_id, meal_id, food_id, grams, kcal) VALUES ($1, $3, $4, 3000, 27300)`,
+      );
+      await run(
+        `INSERT INTO food_entries (user_id, date, meal, carbs, protein, fat)
+         VALUES ($1, '2026-06-04', 'lunch', 0, 2000, NULL)`,
+      );
+      await run(
+        `INSERT INTO nutrition_targets (user_id, effective_from, carbs, protein, fat)
+         VALUES ($1, '2026-06-04', 0, 2000, 0)`,
+      );
+      await run(
+        `INSERT INTO body_profiles (user_id, sex, birth_year, height_cm, weight_kg, activity_level, goal, kcal_adjustment, protein_per_kg)
+         VALUES ($1, 'male', 1900, 120, 30, 'light', 'cut', -1500, 1)`,
+      );
+      await run(
+        `INSERT INTO weight_logs (user_id, date, weight_kg) VALUES ($1, '2026-06-05', 250)`,
+      );
+    });
+  });
+
+  describe("push subscriptions and contact aliases", () => {
+    it("requires both keys on a web subscription only", async () => {
+      const insert = (
+        endpoint: string,
+        kind: string,
+        p256dh: string | null,
+        auth: string | null,
+      ) =>
+        query(
+          `INSERT INTO push_subscriptions (owner_key, endpoint, kind, p256dh, auth)
+           VALUES ('user:1', $1, $2, $3, $4)`,
+          [endpoint, kind, p256dh, auth],
+        );
+
+      expect(await sqlState(insert("w1", "web", null, null))).toBe("23514");
+      expect(await sqlState(insert("w2", "web", "k", null))).toBe("23514");
+      expect(await sqlState(insert("w3", "web", null, "a"))).toBe("23514");
+      await insert("w4", "web", "k", "a");
+      await insert("x1", "expo", null, null);
+      await insert("f1", "fcm", null, null);
+    });
+
+    it("has no index on contact_aliases.owner_key beside the primary key", async () => {
+      const rows: { indexname: string }[] = await query(
+        `SELECT indexname FROM pg_indexes WHERE tablename = 'contact_aliases' ORDER BY indexname`,
+      );
+
+      expect(rows.map((row) => row.indexname)).toEqual([
+        expect.stringMatching(/^PK_/),
+      ]);
     });
   });
 });

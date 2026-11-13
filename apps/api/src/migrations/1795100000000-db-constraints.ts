@@ -76,6 +76,78 @@ const POSITIONS: { table: string; parent: string; name: string; oldIndex: string
   { table: "meal_plan_meals", parent: "day_id", name: "meal_plan_meals_day_position_key", oldIndex: "meal_plan_meals_day" },
 ];
 
+// The numbers of the range CHECKs: copies of the limits the API validates in
+// packages/contracts (a migration never imports them, so it stays what it was
+// when it ran). src/migrations/db-constraints.test.ts fails when a copy and
+// its contract constant drift apart.
+export const LIMITS = {
+  // SET_LIMITS
+  setReps: { min: 1, max: 100 },
+  setWeightKg: { min: 0.5, max: 500 },
+  // EXERCISE_LIMITS.MAX_SETS (the min is the schema's "at least 1")
+  exerciseSets: { min: 1, max: 50 },
+  // MEAL_PLAN_LIMITS.MAX_GRAMS
+  mealGrams: { max: 3000 },
+  // NUTRITION_LIMITS.MAX_GRAMS
+  nutritionGrams: { max: 2000 },
+  // BODY_LIMITS
+  heightCm: { min: 120, max: 230 },
+  weightKg: { min: 30, max: 250 },
+  // No contract constant: the form takes an age (BODY_LIMITS.AGE) and stores
+  // the year. These bounds only have to hold every year that age can give.
+  birthYear: { min: 1900, max: 2100 },
+  // KCAL_ADJUSTMENT_LIMITS and PROTEIN_PER_KG_LIMITS
+  kcalAdjustment: { min: -1500, max: 1500 },
+  proteinPerKg: { min: 1, max: 3 },
+  // A share of the day's target, in percent.
+  sharePercent: { min: 0, max: 100 },
+} as const;
+
+const between = (column: string, { min, max }: { min: number; max: number }) =>
+  `"${column}" BETWEEN ${min} AND ${max}`;
+
+// A column that may be NULL, and is in range otherwise.
+const orNull = (column: string, range: { min: number; max: number }) =>
+  `"${column}" IS NULL OR ${between(column, range)}`;
+
+const nonNegative = (columns: string[], nullable: boolean) =>
+  columns
+    .map((column) =>
+      nullable
+        ? `("${column}" IS NULL OR "${column}" >= 0)`
+        : `"${column}" >= 0`,
+    )
+    .join(" AND ");
+
+// [table, constraint name, expression]. The names are the ones the entities
+// declare with @Check, so the schema builder sees no difference.
+const CHECKS: [table: string, name: string, expression: string][] = [
+  ["exercises", "exercises_sets_range", orNull("sets", LIMITS.exerciseSets)],
+  ["exercise_sets", "exercise_sets_reps_range", between("reps", LIMITS.setReps)],
+  ["exercise_sets", "exercise_sets_weight_range", orNull("weight_kg", LIMITS.setWeightKg)],
+  // A planned food needs an amount (0 g showed the trainee a blank).
+  ["meal_plan_items", "meal_plan_items_grams_range", `"grams" > 0 AND "grams" <= ${LIMITS.mealGrams.max}`],
+  ["meal_plan_meals", "meal_plan_meals_share_range", orNull("share_percent", LIMITS.sharePercent)],
+  // A free food may be logged with 0 g.
+  ["meal_logs", "meal_logs_grams_range", `"grams" >= 0 AND "grams" <= ${LIMITS.mealGrams.max}`],
+  // No upper bound: a library food logged at 3000 g may exceed what a typed
+  // number may.
+  ["meal_logs", "meal_logs_numbers_range", nonNegative(["kcal", "protein", "carbs", "fat"], true)],
+  ["meal_logs", "meal_logs_food_or_name", `"food_id" IS NOT NULL OR "custom_name" IS NOT NULL`],
+  ["meal_mark_items", "meal_mark_items_numbers_range", nonNegative(["grams", "protein", "carbs", "fat", "kcal"], false)],
+  ["food_entries", "food_entries_grams_range", ["carbs", "protein", "fat"].map((c) => `(${orNull(c, { min: 0, max: LIMITS.nutritionGrams.max })})`).join(" AND ")],
+  ["nutrition_targets", "nutrition_targets_grams_range", ["carbs", "protein", "fat"].map((c) => between(c, { min: 0, max: LIMITS.nutritionGrams.max })).join(" AND ")],
+  ["body_profiles", "body_profiles_birth_year_range", between("birth_year", LIMITS.birthYear)],
+  ["body_profiles", "body_profiles_height_range", between("height_cm", LIMITS.heightCm)],
+  ["body_profiles", "body_profiles_weight_range", between("weight_kg", LIMITS.weightKg)],
+  ["body_profiles", "body_profiles_kcal_adjustment_range", orNull("kcal_adjustment", LIMITS.kcalAdjustment)],
+  ["body_profiles", "body_profiles_protein_per_kg_range", orNull("protein_per_kg", LIMITS.proteinPerKg)],
+  ["weight_logs", "weight_logs_weight_range", between("weight_kg", LIMITS.weightKg)],
+  // A web push subscription is useless without its keys (expo/fcm rows keep
+  // the device token in `endpoint` and have none).
+  ["push_subscriptions", "push_subscriptions_web_keys", `"kind" <> 'web' OR ("p256dh" IS NOT NULL AND "auth" IS NOT NULL)`],
+];
+
 export class DbConstraints1795100000000 implements MigrationInterface {
   name = "DbConstraints1795100000000";
 
@@ -133,6 +205,16 @@ export class DbConstraints1795100000000 implements MigrationInterface {
       );
     }
 
+    for (const [table, name, expression] of CHECKS) {
+      await queryRunner.query(
+        `ALTER TABLE "${table}" ADD CONSTRAINT "${name}" CHECK (${expression})`,
+      );
+    }
+
+    // contact_aliases' primary key (owner_key, target_key) already serves every
+    // lookup by owner_key.
+    await queryRunner.query(`DROP INDEX "public"."contact_aliases_owner_key"`);
+
     for (const link of OWNER_LINKS) {
       const [child1, child2] = link.columns;
       const [parent1, parent2] = link.parentColumns;
@@ -148,6 +230,14 @@ export class DbConstraints1795100000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `CREATE INDEX "contact_aliases_owner_key" ON "contact_aliases" ("owner_key")`,
+    );
+
+    for (const [table, name] of [...CHECKS].reverse()) {
+      await queryRunner.query(`ALTER TABLE "${table}" DROP CONSTRAINT "${name}"`);
+    }
+
     for (const link of [...OWNER_LINKS].reverse()) {
       await queryRunner.query(
         `ALTER TABLE "${link.table}" DROP CONSTRAINT "${link.fk}"`,

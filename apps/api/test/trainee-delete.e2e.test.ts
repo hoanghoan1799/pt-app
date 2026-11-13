@@ -117,11 +117,15 @@ const seedGraph = async ({ userId, otherId, adminId, foodId }: Cast) => {
     targetKey: key,
     alias: "Student",
   });
-  await insertRow(ds, PushSubscription, { ownerKey: key });
+  await insertRow(ds, PushSubscription, {
+    ownerKey: key,
+    p256dh: "key",
+    auth: "secret",
+  });
   // Workouts
   const dayId = await insertRow(ds, WorkoutDay, { userId });
   const exerciseId = await insertRow(ds, Exercise, { dayId, userId });
-  await insertRow(ds, ExerciseSet, { exerciseId, userId });
+  await insertRow(ds, ExerciseSet, { exerciseId, userId, reps: 10 });
   await insertRow(ds, ExerciseCompletion, { exerciseId, userId });
   // Nutrition
   await insertRow(ds, FoodEntry, { userId, meal: "breakfast" });
@@ -129,19 +133,22 @@ const seedGraph = async ({ userId, otherId, adminId, foodId }: Cast) => {
   await insertRow(ds, BodyProfile, {
     userId,
     sex: "male",
+    birthYear: 1990,
+    heightCm: 170,
+    weightKg: 70,
     activityLevel: "light",
     goal: "cut",
   });
-  await insertRow(ds, WeightLog, { userId });
+  await insertRow(ds, WeightLog, { userId, weightKg: 70 });
   const planDayId = await insertRow(ds, MealPlanDay, { userId });
   const mealId = await insertRow(ds, MealPlanMeal, {
     dayId: planDayId,
     userId,
   });
-  await insertRow(ds, MealPlanItem, { mealId, foodId });
-  await insertRow(ds, MealLog, { userId, mealId, foodId });
+  await insertRow(ds, MealPlanItem, { mealId, foodId, grams: 100 });
+  await insertRow(ds, MealLog, { userId, mealId, foodId, grams: 100 });
   const markId = await insertRow(ds, MealMark, { mealId, userId });
-  await insertRow(ds, MealMarkItem, { markId, mealId, foodId });
+  await insertRow(ds, MealMarkItem, { markId, mealId, foodId, grams: 100 });
   // Direct messages and friends with the other trainee
   const [low, high] = userId < otherId ? [userId, otherId] : [otherId, userId];
   const dmId = await insertRow(ds, DmConversation, {

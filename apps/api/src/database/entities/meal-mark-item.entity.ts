@@ -1,4 +1,5 @@
 import {
+  Check,
   Column,
   Entity,
   Index,
@@ -13,6 +14,10 @@ import { MealMark } from "./meal-mark.entity.js";
 import { MealPlanMeal } from "./meal-plan-meal.entity.js";
 
 @Entity("meal_mark_items")
+@Check(
+  "meal_mark_items_numbers_range",
+  `"grams" >= 0 AND "protein" >= 0 AND "carbs" >= 0 AND "fat" >= 0 AND "kcal" >= 0`,
+)
 @Index("meal_mark_items_meal", ["mealId"])
 @Index("meal_mark_items_mark_id_idx", ["markId"])
 @Index("meal_mark_items_food_id_idx", ["foodId"])

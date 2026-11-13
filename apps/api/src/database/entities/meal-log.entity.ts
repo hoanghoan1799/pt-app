@@ -1,4 +1,6 @@
+import { MEAL_PLAN_LIMITS } from "@pt/contracts";
 import {
+  Check,
   Column,
   Entity,
   Index,
@@ -13,6 +15,21 @@ import { MealPlanMeal } from "./meal-plan-meal.entity.js";
 import { User } from "./user.entity.js";
 
 @Entity("meal_logs")
+@Check(
+  "meal_logs_grams_range",
+  `"grams" >= 0 AND "grams" <= ${MEAL_PLAN_LIMITS.MAX_GRAMS}`,
+)
+// A library food logged at 3000 g may exceed what a typed number may, so the
+// numbers only have a lower bound.
+@Check(
+  "meal_logs_numbers_range",
+  `("kcal" IS NULL OR "kcal" >= 0) AND ("protein" IS NULL OR "protein" >= 0) AND ("carbs" IS NULL OR "carbs" >= 0) AND ("fat" IS NULL OR "fat" >= 0)`,
+)
+// A library log has a food, a free one has a name.
+@Check(
+  "meal_logs_food_or_name",
+  `"food_id" IS NOT NULL OR "custom_name" IS NOT NULL`,
+)
 @Index("meal_logs_meal", ["mealId"])
 @Index("meal_logs_user", ["userId"])
 @Index("meal_logs_food_id_idx", ["foodId"])
