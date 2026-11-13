@@ -8,7 +8,7 @@ import { Reflector } from "@nestjs/core";
 import { SOCIAL_TERMS_VERSION } from "@pt/contracts";
 
 import type { AuthedRequest } from "../auth/decorators/index.js";
-import { SocialAccountQueries } from "./accounts.queries.js";
+import { AccountDirectory } from "../users/account-directory.service.js";
 import { termsRequired } from "./social.errors.js";
 
 export const SKIP_TERMS_KEY = "social:skipTerms";
@@ -24,7 +24,7 @@ export const SkipTerms = () => SetMetadata(SKIP_TERMS_KEY, true);
 export class SocialTermsGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly accounts: SocialAccountQueries,
+    private readonly accounts: AccountDirectory,
   ) {}
 
   async canActivate(context: ExecutionContext) {

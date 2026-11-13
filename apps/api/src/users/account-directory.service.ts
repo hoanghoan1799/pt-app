@@ -8,7 +8,8 @@ import {
 } from "@pt/contracts";
 import { DataSource } from "typeorm";
 
-import type { AuthorRef } from "./social-actor.js";
+import { ContactAliasesService } from "../contact-aliases/contact-aliases.service.js";
+import { avatarUrl } from "../files/image-rules.js";
 
 export type AccountInfo = {
   // What the viewer sees: their private nickname when set, else the real name.
@@ -29,18 +30,15 @@ export type ProfileRow = {
   role: "trainee" | AdminRole;
 };
 
-// TEMPORARY: a read-only view of users / admins / contact_aliases for author
-// names, avatars and the verified tick. Merge: replace with the Users step's
-// account directory and alias queries (the avatar URL shape moves there too).
+// The one place that answers "who is this account" for other modules: names,
+// avatars, the verified tick and the viewer's private nicknames (through
+// ContactAliasesService). Read-only.
 @Injectable()
-export class SocialAccountQueries {
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
-
-  avatarUrl(kind: SocialAuthorKind, id: number, updatedAt: Date | null) {
-    return updatedAt
-      ? `/v1/avatars/${kind}/${id}?v=${Math.floor(updatedAt.getTime() / 1000)}`
-      : null;
-  }
+export class AccountDirectory {
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly aliases: ContactAliasesService,
+  ) {}
 
   // Keys of deleted accounts are simply missing from the map. With `viewerKey`
   // the viewer's private nicknames replace the names (never their own).
@@ -82,7 +80,7 @@ export class SocialAccountQueries {
       result.set(`user:${row.id}`, {
         name: row.name,
         realName: row.name,
-        avatarUrl: this.avatarUrl("user", row.id, row.avatar_updated_at),
+        avatarUrl: avatarUrl("user", row.id, row.avatar_updated_at),
         verified: false,
       });
     }
@@ -90,7 +88,7 @@ export class SocialAccountQueries {
       result.set(`admin:${row.id}`, {
         name: row.name,
         realName: row.name,
-        avatarUrl: this.avatarUrl("admin", row.id, row.avatar_updated_at),
+        avatarUrl: avatarUrl("admin", row.id, row.avatar_updated_at),
         verified: row.verified_at !== null,
       });
     }
@@ -114,26 +112,19 @@ export class SocialAccountQueries {
     ownerKey: string,
     targetKeys: string[],
   ): Promise<Map<string, string>> {
-    const wanted = [...new Set(targetKeys)];
-
-    if (wanted.length === 0) {
-      return new Map();
-    }
-    const rows: { target_key: string; alias: string }[] =
-      await this.dataSource.query(
-        `SELECT target_key, alias FROM contact_aliases
-         WHERE owner_key = $1 AND target_key = ANY($2::text[])`,
-        [ownerKey, wanted],
-      );
+    const stored = await this.aliases.loadAliases(ownerKey, targetKeys);
 
     return new Map(
-      rows
-        .filter((row) => row.alias.trim() !== "")
-        .map((row) => [row.target_key, row.alias.trim()]),
+      [...stored]
+        .filter(([, alias]) => alias.trim() !== "")
+        .map(([target, alias]) => [target, alias.trim()]),
     );
   }
 
-  async findProfile(who: AuthorRef): Promise<ProfileRow | null> {
+  async findProfile(who: {
+    kind: SocialAuthorKind;
+    id: number;
+  }): Promise<ProfileRow | null> {
     if (who.kind === "user") {
       const rows: {
         name: string;
@@ -151,7 +142,7 @@ export class SocialAccountQueries {
             id: who.id,
             name: row.name,
             bio: row.bio ?? "",
-            avatarUrl: this.avatarUrl("user", who.id, row.avatar_updated_at),
+            avatarUrl: avatarUrl("user", who.id, row.avatar_updated_at),
             verified: false,
             role: "trainee",
           }
@@ -176,7 +167,7 @@ export class SocialAccountQueries {
           id: who.id,
           name: row.name,
           bio: row.bio ?? "",
-          avatarUrl: this.avatarUrl("admin", who.id, row.avatar_updated_at),
+          avatarUrl: avatarUrl("admin", who.id, row.avatar_updated_at),
           verified: row.verified_at !== null,
           role: toAdminRole(row.role),
         }
@@ -191,9 +182,7 @@ export class SocialAccountQueries {
       );
 
     return (rows[0]?.post_privacy_default ?? "friends") as
-      | "everyone"
-      | "friends"
-      | "only_me";
+      "everyone" | "friends" | "only_me";
   }
 
   async termsVersion(userId: number): Promise<number | null> {

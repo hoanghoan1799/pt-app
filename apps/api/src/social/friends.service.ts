@@ -11,7 +11,7 @@ import { DataSource } from "typeorm";
 import { z } from "zod";
 
 import { Clock } from "../common/clock.js";
-import { SocialAccountQueries } from "./accounts.queries.js";
+import { AccountDirectory } from "../users/account-directory.service.js";
 import { rowsOf } from "./domain/rows.js";
 import { SOCIAL_EVENTS } from "./events/social.events.js";
 import { SocialEventsPublisher } from "./events/social-events.publisher.js";
@@ -52,7 +52,7 @@ export class FriendsService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly relationships: RelationshipQueries,
-    private readonly accounts: SocialAccountQueries,
+    private readonly accounts: AccountDirectory,
     private readonly events: SocialEventsPublisher,
     private readonly clock: Clock,
   ) {}

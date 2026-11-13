@@ -8,8 +8,8 @@ import {
 import { DataSource } from "typeorm";
 
 import { Clock } from "../common/clock.js";
+import { AccountDirectory,type ProfileRow } from "../users/account-directory.service.js";
 import { getTodayDate } from "../workouts/domain/week.js";
-import { type ProfileRow, SocialAccountQueries } from "./accounts.queries.js";
 import { canViewTrainingStats, computeDayStreak } from "./domain/streak.js";
 import { PostAccess } from "./post-access.service.js";
 import { RelationshipQueries } from "./relationships.queries.js";
@@ -34,7 +34,7 @@ export type ProfileView = ProfileRow & {
 export class ProfilesService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    private readonly accounts: SocialAccountQueries,
+    private readonly accounts: AccountDirectory,
     private readonly relationships: RelationshipQueries,
     private readonly access: PostAccess,
     private readonly clock: Clock,

@@ -4,7 +4,7 @@ import { parseSocialActorKey } from "@pt/contracts";
 import { DataSource } from "typeorm";
 
 import { Clock } from "../common/clock.js";
-import { SocialAccountQueries } from "./accounts.queries.js";
+import { AccountDirectory } from "../users/account-directory.service.js";
 import { CommentPolicy } from "./domain/comment.policy.js";
 import { decodeTimeCursor, timeCursor } from "./domain/cursor.js";
 import { SOCIAL_EVENTS } from "./events/social.events.js";
@@ -46,7 +46,7 @@ export class EngagementService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly access: PostAccess,
-    private readonly accounts: SocialAccountQueries,
+    private readonly accounts: AccountDirectory,
     private readonly posts: PostQueries,
     private readonly commentPolicy: CommentPolicy,
     private readonly events: SocialEventsPublisher,

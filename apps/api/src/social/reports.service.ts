@@ -7,7 +7,7 @@ import type {
 import { DataSource } from "typeorm";
 
 import { Clock } from "../common/clock.js";
-import { SocialAccountQueries } from "./accounts.queries.js";
+import { AccountDirectory } from "../users/account-directory.service.js";
 import { EngagementService } from "./engagement.service.js";
 import {
   deletedAccountName,
@@ -48,7 +48,7 @@ export class ReportsService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly access: PostAccess,
-    private readonly accounts: SocialAccountQueries,
+    private readonly accounts: AccountDirectory,
     private readonly relationships: RelationshipQueries,
     private readonly posts: PostsService,
     private readonly engagement: EngagementService,
