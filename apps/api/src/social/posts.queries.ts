@@ -42,7 +42,9 @@ export type PostView = {
 
 export type PostPageView = { items: PostView[]; nextCursor: string | null };
 
-type PostWithPhoto = PostRow & { photo: { width: number; height: number } | null };
+type PostWithPhoto = PostRow & {
+  photo: { width: number; height: number } | null;
+};
 
 // A tiny builder so a filter can add parameters without counting indexes.
 class Sql {
@@ -94,8 +96,7 @@ export class PostQueries {
         id: post.id,
         authorKind: post.authorKind,
         authorId: post.authorId,
-        authorName:
-          author?.name ?? deletedAccountName(viewer.locale ?? "vi"),
+        authorName: author?.name ?? deletedAccountName(viewer.locale ?? "vi"),
         authorAvatarUrl: author?.avatarUrl ?? null,
         authorVerified: author?.verified ?? false,
         caption: post.caption ?? "",
@@ -161,7 +162,9 @@ export class PostQueries {
         .map((row) => ({ reactorKey: row.reactor_key, emoji: row.emoji }));
 
       result.set(postId, {
-        reactions: mine.length ? summarizeReactions(mine, myKey) : EMPTY_REACTIONS,
+        reactions: mine.length
+          ? summarizeReactions(mine, myKey)
+          : EMPTY_REACTIONS,
         commentCount: counts.get(postId) ?? 0,
       });
     }
@@ -301,7 +304,10 @@ export class PostQueries {
   }
 
   // One post for its detail page; null unless the viewer may see it.
-  async getPostView(viewer: SocialActor, postId: number): Promise<PostView | null> {
+  async getPostView(
+    viewer: SocialActor,
+    postId: number,
+  ): Promise<PostView | null> {
     if (!Number.isInteger(postId) || postId < 1 || postId > MAX_ID) {
       return null;
     }
@@ -318,7 +324,10 @@ export class PostQueries {
           )
         )[0] as { width: number; height: number } | undefined)
       : undefined;
-    const [view] = await this.toViews([{ ...visible, photo: photo ?? null }], viewer);
+    const [view] = await this.toViews(
+      [{ ...visible, photo: photo ?? null }],
+      viewer,
+    );
 
     return view ?? null;
   }

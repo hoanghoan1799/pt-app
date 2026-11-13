@@ -8,13 +8,48 @@ The data script is `apps/api/scripts/migrate-from-turso.ts`. It copies all 44 ta
 
 1. Reads a SQLite file (`file:` URL) with `@libsql/client`. A remote source is refused unless `--allow-remote` is passed (the plan does not need it).
 2. Refuses to start when the target has pending migrations. Apply them first: `DATABASE_URL=<target> pnpm --filter @pt/api migrate`. The script never changes the schema.
-3. Validates every value (enum CHECK values, integer ranges, NUL characters, timestamp units, NOT NULL), then scans every foreign key for orphan rows.
+3. Validates every value (enum CHECK values, integer ranges, NUL characters, timestamp units, NOT NULL), converts the NULLs the schema now forbids, checks the new constraints (next section), then scans every foreign key for orphan rows.
 4. Loads in one transaction, parents first, with `OVERRIDING SYSTEM VALUE` (ids are kept). A foreign key that closes a cycle (`chat_conversations.last_message_id`, `chat_messages.photo_id`, `chat_messages.reply_to_message_id`, the DM and social photo links) is loaded as NULL and set by an `UPDATE` after all tables are loaded. No superuser rights are needed.
    Profile photos: in Turso `users.avatar` and `admins.avatar` are base64 data URLs in a text column; in PostgreSQL they are rows of `user_avatars` / `admin_avatars` (migration `AvatarTables1795000000000`, `bytea` + `mime` + `size` + `updated_at`). The script decodes each non-null source avatar while copying (`scripts/migrate/avatars.ts`) and inserts it right after its owner row; `avatar_updated_at` stays in `users` / `admins` and is the row's `updated_at`. Avatars are cosmetic, so an unusable one never aborts the run: a value that is not a base64 `data:image/png|jpeg|webp` URL, whose bytes are not that image type, that is over the 80 KB avatar limit, or that has no `avatar_updated_at` is skipped and listed under "Warnings" (table, id, problem, never the content; also `skippedAvatars` in the JSON report). The owner row still loads, with `avatar_updated_at` set to NULL so no avatar URL is built. Review the warning list after the run; a user whose avatar was skipped simply has no photo. The SQL migration `AvatarTables1795000000000` (used when the API is upgraded in place) treats avatars the same way: an unusable one, or one without `avatar_updated_at`, is skipped with a `WARNING` (table and id) and its owner's `avatar_updated_at` is set to NULL; nothing is invented.
 5. Runs `setval` on every identity sequence (max id; an empty table gives 1 as the next value).
 6. Verifies row counts and checksums on both sides before `COMMIT`. A mismatch rolls the whole load back.
 
 `--reset` truncates the 44 tables, `user_avatars`, `admin_avatars` and `sessions` in the same transaction. Without it, a target that has any row is refused.
+
+## Constraints checked before the load (db-constraints migration)
+
+The schema is stricter than the SQLite one ever was. Before it writes anything, the script checks every rule below on the source rows and prints them (and writes them to `--report` as `backfilledValues` and `constraintViolations`: table, column, rule, count, sample ids). `--dry-run` shows the same report.
+
+Converted silently, but listed (`backfilledValues`): a NULL becomes what the app already read it as.
+
+| Column | NULL becomes |
+| --- | --- |
+| `admins.role` | `super_admin` (a roleless admin was a super admin) |
+| `admins.passcode_failed_count` | `0` |
+| `admins.presence_hidden` | `false` |
+| `users.chat_enabled` | `false` |
+| `users.post_privacy_default` | `friends` |
+
+`users.terms_version` stays NULL (never accepted). `exercises.user_id` and `meal_plan_meals.user_id` are new columns the load fills from the row's day, so they need no decision.
+
+Reported, never repaired (`constraintViolations`), each with the rule it would break:
+
+| Rule | Tables and columns |
+| --- | --- |
+| `date`: not a real `YYYY-MM-DD` day (e.g. `2026-02-30`, `2026-2-3`) | `workout_days.date`, `meal_plan_days.date`, `weight_logs.date`, `food_entries.date`, `nutrition_targets.effective_from` |
+| `*_range`: a number outside the limit the API validates | `exercises.sets` 1..50, `exercise_sets.reps` 1..100, `exercise_sets.weight_kg` 0.5..500, `meal_plan_items.grams` >0..3000, `meal_plan_meals.share_percent` 0..100, `meal_logs.grams` 0..3000, `meal_logs` kcal/macros >= 0, `meal_mark_items` numbers >= 0, `food_entries` and `nutrition_targets` macros 0..2000, `body_profiles` birth year 1900..2100, height 120..230, weight 30..250, kcal adjustment -1500..1500, protein per kg 1..3, `weight_logs.weight_kg` 30..250 |
+| `meal_logs_food_or_name`: neither a food nor a custom name | `meal_logs` |
+| `*_owner_fkey`: the row's `user_id` is not the owner of its parent's day | `exercise_sets`, `exercise_completions`, `meal_logs`, `meal_marks` |
+| `meal_mark_items_mark_meal_fkey`: the item names another meal than its mark | `meal_mark_items` |
+| `*_position_key`: two exercises (or two meals) at one position of a day | `exercises`, `meal_plan_meals` (the row with the lowest id keeps the position; the later ones are reported) |
+
+What `--orphans` does with them:
+
+- `report` (default): aborts before any write, with the table above in the output.
+- `skip`: leaves those rows out, and, as for orphans, every row that pointed at a left-out row (a skipped day takes its exercises, their sets and completions). The ids are in `skippedRows`; give `data:verify` the same flag.
+- `null`: aborts. A value that breaks a CHECK cannot be repaired by clearing a foreign key. (It also aborts when clearing a dangling `meal_logs.food_id` would leave a log with neither food nor name.)
+
+To keep a row instead of dropping it, correct the SQLite copy (`turso-final.db`, never Turso) and re-run: for example fix the date, or give the second exercise a free position.
 
 ## Before the day: rehearse on a local copy (as often as needed)
 

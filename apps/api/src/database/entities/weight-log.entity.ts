@@ -1,4 +1,6 @@
+import { BODY_LIMITS } from "@pt/contracts";
 import {
+  Check,
   Column,
   Entity,
   Index,
@@ -11,6 +13,10 @@ import {
 import { User } from "./user.entity.js";
 
 @Entity("weight_logs")
+@Check(
+  "weight_logs_weight_range",
+  `"weight_kg" BETWEEN ${BODY_LIMITS.WEIGHT_KG.min} AND ${BODY_LIMITS.WEIGHT_KG.max}`,
+)
 @Index("weight_logs_user_date", ["userId", "date"], { unique: true })
 export class WeightLog {
   @PrimaryGeneratedColumn("identity", { generatedIdentity: "ALWAYS" })
@@ -23,7 +29,7 @@ export class WeightLog {
   @JoinColumn({ name: "user_id" })
   user!: Relation<User>;
 
-  @Column({ type: "text" })
+  @Column({ type: "date" })
   date!: string;
 
   @Column({ type: "double precision" })

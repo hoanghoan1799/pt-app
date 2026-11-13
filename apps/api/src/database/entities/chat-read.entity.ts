@@ -10,7 +10,7 @@ import {
   type Relation,
 } from "typeorm";
 
-import { adminKeyId, chatKeyCheck,GeneratedId } from "./actor-ids.js";
+import { adminKeyId, chatKeyCheck, GeneratedId } from "./actor-ids.js";
 import { Admin } from "./admin.entity.js";
 import { ChatConversation } from "./chat-conversation.entity.js";
 

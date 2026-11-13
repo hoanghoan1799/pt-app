@@ -115,7 +115,11 @@ describe("toDashboardSummaryResponse", () => {
       completed: 3,
       percent: 75,
     };
-    const response = toDashboardSummaryResponse("2026-11-09", [member], summary);
+    const response = toDashboardSummaryResponse(
+      "2026-11-09",
+      [member],
+      summary,
+    );
 
     expect(response.members[0]).toMatchObject({
       percent: 75,

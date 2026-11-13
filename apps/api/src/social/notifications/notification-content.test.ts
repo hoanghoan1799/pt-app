@@ -10,7 +10,9 @@ import {
   toLocale,
 } from "./notification-content.js";
 
-const facts = (overrides: Partial<NotificationFacts> = {}): NotificationFacts => ({
+const facts = (
+  overrides: Partial<NotificationFacts> = {},
+): NotificationFacts => ({
   kind: "post_reaction",
   actorName: "Ann",
   locale: "vi",
@@ -24,7 +26,9 @@ describe("notification text", () => {
     const text = (kind: NotificationFacts["kind"]) =>
       buildNotificationText(facts({ kind }));
 
-    expect(text("post_reaction")).toBe("Ann đã bày tỏ cảm xúc về bài viết của bạn");
+    expect(text("post_reaction")).toBe(
+      "Ann đã bày tỏ cảm xúc về bài viết của bạn",
+    );
     expect(text("post_comment")).toBe("Ann đã bình luận về bài viết của bạn");
     expect(text("friend_request")).toBe("Ann đã gửi lời mời kết bạn");
     expect(text("friend_accepted")).toBe("Ann đã chấp nhận lời mời kết bạn");
@@ -40,7 +44,9 @@ describe("notification text", () => {
         expect(text).not.toContain("{");
       }
     }
-    expect(buildNotificationText(facts({ locale: "en" }))).toBe("Ann reacted to your post");
+    expect(buildNotificationText(facts({ locale: "en" }))).toBe(
+      "Ann reacted to your post",
+    );
     expect(toLocale("fr")).toBe("vi");
     expect(toLocale(null)).toBe("vi");
     expect(toLocale("zh")).toBe("zh");
@@ -79,7 +85,9 @@ describe("push payloads", () => {
     const withCaption = buildNotificationPush(
       facts({ kind: "admin_post", caption: "Lịch tập\ntuần mới" }),
     );
-    const photoOnly = buildNotificationPush(facts({ kind: "admin_post", caption: null }));
+    const photoOnly = buildNotificationPush(
+      facts({ kind: "admin_post", caption: null }),
+    );
 
     expect(withCaption.body).toBe("Ann vừa đăng bài mới: Lịch tập tuần mới");
     expect(withCaption.tag).toBe("social-post-12");
@@ -87,12 +95,15 @@ describe("push payloads", () => {
   });
 
   it("sends friend events to the friends pages", () => {
-    expect(buildNotificationPush(facts({ kind: "friend_request", postId: null }))).toMatchObject({
+    expect(
+      buildNotificationPush(facts({ kind: "friend_request", postId: null })),
+    ).toMatchObject({
       url: "/friends?tab=requests",
       tag: "social-friend_request",
     });
-    expect(buildNotificationPush(facts({ kind: "friend_accepted", postId: null })).url).toBe(
-      "/friends",
-    );
+    expect(
+      buildNotificationPush(facts({ kind: "friend_accepted", postId: null }))
+        .url,
+    ).toBe("/friends");
   });
 });

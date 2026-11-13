@@ -47,7 +47,10 @@ export class MealLogsService {
     return found;
   }
 
-  private async logView(mealId: number, logId: number): Promise<MealLogResponse> {
+  private async logView(
+    mealId: number,
+    logId: number,
+  ): Promise<MealLogResponse> {
     const { logs } = await this.queries.mealLogData([mealId]);
     const log = logs.find((item) => item.id === logId);
 

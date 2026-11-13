@@ -17,12 +17,16 @@ export type TargetInputs = {
 
 // One way of deciding the daily macro target. `nutrition_targets.source` says
 // which one produced a stored row.
-export interface NutritionTargetStrategy<S extends TargetSource = TargetSource> {
+export interface NutritionTargetStrategy<
+  S extends TargetSource = TargetSource,
+> {
   readonly source: S;
   compute(input: TargetInputs[S]): MacroAmounts;
 }
 
-export const NUTRITION_TARGET_STRATEGIES = Symbol("NUTRITION_TARGET_STRATEGIES");
+export const NUTRITION_TARGET_STRATEGIES = Symbol(
+  "NUTRITION_TARGET_STRATEGIES",
+);
 
 @Injectable()
 export class ManualTarget implements NutritionTargetStrategy<"manual"> {
@@ -58,8 +62,7 @@ export class TargetCalculator {
     input: TargetInputs[S],
   ): MacroAmounts {
     const strategy = this.bySource.get(source) as
-      | NutritionTargetStrategy<S>
-      | undefined;
+      NutritionTargetStrategy<S> | undefined;
 
     if (!strategy) {
       throw new Error(`No nutrition target strategy for "${source}"`);

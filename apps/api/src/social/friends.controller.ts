@@ -67,7 +67,9 @@ export class FriendsController {
   }
 
   @Get("friends/requests")
-  @ApiOkResponse({ schema: toOpenApiSchema(socialFriendRequestsResponseSchema) })
+  @ApiOkResponse({
+    schema: toOpenApiSchema(socialFriendRequestsResponseSchema),
+  })
   @ApiErrors(401, 403)
   requests(@Actor() actor: AuthActor) {
     return this.friends.listRequests(actor.id);

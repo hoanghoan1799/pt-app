@@ -7,11 +7,15 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   type Relation,
+  Unique,
 } from "typeorm";
 
 import { User } from "./user.entity.js";
 
 @Entity("workout_days")
+// The target of the composite foreign keys that make a child row agree with the
+// day on its owner (exercises.user_id).
+@Unique("workout_days_id_user_key", ["id", "userId"])
 @Index("workout_days_user_date", ["userId", "date"], { unique: true })
 @Check(`"source" IN ('manual', 'tdee')`)
 export class WorkoutDay {
@@ -25,7 +29,7 @@ export class WorkoutDay {
   @JoinColumn({ name: "user_id" })
   user!: Relation<User>;
 
-  @Column({ type: "text" })
+  @Column({ type: "date" })
   date!: string;
 
   @Column({ type: "text", default: "" })

@@ -36,7 +36,10 @@ export class MealPlanCopyService {
     userId: number,
     body: CopyMealPlanDayBody,
   ): Promise<CopyResult> {
-    const source = await this.store.findDay(this.dataSource.manager, body.dayId);
+    const source = await this.store.findDay(
+      this.dataSource.manager,
+      body.dayId,
+    );
 
     if (!source || source.userId !== userId) {
       throw planErrors.dayNotFound();
@@ -153,6 +156,9 @@ export class MealPlanCopyService {
     if (outcome.sources === 0) {
       throw planErrors.noLastWeek();
     }
-    return { copied: outcome.copied, skipped: outcome.sources - outcome.copied };
+    return {
+      copied: outcome.copied,
+      skipped: outcome.sources - outcome.copied,
+    };
   }
 }

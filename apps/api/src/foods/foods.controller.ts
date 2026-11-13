@@ -68,7 +68,10 @@ export class FoodsController {
   ): Promise<FoodListResponse> {
     const page = await this.queries.list(query);
 
-    return { items: page.items.map(toFoodResponse), nextCursor: page.nextCursor };
+    return {
+      items: page.items.map(toFoodResponse),
+      nextCursor: page.nextCursor,
+    };
   }
 
   // The filter chips: only groups that have a food.

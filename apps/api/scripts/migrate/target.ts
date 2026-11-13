@@ -8,6 +8,7 @@ import {
   isMovedColumn,
   MOVED_AVATARS,
 } from "./avatars.js";
+import { DERIVED_COLUMNS } from "./constraints.js";
 import type { PgColumnInfo } from "./convert.js";
 import type { ForeignKey } from "./plan.js";
 
@@ -34,7 +35,8 @@ const COMPATIBLE: Record<string, string[]> = {
   timestamp_s: ["timestamp with time zone"],
   timestamp_ms: ["timestamp with time zone"],
   real: ["double precision", "real"],
-  text: ["text", "character varying"],
+  // `date` holds the YYYY-MM-DD text columns; constraints.ts checks each value.
+  text: ["text", "character varying", "date"],
   json: ["text", "jsonb", "json"],
   blob: ["bytea"],
 };
@@ -140,6 +142,7 @@ export const introspectTarget = async (
         row.table_name === name &&
         !mapped.has(row.column_name) &&
         !(row.column_name in (EXTRA_COLUMNS[name] ?? {})) &&
+        !(DERIVED_COLUMNS[name] ?? []).includes(row.column_name) &&
         row.is_nullable === "NO" &&
         row.column_default === null &&
         row.is_identity !== "YES"
@@ -198,11 +201,9 @@ export const introspectTarget = async (
       continue;
     }
 
-    if (row.cols.length !== 1) {
-      problems.push(`composite foreign key on ${row.child} is not supported`);
-      continue;
-    }
-
+    // A composite key (child owner agrees with the parent's) is two checks:
+    // the parent exists (its first column pair, an ordinary orphan scan) and
+    // the owner agrees (constraints.ts, before any write).
     const mapped = mapping.tables[row.child].columns.some(
       (column) => column.name === row.cols[0],
     );

@@ -1,4 +1,11 @@
-import { Controller, Get, HttpCode, Post, Query, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
 import {
   ApiBearerAuth,
   ApiNoContentResponse,
@@ -35,7 +42,9 @@ export class NotificationsController {
     { name: "cursor", description: "Opaque, from nextCursor" },
     { name: "limit", description: "1 to 100, default 50" },
   )
-  @ApiOkResponse({ schema: toOpenApiSchema(socialNotificationPageResponseSchema) })
+  @ApiOkResponse({
+    schema: toOpenApiSchema(socialNotificationPageResponseSchema),
+  })
   @ApiErrors(400, 401, 403)
   async list(
     @Actor() actor: AuthActor,

@@ -88,7 +88,10 @@ export class EngagementController {
     @Param({ schema: socialIdPathSchema }) params: IdParams,
   ) {
     return {
-      items: await this.engagement.listReactors(toSocialActor(actor), params.id),
+      items: await this.engagement.listReactors(
+        toSocialActor(actor),
+        params.id,
+      ),
     };
   }
 
@@ -150,7 +153,11 @@ export class EngagementController {
     @Param({ schema: socialIdPathSchema }) params: IdParams,
     @Body({ schema: socialCommentRequestSchema }) body: SocialCommentRequest,
   ): Promise<void> {
-    await this.engagement.editComment(toSocialActor(actor), params.id, body.body);
+    await this.engagement.editComment(
+      toSocialActor(actor),
+      params.id,
+      body.body,
+    );
   }
 
   @Delete("comments/:id")

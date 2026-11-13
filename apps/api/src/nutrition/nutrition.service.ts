@@ -123,6 +123,8 @@ export class NutritionService {
   }
 
   async deleteEntry(userId: number, entryId: number) {
-    await this.dataSource.getRepository(FoodEntry).delete({ id: entryId, userId });
+    await this.dataSource
+      .getRepository(FoodEntry)
+      .delete({ id: entryId, userId });
   }
 }

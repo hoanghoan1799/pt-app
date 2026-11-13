@@ -12,6 +12,10 @@ import { loadTursoSchemaStatements } from "./turso-schema.js";
 // derives them from the text key or kind + id pair); its column list comes
 // from turso-columns.json.
 const PG_ONLY_COLUMNS: Record<string, string[]> = {
+  // exercises and meal_plan_meals: the owner of the row's day, copied by the
+  // load (constraints.ts).
+  exercises: ["user_id"],
+  meal_plan_meals: ["user_id"],
   push_subscriptions: ["kind", "owner_user_id", "owner_admin_id"],
   social_posts: ["idempotency_key", "author_user_id", "author_admin_id"],
   chat_photos: ["client_id", "uploader_admin_id"],

@@ -16,7 +16,10 @@ import { nutritionErrors } from "./nutrition.errors.js";
 import { NutritionQueries } from "./nutrition.queries.js";
 import { getBirthYear, getGoalFromAdjustment } from "./rules/energy.js";
 import type { BodyProfileValues } from "./rules/types.js";
-import { TargetsService,type TargetUpdate } from "./targets/targets.service.js";
+import {
+  TargetsService,
+  type TargetUpdate,
+} from "./targets/targets.service.js";
 
 type ProfileRow = {
   sex: BodyProfileValues["sex"];

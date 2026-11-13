@@ -1,4 +1,6 @@
+import { MEAL_PLAN_LIMITS } from "@pt/contracts";
 import {
+  Check,
   Column,
   Entity,
   Index,
@@ -12,6 +14,10 @@ import { Food } from "./food.entity.js";
 import { MealPlanMeal } from "./meal-plan-meal.entity.js";
 
 @Entity("meal_plan_items")
+@Check(
+  "meal_plan_items_grams_range",
+  `"grams" > 0 AND "grams" <= ${MEAL_PLAN_LIMITS.MAX_GRAMS}`,
+)
 @Index("meal_plan_items_meal", ["mealId"])
 @Index("meal_plan_items_food_id_idx", ["foodId"])
 export class MealPlanItem {

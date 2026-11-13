@@ -88,7 +88,10 @@ export class ReportsService {
       [targetId],
     );
 
-    if (target.length === 0 || (actor.kind === "user" && actor.id === targetId)) {
+    if (
+      target.length === 0 ||
+      (actor.kind === "user" && actor.id === targetId)
+    ) {
       return false;
     }
     if (actor.kind === "user") {
@@ -173,7 +176,13 @@ export class ReportsService {
       `UPDATE social_reports
        SET status = 'resolved', resolution = $3, resolved_by = $4, resolved_at = $5
        WHERE target_kind = $1 AND target_id = $2 AND status = 'open'`,
-      [report.target_kind, report.target_id, applied, actor.id, this.clock.now()],
+      [
+        report.target_kind,
+        report.target_id,
+        applied,
+        actor.id,
+        this.clock.now(),
+      ],
     );
   }
 
@@ -193,8 +202,20 @@ export class ReportsService {
     const idsOf = (kind: SocialReportTargetKind) =>
       reports.filter((r) => r.target_kind === kind).map((r) => r.target_id);
     const [posts, comments, targetUsers]: [
-      { id: number; author_kind: string; author_id: number; caption: string | null; deleted_at: Date | null }[],
-      { id: number; post_id: number; author_key: string; body: string; deleted_at: Date | null }[],
+      {
+        id: number;
+        author_kind: string;
+        author_id: number;
+        caption: string | null;
+        deleted_at: Date | null;
+      }[],
+      {
+        id: number;
+        post_id: number;
+        author_key: string;
+        body: string;
+        deleted_at: Date | null;
+      }[],
       { id: number; name: string }[],
     ] = await Promise.all([
       this.dataSource.query(
@@ -257,7 +278,9 @@ export class ReportsService {
       }
       const target = targetUsers.find((u) => u.id === report.target_id);
 
-      return target ? { ...base, preview: null, targetName: target.name, postId: null } : gone;
+      return target
+        ? { ...base, preview: null, targetName: target.name, postId: null }
+        : gone;
     });
   }
 }

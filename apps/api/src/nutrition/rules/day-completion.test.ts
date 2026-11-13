@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  buildWeekCompletion,
-  getDayCompletion,
-} from "./day-completion.js";
+import { buildWeekCompletion, getDayCompletion } from "./day-completion.js";
 
 describe("getDayCompletion", () => {
   it("is complete when every planned meal is marked", () => {

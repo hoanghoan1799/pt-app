@@ -27,14 +27,17 @@ export class Admin {
   @Column({ type: "text", nullable: true })
   passcodeHash!: string | null;
 
-  @Column({ type: "integer", nullable: true, default: 0 })
-  passcodeFailedCount!: number | null;
+  @Column({ type: "integer", default: 0 })
+  passcodeFailedCount!: number;
 
-  @Column({ type: "boolean", nullable: true, default: false })
-  presenceHidden!: boolean | null;
+  @Column({ type: "boolean", default: false })
+  presenceHidden!: boolean;
 
-  @Column({ type: "text", nullable: true })
-  role!: "super_admin" | "pt" | null;
+  // Admins created before roles existed had NULL, which the app read as super
+  // admin; the migration turned those into 'super_admin'. A new row without a
+  // role gets the least privilege.
+  @Column({ type: "text", default: "pt" })
+  role!: "super_admin" | "pt";
 
   @Column({ type: "timestamptz", nullable: true })
   verifiedAt!: Date | null;

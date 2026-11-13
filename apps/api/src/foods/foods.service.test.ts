@@ -62,7 +62,9 @@ describe("FoodsService", () => {
   it("refuses every write for a non-super admin before touching the database", async () => {
     const { service, queries } = setup();
 
-    await expect(service.create(pt, values)).rejects.toThrow(RoleForbiddenError);
+    await expect(service.create(pt, values)).rejects.toThrow(
+      RoleForbiddenError,
+    );
     await expect(service.update(pt, 1, values)).rejects.toThrow(
       RoleForbiddenError,
     );

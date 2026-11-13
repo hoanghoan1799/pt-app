@@ -23,9 +23,7 @@ export const seedKeysContaining = (word: string, locale: FoodLocale) => {
   }
 
   return Object.entries(SEED_FOOD_TRANSLATIONS)
-    .filter(([, translation]) =>
-      toNameKey(translation[locale]).includes(word),
-    )
+    .filter(([, translation]) => toNameKey(translation[locale]).includes(word))
     .map(([nameKey]) => nameKey);
 };
 

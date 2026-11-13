@@ -75,7 +75,12 @@ export class FriendsService {
         const account = accounts.get(`user:${id}`);
 
         return account
-          ? [[id, { id, name: account.name, avatarUrl: account.avatarUrl }] as const]
+          ? [
+              [
+                id,
+                { id, name: account.name, avatarUrl: account.avatarUrl },
+              ] as const,
+            ]
           : [];
       }),
     );
@@ -220,7 +225,10 @@ export class FriendsService {
 
   // `accepted` is true when the other side had already asked me, so the
   // request became a friendship at once.
-  async sendRequest(meId: number, targetId: number): Promise<{ accepted: boolean }> {
+  async sendRequest(
+    meId: number,
+    targetId: number,
+  ): Promise<{ accepted: boolean }> {
     await this.assertRequestable(meId, targetId);
     const existing = await this.relationships.findFriendship(meId, targetId);
 
@@ -274,10 +282,10 @@ export class FriendsService {
     }
     const rows = rowsOf<unknown>(
       await this.dataSource.query(
-      `UPDATE social_friendships SET status = 'accepted', accepted_at = $4
+        `UPDATE social_friendships SET status = 'accepted', accepted_at = $4
        WHERE user_low = $1 AND user_high = $2 AND status = 'pending'
          AND requested_by = $3 RETURNING user_low`,
-      [low, high, requesterId, this.clock.now()],
+        [low, high, requesterId, this.clock.now()],
       ),
     );
 
@@ -294,10 +302,10 @@ export class FriendsService {
     const { low, high } = socialPairOf(requesterId, otherId);
     const rows = rowsOf<unknown>(
       await this.dataSource.query(
-      `DELETE FROM social_friendships
+        `DELETE FROM social_friendships
        WHERE user_low = $1 AND user_high = $2 AND status = 'pending'
          AND requested_by = $3 RETURNING user_low`,
-      [low, high, requesterId],
+        [low, high, requesterId],
       ),
     );
 
@@ -330,10 +338,10 @@ export class FriendsService {
     const { low, high } = socialPairOf(meId, otherId);
     const rows = rowsOf<unknown>(
       await this.dataSource.query(
-      `DELETE FROM social_friendships
+        `DELETE FROM social_friendships
        WHERE user_low = $1 AND user_high = $2 AND status = 'accepted'
        RETURNING user_low`,
-      [low, high],
+        [low, high],
       ),
     );
 
@@ -379,9 +387,9 @@ export class FriendsService {
   async unblock(meId: number, targetId: number) {
     const rows = rowsOf<unknown>(
       await this.dataSource.query(
-      `DELETE FROM social_blocks WHERE blocker_id = $1 AND blocked_id = $2
+        `DELETE FROM social_blocks WHERE blocker_id = $1 AND blocked_id = $2
        RETURNING blocker_id`,
-      [meId, targetId],
+        [meId, targetId],
       ),
     );
 

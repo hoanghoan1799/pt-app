@@ -93,7 +93,9 @@ export class PostsController {
   async me(@Actor() actor: AuthActor): Promise<SocialMeResponse> {
     const social = toSocialActor(actor);
     const version =
-      social.kind === "user" ? await this.accounts.termsVersion(social.id) : null;
+      social.kind === "user"
+        ? await this.accounts.termsVersion(social.id)
+        : null;
 
     return {
       kind: social.kind,
@@ -150,7 +152,9 @@ export class PostsController {
     description: "1 to 128 characters of A-Z a-z 0-9 . _ : -",
   })
   @ApiBody({ schema: toOpenApiSchema(socialCreatePostRequestSchema, "input") })
-  @ApiCreatedResponse({ schema: toOpenApiSchema(socialCreatePostResponseSchema) })
+  @ApiCreatedResponse({
+    schema: toOpenApiSchema(socialCreatePostResponseSchema),
+  })
   @ApiErrors(400, 401, 403, 404)
   async create(
     @Actor() actor: AuthActor,
@@ -187,7 +191,10 @@ export class PostsController {
     @Actor() actor: AuthActor,
     @Param({ schema: socialIdPathSchema }) params: { id: number },
   ): Promise<SocialPostResponse> {
-    const view = await this.queries.getPostView(toSocialActor(actor), params.id);
+    const view = await this.queries.getPostView(
+      toSocialActor(actor),
+      params.id,
+    );
 
     if (!view) {
       throw postNotFound();
@@ -212,7 +219,9 @@ export class PostsController {
   @Delete("posts/:id")
   @HttpCode(204)
   @ApiPathParams("id")
-  @ApiNoContentResponse({ description: "Deleted with its photo and engagement" })
+  @ApiNoContentResponse({
+    description: "Deleted with its photo and engagement",
+  })
   @ApiErrors(401, 403, 404)
   async remove(
     @Actor() actor: AuthActor,

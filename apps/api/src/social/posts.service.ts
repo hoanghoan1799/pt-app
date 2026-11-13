@@ -149,7 +149,9 @@ export class PostsService {
     if (!post) {
       throw postNotFound();
     }
-    if (!this.policy.canEdit(actor, { kind: post.authorKind, id: post.authorId })) {
+    if (
+      !this.policy.canEdit(actor, { kind: post.authorKind, id: post.authorId })
+    ) {
       throw notAllowed();
     }
     const caption = input.caption.trim();
@@ -159,7 +161,12 @@ export class PostsService {
     }
     await this.dataSource.query(
       `UPDATE social_posts SET caption = $2, privacy = $3, updated_at = $4 WHERE id = $1`,
-      [post.id, caption === "" ? null : caption, input.privacy, this.clock.now()],
+      [
+        post.id,
+        caption === "" ? null : caption,
+        input.privacy,
+        this.clock.now(),
+      ],
     );
   }
 
@@ -172,7 +179,10 @@ export class PostsService {
       throw postNotFound();
     }
     if (
-      !this.policy.canDelete(actor, { kind: post.authorKind, id: post.authorId })
+      !this.policy.canDelete(actor, {
+        kind: post.authorKind,
+        id: post.authorId,
+      })
     ) {
       throw notAllowed();
     }
