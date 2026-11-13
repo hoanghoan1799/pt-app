@@ -10,11 +10,19 @@ import {
   type Relation,
 } from "typeorm";
 
-import { adminKeyId, GeneratedId, kindId,userKeyId } from "./actor-ids.js";
+import {
+  adminKeyId,
+  GeneratedId,
+  kindId,
+  socialKeyCheck,
+  userKeyId,
+} from "./actor-ids.js";
 import { Admin } from "./admin.entity.js";
 import { User } from "./user.entity.js";
 
 @Entity("social_reports")
+@Check("social_reports_reporter_key_format", socialKeyCheck("reporter_key"))
+@Check("social_reports_target_id_positive", `"target_id" > 0`)
 @Index("social_reports_reporter_key_idx", ["reporterKey"])
 @Index("social_reports_target_idx", ["targetKind", "targetId"])
 @ForeignKey(() => User, ["reporterUserId"], ["id"], {

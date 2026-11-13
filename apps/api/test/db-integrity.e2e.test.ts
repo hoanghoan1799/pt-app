@@ -256,6 +256,8 @@ describe("account references have real foreign keys", () => {
             return query(sql, params);
           };
 
+          // Id 0 is no key ("user:0") and no valid kind + id pair.
+          expect(await sqlState(run({ kind, id: 0 }))).toBe("23514");
           expect(await sqlState(run({ kind, id: DANGLING }))).toBe("23503");
 
           const before = await count(table);
@@ -298,6 +300,48 @@ describe("account references have real foreign keys", () => {
     ).toBe("23503");
   });
 
+  it("refuses malformed keys with a CHECK, accepts the special forms", async () => {
+    const comment = (key: string) =>
+      query(
+        `INSERT INTO social_comments (post_id, author_key, body, created_at)
+         VALUES ($1, $2, 'x', now())`,
+        [ctx.post, key],
+      );
+    const reader = (key: string) =>
+      query(
+        `INSERT INTO chat_reads (conversation_id, reader_key) VALUES ($1, $2)`,
+        [ctx.conversation, key],
+      );
+    const aliasOwner = `user:${await newUser("alias-owner")}`;
+    const alias = (key: string) =>
+      query(
+        `INSERT INTO contact_aliases (owner_key, target_key, alias, updated_at)
+         VALUES ($1, $2, 'x', now())`,
+        [aliasOwner, key],
+      );
+
+    for (const key of [
+      "user:012",
+      "user:abc",
+      "user:",
+      "user",
+      "admin",
+      "User:1",
+      `user:${ctx.user} `,
+      "user:1234567890",
+      "pt",
+      "",
+    ]) {
+      expect(await sqlState(comment(key)), key).toBe("23514");
+    }
+    for (const key of ["admin:012", "admin:", "pt", "admin", "user:1", ""]) {
+      expect(await sqlState(reader(key)), key).toBe("23514");
+    }
+    expect(await sqlState(alias("user"))).toBe("23514");
+    expect(await sqlState(alias("admin:0"))).toBe("23514");
+    await alias("pt");
+  });
+
   it("maps the generated ids: kind + id pairs and keys", async () => {
     const rows = await query(
       `SELECT author_user_id, author_admin_id FROM social_comments
@@ -332,15 +376,7 @@ describe("account references have real foreign keys", () => {
   });
 
   it("derives the same ids as the data migration script does", async () => {
-    const keys = [
-      `user:${ctx.user}`,
-      `admin:${ctx.admin}`,
-      "user:012",
-      "user:abc",
-      "user:1234567890",
-      "admin:0",
-      "someone",
-    ];
+    const keys = [`user:${ctx.user}`, `admin:${ctx.admin}`];
 
     for (const key of keys) {
       await query(

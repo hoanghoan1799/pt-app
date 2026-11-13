@@ -81,25 +81,57 @@ export const isDerived = (table: string, column: string) =>
 export const deriveId = (table: string, column: string, row: Row) =>
   DERIVED_IDS[`${table}.${column}`](row);
 
-// Source columns the constraint scan reads (kept on the RowRef values).
-export const VIOLATION_COLUMNS: Record<string, string[]> = {
-  chat_messages: ["sender_role", "sender_admin_id"],
+// Format rules of the text keys and ids (the CHECKs of the DbIntegrity
+// migration, mirrored here): social "user:<id>" / "admin:<id>", chat "user" /
+// "admin:<id>", alias targets also "pt", and ids of kind + id pairs > 0.
+const SOCIAL = new RegExp(`^(user|admin):${ID}$`);
+const CHAT = new RegExp(`^(user|admin:${ID})$`);
+const ALIAS_TARGET = new RegExp(`^((user|admin):${ID}|pt)$`);
+
+const FORMAT_RULES: Record<string, Record<string, RegExp | "positive">> = {
+  social_comments: { author_key: SOCIAL },
+  social_reactions: { reactor_key: SOCIAL },
+  social_notifications: { recipient_key: SOCIAL, actor_key: SOCIAL },
+  social_reports: { reporter_key: SOCIAL, target_id: "positive" },
+  social_post_photos: { uploader_key: SOCIAL },
+  social_posts: { author_id: "positive" },
+  chat_custom_stickers: { owner_id: "positive" },
+  push_subscriptions: { owner_key: SOCIAL },
+  contact_aliases: { owner_key: SOCIAL, target_key: ALIAS_TARGET },
+  chat_photos: { uploader_key: CHAT },
+  chat_reactions: { reactor_key: CHAT },
+  chat_reads: { reader_key: CHAT },
 };
+
+// Source columns the constraint scan reads (kept on the RowRef values).
+export const VIOLATION_COLUMNS: Record<string, string[]> = (() => {
+  const columns: Record<string, string[]> = {
+    chat_messages: ["sender_role", "sender_admin_id"],
+  };
+
+  for (const [table, rules] of Object.entries(FORMAT_RULES)) {
+    columns[table] = [...(columns[table] ?? []), ...Object.keys(rules)];
+  }
+
+  return columns;
+})();
 
 export const VIOLATION_REASONS = {
   userMessageWithAdmin: "user_message_with_admin",
+  malformedKey: "malformed_key",
 } as const;
 
 // Rows PostgreSQL would reject for a reason other than a missing parent:
-// chat_messages_user_has_no_admin, a user message with sender_admin_id set.
+//  - chat_messages_user_has_no_admin: a user message with sender_admin_id set;
+//  - a malformed text key, or a kind + id pair with id <= 0 (format CHECKs).
 //
 // The sender-scoped unique indexes need no scan: the frozen SQLite schema
 // already has UNIQUE (conversation_id, client_id) on chat_messages and
 // dm_messages, which is stricter, so the source cannot repeat a client_id.
 export const findViolations = (
   rows: Record<string, RowRef[]>,
-): RowViolation[] =>
-  (rows.chat_messages ?? [])
+): RowViolation[] => {
+  const found: RowViolation[] = (rows.chat_messages ?? [])
     .filter(
       (row) =>
         row.values.sender_role === "user" &&
@@ -112,3 +144,27 @@ export const findViolations = (
       key: row.key,
       reason: VIOLATION_REASONS.userMessageWithAdmin,
     }));
+
+  for (const [table, rules] of Object.entries(FORMAT_RULES)) {
+    for (const row of rows[table] ?? []) {
+      for (const [column, rule] of Object.entries(rules)) {
+        const value = row.values[column];
+        const ok =
+          rule === "positive"
+            ? typeof value === "number" && value > 0
+            : typeof value === "string" && rule.test(value);
+
+        if (!ok) {
+          found.push({
+            table,
+            column,
+            key: row.key,
+            reason: VIOLATION_REASONS.malformedKey,
+          });
+        }
+      }
+    }
+  }
+
+  return found;
+};

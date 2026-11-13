@@ -1,10 +1,25 @@
-import { Column, Entity, ForeignKey,Index, PrimaryColumn } from "typeorm";
+import {
+  Check,
+  Column,
+  Entity,
+  ForeignKey,
+  Index,
+  PrimaryColumn,
+} from "typeorm";
 
-import { adminKeyId,GeneratedId, userKeyId } from "./actor-ids.js";
+import {
+  adminKeyId,
+  aliasTargetCheck,
+  GeneratedId,
+  socialKeyCheck,
+  userKeyId,
+} from "./actor-ids.js";
 import { Admin } from "./admin.entity.js";
 import { User } from "./user.entity.js";
 
 @Entity("contact_aliases")
+@Check("contact_aliases_owner_key_format", socialKeyCheck("owner_key"))
+@Check("contact_aliases_target_key_format", aliasTargetCheck("target_key"))
 @Index("contact_aliases_target_key_idx", ["targetKey"])
 @ForeignKey(() => User, ["ownerUserId"], ["id"], {
   name: "fk_contact_aliases_owner_user_id",

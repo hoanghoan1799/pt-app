@@ -10,12 +10,18 @@ import {
   type Relation,
 } from "typeorm";
 
-import { adminKeyId,GeneratedId, userKeyId } from "./actor-ids.js";
+import {
+  adminKeyId,
+  GeneratedId,
+  socialKeyCheck,
+  userKeyId,
+} from "./actor-ids.js";
 import { Admin } from "./admin.entity.js";
 import { SocialPost } from "./social-post.entity.js";
 import { User } from "./user.entity.js";
 
 @Entity("social_post_photos")
+@Check("social_post_photos_uploader_key_format", socialKeyCheck("uploader_key"))
 @Index("social_post_photos_uploader_key_idx", ["uploaderKey"])
 @ForeignKey(() => User, ["uploaderUserId"], ["id"], {
   name: "fk_social_post_photos_uploader_user_id",

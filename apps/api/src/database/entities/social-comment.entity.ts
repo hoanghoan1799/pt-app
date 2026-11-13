@@ -1,4 +1,5 @@
 import {
+  Check,
   Column,
   Entity,
   ForeignKey,
@@ -9,12 +10,18 @@ import {
   type Relation,
 } from "typeorm";
 
-import { adminKeyId,GeneratedId, userKeyId } from "./actor-ids.js";
+import {
+  adminKeyId,
+  GeneratedId,
+  socialKeyCheck,
+  userKeyId,
+} from "./actor-ids.js";
 import { Admin } from "./admin.entity.js";
 import { SocialPost } from "./social-post.entity.js";
 import { User } from "./user.entity.js";
 
 @Entity("social_comments")
+@Check("social_comments_author_key_format", socialKeyCheck("author_key"))
 // Account deletion (SocialCleanupService) looks content up by the text key.
 @Index("social_comments_author_key_idx", ["authorKey"])
 @ForeignKey(() => User, ["authorUserId"], ["id"], {

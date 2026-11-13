@@ -1,4 +1,5 @@
 import {
+  Check,
   Column,
   Entity,
   ForeignKey,
@@ -9,12 +10,18 @@ import {
   type Relation,
 } from "typeorm";
 
-import { adminKeyId,GeneratedId, userKeyId } from "./actor-ids.js";
+import {
+  adminKeyId,
+  GeneratedId,
+  socialKeyCheck,
+  userKeyId,
+} from "./actor-ids.js";
 import { Admin } from "./admin.entity.js";
 import { SocialPost } from "./social-post.entity.js";
 import { User } from "./user.entity.js";
 
 @Entity("social_reactions")
+@Check("social_reactions_reactor_key_format", socialKeyCheck("reactor_key"))
 @Index("social_reactions_reactor_key_idx", ["reactorKey"])
 @ForeignKey(() => User, ["reactorUserId"], ["id"], {
   name: "fk_social_reactions_reactor_user_id",

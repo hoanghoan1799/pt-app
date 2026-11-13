@@ -10,12 +10,13 @@ import {
   type Relation,
 } from "typeorm";
 
-import { adminKeyId,GeneratedId } from "./actor-ids.js";
+import { adminKeyId, chatKeyCheck,GeneratedId } from "./actor-ids.js";
 import { Admin } from "./admin.entity.js";
 import { ChatConversation } from "./chat-conversation.entity.js";
 import { ChatMessage } from "./chat-message.entity.js";
 
 @Entity("chat_photos")
+@Check("chat_photos_uploader_key_format", chatKeyCheck("uploader_key"))
 @ForeignKey(() => Admin, ["uploaderAdminId"], ["id"], {
   name: "fk_chat_photos_uploader_admin_id",
   onDelete: "CASCADE",

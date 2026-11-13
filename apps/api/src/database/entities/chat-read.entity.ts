@@ -1,4 +1,5 @@
 import {
+  Check,
   Column,
   Entity,
   ForeignKey,
@@ -9,11 +10,12 @@ import {
   type Relation,
 } from "typeorm";
 
-import { adminKeyId,GeneratedId } from "./actor-ids.js";
+import { adminKeyId, chatKeyCheck,GeneratedId } from "./actor-ids.js";
 import { Admin } from "./admin.entity.js";
 import { ChatConversation } from "./chat-conversation.entity.js";
 
 @Entity("chat_reads")
+@Check("chat_reads_reader_key_format", chatKeyCheck("reader_key"))
 @ForeignKey(() => Admin, ["readerAdminId"], ["id"], {
   name: "fk_chat_reads_reader_admin_id",
   onDelete: "CASCADE",

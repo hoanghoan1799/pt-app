@@ -75,6 +75,34 @@ describe("derived account ids", () => {
   });
 });
 
+describe("malformed keys", () => {
+  const row = (values: RowRef["values"]): RowRef => ({ key: "1", values });
+  const bad = (table: string, values: RowRef["values"]) =>
+    findViolations({ [table]: [row(values)] }).map((v) => v.reason);
+
+  it("flags keys the format CHECKs refuse and accepts the allowed forms", () => {
+    for (const key of ["user:abc", "user:012", "user", "pt", "", "user:0"]) {
+      expect(bad("social_comments", { author_key: key }), key).toEqual([
+        "malformed_key",
+      ]);
+    }
+    expect(bad("social_comments", { author_key: "admin:12" })).toEqual([]);
+    expect(bad("chat_reads", { reader_key: "user" })).toEqual([]);
+    expect(bad("chat_reads", { reader_key: "admin:3" })).toEqual([]);
+    expect(bad("chat_reads", { reader_key: "user:3" })).toEqual([
+      "malformed_key",
+    ]);
+    expect(
+      bad("contact_aliases", { owner_key: "user:1", target_key: "pt" }),
+    ).toEqual([]);
+    expect(
+      bad("contact_aliases", { owner_key: "pt", target_key: "pt" }),
+    ).toEqual(["malformed_key"]);
+    expect(bad("social_posts", { author_id: 0 })).toEqual(["malformed_key"]);
+    expect(bad("social_posts", { author_id: 4 })).toEqual([]);
+  });
+});
+
 describe("constraint violations and derived foreign keys", () => {
   const rows: Record<string, RowRef[]> = {
     chat_messages: [
@@ -83,7 +111,9 @@ describe("constraint violations and derived foreign keys", () => {
       { key: "3", values: { sender_role: "admin", sender_admin_id: 4 } },
       { key: "4", values: { sender_role: "admin", sender_admin_id: null } },
     ],
-    chat_reactions: [{ key: "2:x", values: { message_id: 2 } }],
+    chat_reactions: [
+      { key: "2:x", values: { message_id: 2, reactor_key: "admin:1" } },
+    ],
     users: [],
   };
   const fks: ForeignKey[] = [
@@ -115,7 +145,9 @@ describe("constraint violations and derived foreign keys", () => {
         key: row.key,
         values: { ...row.values, id: Number(row.key) },
       })),
-      chat_reactions: [{ key: "2:x", values: { message_id: 2 } }],
+      chat_reactions: [
+        { key: "2:x", values: { message_id: 2, reactor_key: "admin:1" } },
+      ],
     };
 
     const skip = resolveOrphans(fks, withIds, "skip", violations);

@@ -7,11 +7,17 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm";
 
-import { adminKeyId,GeneratedId, userKeyId } from "./actor-ids.js";
+import {
+  adminKeyId,
+  GeneratedId,
+  socialKeyCheck,
+  userKeyId,
+} from "./actor-ids.js";
 import { Admin } from "./admin.entity.js";
 import { User } from "./user.entity.js";
 
 @Entity("push_subscriptions")
+@Check("push_subscriptions_owner_key_format", socialKeyCheck("owner_key"))
 @ForeignKey(() => User, ["ownerUserId"], ["id"], {
   name: "fk_push_subscriptions_owner_user_id",
   onDelete: "CASCADE",

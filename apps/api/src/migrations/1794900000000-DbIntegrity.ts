@@ -8,6 +8,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 //    admins: STORED generated columns extract the account id, a FK with
 //    ON DELETE CASCADE checks it, a partial index serves the cascade. The app
 //    keeps writing the text key. A key that is not account-shaped gives NULL.
+//    CHECKs make every such key well formed (a well-formed key is FK-checked,
+//    nothing else can be stored) and every kind + id id positive.
 // 3. Message dedup key scoped by sender: a retry by the same sender finds the
 //    original, another sender may reuse the same client_id.
 // 4. CHECK: a trainee message never carries an admin id.
@@ -116,6 +118,36 @@ const LOOKUP_INDEXES: [string, string, string][] = [
   ["contact_aliases_target_key_idx", "contact_aliases", `"target_key"`],
 ];
 
+const social = (column: string) => `"${column}" ~ '^(user|admin):${ID}$'`;
+const chat = (column: string) => `"${column}" ~ '^(user|admin:${ID})$'`;
+const aliasTarget = (column: string) =>
+  `"${column}" ~ '^((user|admin):${ID}|pt)$'`;
+
+// Fix 2b: [table, constraint, expression]. Same expressions as the entities.
+const FORMAT_CHECKS: [string, string, string][] = (
+  [
+    ["social_comments", "author_key", social("author_key")],
+    ["social_reactions", "reactor_key", social("reactor_key")],
+    ["social_notifications", "recipient_key", social("recipient_key")],
+    ["social_notifications", "actor_key", social("actor_key")],
+    ["social_reports", "reporter_key", social("reporter_key")],
+    ["social_post_photos", "uploader_key", social("uploader_key")],
+    ["push_subscriptions", "owner_key", social("owner_key")],
+    ["contact_aliases", "owner_key", social("owner_key")],
+    ["contact_aliases", "target_key", aliasTarget("target_key")],
+    ["chat_photos", "uploader_key", chat("uploader_key")],
+    ["chat_reactions", "reactor_key", chat("reactor_key")],
+    ["chat_reads", "reader_key", chat("reader_key")],
+    ["social_posts", "author_id", `"author_id" > 0`],
+    ["chat_custom_stickers", "owner_id", `"owner_id" > 0`],
+    ["social_reports", "target_id", `"target_id" > 0`],
+  ] as [string, string, string][]
+).map(([table, column, expression]) => [
+  table,
+  `${table}_${column}_${column.endsWith("_id") ? "positive" : "format"}`,
+  expression,
+]);
+
 const fkName = (g: Generated) => `fk_${g.table}_${g.column}`;
 const indexName = (g: Generated) => `${g.table}_${g.column}_idx`;
 
@@ -154,6 +186,13 @@ export class DbIntegrity1794900000000 implements MigrationInterface {
       );
     }
 
+    // 2b. Well-formed keys only. A malformed value in existing rows fails here.
+    for (const [table, name, expression] of FORMAT_CHECKS) {
+      await queryRunner.query(
+        `ALTER TABLE "${table}" ADD CONSTRAINT "${name}" CHECK (${expression})`,
+      );
+    }
+
     // 3. Message dedup keys scoped by sender.
     await queryRunner.query(
       `DROP INDEX "public"."chat_messages_conversation_client"`,
@@ -178,6 +217,12 @@ export class DbIntegrity1794900000000 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "chat_messages" DROP CONSTRAINT "chat_messages_user_has_no_admin"`,
     );
+
+    for (const [table, name] of [...FORMAT_CHECKS].reverse()) {
+      await queryRunner.query(
+        `ALTER TABLE "${table}" DROP CONSTRAINT "${name}"`,
+      );
+    }
 
     await queryRunner.query(
       `DROP INDEX "public"."dm_messages_conversation_sender_client"`,

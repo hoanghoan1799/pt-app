@@ -10,12 +10,22 @@ import {
   type Relation,
 } from "typeorm";
 
-import { adminKeyId,GeneratedId, userKeyId } from "./actor-ids.js";
+import {
+  adminKeyId,
+  GeneratedId,
+  socialKeyCheck,
+  userKeyId,
+} from "./actor-ids.js";
 import { Admin } from "./admin.entity.js";
 import { SocialPost } from "./social-post.entity.js";
 import { User } from "./user.entity.js";
 
 @Entity("social_notifications")
+@Check(
+  "social_notifications_recipient_key_format",
+  socialKeyCheck("recipient_key"),
+)
+@Check("social_notifications_actor_key_format", socialKeyCheck("actor_key"))
 @Index("social_notifications_actor_key_idx", ["actorKey"])
 @ForeignKey(() => User, ["recipientUserId"], ["id"], {
   name: "fk_social_notifications_recipient_user_id",

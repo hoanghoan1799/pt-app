@@ -425,6 +425,18 @@ describe("data migration from a Turso/SQLite copy", () => {
             sampleKeys: ["90"],
           }),
           expect.objectContaining({
+            table: "social_comments",
+            column: "author_key",
+            reason: "malformed_key",
+            sampleKeys: ["95"],
+          }),
+          expect.objectContaining({
+            table: "chat_reads",
+            column: "reader_key",
+            reason: "malformed_key",
+            sampleKeys: ["1:admin:x"],
+          }),
+          expect.objectContaining({
             table: "social_reactions",
             column: "reactor_admin_id",
             parentTable: "admins",
@@ -456,7 +468,11 @@ describe("data migration from a Turso/SQLite copy", () => {
       expect(exitCode, output).toBe(0);
       expect(report.skippedRows).toEqual(
         expect.arrayContaining([
-          { table: "social_comments", keys: ["90"] },
+          {
+            table: "social_comments",
+            keys: expect.arrayContaining(["90", "95"]),
+          },
+          { table: "chat_reads", keys: ["1:admin:x"] },
           { table: "social_reactions", keys: ["1:admin:9999"] },
           { table: "social_reports", keys: ["90"] },
           { table: "chat_messages", keys: ["91"] },

@@ -86,9 +86,9 @@ const seedGraph = async ({ userId, otherId, adminId, foodId }: Cast) => {
     senderRole: "user",
     createdAt: now,
   });
-  await insertRow(ds, ChatReaction, { messageId, reactorKey: key });
+  await insertRow(ds, ChatReaction, { messageId, reactorKey: "user" });
   await insertRow(ds, ChatMessageEdit, { messageId });
-  await insertRow(ds, ChatRead, { conversationId, readerKey: key });
+  await insertRow(ds, ChatRead, { conversationId, readerKey: "user" });
   await insertRow(ds, ChatColorOverride, { conversationId, adminId });
   await insertRow(ds, ChatNickname, {
     conversationId,
@@ -97,7 +97,7 @@ const seedGraph = async ({ userId, otherId, adminId, foodId }: Cast) => {
   });
   await insertRow(ds, ChatPhoto, {
     conversationId,
-    uploaderKey: key,
+    uploaderKey: "user",
     mime: "image/png",
   });
   await insertRow(ds, ChatHiddenConversation, { adminId, conversationId });

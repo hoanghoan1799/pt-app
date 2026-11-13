@@ -678,6 +678,27 @@ const nullableOrphans = (): Entry[] => [
 // (The unique client_id rules need no fixture: SQLite already had a stricter
 // UNIQUE (conversation_id, client_id).)
 const dirtyKeys = (): Entry[] => [
+  // Malformed keys: the format CHECKs refuse them (a key like this was never
+  // checked in SQLite).
+  [
+    "social_comments",
+    {
+      id: 95,
+      post_id: 1,
+      author_key: "user:abc",
+      body: "Khóa sai định dạng",
+      created_at: MS + 4210,
+    },
+  ],
+  [
+    "chat_reads",
+    {
+      conversation_id: 1,
+      reader_key: "admin:x",
+      last_read_message_id: 0,
+      updated_at: S + 74,
+    },
+  ],
   [
     "social_comments",
     {

@@ -30,3 +30,17 @@ export const GeneratedId = (asExpression: string) =>
     generatedType: "STORED",
     asExpression,
   });
+
+// CHECK expressions that make every account key well formed, so a key is either
+// FK-checked through its generated column or refused (never stored unchecked).
+// The id part has at most 9 digits, like the generated columns.
+export const socialKeyCheck = (column: string) =>
+  `"${column}" ~ '^(user|admin):${ID}$'`;
+
+// Chat scheme: "user" (the conversation's trainee) or "admin:<id>".
+export const chatKeyCheck = (column: string) =>
+  `"${column}" ~ '^(user|admin:${ID})$'`;
+
+// Alias targets also allow the PT side as a whole ("pt").
+export const aliasTargetCheck = (column: string) =>
+  `"${column}" ~ '^((user|admin):${ID}|pt)$'`;

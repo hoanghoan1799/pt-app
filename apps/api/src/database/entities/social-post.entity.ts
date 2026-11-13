@@ -16,6 +16,7 @@ import { SocialPostPhoto } from "./social-post-photo.entity.js";
 import { User } from "./user.entity.js";
 
 @Entity("social_posts")
+@Check("social_posts_author_id_positive", `"author_id" > 0`)
 @ForeignKey(() => User, ["authorUserId"], ["id"], {
   name: "fk_social_posts_author_user_id",
   onDelete: "CASCADE",
