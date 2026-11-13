@@ -3,10 +3,8 @@ import type { DataSource } from "typeorm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { Clock } from "../src/common/clock.js";
-import { Admin } from "../src/database/entities/admin.entity.js";
 import { UserAvatar } from "../src/database/entities/user-avatar.entity.js";
 import { BytesInPostgresStorage } from "../src/files/bytes-in-postgres.storage.js";
-import { verifyExistingSuperAdmins } from "../src/scripts/data-fixes.js";
 import { createTestApp } from "./support/app.js";
 import {
   FakeClock,
@@ -117,37 +115,6 @@ describe("BytesInPostgresStorage", () => {
 
     expect(
       await storage.get({ collection: "avatar-user", id: user.id }),
-    ).toBeNull();
-  });
-});
-
-describe("verifyExistingSuperAdmins", () => {
-  it("gives roleless admins the super_admin role and the tick, once, and leaves PTs alone", async () => {
-    const legacy = await seedAdmin(ds, { role: null });
-    const pt = await seedAdmin(ds, { role: "pt" });
-    const now = new Date("2026-11-12T10:00:00.000Z");
-
-    expect(await verifyExistingSuperAdmins(ds, now)).toBeGreaterThanOrEqual(1);
-    expect(
-      await ds.getRepository(Admin).findOneByOrFail({ id: legacy.id }),
-    ).toMatchObject({
-      role: "super_admin",
-      verifiedAt: now,
-    });
-    expect(
-      await ds.getRepository(Admin).findOneByOrFail({ id: pt.id }),
-    ).toMatchObject({
-      role: "pt",
-      verifiedAt: null,
-    });
-    // A tick removed later is not granted again.
-    await ds
-      .getRepository(Admin)
-      .update({ id: legacy.id }, { verifiedAt: null });
-    expect(await verifyExistingSuperAdmins(ds, now)).toBe(0);
-    expect(
-      (await ds.getRepository(Admin).findOneByOrFail({ id: legacy.id }))
-        .verifiedAt,
     ).toBeNull();
   });
 });

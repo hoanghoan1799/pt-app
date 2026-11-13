@@ -1,6 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
-import { type SocialAuthorKind, type SocialPostPrivacy, toAdminRole } from "@pt/contracts";
+import {
+  type SocialAuthorKind,
+  type SocialPostPrivacy,
+  toAdminRole,
+} from "@pt/contracts";
 import { DataSource, EntityManager } from "typeorm";
 
 import { PtScopePolicy } from "../auth/policies/pt-scope.policy.js";
@@ -85,7 +89,10 @@ export class PostAccess {
     }
     if (viewer.kind === "user") {
       if (author.kind === "user") {
-        Object.assign(ctx, await this.relationships.pairState(viewer.id, author.id));
+        Object.assign(
+          ctx,
+          await this.relationships.pairState(viewer.id, author.id),
+        );
       }
       const rows: { pt_admin_id: number | null }[] =
         await this.dataSource.query(
@@ -114,7 +121,10 @@ export class PostAccess {
   }
 
   // Whether the viewer may see a post whose author and privacy are known.
-  async canSee(viewer: SocialActor, post: AuthorRef & { privacy: SocialPostPrivacy }) {
+  async canSee(
+    viewer: SocialActor,
+    post: AuthorRef & { privacy: SocialPostPrivacy },
+  ) {
     const ctx = await this.visibilityContext(viewer, post);
 
     if (!this.policy.canView(viewer, post, ctx)) {

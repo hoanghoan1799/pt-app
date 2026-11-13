@@ -1,13 +1,21 @@
 import { Injectable } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
-import { type FoodFormValues, type FoodResponse, toNameKey } from "@pt/contracts";
+import {
+  type FoodFormValues,
+  type FoodResponse,
+  toNameKey,
+} from "@pt/contracts";
 import { DataSource, QueryFailedError } from "typeorm";
 
 import type { AuthActor } from "../auth/actor.js";
 import { Clock } from "../common/clock.js";
 import { Food } from "../database/entities/food.entity.js";
 import { FoodNameTakenError, FoodNotFoundError } from "./foods.errors.js";
-import { type FoodColumns, toFoodColumns, toFoodResponse } from "./foods.mapper.js";
+import {
+  type FoodColumns,
+  toFoodColumns,
+  toFoodResponse,
+} from "./foods.mapper.js";
 import { FoodsPolicy } from "./foods.policy.js";
 import { FoodsQueries } from "./foods.queries.js";
 import { SEED_FOOD_TRANSLATIONS } from "./seed/food-translations.js";
@@ -58,7 +66,10 @@ export class FoodsService {
     private readonly clock: Clock,
   ) {}
 
-  async create(actor: AuthActor, values: FoodFormValues): Promise<FoodResponse> {
+  async create(
+    actor: AuthActor,
+    values: FoodFormValues,
+  ): Promise<FoodResponse> {
     this.policy.assertCanManage(actor);
 
     const columns = toFoodColumns(values);

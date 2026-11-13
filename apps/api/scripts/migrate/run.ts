@@ -3,6 +3,7 @@ import { writeFileSync } from "node:fs";
 import type { Client as LibsqlClient } from "@libsql/client";
 import { Client } from "pg";
 
+import { pgTypes } from "../../src/database/data-source-options.js";
 import {
   loadTursoColumns,
   type TableSpec,
@@ -20,12 +21,22 @@ import {
 import {
   checkLastMessages,
   countLegacy,
-  derivedValues,
+  derivedValues as scanValues,
   findChatSocialViolations,
   legacyProblems,
   SCAN_COLUMNS,
   withoutLegacy,
 } from "./chat-social.js";
+import {
+  backfills,
+  DERIVED_COLUMNS,
+  derivedValues,
+  nullingConflicts,
+  resetConstraintState,
+  resolveViolations,
+  visitRow,
+  withoutSkipped,
+} from "./constraints.js";
 import {
   hashRow,
   normalizeSource,
@@ -202,6 +213,7 @@ const analyse = async (
         const values: RowRef["values"] = {};
 
         seen += 1;
+        visitRow(table, key, row);
 
         for (const column of spec.columns) {
           const value = row[column.name];
@@ -291,7 +303,7 @@ const analyse = async (
           values[column] = deriveId(table, column, row);
         }
 
-        Object.assign(values, derivedValues(table, row));
+        Object.assign(values, scanValues(table, row));
 
         rows[table].push({ key, values });
       }
@@ -376,11 +388,13 @@ const loadTables = async (
   for (const table of plan.order) {
     const spec = mapping.tables[table];
     const extras = EXTRA_COLUMNS[table] ?? {};
+    const derived = DERIVED_COLUMNS[table] ?? [];
     const columns = ownColumns(spec, table);
     const moved = movedAvatarOf(table);
     const insertColumns = [
       ...columns.map((column) => column.name),
       ...Object.keys(extras),
+      ...derived,
     ];
     const deferred = new Set(
       plan.deferred.filter((fk) => fk.table === table).map((fk) => fk.column),
@@ -453,7 +467,11 @@ const loadTables = async (
           return toPgValue(column, row[column.name]);
         });
 
-        params.push([...values, ...Object.values(extras)]);
+        params.push([
+          ...values,
+          ...Object.values(extras),
+          ...derivedValues(table, row),
+        ]);
       }
 
       for (let start = 0; start < params.length; start += perStatement) {
@@ -759,6 +777,40 @@ const printOrphans = (report: Report, log: Log) => {
   );
 };
 
+const printConstraints = (report: Report, log: Log) => {
+  if (report.backfilledValues.length > 0) {
+    log("\nNULLs converted to the new column defaults:");
+    log(
+      formatTable(
+        ["table", "column", "becomes", "count", "sample ids"],
+        report.backfilledValues.map((item) => [
+          item.table,
+          item.column,
+          String(item.value),
+          String(item.count),
+          item.sampleKeys.join(", "),
+        ]),
+      ),
+    );
+  }
+
+  if (report.constraintViolations.length > 0) {
+    log("\nRows that break a new constraint:");
+    log(
+      formatTable(
+        ["table", "column", "rule", "count", "sample ids"],
+        report.constraintViolations.map((group) => [
+          group.table,
+          group.column,
+          group.rule,
+          String(group.count),
+          group.sampleKeys.join(", "),
+        ]),
+      ),
+    );
+  }
+};
+
 const printVerification = (report: Report, log: Log) => {
   log("\nVerification (rows and checksum, source vs PostgreSQL):");
   log(
@@ -825,6 +877,7 @@ const isVerified = (report: Report) =>
   report.sequences.every((sequence) => sequence.ok);
 
 const execute = async (options: RunOptions, report: Report, log: Log) => {
+  resetConstraintState();
   // Without the table and columns PostgreSQL dropped (chat-social.ts); the
   // source schema check below still uses the full description.
   const sourceMapping = loadTursoColumns();
@@ -856,7 +909,10 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
   }
 
   const source = openSource(options.source, options.authToken);
-  const target = new Client({ connectionString: options.target });
+  const target = new Client({
+    connectionString: options.target,
+    types: pgTypes,
+  });
   let inTransaction = false;
 
   try {
@@ -945,15 +1001,45 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
       throw new Abort("The source has values PostgreSQL cannot accept");
     }
 
+    // New constraints (db-constraints migration): NULLs backfilled, rows that
+    // would break a CHECK, an owner link or a unique position.
+    report.backfilledValues = backfills();
+    const violations = resolveViolations(options.orphans);
+
+    report.constraintViolations = violations.groups;
+    printConstraints(report, log);
+
+    if (violations.blocker) {
+      throw new Abort(violations.blocker);
+    }
+
     const resolution = resolveOrphans(
       schema.foreignKeys,
-      analysis.rows,
+      withoutSkipped(analysis.rows, violations.skipped),
       options.orphans,
       [
         ...findViolations(analysis.rows),
-        ...findChatSocialViolations(analysis.rows),
+        ...findChatSocialViolations(
+          withoutSkipped(analysis.rows, violations.skipped),
+        ),
       ],
     );
+
+    for (const [table, keys] of Object.entries(violations.skipped)) {
+      resolution.skipped[table] = [
+        ...(resolution.skipped[table] ?? []),
+        ...keys,
+      ];
+    }
+
+    const conflicts = nullingConflicts(resolution);
+
+    if (conflicts.length > 0) {
+      report.constraintViolations.push(...conflicts);
+      throw new Abort(
+        "--orphans=null would leave meal_logs rows with neither a food nor a name; use --orphans=skip",
+      );
+    }
 
     report.orphans = resolution.groups;
     report.skippedRows = Object.entries(resolution.skipped).map(

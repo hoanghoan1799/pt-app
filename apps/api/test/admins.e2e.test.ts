@@ -51,7 +51,7 @@ describe("GET /v1/pts", () => {
   it("lists every admin account with trainee counts, for a super admin only", async () => {
     const boss = await adminToken("super_admin");
     const pt = await seedAdmin(ds, { role: "pt" });
-    const legacy = await seedAdmin(ds, { role: null });
+    const second = await seedAdmin(ds, { role: "super_admin" });
     const ptToken = await adminToken("pt");
 
     await seedUser(ds, { ptAdminId: pt.id });
@@ -74,8 +74,7 @@ describe("GET /v1/pts", () => {
       verified: false,
       traineeCount: 2,
     });
-    // Null role = super admin.
-    expect(accounts.find((a) => a.id === legacy.id)).toMatchObject({
+    expect(accounts.find((a) => a.id === second.id)).toMatchObject({
       role: "super_admin",
       traineeCount: 0,
     });

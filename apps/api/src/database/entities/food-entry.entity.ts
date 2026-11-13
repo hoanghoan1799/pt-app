@@ -1,3 +1,4 @@
+import { NUTRITION_LIMITS } from "@pt/contracts";
 import {
   Check,
   Column,
@@ -12,6 +13,15 @@ import {
 import { User } from "./user.entity.js";
 
 @Entity("food_entries")
+@Check(
+  "food_entries_grams_range",
+  [`"carbs"`, `"protein"`, `"fat"`]
+    .map(
+      (column) =>
+        `(${column} IS NULL OR ${column} BETWEEN 0 AND ${NUTRITION_LIMITS.MAX_GRAMS})`,
+    )
+    .join(" AND "),
+)
 @Check(`"meal" IN ('breakfast', 'lunch', 'dinner', 'snack')`)
 @Index("food_entries_user_id_idx", ["userId"])
 export class FoodEntry {
@@ -25,7 +35,7 @@ export class FoodEntry {
   @JoinColumn({ name: "user_id" })
   user!: Relation<User>;
 
-  @Column({ type: "text" })
+  @Column({ type: "date" })
   date!: string;
 
   @Column({ type: "text" })

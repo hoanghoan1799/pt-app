@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { type EntityManager,In } from "typeorm";
+import { type EntityManager, In } from "typeorm";
 
 import { MealPlanDay } from "../database/entities/meal-plan-day.entity.js";
 import { MealPlanItem } from "../database/entities/meal-plan-item.entity.js";
@@ -202,6 +202,7 @@ export class MealPlanStore {
       MealPlanMeal,
       plan.meals.map((meal) => ({
         dayId,
+        userId,
         position: meal.position,
         name: meal.name,
         sharePercent: meal.sharePercent,

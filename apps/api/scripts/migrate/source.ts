@@ -5,6 +5,7 @@ import { type Client, createClient } from "@libsql/client";
 
 import type { TableSpec, TursoColumns } from "../turso-columns.js";
 import { repairSourceRow } from "./chat-social.js";
+import { applyDefaults } from "./constraints.js";
 import type { SourceValue } from "./convert.js";
 
 export type SourceRow = Record<string, SourceValue>;
@@ -148,7 +149,7 @@ export async function* readTable(
       );
 
       repairSourceRow(table, values);
-      return values;
+      return applyDefaults(table, values);
     });
 
     if (result.rows.length < batchSize) {

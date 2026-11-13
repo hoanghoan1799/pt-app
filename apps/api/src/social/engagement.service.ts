@@ -161,7 +161,9 @@ export class EngagementService {
         body: row.body,
         createdAt: row.created_at,
         edited: row.updated_at !== null,
-        canEdit: this.commentPolicy.canEdit(actor, { authorKey: row.author_key }),
+        canEdit: this.commentPolicy.canEdit(actor, {
+          authorKey: row.author_key,
+        }),
         canDelete: this.commentPolicy.canDelete(
           actor,
           { authorKey: row.author_key },
@@ -174,7 +176,9 @@ export class EngagementService {
     return {
       items,
       nextCursor:
-        rows.length > limit && last ? timeCursor(last.created_at, last.id) : null,
+        rows.length > limit && last
+          ? timeCursor(last.created_at, last.id)
+          : null,
     };
   }
 

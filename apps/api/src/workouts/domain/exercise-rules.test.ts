@@ -1,7 +1,12 @@
 import { parseYoutubeId } from "@pt/contracts";
 import { describe, expect, it } from "vitest";
 
-import { hasDayContent, isTimedReps, normalizeCopyTargets, shouldConfirmLinkChange } from "./exercise-rules.js";
+import {
+  hasDayContent,
+  isTimedReps,
+  normalizeCopyTargets,
+  shouldConfirmLinkChange,
+} from "./exercise-rules.js";
 
 const today = "2026-11-09";
 
@@ -96,7 +101,6 @@ describe("isTimedReps", () => {
     expect(isTimedReps(reps)).toBe(false);
   });
 });
-
 
 describe("shouldConfirmLinkChange", () => {
   const OLD_ID = "dQw4w9WgXcQ";

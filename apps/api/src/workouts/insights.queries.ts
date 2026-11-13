@@ -172,7 +172,10 @@ export class InsightsQueries {
       );
 
     return new Map(
-      rows.map((row) => [Number(row.targetKey.slice("user:".length)), row.alias]),
+      rows.map((row) => [
+        Number(row.targetKey.slice("user:".length)),
+        row.alias,
+      ]),
     );
   }
 

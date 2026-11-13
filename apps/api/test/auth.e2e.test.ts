@@ -177,8 +177,11 @@ describe("user login", () => {
 });
 
 describe("admin login", () => {
-  it("signs in by username (case-insensitive) and maps the null role to super_admin", async () => {
-    const admin = await seedAdmin(ds, { username: "Coach.Lan", role: null });
+  it("signs in by username (case-insensitive) and returns the role", async () => {
+    const admin = await seedAdmin(ds, {
+      username: "Coach.Lan",
+      role: "super_admin",
+    });
     const response = await loginAdmin(app, {
       username: " coach.lan ",
       password: admin.password,

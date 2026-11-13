@@ -104,8 +104,6 @@ describe("sumLogNutrition", () => {
   });
 });
 
-
-
 describe("countMealNutrition", () => {
   // Per 100 g: chicken P 31 / F 3.6, rice P 2.7 / C 28.2 / F 0.3.
   const RICE = { kcal: 130, protein: 2.7, carbs: 28.2, fat: 0.3 };

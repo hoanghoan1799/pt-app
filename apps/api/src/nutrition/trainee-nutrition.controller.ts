@@ -8,7 +8,7 @@ import {
   Patch,
   Post,
   Put,
-         Query,
+  Query,
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import {

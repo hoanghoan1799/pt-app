@@ -46,12 +46,16 @@ export const toPostResponse = (post: PostView): SocialPostResponse => ({
   commentCount: post.commentCount,
 });
 
-export const toPostPageResponse = (page: PostPageView): SocialPostPageResponse => ({
+export const toPostPageResponse = (
+  page: PostPageView,
+): SocialPostPageResponse => ({
   items: page.items.map(toPostResponse),
   nextCursor: page.nextCursor,
 });
 
-export const toCommentResponse = (comment: CommentView): SocialCommentResponse => ({
+export const toCommentResponse = (
+  comment: CommentView,
+): SocialCommentResponse => ({
   id: comment.id,
   authorKind: comment.authorKind,
   authorId: comment.authorId,
@@ -83,7 +87,9 @@ export const toNotificationPageResponse = (
   unreadCount: page.unreadCount,
 });
 
-export const toProfileResponse = (profile: ProfileView): SocialProfileResponse => ({
+export const toProfileResponse = (
+  profile: ProfileView,
+): SocialProfileResponse => ({
   kind: profile.kind,
   id: profile.id,
   name: profile.name,

@@ -57,12 +57,12 @@ describe("isSameWeekCopy", () => {
 
 describe("canCopyInto", () => {
   it("lets a PT copy into their own trainee only", () => {
-    expect(
-      policy.canCopyInto(admin(), { ptAdminId: 1, hidden: false }),
-    ).toBe(true);
-    expect(
-      policy.canCopyInto(admin(), { ptAdminId: 2, hidden: false }),
-    ).toBe(false);
+    expect(policy.canCopyInto(admin(), { ptAdminId: 1, hidden: false })).toBe(
+      true,
+    );
+    expect(policy.canCopyInto(admin(), { ptAdminId: 2, hidden: false })).toBe(
+      false,
+    );
     expect(
       policy.canCopyInto(admin(), { ptAdminId: null, hidden: false }),
     ).toBe(false);

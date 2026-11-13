@@ -13,7 +13,12 @@ import type { SocialActor } from "./social-actor.js";
 const NOW = new Date("2026-11-12T10:00:00.000Z");
 const clock = { now: () => NOW } as Clock;
 const ann: SocialActor = { kind: "user", id: 1 };
-const superAdmin: SocialActor = { kind: "admin", id: 9, role: "super_admin", revealed: false };
+const superAdmin: SocialActor = {
+  kind: "admin",
+  id: 9,
+  role: "super_admin",
+  revealed: false,
+};
 
 const post = (overrides: Partial<PostRow> = {}): PostRow => ({
   id: 7,
@@ -49,7 +54,11 @@ describe("PostsService", () => {
     const { service, query } = build();
 
     await expect(
-      service.create(ann, { caption: "  ", privacy: "friends", photoId: null }, null),
+      service.create(
+        ann,
+        { caption: "  ", privacy: "friends", photoId: null },
+        null,
+      ),
     ).rejects.toMatchObject({ response: { code: "EMPTY_POST" } });
     expect(query).not.toHaveBeenCalled();
   });
@@ -59,7 +68,11 @@ describe("PostsService", () => {
 
     query.mockResolvedValueOnce([{ id: 55 }]);
     await expect(
-      service.create(ann, { caption: "hi", privacy: "friends", photoId: null }, "k1"),
+      service.create(
+        ann,
+        { caption: "hi", privacy: "friends", photoId: null },
+        "k1",
+      ),
     ).resolves.toEqual({ postId: 55, replayed: true });
     expect(transaction).not.toHaveBeenCalled();
     expect(publish).not.toHaveBeenCalled();
@@ -69,10 +82,16 @@ describe("PostsService", () => {
     const { service, query, transaction } = build();
 
     query.mockResolvedValueOnce([]);
-    transaction.mockRejectedValueOnce(Object.assign(new Error("dup"), { code: "23505" }));
+    transaction.mockRejectedValueOnce(
+      Object.assign(new Error("dup"), { code: "23505" }),
+    );
     query.mockResolvedValueOnce([{ id: 77 }]);
     await expect(
-      service.create(ann, { caption: "hi", privacy: "friends", photoId: null }, "k2"),
+      service.create(
+        ann,
+        { caption: "hi", privacy: "friends", photoId: null },
+        "k2",
+      ),
     ).resolves.toEqual({ postId: 77, replayed: true });
   });
 
@@ -108,16 +127,17 @@ describe("PostsService", () => {
     ).rejects.toMatchObject({ status: 403 });
     await expect(
       build(null).service.edit(ann, 7, { caption: "x", privacy: "friends" }),
-    ).rejects.toMatchObject({ status: 404, response: { code: "POST_NOT_FOUND" } });
+    ).rejects.toMatchObject({
+      status: 404,
+      response: { code: "POST_NOT_FOUND" },
+    });
     const { service, query } = build();
 
     await service.edit(ann, 7, { caption: " new ", privacy: "only_me" });
-    expect(query).toHaveBeenCalledWith(expect.stringContaining("UPDATE social_posts"), [
-      7,
-      "new",
-      "only_me",
-      NOW,
-    ]);
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining("UPDATE social_posts"),
+      [7, "new", "only_me", NOW],
+    );
   });
 
   it("refuses to clear the text of a post without a photo, but keeps a photo post", async () => {
@@ -136,13 +156,17 @@ describe("PostsService", () => {
   it("lets the author or a super admin delete, in one transaction", async () => {
     const stranger: SocialActor = { kind: "user", id: 2 };
 
-    await expect(build().service.delete(stranger, 7)).rejects.toMatchObject({ status: 403 });
+    await expect(build().service.delete(stranger, 7)).rejects.toMatchObject({
+      status: 403,
+    });
     const { service, transaction, query } = build();
 
     await service.delete(superAdmin, 7);
     expect(transaction).toHaveBeenCalledTimes(1);
     expect(query).toHaveBeenCalledTimes(5);
-    await expect(build(null).service.delete(ann, 7)).rejects.toMatchObject({ status: 404 });
+    await expect(build(null).service.delete(ann, 7)).rejects.toMatchObject({
+      status: 404,
+    });
   });
 });
 
@@ -236,11 +260,19 @@ describe("NotificationsListener", () => {
 
     await listener.onPostPublished(event);
     expect(notifications.adminPostRecipientIds).toHaveBeenCalledWith(9, false);
-    expect(publish.mock.calls.map(([, payload]) => (payload as { notificationId: number }).notificationId)).toEqual([10, 11]);
+    expect(
+      publish.mock.calls.map(
+        ([, payload]) => (payload as { notificationId: number }).notificationId,
+      ),
+    ).toEqual([10, 11]);
 
     notifications.createAdminPost.mockClear();
     await listener.onPostPublished({ ...event, privacy: "only_me" });
-    await listener.onPostPublished({ ...event, authorKind: "user", authorId: 1 });
+    await listener.onPostPublished({
+      ...event,
+      authorKind: "user",
+      authorId: 1,
+    });
     expect(notifications.createAdminPost).not.toHaveBeenCalled();
   });
 
@@ -248,7 +280,15 @@ describe("NotificationsListener", () => {
     const { listener, notifications } = build();
 
     await listener.onUserBlocked({ blockerId: 1, blockedId: 2 });
-    expect(notifications.removeFriend).toHaveBeenNthCalledWith(1, "user:1", "user:2");
-    expect(notifications.removeFriend).toHaveBeenNthCalledWith(2, "user:2", "user:1");
+    expect(notifications.removeFriend).toHaveBeenNthCalledWith(
+      1,
+      "user:1",
+      "user:2",
+    );
+    expect(notifications.removeFriend).toHaveBeenNthCalledWith(
+      2,
+      "user:2",
+      "user:1",
+    );
   });
 });

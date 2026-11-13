@@ -55,6 +55,7 @@ export class ExercisesService {
       const created = await em.save(
         em.create(Exercise, {
           dayId: day.id,
+          userId,
           title: body.title,
           description: body.description,
           sets: body.sets,
@@ -137,7 +138,7 @@ export class ExercisesService {
   }
 
   // Swaps the exercise with its neighbour. Missing exercise or an edge is a
-  // silent no-op. Renumbering every sibling also repairs gaps or duplicates.
+  // silent no-op. Renumbering every sibling also repairs gaps (a position is unique in a day, so there are no duplicates). The unique constraint is deferred: the renumbering may pass through a duplicate inside the transaction.
   async move(userId: number, exerciseId: number, direction: MoveDirection) {
     await this.dataSource.transaction(async (em) => {
       const existing = await this.queries.findOwnedExercise(

@@ -82,12 +82,16 @@ export class PhotosController {
   @HttpCode(201)
   @ApiConsumes("image/webp", "image/jpeg", "image/png")
   @ApiBody({ schema: { type: "string", format: "binary" } })
-  @ApiCreatedResponse({ schema: toOpenApiSchema(socialPhotoUploadResponseSchema) })
+  @ApiCreatedResponse({
+    schema: toOpenApiSchema(socialPhotoUploadResponseSchema),
+  })
   @ApiErrors(400, 401, 403, 413)
   async upload(@Actor() actor: AuthActor, @Req() request: Request) {
     const bytes = await readBody(request, SOCIAL_POST_PHOTO_MAX_BYTES);
 
-    return { photo: { id: await this.photos.upload(toSocialActor(actor), bytes) } };
+    return {
+      photo: { id: await this.photos.upload(toSocialActor(actor), bytes) },
+    };
   }
 
   // GET: the photo of a post. 404 unless the post is visible to the viewer,

@@ -8,7 +8,9 @@ export const ScopedUserId = createParamDecorator(
     const id = context.switchToHttp().getRequest<AuthedRequest>().scopedUserId;
 
     if (id === undefined) {
-      throw new Error("@ScopedUserId() used on a route without @ScopedToTrainee()");
+      throw new Error(
+        "@ScopedUserId() used on a route without @ScopedToTrainee()",
+      );
     }
     return id;
   },

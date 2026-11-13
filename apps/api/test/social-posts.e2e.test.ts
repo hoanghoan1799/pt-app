@@ -143,9 +143,11 @@ describe("sessions and the terms gate", () => {
       postPrivacyDefault: "friends",
       unreadNotifications: 0,
     });
-    expect(
-      (await api.get("/me", w.tokens.ptA)).body,
-    ).toMatchObject({ kind: "admin", termsAccepted: true, postPrivacyDefault: "everyone" });
+    expect((await api.get("/me", w.tokens.ptA)).body).toMatchObject({
+      kind: "admin",
+      termsAccepted: true,
+      postPrivacyDefault: "everyone",
+    });
   });
 });
 
@@ -177,9 +179,10 @@ describe("create, edit and delete", () => {
     expect((await api.get("/me", w.tokens.ann)).body.postPrivacyDefault).toBe(
       "everyone",
     );
-    await w.ds.query(`UPDATE users SET post_privacy_default = 'friends' WHERE id = $1`, [
-      w.ids.ann,
-    ]);
+    await w.ds.query(
+      `UPDATE users SET post_privacy_default = 'friends' WHERE id = $1`,
+      [w.ids.ann],
+    );
   });
 
   it("rejects an empty post, a long caption and a bad privacy", async () => {
@@ -203,12 +206,16 @@ describe("create, edit and delete", () => {
     expect(long.body.code).toBe("VALIDATION_FAILED");
     expect(long.body.message).toContain(SOCIAL_MESSAGES.CAPTION_TOO_LONG);
     expect(
-      (await api.post("/posts", w.tokens.ann, { caption: "x", privacy: "public" }))
-        .status,
+      (
+        await api.post("/posts", w.tokens.ann, {
+          caption: "x",
+          privacy: "public",
+        })
+      ).status,
     ).toBe(400);
-    expect((await api.post("/posts", w.tokens.ann, { privacy: "friends" })).status).toBe(
-      400,
-    );
+    expect(
+      (await api.post("/posts", w.tokens.ann, { privacy: "friends" })).status,
+    ).toBe(400);
   });
 
   it("accepts a caption of exactly 2000 characters", async () => {
@@ -236,7 +243,9 @@ describe("create, edit and delete", () => {
       code: "PHOTO_NOT_FOUND",
       message: SOCIAL_MESSAGES.PHOTO_NOT_FOUND,
     });
-    expect(await count(w.ds, `SELECT count(*)::int FROM social_posts`)).toBe(before);
+    expect(await count(w.ds, `SELECT count(*)::int FROM social_posts`)).toBe(
+      before,
+    );
 
     // A photo-only post is fine.
     const own = await api.post("/posts", w.tokens.ann, {
@@ -266,16 +275,23 @@ describe("create, edit and delete", () => {
 
     // A photo-only post keeps its photo when the caption is cleared.
     await w.clock.advance(60_000);
-    const cleared = await api.patch(`/posts/${own.body.post.id}`, w.tokens.ann, {
-      caption: "",
-      privacy: "friends",
-    });
+    const cleared = await api.patch(
+      `/posts/${own.body.post.id}`,
+      w.tokens.ann,
+      {
+        caption: "",
+        privacy: "friends",
+      },
+    );
 
     expect(cleared.status).toBe(204);
   });
 
   it("refuses a file that is not an image and one that is too large", async () => {
-    const text = await api.upload(w.tokens.ann, Buffer.from("not an image at all"));
+    const text = await api.upload(
+      w.tokens.ann,
+      Buffer.from("not an image at all"),
+    );
 
     expect(text.status).toBe(400);
     expect(text.body).toMatchObject({
@@ -332,12 +348,20 @@ describe("create, edit and delete", () => {
     expect(refused.status).toBe(400);
     expect(refused.body.code).toBe("EMPTY_POST");
     expect(
-      (await api.patch("/posts/999999", w.tokens.ann, { caption: "a", privacy: "friends" }))
-        .status,
+      (
+        await api.patch("/posts/999999", w.tokens.ann, {
+          caption: "a",
+          privacy: "friends",
+        })
+      ).status,
     ).toBe(404);
     expect(
-      (await api.patch("/posts/abc", w.tokens.ann, { caption: "a", privacy: "friends" }))
-        .status,
+      (
+        await api.patch("/posts/abc", w.tokens.ann, {
+          caption: "a",
+          privacy: "friends",
+        })
+      ).status,
     ).toBe(400);
   });
 
@@ -348,29 +372,50 @@ describe("create, edit and delete", () => {
     await api.put(`/posts/${id}/reaction`, w.tokens.ben, { emoji: "👍" });
     await api.post(`/posts/${id}/comments`, w.tokens.ben, { body: "nice" });
     expect(
-      await count(w.ds, `SELECT count(*)::int FROM social_notifications WHERE post_id = $1`, [id]),
+      await count(
+        w.ds,
+        `SELECT count(*)::int FROM social_notifications WHERE post_id = $1`,
+        [id],
+      ),
     ).toBe(2);
 
     for (const who of ["ben", "ptA"] as const) {
-      expect((await api.delete(`/posts/${id}`, w.tokens[who])).status, who).toBe(403);
+      expect(
+        (await api.delete(`/posts/${id}`, w.tokens[who])).status,
+        who,
+      ).toBe(403);
     }
     expect((await api.delete(`/posts/${id}`, w.tokens.ann)).status).toBe(204);
 
     expect(await status(`/posts/${id}`, "ann")).toBe(404);
     expect(await status(`/photos/${photo}`, "ann")).toBe(404);
-    for (const table of ["social_reactions", "social_comments", "social_notifications"]) {
+    for (const table of [
+      "social_reactions",
+      "social_comments",
+      "social_notifications",
+    ]) {
       expect(
-        await count(w.ds, `SELECT count(*)::int FROM ${table} WHERE post_id = $1`, [id]),
+        await count(
+          w.ds,
+          `SELECT count(*)::int FROM ${table} WHERE post_id = $1`,
+          [id],
+        ),
       ).toBe(0);
     }
     expect(
-      await count(w.ds, `SELECT count(*)::int FROM social_post_photos WHERE id = $1`, [photo]),
+      await count(
+        w.ds,
+        `SELECT count(*)::int FROM social_post_photos WHERE id = $1`,
+        [photo],
+      ),
     ).toBe(0);
     expect((await api.delete(`/posts/${id}`, w.tokens.ann)).status).toBe(404);
 
     const other = await createPost("ben", "super admin may", "everyone");
 
-    expect((await api.delete(`/posts/${other}`, w.tokens.superAdmin)).status).toBe(204);
+    expect(
+      (await api.delete(`/posts/${other}`, w.tokens.superAdmin)).status,
+    ).toBe(204);
   });
 
   it("lets an admin post as an admin", async () => {
@@ -421,8 +466,18 @@ describe("idempotent post creation", () => {
 
   it("keeps keys per actor and survives parallel retries", async () => {
     const headers = { "Idempotency-Key": "shared-key" };
-    const mine = await api.post("/posts", w.tokens.cat, { caption: "c", privacy: "friends" }, headers);
-    const theirs = await api.post("/posts", w.tokens.ben, { caption: "b", privacy: "friends" }, headers);
+    const mine = await api.post(
+      "/posts",
+      w.tokens.cat,
+      { caption: "c", privacy: "friends" },
+      headers,
+    );
+    const theirs = await api.post(
+      "/posts",
+      w.tokens.ben,
+      { caption: "b", privacy: "friends" },
+      headers,
+    );
 
     expect(theirs.body.post.id).not.toBe(mine.body.post.id);
 
@@ -492,17 +547,30 @@ describe("privacy on the feed, the profile and the detail", () => {
     ids.me = await createPost("ann", "ann only me", "only_me");
     ids.ptFriends = await createPost("ptA", "pt friends", "friends");
     ids.ptbFriends = await createPost("ptB", "ptb friends", "friends");
-    ids.superFriends = await createPost("superAdmin", "super friends", "friends");
+    ids.superFriends = await createPost(
+      "superAdmin",
+      "super friends",
+      "friends",
+    );
     ids.danFriends = await createPost("dan", "dan friends", "friends");
   });
 
   it("shows a stranger only the everyone post, on the profile and the detail", async () => {
-    const profile = await api.get(`/profiles/user:${w.ids.ann}/posts`, w.tokens.ben);
+    const profile = await api.get(
+      `/profiles/user:${w.ids.ann}/posts`,
+      w.tokens.ben,
+    );
 
     expect(profile.status).toBe(200);
-    expect(profile.body.items.map((post: { id: number }) => post.id)).toContain(ids.pub);
-    expect(profile.body.items.map((post: { id: number }) => post.id)).not.toContain(ids.fri);
-    expect(profile.body.items.map((post: { id: number }) => post.id)).not.toContain(ids.me);
+    expect(profile.body.items.map((post: { id: number }) => post.id)).toContain(
+      ids.pub,
+    );
+    expect(
+      profile.body.items.map((post: { id: number }) => post.id),
+    ).not.toContain(ids.fri);
+    expect(
+      profile.body.items.map((post: { id: number }) => post.id),
+    ).not.toContain(ids.me);
     expect(await status(`/posts/${ids.pub}`, "ben")).toBe(200);
     expect(await status(`/posts/${ids.fri}`, "ben")).toBe(404);
     expect(await status(`/posts/${ids.me}`, "ben")).toBe(404);
@@ -513,7 +581,11 @@ describe("privacy on the feed, the profile and the detail", () => {
     await w.ds.query(
       `INSERT INTO social_friendships (user_low, user_high, status, requested_by, created_at)
        VALUES ($1, $2, 'pending', $3, now())`,
-      [Math.min(w.ids.ann, w.ids.ben), Math.max(w.ids.ann, w.ids.ben), w.ids.ben],
+      [
+        Math.min(w.ids.ann, w.ids.ben),
+        Math.max(w.ids.ann, w.ids.ben),
+        w.ids.ben,
+      ],
     );
     expect(await status(`/posts/${ids.fri}`, "ben")).toBe(404);
     expect(await feedIds("ben")).not.toContain(ids.pub);
@@ -527,14 +599,22 @@ describe("privacy on the feed, the profile and the detail", () => {
 
     expect(feed).toEqual(expect.arrayContaining([ids.pub, ids.fri]));
     expect(feed).not.toContain(ids.me);
-    const profile = await api.get(`/profiles/user:${w.ids.ann}/posts`, w.tokens.ben);
+    const profile = await api.get(
+      `/profiles/user:${w.ids.ann}/posts`,
+      w.tokens.ben,
+    );
 
     expect(profile.body.items.map((post: { id: number }) => post.id)).toEqual(
       expect.arrayContaining([ids.pub, ids.fri]),
     );
-    expect(profile.body.items.map((post: { id: number }) => post.id)).not.toContain(ids.me);
+    expect(
+      profile.body.items.map((post: { id: number }) => post.id),
+    ).not.toContain(ids.me);
     // The author sees all three, newest first.
-    const own = await api.get(`/profiles/user:${w.ids.ann}/posts?limit=50`, w.tokens.ann);
+    const own = await api.get(
+      `/profiles/user:${w.ids.ann}/posts?limit=50`,
+      w.tokens.ann,
+    );
     const ownIds = own.body.items.map((post: { id: number }) => post.id);
 
     expect(ownIds).toEqual(expect.arrayContaining([ids.pub, ids.fri, ids.me]));
@@ -545,9 +625,13 @@ describe("privacy on the feed, the profile and the detail", () => {
     const ann = await feedIds("ann");
     const dan = await feedIds("dan");
 
-    expect(ann).toEqual(expect.arrayContaining([ids.ptFriends, ids.superFriends]));
+    expect(ann).toEqual(
+      expect.arrayContaining([ids.ptFriends, ids.superFriends]),
+    );
     expect(ann).not.toContain(ids.ptbFriends);
-    expect(dan).toEqual(expect.arrayContaining([ids.ptbFriends, ids.superFriends]));
+    expect(dan).toEqual(
+      expect.arrayContaining([ids.ptbFriends, ids.superFriends]),
+    );
     expect(dan).not.toContain(ids.ptFriends);
     // An everyone post of any admin reaches all trainees.
     const adminPublic = await createPost("ptB", "ptb public", "everyone");
@@ -562,12 +646,20 @@ describe("privacy on the feed, the profile and the detail", () => {
     const ptB = await feedIds("ptB");
     const root = await feedIds("superAdmin");
 
-    expect(pt).toEqual(expect.arrayContaining([ids.pub, ids.fri, ids.me, ids.ptFriends]));
+    expect(pt).toEqual(
+      expect.arrayContaining([ids.pub, ids.fri, ids.me, ids.ptFriends]),
+    );
     expect(pt).not.toContain(ids.danFriends);
     expect(ptB).toContain(ids.danFriends);
     expect(ptB).not.toContain(ids.me);
     expect(root).toEqual(
-      expect.arrayContaining([ids.pub, ids.fri, ids.me, ids.danFriends, ids.ptbFriends]),
+      expect.arrayContaining([
+        ids.pub,
+        ids.fri,
+        ids.me,
+        ids.danFriends,
+        ids.ptbFriends,
+      ]),
     );
     expect(await status(`/posts/${ids.me}`, "ptA")).toBe(200);
     expect(await status(`/posts/${ids.me}`, "ptB")).toBe(404);
@@ -638,7 +730,9 @@ describe("cursor pagination", () => {
 
     // A new post arrives after the first page was read.
     const arrived = await createPost("cat", "late", "only_me");
-    const seen: number[] = first.body.items.map((post: { id: number }) => post.id);
+    const seen: number[] = first.body.items.map(
+      (post: { id: number }) => post.id,
+    );
     let cursor: string | null = first.body.nextCursor;
 
     while (cursor) {
@@ -658,7 +752,10 @@ describe("cursor pagination", () => {
   });
 
   it("filters privacy on every page and rejects a tampered cursor", async () => {
-    const profile = await api.get(`/profiles/user:${w.ids.cat}/posts?limit=2`, w.tokens.dan);
+    const profile = await api.get(
+      `/profiles/user:${w.ids.cat}/posts?limit=2`,
+      w.tokens.dan,
+    );
     const pages: number[] = [];
     const cursor: string | null = profile.body.nextCursor;
 
@@ -666,7 +763,11 @@ describe("cursor pagination", () => {
     expect(cursor).toBeNull();
     pages.push(profile.body.items.length);
 
-    for (const bad of ["not-a-cursor", Buffer.from("[0]").toString("base64url"), "e30"]) {
+    for (const bad of [
+      "not-a-cursor",
+      Buffer.from("[0]").toString("base64url"),
+      "e30",
+    ]) {
       const response = await api.get(`/feed?cursor=${bad}`, w.tokens.cat);
 
       expect(response.status, bad).toBe(400);
@@ -679,16 +780,21 @@ describe("cursor pagination", () => {
 
 describe("photo serving", () => {
   it("serves a visible photo with private cache headers and 404s for everyone else", async () => {
-    const photo = (await api.upload(w.tokens.ann, PNG_1X1)).body.photo.id as number;
+    const photo = (await api.upload(w.tokens.ann, PNG_1X1)).body.photo
+      .id as number;
 
     // Pending: visible to no one.
     expect(await status(`/photos/${photo}`, "ann")).toBe(404);
-    const post = await createPost("ann", "with photo", "friends", { photoId: photo });
+    const post = await createPost("ann", "with photo", "friends", {
+      photoId: photo,
+    });
     const ok = await api.get(`/photos/${photo}`, w.tokens.ann);
 
     expect(ok.status).toBe(200);
     expect(ok.headers["content-type"]).toBe("image/png");
-    expect(ok.headers["cache-control"]).toBe("private, max-age=31536000, immutable");
+    expect(ok.headers["cache-control"]).toBe(
+      "private, max-age=31536000, immutable",
+    );
     expect(ok.headers["x-content-type-options"]).toBe("nosniff");
     expect(Buffer.from(ok.body).equals(PNG_1X1)).toBe(true);
 
@@ -718,6 +824,8 @@ describe("accepting the terms", () => {
       ),
     ).toBe(1);
     expect((await api.get("/feed", w.tokens.noTerms)).status).toBe(200);
-    expect((await api.get("/me", w.tokens.noTerms)).body.termsAccepted).toBe(true);
+    expect((await api.get("/me", w.tokens.noTerms)).body.termsAccepted).toBe(
+      true,
+    );
   });
 });

@@ -1,8 +1,4 @@
-import {
-  HttpException,
-  HttpStatus,
-  NotFoundException,
-} from "@nestjs/common";
+import { HttpException, HttpStatus, NotFoundException } from "@nestjs/common";
 import {
   MEAL_LOG_MESSAGES,
   MEAL_PLAN_MESSAGES,
@@ -20,7 +16,8 @@ const rule = (status: HttpStatus, code: string, message: string) =>
   new HttpException({ code, message }, status);
 
 export const planErrors = {
-  dayNotFound: () => notFound("DAY_NOT_FOUND", MEAL_PLAN_MESSAGES.DAY_NOT_FOUND),
+  dayNotFound: () =>
+    notFound("DAY_NOT_FOUND", MEAL_PLAN_MESSAGES.DAY_NOT_FOUND),
   mealNotFound: () =>
     notFound("MEAL_NOT_FOUND", MEAL_PLAN_MESSAGES.MEAL_NOT_FOUND),
   itemNotFound: () =>
@@ -101,11 +98,7 @@ export const logErrors = {
   foodMissing: () =>
     rule(HttpStatus.CONFLICT, "FOOD_MISSING", MEAL_LOG_MESSAGES.FOOD_MISSING),
   tooManyLogs: () =>
-    rule(
-      HttpStatus.CONFLICT,
-      "TOO_MANY_LOGS",
-      MEAL_LOG_MESSAGES.TOO_MANY_LOGS,
-    ),
+    rule(HttpStatus.CONFLICT, "TOO_MANY_LOGS", MEAL_LOG_MESSAGES.TOO_MANY_LOGS),
   futureDay: () =>
     rule(HttpStatus.BAD_REQUEST, "FUTURE_DAY", MEAL_LOG_MESSAGES.FUTURE_DAY),
   nameRequired: () =>
@@ -124,17 +117,9 @@ export const logErrors = {
 
 export const nutritionErrors = {
   entryEmpty: () =>
-    rule(
-      HttpStatus.BAD_REQUEST,
-      "ENTRY_EMPTY",
-      NUTRITION_MESSAGES.ENTRY_EMPTY,
-    ),
+    rule(HttpStatus.BAD_REQUEST, "ENTRY_EMPTY", NUTRITION_MESSAGES.ENTRY_EMPTY),
   futureDate: () =>
-    rule(
-      HttpStatus.BAD_REQUEST,
-      "FUTURE_DATE",
-      NUTRITION_MESSAGES.FUTURE_DATE,
-    ),
+    rule(HttpStatus.BAD_REQUEST, "FUTURE_DATE", NUTRITION_MESSAGES.FUTURE_DATE),
   entryNotFound: () =>
     notFound("ENTRY_NOT_FOUND", NUTRITION_MESSAGES.ENTRY_NOT_FOUND),
 };

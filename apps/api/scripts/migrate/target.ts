@@ -8,6 +8,7 @@ import {
   isMovedColumn,
   MOVED_AVATARS,
 } from "./avatars.js";
+import { DERIVED_COLUMNS } from "./constraints.js";
 import type { PgColumnInfo } from "./convert.js";
 import type { ForeignKey } from "./plan.js";
 
@@ -34,7 +35,8 @@ const COMPATIBLE: Record<string, string[]> = {
   timestamp_s: ["timestamp with time zone"],
   timestamp_ms: ["timestamp with time zone"],
   real: ["double precision", "real"],
-  text: ["text", "character varying"],
+  // `date` holds the YYYY-MM-DD text columns; constraints.ts checks each value.
+  text: ["text", "character varying", "date"],
   json: ["text", "jsonb", "json"],
   blob: ["bytea"],
 };
@@ -140,6 +142,7 @@ export const introspectTarget = async (
         row.table_name === name &&
         !mapped.has(row.column_name) &&
         !(row.column_name in (EXTRA_COLUMNS[name] ?? {})) &&
+        !(DERIVED_COLUMNS[name] ?? []).includes(row.column_name) &&
         row.is_nullable === "NO" &&
         row.column_default === null &&
         row.is_identity !== "YES"
@@ -200,27 +203,26 @@ export const introspectTarget = async (
       continue;
     }
 
-    // A composite FK (DbChatSocial: "same conversation", "photo and message
-    // agree") is planned by its one nullable column and the parent column in
-    // the same position: load order, deferral and missing parents work as for
-    // a plain FK. The rule that the whole tuple matches is scanned separately
-    // (chat-social.ts), because the loader never sees a half-matching key.
+    // A composite FK is planned by one column pair. DbChatSocial's ("same
+    // conversation", "photo and message agree") have exactly one nullable
+    // column, which is the pair used (load order, deferral and missing parents
+    // work as for a plain FK); the tuple rule is scanned in chat-social.ts.
+    // DbConstraints' owner keys have no nullable column: the first pair.
     if (row.cols.length !== 1) {
       const nullable = row.nullables.flatMap((flag, index) =>
         flag ? [index] : [],
       );
+      const pick = nullable.length === 1 ? nullable[0] : 0;
 
-      if (nullable.length !== 1) {
-        problems.push(
-          `composite foreign key on ${row.child} needs exactly one nullable column`,
-        );
-        continue;
-      }
-      row.cols = [row.cols[nullable[0]]];
-      row.pcols = [row.pcols[nullable[0]]];
-      row.nullable = true;
+      row.cols = [row.cols[pick]];
+      row.pcols = [row.pcols[pick]];
+      row.nullable = nullable.length === 1 ? true : row.nullable;
     }
 
+
+    // A composite key (child owner agrees with the parent's) is two checks:
+    // the parent exists (its first column pair, an ordinary orphan scan) and
+    // the owner agrees (constraints.ts, before any write).
     const mapped = mapping.tables[row.child].columns.some(
       (column) => column.name === row.cols[0],
     );

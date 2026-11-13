@@ -34,6 +34,11 @@ import { User } from "./user.entity.js";
 })
 @Index("push_subscriptions_owner_key", ["ownerKey"])
 @Check(`"kind" IN ('web', 'expo', 'fcm')`)
+// A web push subscription is useless without its keys.
+@Check(
+  "push_subscriptions_web_keys",
+  `"kind" <> 'web' OR ("p256dh" IS NOT NULL AND "auth" IS NOT NULL)`,
+)
 export class PushSubscription {
   @PrimaryGeneratedColumn("identity", { generatedIdentity: "ALWAYS" })
   id!: number;

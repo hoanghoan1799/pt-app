@@ -24,7 +24,12 @@ const PNG = Buffer.from(
 describe("comment rights", () => {
   const policy = new CommentPolicy();
   const user = (id: number): SocialActor => ({ kind: "user", id });
-  const superAdmin: SocialActor = { kind: "admin", id: 1, role: "super_admin", revealed: false };
+  const superAdmin: SocialActor = {
+    kind: "admin",
+    id: 1,
+    role: "super_admin",
+    revealed: false,
+  };
   const pt: SocialActor = { kind: "admin", id: 2, role: "pt", revealed: false };
 
   it("lets only the commenter edit", () => {
@@ -66,19 +71,37 @@ describe("reaction summary", () => {
       total: 5,
       mine: "👍",
     });
-    expect(summarizeReactions([], "user:1")).toEqual({ counts: [], total: 0, mine: null });
+    expect(summarizeReactions([], "user:1")).toEqual({
+      counts: [],
+      total: 0,
+      mine: null,
+    });
     expect(summarizeReactions(rows, "admin:9").mine).toBeNull();
   });
 });
 
 describe("streak", () => {
   it("counts consecutive days back from today, or from yesterday when today is empty", () => {
-    expect(computeDayStreak(["2026-11-12", "2026-11-11", "2026-11-10"], "2026-11-12")).toBe(3);
-    expect(computeDayStreak(["2026-11-11", "2026-11-10"], "2026-11-12")).toBe(2);
+    expect(
+      computeDayStreak(
+        ["2026-11-12", "2026-11-11", "2026-11-10"],
+        "2026-11-12",
+      ),
+    ).toBe(3);
+    expect(computeDayStreak(["2026-11-11", "2026-11-10"], "2026-11-12")).toBe(
+      2,
+    );
     expect(computeDayStreak(["2026-11-10"], "2026-11-12")).toBe(0);
-    expect(computeDayStreak(["2026-11-12", "2026-11-10"], "2026-11-12")).toBe(1);
+    expect(computeDayStreak(["2026-11-12", "2026-11-10"], "2026-11-12")).toBe(
+      1,
+    );
     expect(computeDayStreak([], "2026-11-12")).toBe(0);
-    expect(computeDayStreak(["2026-11-11", "2026-11-12", "2026-11-11"], "2026-11-12")).toBe(2);
+    expect(
+      computeDayStreak(
+        ["2026-11-11", "2026-11-12", "2026-11-11"],
+        "2026-11-12",
+      ),
+    ).toBe(2);
   });
 
   it("shows stats to the owner, a friend and admins only", () => {
@@ -86,7 +109,9 @@ describe("streak", () => {
 
     expect(canViewTrainingStats({ ...base, isOwn: true })).toBe(true);
     expect(canViewTrainingStats({ ...base, isAdminViewer: true })).toBe(true);
-    expect(canViewTrainingStats({ ...base, relationship: "friends" })).toBe(true);
+    expect(canViewTrainingStats({ ...base, relationship: "friends" })).toBe(
+      true,
+    );
     expect(canViewTrainingStats({ ...base, relationship: "sent" })).toBe(false);
     expect(canViewTrainingStats({ ...base, relationship: "none" })).toBe(false);
     expect(canViewTrainingStats(base)).toBe(false);
@@ -98,7 +123,10 @@ describe("cursors", () => {
     expect(decodeIdCursor(idCursor(42))).toBe(42);
     const at = new Date("2026-11-12T10:00:00.123Z");
 
-    expect(decodeTimeCursor(timeCursor(at, 7))).toEqual({ at: at.toISOString(), id: 7 });
+    expect(decodeTimeCursor(timeCursor(at, 7))).toEqual({
+      at: at.toISOString(),
+      id: 7,
+    });
   });
 
   it("rejects anything that is not a cursor this API made", () => {
@@ -123,7 +151,9 @@ describe("cursors", () => {
       encodeCursor(["2026-11-12T10:00:00Z", 0]),
       encodeCursor(["2026-11-12T10:00:00Z"]),
     ]) {
-      expect(() => decodeTimeCursor(cursor), cursor).toThrow(BadRequestException);
+      expect(() => decodeTimeCursor(cursor), cursor).toThrow(
+        BadRequestException,
+      );
     }
   });
 });
@@ -131,16 +161,34 @@ describe("cursors", () => {
 describe("photo check", () => {
   it("reads type and size from the bytes", () => {
     expect(sniffPhotoMime(PNG)).toBe("image/png");
-    expect(checkPhoto(PNG)).toEqual({ ok: true, mime: "image/png", width: 1, height: 1 });
-    expect(sniffPhotoMime(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0]))).toBe("image/jpeg");
-    expect(sniffPhotoMime(Buffer.from("RIFF1234WEBPVP8 abcdef"))).toBe("image/webp");
+    expect(checkPhoto(PNG)).toEqual({
+      ok: true,
+      mime: "image/png",
+      width: 1,
+      height: 1,
+    });
+    expect(sniffPhotoMime(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0]))).toBe(
+      "image/jpeg",
+    );
+    expect(sniffPhotoMime(Buffer.from("RIFF1234WEBPVP8 abcdef"))).toBe(
+      "image/webp",
+    );
   });
 
   it("refuses empty, unknown, truncated and oversized-side images", () => {
     expect(checkPhoto(Buffer.alloc(0))).toEqual({ ok: false, error: "empty" });
-    expect(checkPhoto(Buffer.from("hello world, not an image"))).toEqual({ ok: false, error: "bad_image" });
-    expect(checkPhoto(PNG.subarray(0, 20))).toEqual({ ok: false, error: "bad_image" });
-    expect(checkPhoto(Buffer.alloc(2 * 1024 * 1024, 1))).toEqual({ ok: false, error: "too_large" });
+    expect(checkPhoto(Buffer.from("hello world, not an image"))).toEqual({
+      ok: false,
+      error: "bad_image",
+    });
+    expect(checkPhoto(PNG.subarray(0, 20))).toEqual({
+      ok: false,
+      error: "bad_image",
+    });
+    expect(checkPhoto(Buffer.alloc(2 * 1024 * 1024, 1))).toEqual({
+      ok: false,
+      error: "too_large",
+    });
 
     const wide = Buffer.from(PNG);
 

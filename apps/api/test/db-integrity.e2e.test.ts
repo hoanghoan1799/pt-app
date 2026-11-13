@@ -182,7 +182,7 @@ describe("account references have real foreign keys", () => {
         column: "owner_key",
         kinds: ["user", "admin"],
         insert: (who) => [
-          `INSERT INTO push_subscriptions (owner_key, endpoint) VALUES ($1, $2)`,
+          `INSERT INTO push_subscriptions (owner_key, endpoint, p256dh, auth) VALUES ($1, $2, 'k', 'a')`,
           [keyOf(who), `endpoint-${who.kind}-${who.id}`],
         ],
       },

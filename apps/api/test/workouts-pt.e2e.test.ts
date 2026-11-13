@@ -47,7 +47,10 @@ const positionsOf = async (dayId: number) =>
 
 // Role and scope matrix shared by the PT routes.
 const guarded = (
-  call: (userId: number, token?: string) => Promise<{ status: number; body: { code?: string } }>,
+  call: (
+    userId: number,
+    token?: string,
+  ) => Promise<{ status: number; body: { code?: string } }>,
 ) => {
   it("answers 401 without a session", async () => {
     expect((await call(w.ids.mine)).status).toBe(401);
@@ -140,10 +143,12 @@ describe("PUT /v1/trainees/:userId/workout-days/:date", () => {
       note: "Warm up first",
     });
 
-    const dayId = (await w.ds.getRepository(WorkoutDay).findOneByOrFail({
-      userId: w.ids.mine,
-      date,
-    })).id;
+    const dayId = (
+      await w.ds.getRepository(WorkoutDay).findOneByOrFail({
+        userId: w.ids.mine,
+        date,
+      })
+    ).id;
 
     await seedExercise(w.ds, dayId, { title: "Press" });
 
@@ -167,7 +172,11 @@ describe("PUT /v1/trainees/:userId/workout-days/:date", () => {
         },
       ],
     });
-    expect(await w.ds.getRepository(WorkoutDay).countBy({ userId: w.ids.mine, date })).toBe(1);
+    expect(
+      await w.ds
+        .getRepository(WorkoutDay)
+        .countBy({ userId: w.ids.mine, date }),
+    ).toBe(1);
   });
 
   it.each([
@@ -267,10 +276,14 @@ describe("POST /v1/trainees/:userId/workout-days/:date/exercises", () => {
     );
 
     expect(responses.every((response) => response.status === 201)).toBe(true);
+    expect(responses.map((response) => response.body.position).sort()).toEqual([
+      0, 1, 2, 3, 4, 5,
+    ]);
     expect(
-      responses.map((response) => response.body.position).sort(),
-    ).toEqual([0, 1, 2, 3, 4, 5]);
-    expect(await w.ds.getRepository(WorkoutDay).countBy({ userId: w.ids.mine, date })).toBe(1);
+      await w.ds
+        .getRepository(WorkoutDay)
+        .countBy({ userId: w.ids.mine, date }),
+    ).toBe(1);
   });
 
   it.each([
@@ -380,7 +393,8 @@ describe("PUT /v1/trainees/:userId/exercises/:exerciseId", () => {
       "Đổi link video cần xác nhận xóa số liệu đã ghi",
     );
     expect(
-      (await w.ds.getRepository(Exercise).findOneByOrFail({ id: exerciseId })).youtubeId,
+      (await w.ds.getRepository(Exercise).findOneByOrFail({ id: exerciseId }))
+        .youtubeId,
     ).toBe(LINK_A);
     expect(await countRows(w.ds, ExerciseSet, { exerciseId })).toBe(1);
 
@@ -436,13 +450,15 @@ describe("PUT /v1/trainees/:userId/exercises/:exerciseId", () => {
       expect(response.body.message).toBe("Bài tập không còn tồn tại");
     }
     expect(
-      (await w.ds.getRepository(Exercise).findOneByOrFail({ id: other.exerciseId })).title,
+      (
+        await w.ds
+          .getRepository(Exercise)
+          .findOneByOrFail({ id: other.exerciseId })
+      ).title,
     ).toBe("Squat");
   });
 
-  guarded((userId, token) =>
-    api.put(exercises(userId, 1), token, body()),
-  );
+  guarded((userId, token) => api.put(exercises(userId, 1), token, body()));
 });
 
 describe("DELETE /v1/trainees/:userId/exercises/:exerciseId", () => {
@@ -496,7 +512,8 @@ describe("DELETE /v1/trainees/:userId/exercises/:exerciseId", () => {
       (await api.delete(exercises(w.ids.mine, 999_999), w.tokens.ptA)).status,
     ).toBe(204);
     expect(
-      (await api.delete(exercises(w.ids.mine, other.exerciseId), w.tokens.ptA)).status,
+      (await api.delete(exercises(w.ids.mine, other.exerciseId), w.tokens.ptA))
+        .status,
     ).toBe(204);
     expect(await countRows(w.ds, Exercise, { id: other.exerciseId })).toBe(1);
   });
@@ -519,13 +536,13 @@ describe("POST /v1/trainees/:userId/exercises/:exerciseId/move", () => {
   const move = (id: number, direction: string, userId = w.ids.mine) =>
     api.post(`${exercises(userId, id)}/move`, w.tokens.ptA, { direction });
 
-  it("swaps with the neighbour, renumbering repairs duplicates, edges are no-ops", async () => {
+  it("swaps with the neighbour, renumbering repairs gaps, edges are no-ops", async () => {
     const dayId = await seedDay(w.ds, w.ids.mine, "2026-12-14");
     const a = await seedExercise(w.ds, dayId, { title: "A", position: 0 });
-    const b = await seedExercise(w.ds, dayId, { title: "B", position: 0 });
+    const b = await seedExercise(w.ds, dayId, { title: "B", position: 3 });
     const c = await seedExercise(w.ds, dayId, { title: "C", position: 5 });
 
-    // Order is by position then id: A, B, C (A and B share position 0).
+    // Order is by position: A, B, C (positions 0, 3, 5).
     expect((await move(b, "down")).status).toBe(204);
     expect(await positionsOf(dayId)).toEqual([
       ["A", 0],
@@ -618,7 +635,11 @@ describe("POST /v1/trainees/:userId/workout-days/copy-week", () => {
   it("copies the week's content to another week of the same trainee, rows exact", async () => {
     await seedSourceWeek(w.ids.mine);
 
-    const response = await copyWeek({ fromWeek: "2027-01-06", targetUserId: w.ids.mine, targetDate: "2027-01-14" });
+    const response = await copyWeek({
+      fromWeek: "2027-01-06",
+      targetUserId: w.ids.mine,
+      targetDate: "2027-01-14",
+    });
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
@@ -658,7 +679,9 @@ describe("POST /v1/trainees/:userId/workout-days/copy-week", () => {
       { date: "2027-01-12", title: "", note: "Rest", exercises: [] },
     ]);
     // Sets and completions stay on the source exercise only.
-    expect(await countRows(w.ds, ExerciseSet, { userId: w.ids.mine })).toBeGreaterThan(0);
+    expect(
+      await countRows(w.ds, ExerciseSet, { userId: w.ids.mine }),
+    ).toBeGreaterThan(0);
     const copiedIds = (
       await w.ds
         .getRepository(Exercise)
@@ -673,7 +696,9 @@ describe("POST /v1/trainees/:userId/workout-days/copy-week", () => {
 
     for (const id of copiedIds) {
       expect(await countRows(w.ds, ExerciseSet, { exerciseId: id })).toBe(0);
-      expect(await countRows(w.ds, ExerciseCompletion, { exerciseId: id })).toBe(0);
+      expect(
+        await countRows(w.ds, ExerciseCompletion, { exerciseId: id }),
+      ).toBe(0);
     }
     // The source week is untouched.
     expect(
@@ -733,7 +758,9 @@ describe("POST /v1/trainees/:userId/workout-days/copy-week", () => {
       "Tuần đích đã có buổi tập được ghi, không thể ghi đè",
     );
     expect(await planOf(w.ds, w.ids.mine)).toEqual(before);
-    expect(await countRows(w.ds, ExerciseSet, { exerciseId: exercise.id })).toBe(1);
+    expect(
+      await countRows(w.ds, ExerciseSet, { exerciseId: exercise.id }),
+    ).toBe(1);
   });
 
   it("copies to another trainee in the PT's workspace, and a super admin may copy anywhere", async () => {
@@ -833,8 +860,11 @@ describe("POST /v1/trainees/:userId/workout-days/copy-week", () => {
 
 describe("POST /v1/trainees/:userId/workout-days/copy-day", () => {
   // Today is Thursday 2026-11-12 on the fake clock.
-  const copyDay = (body: object, token = w.tokens.superAdmin, userId = w.ids.theirs) =>
-    api.post(`${days(userId)}/copy-day`, token, body);
+  const copyDay = (
+    body: object,
+    token = w.tokens.superAdmin,
+    userId = w.ids.theirs,
+  ) => api.post(`${days(userId)}/copy-day`, token, body);
 
   const seedSource = async () => {
     const dayId = await seedDay(w.ds, w.ids.theirs, "2026-12-21", {
@@ -935,7 +965,9 @@ describe("POST /v1/trainees/:userId/workout-days/copy-day", () => {
       position: 0,
     });
 
-    await seedSets(w.ds, exercise.id, w.ids.theirs, [{ weightKg: 40, reps: 10 }]);
+    await seedSets(w.ds, exercise.id, w.ids.theirs, [
+      { weightKg: 40, reps: 10 },
+    ]);
 
     const before = await planOf(w.ds, w.ids.theirs);
     const response = await copyDay({
@@ -984,7 +1016,10 @@ describe("POST /v1/trainees/:userId/workout-days/copy-day", () => {
   });
 
   it("validates the body: no dates, too many dates, a bad date", async () => {
-    const dates = Array.from({ length: 15 }, (_, index) => `2027-02-${String(index + 1).padStart(2, "0")}`);
+    const dates = Array.from(
+      { length: 15 },
+      (_, index) => `2027-02-${String(index + 1).padStart(2, "0")}`,
+    );
 
     for (const body of [
       { date: "2026-12-21", dates: [] },
@@ -1033,7 +1068,12 @@ describe("GET /v1/trainees/:userId/workout-days/copy-info", () => {
       "from=2027-04-10&to=2027-04-01",
     ]) {
       expect(
-        (await api.get(`${days(w.ids.theirs)}/copy-info?${query}`, w.tokens.superAdmin)).status,
+        (
+          await api.get(
+            `${days(w.ids.theirs)}/copy-info?${query}`,
+            w.tokens.superAdmin,
+          )
+        ).status,
       ).toBe(400);
     }
   });

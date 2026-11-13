@@ -71,8 +71,12 @@ export class ReportsController {
   @Roles("super_admin")
   @HttpCode(204)
   @ApiPathParams("id")
-  @ApiBody({ schema: toOpenApiSchema(socialResolveReportRequestSchema, "input") })
-  @ApiNoContentResponse({ description: "Closed with every open report on the target" })
+  @ApiBody({
+    schema: toOpenApiSchema(socialResolveReportRequestSchema, "input"),
+  })
+  @ApiNoContentResponse({
+    description: "Closed with every open report on the target",
+  })
   @ApiErrors(400, 401, 403, 404)
   async resolve(
     @Actor() actor: AuthActor,
@@ -80,6 +84,10 @@ export class ReportsController {
     @Body({ schema: socialResolveReportRequestSchema })
     body: SocialResolveReportRequest,
   ): Promise<void> {
-    await this.reports.resolve(toSocialActor(actor), params.id, body.resolution);
+    await this.reports.resolve(
+      toSocialActor(actor),
+      params.id,
+      body.resolution,
+    );
   }
 }

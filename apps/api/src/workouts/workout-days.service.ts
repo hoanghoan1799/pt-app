@@ -200,13 +200,9 @@ export class WorkoutDaysService {
 
   // Removes the workout days of `dates`; the exercises, sets and completions
   // under them go with them (foreign keys cascade).
-  private async deleteDays(
-    em: EntityManager,
-    userId: number,
-    dates: string[],
-  ) {
+  private async deleteDays(em: EntityManager, userId: number, dates: string[]) {
     await em.query(
-      `DELETE FROM workout_days WHERE user_id = $1 AND date = ANY($2::text[])`,
+      `DELETE FROM workout_days WHERE user_id = $1 AND date = ANY($2::date[])`,
       [userId, dates],
     );
   }
@@ -230,6 +226,7 @@ export class WorkoutDaysService {
         Exercise,
         source.exercises.map((exercise, position) => ({
           dayId,
+          userId,
           title: exercise.title,
           description: exercise.description,
           sets: exercise.sets,

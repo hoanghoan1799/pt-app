@@ -66,10 +66,14 @@ const fill = (
 
 export const deletedAccountName = (locale: Locale) =>
   TEXTS[locale].deletedAccount;
-export const postImageOnlyText = (locale: Locale) => TEXTS[locale].postImageOnly;
+export const postImageOnlyText = (locale: Locale) =>
+  TEXTS[locale].postImageOnly;
 
 // Flattened and cut short; used for pushes and report previews.
-export const previewText = (body: string, max = PUSH_COMMENT_PREVIEW_LENGTH) => {
+export const previewText = (
+  body: string,
+  max = PUSH_COMMENT_PREVIEW_LENGTH,
+) => {
   const flat = body.replace(/\s+/g, " ").trim();
 
   return flat.length > max ? `${flat.slice(0, max)}…` : flat;

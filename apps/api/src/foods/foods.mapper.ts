@@ -1,4 +1,8 @@
-import { type FoodFormValues, type FoodResponse, toNameKey } from "@pt/contracts";
+import {
+  type FoodFormValues,
+  type FoodResponse,
+  toNameKey,
+} from "@pt/contracts";
 
 import type { Food } from "../database/entities/food.entity.js";
 

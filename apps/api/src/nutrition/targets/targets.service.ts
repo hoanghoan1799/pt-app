@@ -89,7 +89,10 @@ export class TargetsService {
         note: latest?.note ?? "",
         source: "tdee",
       })
-      .orUpdate(["carbs", "protein", "fat", "source"], ["user_id", "effective_from"])
+      .orUpdate(
+        ["carbs", "protein", "fat", "source"],
+        ["user_id", "effective_from"],
+      )
       .execute();
     return true;
   }

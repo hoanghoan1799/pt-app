@@ -190,8 +190,7 @@ describe("POST /v1/foods", () => {
     expect(response.status).toBe(409);
     expect(response.body).toMatchObject({
       code: "FOOD_NAME_TAKEN",
-      message:
-        "Đã có món trùng tên. Thêm trạng thái (sống/chín) để phân biệt.",
+      message: "Đã có món trùng tên. Thêm trạng thái (sống/chín) để phân biệt.",
       details: { field: "name" },
     });
     expect(await rows()).toHaveLength(1);
@@ -379,7 +378,11 @@ describe("PATCH /v1/foods/:id", () => {
 describe("DELETE /v1/foods/:id", () => {
   it("archives: hidden from the list, the row and its numbers stay", async () => {
     const chicken = (await create(CHICKEN)).body as { id: number };
-    const response = await as("delete", `/foods/${chicken.id}`, tokens.superAdmin);
+    const response = await as(
+      "delete",
+      `/foods/${chicken.id}`,
+      tokens.superAdmin,
+    );
 
     expect(response.status).toBe(204);
     expect(response.text).toBe("");
@@ -388,9 +391,10 @@ describe("DELETE /v1/foods/:id", () => {
 
     expect(row.archived_at).toBeInstanceOf(Date);
     expect(row.kcal).toBe(165);
-    expect(
-      (await as("get", "/foods", tokens.trainee)).body,
-    ).toEqual({ items: [], nextCursor: null });
+    expect((await as("get", "/foods", tokens.trainee)).body).toEqual({
+      items: [],
+      nextCursor: null,
+    });
     expect(
       (await as("get", `/foods/${chicken.id}`, tokens.trainee)).status,
     ).toBe(404);
@@ -489,9 +493,9 @@ describe("GET /v1/foods", () => {
     expect(names(await as("get", "/foods?q=dau%20hu", tokens.pt))).toEqual([
       "Đậu hũ",
     ]);
-    expect(names(await as("get", "/foods?q=%C4%90%E1%BA%ACU", tokens.pt))).toEqual(
-      ["Đậu hũ"],
-    );
+    expect(
+      names(await as("get", "/foods?q=%C4%90%E1%BA%ACU", tokens.pt)),
+    ).toEqual(["Đậu hũ"]);
     expect(names(await as("get", "/foods?q=chin%20ca", tokens.pt))).toEqual([
       "Cá hồi (chín)",
     ]);
@@ -503,17 +507,17 @@ describe("GET /v1/foods", () => {
     expect(
       (await as("get", "/foods?q=", tokens.trainee)).body.items,
     ).toHaveLength(5);
-    expect((await as("get", "/foods?q=pizza", tokens.trainee)).body.items).toEqual(
-      [],
-    );
+    expect(
+      (await as("get", "/foods?q=pizza", tokens.trainee)).body.items,
+    ).toEqual([]);
   });
 
   it("treats % and _ in the query as plain characters", async () => {
     await seed();
 
-    expect((await as("get", "/foods?q=%25", tokens.trainee)).body.items).toEqual(
-      [],
-    );
+    expect(
+      (await as("get", "/foods?q=%25", tokens.trainee)).body.items,
+    ).toEqual([]);
     expect((await as("get", "/foods?q=_", tokens.trainee)).body.items).toEqual(
       [],
     );
@@ -522,13 +526,12 @@ describe("GET /v1/foods", () => {
   it("F11: narrows to one group and combines it with the query", async () => {
     await seed();
 
-    expect(names(await as("get", "/foods?group=meat", tokens.trainee))).toEqual([
-      "Ức gà (chín)",
-      "Ức gà (sống)",
-    ]);
-    expect(names(await as("get", "/foods?group=dish", tokens.trainee))).toEqual([
-      "Phở bò",
-    ]);
+    expect(names(await as("get", "/foods?group=meat", tokens.trainee))).toEqual(
+      ["Ức gà (chín)", "Ức gà (sống)"],
+    );
+    expect(names(await as("get", "/foods?group=dish", tokens.trainee))).toEqual(
+      ["Phở bò"],
+    );
     expect(
       names(await as("get", "/foods?group=meat&q=chin", tokens.trainee)),
     ).toEqual(["Ức gà (chín)"]);
@@ -552,7 +555,13 @@ describe("GET /v1/foods", () => {
       names(await as("get", "/foods?q=creme&locale=en", tokens.trainee)),
     ).toEqual(["Bánh flan"]);
     expect(
-      names(await as("get", "/foods?q=%E7%84%A6%E7%B3%96&locale=zh", tokens.trainee)),
+      names(
+        await as(
+          "get",
+          "/foods?q=%E7%84%A6%E7%B3%96&locale=zh",
+          tokens.trainee,
+        ),
+      ),
     ).toEqual(["Bánh flan"]);
     // vi (the default) and the wrong locale do not see translations.
     expect(
@@ -660,7 +669,11 @@ describe("GET /v1/foods/:id", () => {
       const response = await as("get", `/foods/${id}`, token);
 
       expect(response.status).toBe(200);
-      expect(response.body).toMatchObject({ id, name: "Ức gà (chín)", fiber: 1.5 });
+      expect(response.body).toMatchObject({
+        id,
+        name: "Ức gà (chín)",
+        fiber: 1.5,
+      });
     }
     expect((await as("get", `/foods/${id}`, undefined)).status).toBe(401);
   });
@@ -690,14 +703,17 @@ describe("starter library seed (insertMissingSeedFoods)", () => {
 
   it("F12: only adds what is missing and never overwrites an edit", async () => {
     await service().insertMissingSeedFoods(SEED_FOODS.slice(0, 10));
-    await ds.query(`UPDATE foods SET kcal = 999 WHERE name_key = 'uc ga (chin)'`);
+    await ds.query(
+      `UPDATE foods SET kcal = 999 WHERE name_key = 'uc ga (chin)'`,
+    );
 
     expect(await service().insertMissingSeedFoods()).toBe(
       SEED_FOODS.length - 10,
     );
     expect(
-      (await ds.query(`SELECT kcal FROM foods WHERE name_key = 'uc ga (chin)'`))[0]
-        .kcal,
+      (
+        await ds.query(`SELECT kcal FROM foods WHERE name_key = 'uc ga (chin)'`)
+      )[0].kcal,
     ).toBe(999);
   });
 

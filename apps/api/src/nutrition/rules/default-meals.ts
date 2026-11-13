@@ -1,6 +1,5 @@
 import { MEAL_COUNT_LIMITS } from "@pt/contracts";
 
-
 // Q3: the first three meals, then "Bữa phụ 1, 2...".
 const BASE_MEAL_NAMES = ["Bữa sáng", "Bữa trưa", "Bữa tối"] as const;
 const SNACK_NAME_PREFIX = "Bữa phụ";

@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
-import { socialPairOf,type SocialRelationship } from "@pt/contracts";
+import { socialPairOf, type SocialRelationship } from "@pt/contracts";
 import { DataSource, EntityManager } from "typeorm";
 
 export type FriendshipRow = {
@@ -15,7 +15,11 @@ export type FriendshipRow = {
 export class RelationshipQueries {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
-  private run<T>(manager: EntityManager | undefined, sql: string, params: unknown[]) {
+  private run<T>(
+    manager: EntityManager | undefined,
+    sql: string,
+    params: unknown[],
+  ) {
     return (manager ?? this.dataSource).query(sql, params) as Promise<T>;
   }
 
@@ -25,7 +29,9 @@ export class RelationshipQueries {
     manager?: EntityManager,
   ): Promise<FriendshipRow | null> {
     const { low, high } = socialPairOf(a, b);
-    const rows = await this.run<{ status: "pending" | "accepted"; requested_by: number }[]>(
+    const rows = await this.run<
+      { status: "pending" | "accepted"; requested_by: number }[]
+    >(
       manager,
       `SELECT status, requested_by FROM social_friendships
        WHERE user_low = $1 AND user_high = $2`,
@@ -103,16 +109,18 @@ export class RelationshipQueries {
   // Ids of the trainees in an accepted friendship with `userId`, minus anyone
   // blocked either way, newest friendship first.
   async friendIds(userId: number): Promise<number[]> {
-    const [rows, blocked]: [{ user_low: number; user_high: number }[], Set<number>] =
-      await Promise.all([
-        this.dataSource.query(
-          `SELECT user_low, user_high FROM social_friendships
+    const [rows, blocked]: [
+      { user_low: number; user_high: number }[],
+      Set<number>,
+    ] = await Promise.all([
+      this.dataSource.query(
+        `SELECT user_low, user_high FROM social_friendships
            WHERE status = 'accepted' AND (user_low = $1 OR user_high = $1)
            ORDER BY accepted_at DESC NULLS LAST, user_low, user_high`,
-          [userId],
-        ),
-        this.blockedBetweenIds(userId),
-      ]);
+        [userId],
+      ),
+      this.blockedBetweenIds(userId),
+    ]);
 
     return rows
       .map((row) => (row.user_low === userId ? row.user_high : row.user_low))

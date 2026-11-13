@@ -49,7 +49,7 @@ import { User } from "./user.entity.js";
 @Index("contact_aliases_target_admin_id_idx", ["targetAdminId"], {
   where: `"target_admin_id" IS NOT NULL`,
 })
-@Index("contact_aliases_owner_key", ["ownerKey"])
+// No index on owner_key alone: the primary key (owner_key, target_key) serves it.
 export class ContactAlias {
   @PrimaryColumn({ type: "text" })
   ownerKey!: string;

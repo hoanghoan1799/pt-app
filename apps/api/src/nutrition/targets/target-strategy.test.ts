@@ -70,9 +70,14 @@ describe("TdeeTarget", () => {
 
 describe("TargetCalculator", () => {
   it("picks the strategy by source", () => {
-    const calculator = new TargetCalculator([new ManualTarget(), new TdeeTarget()]);
+    const calculator = new TargetCalculator([
+      new ManualTarget(),
+      new TdeeTarget(),
+    ]);
 
-    expect(calculator.compute("manual", { carbs: 1, protein: 2, fat: 3 })).toEqual({
+    expect(
+      calculator.compute("manual", { carbs: 1, protein: 2, fat: 3 }),
+    ).toEqual({
       carbs: 1,
       protein: 2,
       fat: 3,
