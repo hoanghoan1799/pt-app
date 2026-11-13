@@ -15,7 +15,7 @@ import { Clock } from "../common/clock.js";
 import { MealLog } from "../database/entities/meal-log.entity.js";
 import { MealMark } from "../database/entities/meal-mark.entity.js";
 import { MealMarkItem } from "../database/entities/meal-mark-item.entity.js";
-import { FoodsReader } from "./foods-reader.js";
+import { FoodFactsService } from "../foods/food-facts.service.js";
 import { MealPlanQueries } from "./meal-plan.queries.js";
 import { MealPlanStore } from "./meal-plan.store.js";
 import { logErrors } from "./nutrition.errors.js";
@@ -28,7 +28,7 @@ export class MealLogsService {
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly store: MealPlanStore,
     private readonly queries: MealPlanQueries,
-    private readonly foods: FoodsReader,
+    private readonly foods: FoodFactsService,
     private readonly clock: Clock,
   ) {}
 

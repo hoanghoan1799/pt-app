@@ -1,7 +1,8 @@
 import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/auth.module.js";
-import { SocialAccountQueries } from "./accounts.queries.js";
+import { FilesModule } from "../files/files.module.js";
+import { AccountDirectoryModule } from "../users/account-directory.module.js";
 import { CommentPolicy } from "./domain/comment.policy.js";
 import { PostPolicy } from "./domain/post.policy.js";
 import { EngagementController } from "./engagement.controller.js";
@@ -14,10 +15,6 @@ import { NotificationsListener } from "./notifications/notifications.listener.js
 import { NotificationsService } from "./notifications/notifications.service.js";
 import { PhotosController } from "./photos/photos.controller.js";
 import { PhotosService } from "./photos/photos.service.js";
-import {
-  ByteaSocialPhotoStorage,
-  SocialPhotoStorage,
-} from "./photos/social-photo-storage.js";
 import { PostAccess } from "./post-access.service.js";
 import { SocialPostQuotes } from "./post-quotes.adapter.js";
 import { PostsController } from "./posts.controller.js";
@@ -36,7 +33,7 @@ import { SocialTermsGuard } from "./terms.guard.js";
 // NotificationsListener writes the rows and announces `social.notification.created`
 // for push and chat. Guards (session, roles, PT scope) are global, from AuthModule.
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, FilesModule, AccountDirectoryModule],
   controllers: [
     PostsController,
     EngagementController,
@@ -48,7 +45,6 @@ import { SocialTermsGuard } from "./terms.guard.js";
   providers: [
     PostPolicy,
     CommentPolicy,
-    SocialAccountQueries,
     RelationshipQueries,
     PostAccess,
     PostQueries,
@@ -64,8 +60,6 @@ import { SocialTermsGuard } from "./terms.guard.js";
     SocialTermsGuard,
     SocialCleanupService,
     SocialPostQuotes,
-    // Swap for the shared FilesModule FileStorage at merge time.
-    { provide: SocialPhotoStorage, useClass: ByteaSocialPhotoStorage },
   ],
   exports: [SocialCleanupService, SocialPostQuotes],
 })

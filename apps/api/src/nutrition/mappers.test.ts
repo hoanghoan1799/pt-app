@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { FoodFacts } from "./foods-reader.js";
+import type { FoodFacts } from "../foods/food-facts.service.js";
 import {
   toBodyProfileDetail,
   toDayResponse,

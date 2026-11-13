@@ -35,12 +35,11 @@ const SELECT = {
   archivedAt: true,
 } as const;
 
-// READ-ONLY view of the `foods` table for meal plans, meal logs and food
-// entries. The food library itself (create, edit, archive, search) belongs to
-// the Foods module; when the two modules are merged, this class should become
-// a thin wrapper over (or be replaced by) the Foods module's exported service.
+// What other modules (meal plans, meal logs) read from the food library:
+// per-100 g facts, accepting a transaction manager. Create, edit, archive and
+// search stay in FoodsService / FoodsQueries.
 @Injectable()
-export class FoodsReader {
+export class FoodFactsService {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
   // An active (not archived) food: the only kind that can be added anew.

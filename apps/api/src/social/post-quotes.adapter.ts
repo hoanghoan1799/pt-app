@@ -7,7 +7,7 @@ import type {
   ChatPostQuote,
   ChatPostQuoteReader,
 } from "../chat/post-quote.port.js";
-import { SocialAccountQueries } from "./accounts.queries.js";
+import { AccountDirectory } from "../users/account-directory.service.js";
 import { socialPhotoUrl } from "./mappers.js";
 import { PostAccess } from "./post-access.service.js";
 import { keyOf, toSocialActor } from "./social-actor.js";
@@ -20,7 +20,7 @@ export class SocialPostQuotes implements ChatPostQuoteReader {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly access: PostAccess,
-    private readonly accounts: SocialAccountQueries,
+    private readonly accounts: AccountDirectory,
   ) {}
 
   // A post the sender may see and the other side wrote: a PT or super admin

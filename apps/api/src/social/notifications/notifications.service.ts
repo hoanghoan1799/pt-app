@@ -8,7 +8,7 @@ import {
 import { DataSource } from "typeorm";
 
 import { Clock } from "../../common/clock.js";
-import { SocialAccountQueries } from "../accounts.queries.js";
+import { AccountDirectory } from "../../users/account-directory.service.js";
 import { decodeTimeCursor, timeCursor } from "../domain/cursor.js";
 import { rowsOf } from "../domain/rows.js";
 import { keyOf, type SocialActor } from "../social-actor.js";
@@ -54,7 +54,7 @@ type Row = {
 export class NotificationsService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    private readonly accounts: SocialAccountQueries,
+    private readonly accounts: AccountDirectory,
     private readonly clock: Clock,
   ) {}
 

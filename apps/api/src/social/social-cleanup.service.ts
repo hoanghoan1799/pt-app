@@ -3,8 +3,8 @@ import type { EntityManager } from "typeorm";
 
 // Account deletion removes a trainee's posts, photos, reactions, comments,
 // notifications, friendships, blocks and reports by or about them (A12).
-// MERGE: the Users step calls this inside its delete-trainee transaction, with
-// the transaction's manager. (DMs and trainee chats are a later step.)
+// The Users module calls this inside its delete-trainee transaction, with
+// the transaction manager. DMs and chats go with the user row by cascade.
 @Injectable()
 export class SocialCleanupService {
   async deleteContentOfUser(manager: EntityManager, userId: number) {
