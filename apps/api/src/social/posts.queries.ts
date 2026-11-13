@@ -54,8 +54,8 @@ class Sql {
   }
 }
 
-// SQL of the SUPER admins (admins created before roles have a null role).
-const SUPER_ADMIN_IDS = `(SELECT id FROM admins WHERE role IS NULL OR role = 'super_admin')`;
+// SQL of the SUPER admins (admins.role is NOT NULL since DbConstraints).
+const SUPER_ADMIN_IDS = `(SELECT id FROM admins WHERE role = 'super_admin')`;
 
 // Read models of posts: feeds, profile lists and the single post. Visibility is
 // filtered in SQL with the very rules of PostPolicy.
