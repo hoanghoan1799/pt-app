@@ -24,6 +24,7 @@
     "openapi": "tsc -p tsconfig.build.json && node dist/openapi/write.js",
     "foods:seed": "node --env-file-if-exists=.env --import tsx src/scripts/seed-foods.ts",
     "admin:create": "node --env-file-if-exists=.env --import tsx src/scripts/create-admin.ts",
+    "demo:seed": "node --env-file-if-exists=.env --import tsx src/scripts/seed-demo.ts",
     "data:migrate": "tsx scripts/migrate-from-turso.ts",
     "data:verify": "tsx scripts/migrate-from-turso.ts --verify"
   },
