@@ -393,7 +393,7 @@ describe("slash commands", () => {
       .getRepository(ChatMessage)
       .findOneByOrFail({ id: plain.body.message.id });
 
-    expect(stored.silent).toBeNull();
+    expect(stored.silent).toBe(false);
     expect(events.named("chat.message.sent")[0].payload.silent).toBe(false);
   });
 });

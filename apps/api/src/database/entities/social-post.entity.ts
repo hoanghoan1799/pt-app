@@ -4,10 +4,7 @@ import {
   Entity,
   ForeignKey,
   Index,
-  JoinColumn,
-  ManyToOne,
   PrimaryGeneratedColumn,
-  type Relation,
 } from "typeorm";
 
 import { GeneratedId, kindId } from "./actor-ids.js";
@@ -35,6 +32,12 @@ import { User } from "./user.entity.js";
 @Check(`"author_kind" IN ('user', 'admin')`)
 @Check(`"privacy" IN ('everyone', 'friends', 'only_me')`)
 @Index("social_posts_photo_id_idx", ["photoId"])
+@Index("social_posts_id_photo", ["id", "photoId"], { unique: true })
+// post.photo_id and photo.post_id agree (see ChatMessage for the pattern).
+@ForeignKey(() => SocialPostPhoto, ["id", "photoId"], ["postId", "id"], {
+  name: "fk_social_posts_photo",
+  onDelete: "SET NULL",
+})
 @Index(
   "social_posts_idempotency",
   ["authorKind", "authorId", "idempotencyKey"],
@@ -58,10 +61,6 @@ export class SocialPost {
 
   @Column({ type: "integer", nullable: true })
   photoId!: number | null;
-
-  @ManyToOne(() => SocialPostPhoto, { onDelete: "SET NULL", nullable: true })
-  @JoinColumn({ name: "photo_id" })
-  photo!: Relation<SocialPostPhoto> | null;
 
   // `Idempotency-Key` header of the create request: a retry with the same key
   // returns this post instead of making another.

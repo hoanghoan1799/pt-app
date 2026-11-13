@@ -148,7 +148,7 @@ export class ChatService {
           clientId,
           input.replyToMessageId ?? null,
           input.postId ?? null,
-          resolved.silent ? true : null,
+          resolved.silent,
           now,
         ],
       );

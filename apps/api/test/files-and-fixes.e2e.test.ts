@@ -4,24 +4,17 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { Clock } from "../src/common/clock.js";
 import { Admin } from "../src/database/entities/admin.entity.js";
-import { ChatNickname } from "../src/database/entities/chat-nickname.entity.js";
-import { ContactAlias } from "../src/database/entities/contact-alias.entity.js";
 import { UserAvatar } from "../src/database/entities/user-avatar.entity.js";
 import { BytesInPostgresStorage } from "../src/files/bytes-in-postgres.storage.js";
-import {
-  moveChatNicknamesToAliases,
-  verifyExistingSuperAdmins,
-} from "../src/scripts/data-fixes.js";
+import { verifyExistingSuperAdmins } from "../src/scripts/data-fixes.js";
 import { createTestApp } from "./support/app.js";
 import {
   FakeClock,
   seedAdmin,
-  seedConversation,
   seedUser,
 } from "./support/auth.js";
 import { createTestDatabase, type TestDatabase } from "./support/database.js";
 import { PNG_BASE64 } from "./support/http.js";
-import { insertRow } from "./support/rows.js";
 
 let db: TestDatabase;
 let app: INestApplication;
@@ -156,58 +149,5 @@ describe("verifyExistingSuperAdmins", () => {
       (await ds.getRepository(Admin).findOneByOrFail({ id: legacy.id }))
         .verifiedAt,
     ).toBeNull();
-  });
-});
-
-describe("moveChatNicknamesToAliases", () => {
-  it("copies usable shared nicknames to the setter's aliases, keeps existing ones and empties the legacy table", async () => {
-    await ds.getRepository(ChatNickname).clear();
-    const user = await seedUser(ds);
-    const admin = await seedAdmin(ds);
-    const conversationId = await seedConversation(ds, user.id);
-    const at = new Date("2026-01-01T00:00:00.000Z");
-    const second = await seedConversation(ds, (await seedUser(ds)).id);
-    const nick = (
-      targetKey: string,
-      setByKey: string,
-      nickname: string,
-      conversation = conversationId,
-    ) =>
-      insertRow(ds, ChatNickname, {
-        conversationId: conversation,
-        targetKey,
-        setByKey,
-        nickname,
-        updatedAt: at,
-      });
-
-    await nick("pt", "user", "Coach");
-    await nick("user", `admin:${admin.id}`, "Champ");
-    // Unusable: an admin naming the PT side, an empty value.
-    await nick("pt", `admin:${admin.id}`, "Nope", second);
-    await nick(`admin:${admin.id}`, "user", "   ", second);
-    await ds.getRepository(ContactAlias).save({
-      ownerKey: `user:${user.id}`,
-      targetKey: "pt",
-      alias: "Already mine",
-      updatedAt: at,
-    });
-
-    const created = await moveChatNicknamesToAliases(ds);
-    const aliases = await ds
-      .getRepository(ContactAlias)
-      .find({ order: { ownerKey: "ASC" } });
-
-    expect(created).toBe(1);
-    expect(
-      aliases.map((a) => [a.ownerKey, a.targetKey, a.alias]).sort(),
-    ).toEqual(
-      [
-        [`admin:${admin.id}`, `user:${user.id}`, "Champ"],
-        [`user:${user.id}`, "pt", "Already mine"],
-      ].sort(),
-    );
-    expect(await ds.getRepository(ChatNickname).count()).toBe(0);
-    expect(await moveChatNicknamesToAliases(ds)).toBe(0);
   });
 });

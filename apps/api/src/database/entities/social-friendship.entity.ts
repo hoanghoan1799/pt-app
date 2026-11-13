@@ -12,6 +12,11 @@ import {
 import { User } from "./user.entity.js";
 
 @Entity("social_friendships")
+@Check("social_friendships_users_ordered", `"user_low" < "user_high"`)
+@Check(
+  "social_friendships_requested_by_member",
+  `"requested_by" IN ("user_low", "user_high")`,
+)
 @Index("social_friendships_high", ["userHigh"])
 @Check(`"status" IN ('pending', 'accepted')`)
 @Index("social_friendships_requested_by_idx", ["requestedBy"])

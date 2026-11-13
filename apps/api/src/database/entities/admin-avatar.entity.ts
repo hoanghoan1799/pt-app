@@ -14,6 +14,7 @@ import { Admin } from "./admin.entity.js";
 // version used in the URL stays in `admins.avatar_updated_at`; `updated_at`
 // here is the same instant, written together with the bytes.
 @Entity("admin_avatars")
+@Check("admin_avatars_size_matches_data", `"size" = octet_length("data")`)
 @Check(`"mime" IN ('image/webp', 'image/jpeg', 'image/png')`)
 export class AdminAvatar {
   @PrimaryColumn({ type: "integer" })

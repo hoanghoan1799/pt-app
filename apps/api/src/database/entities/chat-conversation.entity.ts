@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
@@ -12,6 +13,15 @@ import { ChatMessage } from "./chat-message.entity.js";
 import { User } from "./user.entity.js";
 
 @Entity("chat_conversations")
+// The last message belongs to this conversation. Deleting it only clears
+// last_message_id. last_message_id / last_message_at are denormalised and kept
+// by the app (ChatService.send); data:verify recomputes and compares them.
+@ForeignKey(
+  () => ChatMessage,
+  ["id", "lastMessageId"],
+  ["conversationId", "id"],
+  { name: "fk_chat_conversations_last_message", onDelete: "SET NULL" },
+)
 @Index("chat_conversations_last_message_at", ["lastMessageAt"])
 @Index("chat_conversations_last_message_id_idx", ["lastMessageId"])
 export class ChatConversation {
@@ -27,10 +37,6 @@ export class ChatConversation {
 
   @Column({ type: "integer", nullable: true })
   lastMessageId!: number | null;
-
-  @ManyToOne(() => ChatMessage, { onDelete: "SET NULL", nullable: true })
-  @JoinColumn({ name: "last_message_id" })
-  lastMessage!: Relation<ChatMessage> | null;
 
   @Column({ type: "timestamptz", nullable: true })
   lastMessageAt!: Date | null;

@@ -2,6 +2,7 @@ import {
   Check,
   Column,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
@@ -15,7 +16,27 @@ import { ChatPhoto } from "./chat-photo.entity.js";
 import { SocialPost } from "./social-post.entity.js";
 
 @Entity("chat_messages")
-@Index("chat_messages_conversation_id", ["conversationId", "id"])
+// Unique so that a reply (and last_message_id) can reference the pair
+// (conversation_id, id): both must name a message of the same conversation.
+@Index("chat_messages_conversation_id", ["conversationId", "id"], {
+  unique: true,
+})
+// Unique only so that chat_photos (message_id, id) can reference it.
+@Index("chat_messages_id_photo", ["id", "photoId"], { unique: true })
+@ForeignKey(
+  () => ChatMessage,
+  ["conversationId", "replyToMessageId"],
+  ["conversationId", "id"],
+  { name: "fk_chat_messages_reply_in_conversation", onDelete: "SET NULL" },
+)
+// message.photo_id and photo.message_id are two views of one link. This FK
+// (checked at once) and the one on ChatPhoto (deferred: the app sets the photo
+// side first) make them agree. Deleting the photo clears photo_id only.
+// reply_post_id keeps a plain FK: a deleted post shows as removed.
+@ForeignKey(() => ChatPhoto, ["id", "photoId"], ["messageId", "id"], {
+  name: "fk_chat_messages_photo",
+  onDelete: "SET NULL",
+})
 @Check(`"sender_role" IN ('user', 'admin')`)
 // A trainee message never carries an admin id. The other way round is allowed:
 // NULL on an admin message means the admin was removed (ON DELETE SET NULL).
@@ -60,12 +81,6 @@ export class ChatMessage {
   @Column({ type: "text", default: "" })
   body!: string;
 
-  @Column({ type: "text", nullable: true })
-  attachmentUrl!: string | null;
-
-  @Column({ type: "text", nullable: true })
-  attachmentMeta!: string | null;
-
   @Column({ type: "text" })
   clientId!: string;
 
@@ -82,22 +97,16 @@ export class ChatMessage {
   @Column({ type: "integer", nullable: true })
   replyToMessageId!: number | null;
 
-  @ManyToOne(() => ChatMessage, { onDelete: "SET NULL", nullable: true })
-  @JoinColumn({ name: "reply_to_message_id" })
-  replyToMessage!: Relation<ChatMessage> | null;
-
   @Column({ type: "text", nullable: true })
   stickerRef!: string | null;
 
+  // Kept next to sticker_ref on purpose: a message keeps rendering its custom
+  // sticker after the sticker was deleted.
   @Column({ type: "text", nullable: true })
   stickerUrl!: string | null;
 
   @Column({ type: "integer", nullable: true })
   photoId!: number | null;
-
-  @ManyToOne(() => ChatPhoto, { onDelete: "SET NULL", nullable: true })
-  @JoinColumn({ name: "photo_id" })
-  photo!: Relation<ChatPhoto> | null;
 
   @Column({ type: "integer", nullable: true })
   replyPostId!: number | null;
@@ -106,8 +115,8 @@ export class ChatMessage {
   @JoinColumn({ name: "reply_post_id" })
   replyPost!: Relation<SocialPost> | null;
 
-  @Column({ type: "boolean", nullable: true })
-  silent!: boolean | null;
+  @Column({ type: "boolean", default: false })
+  silent!: boolean;
 
   @Column({ type: "timestamptz", nullable: true })
   editedAt!: Date | null;

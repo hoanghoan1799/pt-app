@@ -553,7 +553,7 @@ export class ChatQueries {
        WHERE m.conversation_id = ANY($3::int[])
          AND m.sender_role = $1
          AND m.deleted_at IS NULL
-         AND COALESCE(m.silent, false) = false
+         AND m.silent = false
          AND m.id > COALESCE(r.last_read_message_id, 0)
        GROUP BY m.conversation_id`,
       [senderRole, readerKey, conversationIds],

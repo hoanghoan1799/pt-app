@@ -24,8 +24,16 @@ import { ChatMessage } from "./chat-message.entity.js";
 @Index("chat_photos_uploader_admin_id_idx", ["uploaderAdminId"], {
   where: `"uploader_admin_id" IS NOT NULL`,
 })
-@Index("chat_photos_message", ["messageId"])
-@Index("chat_photos_conversation", ["conversationId"])
+// Unique so that chat_messages (id, photo_id) can reference it.
+@Index("chat_photos_message_photo", ["messageId", "id"], { unique: true })
+// Deferred: the app attaches the photo (message_id) before the message points
+// back (photo_id), inside one transaction. Deleting the message deletes it.
+@ForeignKey(() => ChatMessage, ["messageId", "id"], ["id", "photoId"], {
+  name: "fk_chat_photos_message",
+  onDelete: "CASCADE",
+  deferrable: "INITIALLY DEFERRED",
+})
+@Check("chat_photos_size_matches_data", `"size" = octet_length("data")`)
 @Index(
   "chat_photos_uploader_client",
   ["conversationId", "uploaderKey", "clientId"],
@@ -45,10 +53,6 @@ export class ChatPhoto {
 
   @Column({ type: "integer", nullable: true })
   messageId!: number | null;
-
-  @ManyToOne(() => ChatMessage, { onDelete: "CASCADE", nullable: true })
-  @JoinColumn({ name: "message_id" })
-  message!: Relation<ChatMessage> | null;
 
   @Column({ type: "text" })
   uploaderKey!: string;

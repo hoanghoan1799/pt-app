@@ -37,11 +37,16 @@ const columnsOf = async (table: string) =>
 describe("AvatarTables migration", () => {
   it("moves data-URL avatars into the new tables, skips unusable values and reverts", async () => {
     const ds = db.dataSource;
-    const last = migrations.at(-1)!;
+    const avatarIndex = migrations.findIndex(
+      (migration) => migration.name === "AvatarTables1795000000000",
+    );
 
     await ds.runMigrations({ transaction: "each" });
-    // Back to the schema before it: avatars are columns again.
-    await ds.undoLastMigration({ transaction: "each" });
+    // Back to the schema before it (the migrations after it come off first):
+    // avatars are columns again.
+    for (let index = migrations.length - 1; index >= avatarIndex; index -= 1) {
+      await ds.undoLastMigration({ transaction: "each" });
+    }
     expect(await columnsOf("users")).toContain("avatar");
 
     const ids = {
@@ -128,7 +133,9 @@ describe("AvatarTables migration", () => {
     expect(version.avatar_updated_at).toEqual(UPDATED);
 
     // Reverting rebuilds the data URLs, byte for byte.
-    await ds.undoLastMigration({ transaction: "each" });
+    for (let index = migrations.length - 1; index >= avatarIndex; index -= 1) {
+      await ds.undoLastMigration({ transaction: "each" });
+    }
     const [back] = await ds.query(`SELECT avatar FROM users WHERE id = $1`, [
       ids.png,
     ]);
@@ -139,7 +146,6 @@ describe("AvatarTables migration", () => {
 
     expect(back.avatar).toBe(PNG_URL);
     expect(backAdmin.avatar).toBe(WEBP_URL);
-    expect(last.name).toBe("AvatarTables1795000000000");
     await ds.runMigrations({ transaction: "each" });
   });
 });
