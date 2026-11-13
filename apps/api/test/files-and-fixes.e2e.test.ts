@@ -128,33 +128,21 @@ describe("BytesInPostgresStorage", () => {
 });
 
 describe("verifyExistingSuperAdmins", () => {
-  it("gives roleless admins the super_admin role and the tick, once, and leaves PTs alone", async () => {
-    const legacy = await seedAdmin(ds, { role: null });
+  // admins.role is NOT NULL since the db-constraints migration (which turned a
+  // NULL role into super_admin), so no roleless admin is left to find.
+  it("finds no roleless admin and leaves super admins and PTs alone", async () => {
+    const boss = await seedAdmin(ds, { role: "super_admin" });
     const pt = await seedAdmin(ds, { role: "pt" });
-    const now = new Date("2026-11-12T10:00:00.000Z");
 
-    expect(await verifyExistingSuperAdmins(ds, now)).toBeGreaterThanOrEqual(1);
     expect(
-      await ds.getRepository(Admin).findOneByOrFail({ id: legacy.id }),
-    ).toMatchObject({
-      role: "super_admin",
-      verifiedAt: now,
-    });
+      await verifyExistingSuperAdmins(ds, new Date("2026-11-12T10:00:00.000Z")),
+    ).toBe(0);
+    expect(
+      await ds.getRepository(Admin).findOneByOrFail({ id: boss.id }),
+    ).toMatchObject({ role: "super_admin", verifiedAt: null });
     expect(
       await ds.getRepository(Admin).findOneByOrFail({ id: pt.id }),
-    ).toMatchObject({
-      role: "pt",
-      verifiedAt: null,
-    });
-    // A tick removed later is not granted again.
-    await ds
-      .getRepository(Admin)
-      .update({ id: legacy.id }, { verifiedAt: null });
-    expect(await verifyExistingSuperAdmins(ds, now)).toBe(0);
-    expect(
-      (await ds.getRepository(Admin).findOneByOrFail({ id: legacy.id }))
-        .verifiedAt,
-    ).toBeNull();
+    ).toMatchObject({ role: "pt", verifiedAt: null });
   });
 });
 

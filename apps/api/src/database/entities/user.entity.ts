@@ -46,8 +46,9 @@ export class User {
   @Column({ type: "timestamptz", nullable: true })
   passwordChangedAt!: Date | null;
 
-  @Column({ type: "boolean", nullable: true })
-  chatEnabled!: boolean | null;
+  // NULL used to mean "never switched on", which the app read as false.
+  @Column({ type: "boolean", default: false })
+  chatEnabled!: boolean;
 
   @Column({ type: "timestamptz", nullable: true })
   chatEnabledChangedAt!: Date | null;
@@ -81,14 +82,18 @@ export class User {
   @Column({ type: "text", nullable: true })
   bio!: string | null;
 
+  // Stays nullable on purpose: NULL means the terms were never accepted, which
+  // is different from any accepted version (the app compares `?? 0` with the
+  // current version, and the API returns null to the client).
   @Column({ type: "integer", nullable: true })
   termsVersion!: number | null;
 
   @Column({ type: "timestamptz", nullable: true })
   termsAcceptedAt!: Date | null;
 
-  @Column({ type: "text", nullable: true })
-  postPrivacyDefault!: "everyone" | "friends" | "only_me" | null;
+  // NULL used to mean "never chosen", which the app read as 'friends'.
+  @Column({ type: "text", default: "friends" })
+  postPrivacyDefault!: "everyone" | "friends" | "only_me";
 
   @Column({ type: "timestamptz", default: () => "now()" })
   createdAt!: Date;

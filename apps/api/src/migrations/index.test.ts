@@ -14,8 +14,20 @@ describe("migrations list", () => {
     const listed = migrations.map((migration) => migration.name);
 
     expect(listed).toHaveLength(files.length);
+    // `1795100000000-db-constraints.ts` is the class DbConstraints1795100000000.
+    const pascal = (slug: string) =>
+      slug
+        .split("-")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join("");
+
     expect(
-      files.map((file) => file.replace(/^(\d+)-(.+)\.ts$/, "$2$1")),
+      files.map((file) =>
+        file.replace(
+          /^(\d+)-(.+)\.ts$/,
+          (_all, id: string, slug: string) => `${pascal(slug)}${id}`,
+        ),
+      ),
     ).toEqual(listed);
   });
 });

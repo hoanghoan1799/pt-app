@@ -42,7 +42,7 @@ export const seedAdmin = async (
   options: {
     username?: string;
     password?: string;
-    role?: "super_admin" | "pt" | null;
+    role?: "super_admin" | "pt";
     passcode?: string;
   } = {},
 ) => {

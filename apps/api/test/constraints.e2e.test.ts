@@ -39,7 +39,8 @@ describe("constraints", () => {
       expect(await sqlState(insert("boss", "boss"))).toBe("23514");
       await insert("root", "super_admin");
       await insert("coach", "pt");
-      await insert("legacy", null);
+      // NULL no longer means super admin: the migration wrote it out.
+      expect(await sqlState(insert("legacy", null))).toBe("23502");
     });
 
     it("rejects an unknown foods.group", async () => {
@@ -319,6 +320,57 @@ describe("constraints", () => {
       );
 
       expect(rows.map((row) => row.date)).toEqual(["2026-03-01", "2026-03-02"]);
+    });
+  });
+
+  describe("NOT NULL with defaults", () => {
+    it("gives an admin the least privilege, no failed passcodes and a visible presence", async () => {
+      await query(
+        `INSERT INTO admins (username, username_key, password_hash) VALUES ('dflt', 'dflt', 'x')`,
+      );
+
+      const rows = await query(
+        `SELECT role, passcode_failed_count, presence_hidden FROM admins WHERE username_key = 'dflt'`,
+      );
+
+      expect(rows).toEqual([
+        { role: "pt", passcode_failed_count: 0, presence_hidden: false },
+      ]);
+    });
+
+    it("gives a user chat off and friends-only posts, and keeps terms_version nullable", async () => {
+      await query(
+        `INSERT INTO users (name, name_key) VALUES ('Dflt', 'dflt-user')`,
+      );
+
+      const rows = await query(
+        `SELECT chat_enabled, post_privacy_default, terms_version FROM users WHERE name_key = 'dflt-user'`,
+      );
+
+      expect(rows).toEqual([
+        {
+          chat_enabled: false,
+          post_privacy_default: "friends",
+          terms_version: null,
+        },
+      ]);
+    });
+
+    it.each([
+      ["admins", "role"],
+      ["admins", "passcode_failed_count"],
+      ["admins", "presence_hidden"],
+      ["users", "chat_enabled"],
+      ["users", "post_privacy_default"],
+    ])("rejects an explicit NULL in %s.%s", async (table, column) => {
+      const insert =
+        table === "admins"
+          ? `INSERT INTO admins (username, username_key, password_hash, ${column})
+             VALUES ('n-${column}', 'n-${column}', 'x', NULL)`
+          : `INSERT INTO users (name, name_key, ${column})
+             VALUES ('n-${column}', 'n-${column}', NULL)`;
+
+      expect(await sqlState(query(insert))).toBe("23502");
     });
   });
 });
