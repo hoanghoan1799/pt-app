@@ -8,6 +8,7 @@ import {
   type TableSpec,
   type TursoColumns,
 } from "../turso-columns.js";
+import { deriveId, findViolations, VIOLATION_COLUMNS } from "./account-refs.js";
 import {
   AVATAR_COLUMNS,
   AVATAR_TARGET_TABLES,
@@ -16,7 +17,6 @@ import {
   isMovedColumn,
   movedAvatarOf,
 } from "./avatars.js";
-import { deriveId, findViolations, VIOLATION_COLUMNS } from "./account-refs.js";
 import {
   hashRow,
   normalizeSource,

@@ -2,12 +2,12 @@ import type { Client } from "pg";
 
 import { migrations } from "../../src/migrations/index.js";
 import type { TursoColumns } from "../turso-columns.js";
+import { isDerived } from "./account-refs.js";
 import {
   AVATAR_TARGET_TABLES,
   isMovedColumn,
   MOVED_AVATARS,
 } from "./avatars.js";
-import { isDerived } from "./account-refs.js";
 import type { PgColumnInfo } from "./convert.js";
 import type { ForeignKey } from "./plan.js";
 
