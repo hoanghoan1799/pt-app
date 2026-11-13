@@ -2,6 +2,7 @@ import type { Client } from "pg";
 
 import { migrations } from "../../src/migrations/index.js";
 import type { TursoColumns } from "../turso-columns.js";
+import { isDerived } from "./account-refs.js";
 import {
   AVATAR_TARGET_TABLES,
   isMovedColumn,
@@ -202,12 +203,25 @@ export const introspectTarget = async (
       continue;
     }
 
+    const mapped = mapping.tables[row.child].columns.some(
+      (column) => column.name === row.cols[0],
+    );
+    const derived = !mapped && isDerived(row.child, row.cols[0]);
+
+    if (!mapped && !derived) {
+      problems.push(
+        `foreign key ${row.child}.${row.cols[0]} is neither a source column nor a known derived account id (scripts/migrate/account-refs.ts)`,
+      );
+      continue;
+    }
+
     foreignKeys.push({
       table: row.child,
       column: row.cols[0],
       parentTable: row.parent,
       parentColumn: row.pcols[0],
       nullable: row.nullable,
+      ...(derived ? { derived: true } : {}),
     });
   }
 

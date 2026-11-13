@@ -2,6 +2,7 @@ import {
   Check,
   Column,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
@@ -9,9 +10,27 @@ import {
   type Relation,
 } from "typeorm";
 
+import { GeneratedId, kindId } from "./actor-ids.js";
+import { Admin } from "./admin.entity.js";
 import { SocialPostPhoto } from "./social-post-photo.entity.js";
+import { User } from "./user.entity.js";
 
 @Entity("social_posts")
+@Check("social_posts_author_id_positive", `"author_id" > 0`)
+@ForeignKey(() => User, ["authorUserId"], ["id"], {
+  name: "fk_social_posts_author_user_id",
+  onDelete: "CASCADE",
+})
+@Index("social_posts_author_user_id_idx", ["authorUserId"], {
+  where: `"author_user_id" IS NOT NULL`,
+})
+@ForeignKey(() => Admin, ["authorAdminId"], ["id"], {
+  name: "fk_social_posts_author_admin_id",
+  onDelete: "CASCADE",
+})
+@Index("social_posts_author_admin_id_idx", ["authorAdminId"], {
+  where: `"author_admin_id" IS NOT NULL`,
+})
 @Index("social_posts_author", ["authorKind", "authorId", "createdAt"])
 @Check(`"author_kind" IN ('user', 'admin')`)
 @Check(`"privacy" IN ('everyone', 'friends', 'only_me')`)
@@ -57,4 +76,10 @@ export class SocialPost {
 
   @Column({ type: "timestamptz", nullable: true })
   deletedAt!: Date | null;
+
+  @GeneratedId(kindId("author_kind", "author_id", "user"))
+  authorUserId!: number | null;
+
+  @GeneratedId(kindId("author_kind", "author_id", "admin"))
+  authorAdminId!: number | null;
 }

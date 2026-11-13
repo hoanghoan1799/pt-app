@@ -447,6 +447,97 @@ describe("data migration from a Turso/SQLite copy", () => {
     });
   });
 
+  describe("account references and message rules (DbIntegrity)", () => {
+    it("reports dangling text keys, user messages with an admin id", async () => {
+      const { fixture, db } = await setup("dirty-keys");
+      const { exitCode, report, output } = await migrate(fixture, db);
+
+      expect(exitCode).toBe(1);
+      expect(report.status).toBe("aborted");
+      expect(report.orphans).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            table: "social_comments",
+            column: "author_user_id",
+            parentTable: "users",
+            reason: "missing_parent",
+            sampleKeys: ["90"],
+          }),
+          expect.objectContaining({
+            table: "social_comments",
+            column: "author_key",
+            reason: "malformed_key",
+            sampleKeys: ["95"],
+          }),
+          expect.objectContaining({
+            table: "chat_reads",
+            column: "reader_key",
+            reason: "malformed_key",
+            sampleKeys: ["1:admin:x"],
+          }),
+          expect.objectContaining({
+            table: "social_reactions",
+            column: "reactor_admin_id",
+            parentTable: "admins",
+            sampleKeys: ["1:admin:9999"],
+          }),
+          expect.objectContaining({
+            table: "social_reports",
+            column: "target_user_id",
+            sampleKeys: ["90"],
+          }),
+          expect.objectContaining({
+            table: "chat_messages",
+            column: "sender_admin_id",
+            reason: "user_message_with_admin",
+            sampleKeys: ["91"],
+          }),
+        ]),
+      );
+      expect(output).toMatch(/Orphan report/);
+      expect(await count(db, "users")).toBe(0);
+    });
+
+    it("--orphans=skip drops those rows and their dependents and verifies", async () => {
+      const { fixture, db } = await setup("dirty-keys");
+      const { exitCode, report, output } = await migrate(fixture, db, {
+        orphans: "skip",
+      });
+
+      expect(exitCode, output).toBe(0);
+      expect(report.skippedRows).toEqual(
+        expect.arrayContaining([
+          {
+            table: "social_comments",
+            keys: expect.arrayContaining(["90", "95"]),
+          },
+          { table: "chat_reads", keys: ["1:admin:x"] },
+          { table: "social_reactions", keys: ["1:admin:9999"] },
+          { table: "social_reports", keys: ["90"] },
+          { table: "chat_messages", keys: ["91"] },
+          // The reaction on the skipped user message went with it.
+          { table: "chat_reactions", keys: ["91:admin:1"] },
+        ]),
+      );
+
+      expect(await count(db, "chat_messages")).toBe(2);
+      expect(await count(db, "chat_reactions")).toBe(1);
+      expect(report.tables.every((row) => row.match)).toBe(true);
+    });
+
+    it("--orphans=null cannot null a text key: it aborts and points at skip", async () => {
+      const { fixture, db } = await setup("dirty-keys");
+      const { exitCode, output } = await migrate(fixture, db, {
+        orphans: "null",
+      });
+
+      expect(exitCode).toBe(1);
+      expect(output).toMatch(/use --orphans=skip/);
+      expect(output).toMatch(/social_comments\.author_user_id/);
+      expect(await count(db, "users")).toBe(0);
+    });
+  });
+
   it("aborts on values PostgreSQL would reject, and writes nothing", async () => {
     const { fixture, db } = await setup("invalid-enum");
     const { exitCode, report } = await migrate(fixture, db);

@@ -37,8 +37,9 @@ describe("entities", () => {
     const foreignKeys = metadata.flatMap((entity) => entity.foreignKeys);
 
     expect(new Set(tables).size).toBe(47);
-    // 24 declared + 43 formerly logical + 2 on sessions + 2 on the avatar tables.
-    expect(foreignKeys).toHaveLength(71);
+    // 24 declared + 43 formerly logical + 2 on sessions + 2 on the avatar tables
+    // + 26 account ids (DbIntegrity).
+    expect(foreignKeys).toHaveLength(97);
     expect(foreignKeys.every((fk) => fk.onDelete !== undefined)).toBe(true);
   });
 

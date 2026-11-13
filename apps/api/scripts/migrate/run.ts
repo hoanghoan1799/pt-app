@@ -8,6 +8,7 @@ import {
   type TableSpec,
   type TursoColumns,
 } from "../turso-columns.js";
+import { deriveId, findViolations, VIOLATION_COLUMNS } from "./account-refs.js";
 import {
   AVATAR_COLUMNS,
   AVATAR_TARGET_TABLES,
@@ -155,10 +156,13 @@ const analyse = async (
   };
 
   for (const [table, spec] of Object.entries(mapping.tables)) {
-    const needed = new Set<string>();
+    const needed = new Set<string>(VIOLATION_COLUMNS[table] ?? []);
+    const derived: string[] = [];
 
     for (const fk of schema.foreignKeys) {
-      if (fk.table === table) {
+      if (fk.table === table && fk.derived) {
+        derived.push(fk.column);
+      } else if (fk.table === table) {
         needed.add(fk.column);
       }
 
@@ -266,6 +270,10 @@ const analyse = async (
 
             hashFormat.set(id, (hashFormat.get(id) ?? 0) + 1);
           }
+        }
+
+        for (const column of derived) {
+          values[column] = deriveId(table, column, row);
         }
 
         rows[table].push({ key, values });
@@ -716,7 +724,9 @@ const printOrphans = (report: Report, log: Log) => {
     return;
   }
 
-  log("\nOrphan report (rows whose parent row is missing):");
+  log(
+    '\nOrphan report (rows whose parent row is missing, or that break a database rule; parent "-" = a CHECK or unique index):',
+  );
   log(
     formatTable(
       ["table", "column", "parent", "reason", "count", "sample ids"],
@@ -879,6 +889,7 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
       schema.foreignKeys,
       analysis.rows,
       options.orphans,
+      findViolations(analysis.rows),
     );
 
     report.orphans = resolution.groups;
@@ -898,7 +909,7 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
     if (resolution.unnullable.length > 0) {
       report.orphans.push(...resolution.unnullable);
       throw new Abort(
-        `--orphans=null cannot repair NOT NULL columns: ${resolution.unnullable
+        `--orphans=null cannot repair NOT NULL columns, text-key account references or constraint violations (use --orphans=skip): ${resolution.unnullable
           .map((group) => `${group.table}.${group.column}`)
           .join(", ")}`,
       );

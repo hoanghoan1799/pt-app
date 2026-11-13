@@ -2,6 +2,7 @@ import {
   Check,
   Column,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
@@ -9,10 +10,20 @@ import {
   type Relation,
 } from "typeorm";
 
+import { adminKeyId, chatKeyCheck,GeneratedId } from "./actor-ids.js";
+import { Admin } from "./admin.entity.js";
 import { ChatConversation } from "./chat-conversation.entity.js";
 import { ChatMessage } from "./chat-message.entity.js";
 
 @Entity("chat_photos")
+@Check("chat_photos_uploader_key_format", chatKeyCheck("uploader_key"))
+@ForeignKey(() => Admin, ["uploaderAdminId"], ["id"], {
+  name: "fk_chat_photos_uploader_admin_id",
+  onDelete: "CASCADE",
+})
+@Index("chat_photos_uploader_admin_id_idx", ["uploaderAdminId"], {
+  where: `"uploader_admin_id" IS NOT NULL`,
+})
 @Index("chat_photos_message", ["messageId"])
 @Index("chat_photos_conversation", ["conversationId"])
 @Index(
@@ -63,4 +74,7 @@ export class ChatPhoto {
 
   @Column({ type: "timestamptz" })
   createdAt!: Date;
+
+  @GeneratedId(adminKeyId("uploader_key"))
+  uploaderAdminId!: number | null;
 }

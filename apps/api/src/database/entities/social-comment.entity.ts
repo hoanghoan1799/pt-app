@@ -1,6 +1,8 @@
 import {
+  Check,
   Column,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
@@ -8,9 +10,34 @@ import {
   type Relation,
 } from "typeorm";
 
+import {
+  adminKeyId,
+  GeneratedId,
+  socialKeyCheck,
+  userKeyId,
+} from "./actor-ids.js";
+import { Admin } from "./admin.entity.js";
 import { SocialPost } from "./social-post.entity.js";
+import { User } from "./user.entity.js";
 
 @Entity("social_comments")
+@Check("social_comments_author_key_format", socialKeyCheck("author_key"))
+// Account deletion (SocialCleanupService) looks content up by the text key.
+@Index("social_comments_author_key_idx", ["authorKey"])
+@ForeignKey(() => User, ["authorUserId"], ["id"], {
+  name: "fk_social_comments_author_user_id",
+  onDelete: "CASCADE",
+})
+@Index("social_comments_author_user_id_idx", ["authorUserId"], {
+  where: `"author_user_id" IS NOT NULL`,
+})
+@ForeignKey(() => Admin, ["authorAdminId"], ["id"], {
+  name: "fk_social_comments_author_admin_id",
+  onDelete: "CASCADE",
+})
+@Index("social_comments_author_admin_id_idx", ["authorAdminId"], {
+  where: `"author_admin_id" IS NOT NULL`,
+})
 @Index("social_comments_post", ["postId", "createdAt"])
 export class SocialComment {
   @PrimaryGeneratedColumn("identity", { generatedIdentity: "ALWAYS" })
@@ -37,4 +64,10 @@ export class SocialComment {
 
   @Column({ type: "timestamptz", nullable: true })
   deletedAt!: Date | null;
+
+  @GeneratedId(userKeyId("author_key"))
+  authorUserId!: number | null;
+
+  @GeneratedId(adminKeyId("author_key"))
+  authorAdminId!: number | null;
 }

@@ -38,6 +38,16 @@ Read the orphan report and decide. SQLite never enforced its foreign keys, so so
 - `--orphans=null`: set the FK column to NULL. Only for nullable columns; a NOT NULL column aborts.
 - Pass the same `--orphans` value to `data:verify` later, so it knows what was left out.
 
+The database also holds rules SQLite never had (migration `DbIntegrity`), and the scan reports their violations in the same table, so the dry run shows them before anything is written:
+
+- Text keys that point at an account (`user:<id>`, `admin:<id>`, the chat form `admin:<id>`, and kind + id pairs such as `social_posts.author_kind/author_id`, `chat_custom_stickers`, `social_reports` about a user) are real foreign keys through generated columns, so a key whose account does not exist is an orphan. The report names the generated column (for example `social_comments.author_user_id`, parent `users`) and lists the row ids.
+- Malformed keys: every covered text key must match its scheme (social and push `user:<id>` / `admin:<id>`; chat `user` / `admin:<id>`; alias targets also `pt`; ids at most 9 digits, no leading zero) and `author_id`, `owner_id`, `target_id` of kind + id pairs must be above 0 (format CHECKs). Rows that break this are reported with reason `malformed_key` and follow the same `skip` / `null` rule as dangling keys.
+- A trainee chat message with an admin id (`chat_messages_user_has_no_admin`): reported with reason `user_message_with_admin` and parent `-`.
+- The sender-scoped `client_id` unique indexes need no scan: the SQLite schema already had a stricter `UNIQUE (conversation_id, client_id)`.
+- `--orphans=skip` drops those rows and, repeatedly, everything that pointed at them (a skipped message takes its reactions, edits and photos).
+- `--orphans=null` cannot null a text key or repair a CHECK: for these rows it aborts before any write with "use --orphans=skip". Decision: no partial repair of text keys; skip, or fix the source and re-run.
+- Generated columns are never inserted (the loader's column list comes from `turso-columns.json`, which stays unchanged).
+
 Nothing is dropped silently: skipped and nulled values are counted and listed in the console and in the report.
 
 Also prepare, without changing production: the API host and its production PostgreSQL (empty database, a user that can create tables), and the values for the environment list in step 4.
