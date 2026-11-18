@@ -1,5 +1,6 @@
 import { parseArgs } from "node:util";
 
+import { withoutPnpmSeparator } from "./migrate/cli-args.js";
 import { run, type RunOptions } from "./migrate/run.js";
 
 // One-time copy of ALL production data from Turso/libSQL into PostgreSQL, with
@@ -27,12 +28,7 @@ const USAGE = `Usage: data:migrate -- --source <url> --target <postgres url> [op
 `;
 
 const main = async () => {
-  const args = process.argv.slice(2);
-
-  // pnpm passes the "--" of "pnpm run x -- --flag" through to the script.
-  if (args[0] === "--") {
-    args.shift();
-  }
+  const args = withoutPnpmSeparator(process.argv.slice(2));
 
   const { values } = parseArgs({
     args,
