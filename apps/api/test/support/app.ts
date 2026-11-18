@@ -18,6 +18,8 @@ export const createTestApp = async (options: {
   process.env.DATABASE_URL = options.databaseUrl;
   process.env.NODE_ENV = options.nodeEnv;
   process.env.LOG_LEVEL = "silent";
+  // Production (the default NODE_ENV) refuses to boot without it.
+  process.env.AVATAR_URL_SECRET ??= "test-only-avatar-url-secret-0123456789";
   process.env.LOGIN_THROTTLE_LIMIT = "100000";
   Object.assign(process.env, options.env);
 
