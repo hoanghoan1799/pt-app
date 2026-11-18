@@ -62,9 +62,9 @@ test("the terms gate the feed, then a post with a photo shows up", async ({
   });
   await expect(page.getByAltText("Ảnh 1 sẽ đăng")).toBeVisible();
   // The preview shows at once; Đăng waits until the upload has finished.
-  await expect(
-    page.getByRole("status", { name: "Đang tải ảnh lên" }),
-  ).toHaveCount(0);
+  // (the spinner's text is screen-reader only; a status role has no name from
+  // its content, so match the text).
+  await expect(page.getByText("Đang tải ảnh lên")).toHaveCount(0);
   await page.getByRole("button", { name: "Đăng", exact: true }).click();
 
   const post = page.getByRole("article").filter({ hasText: "Bài đầu tiên" });
