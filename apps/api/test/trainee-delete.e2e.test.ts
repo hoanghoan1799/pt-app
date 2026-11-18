@@ -11,6 +11,7 @@ import { ChatCustomSticker } from "../src/database/entities/chat-custom-sticker.
 import { ChatHiddenConversation } from "../src/database/entities/chat-hidden-conversation.entity.js";
 import { ChatMessage } from "../src/database/entities/chat-message.entity.js";
 import { ChatMessageEdit } from "../src/database/entities/chat-message-edit.entity.js";
+import { ChatNickname } from "../src/database/entities/chat-nickname.entity.js";
 import { ChatPhoto } from "../src/database/entities/chat-photo.entity.js";
 import { ChatReaction } from "../src/database/entities/chat-reaction.entity.js";
 import { ChatRead } from "../src/database/entities/chat-read.entity.js";
@@ -102,6 +103,19 @@ const seedGraph = async ({ userId, otherId, adminId, foodId }: Cast) => {
   await insertRow(ds, ChatMessageEdit, { messageId });
   await insertRow(ds, ChatRead, { conversationId, readerKey: "user" });
   await insertRow(ds, ChatColorOverride, { conversationId, adminId });
+  // Shared nicknames of the conversation go with it (FK cascade).
+  await insertRow(ds, ChatNickname, {
+    conversationId,
+    targetKey: "user",
+    nickname: "Bé Na",
+    setByKey: `admin:${adminId}`,
+  });
+  await insertRow(ds, ChatNickname, {
+    conversationId,
+    targetKey: `admin:${adminId}`,
+    nickname: "Coach",
+    setByKey: "user",
+  });
   await insertRow(ds, ChatPhoto, {
     conversationId,
     uploaderKey: "user",
@@ -302,6 +316,7 @@ describe("DELETE /v1/trainees/:userId removes exactly the trainee's data", () =>
         "chat_hidden_conversations",
         "chat_message_edits",
         "chat_messages",
+        "chat_nicknames",
         "chat_photos",
         "chat_reactions",
         "chat_reads",
@@ -335,6 +350,7 @@ describe("DELETE /v1/trainees/:userId removes exactly the trainee's data", () =>
         "workout_days",
       ].sort(),
     );
+    expect(added.chat_nicknames).toBe(2);
     expect(added.contact_aliases).toBe(2);
     expect(added.social_post_photos).toBe(2);
     expect(added.social_reports).toBe(5);

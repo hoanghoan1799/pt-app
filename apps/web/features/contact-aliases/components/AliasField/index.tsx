@@ -23,11 +23,14 @@ interface AliasFieldProps {
   // The saved nickname, if any.
   saved: string | undefined;
   disabled?: boolean;
+  // Replaces the "only you can see this" hint, e.g. for a nickname everybody
+  // in a chat sees.
+  hint?: string;
   // Resolves to an error message, or null when saved.
   onSave: (targetKey: string, alias: string) => Promise<string | null>;
 }
 
-// One private nickname: input with a counter, Save and Clear. The draft
+// One nickname (private by default): input with a counter, Save and Clear. The draft
 // restarts whenever the saved value changes (the parent keys it on the value).
 // Used by the chat settings and the profile pages alike.
 export const AliasField = ({
@@ -37,6 +40,7 @@ export const AliasField = ({
   realName,
   saved,
   disabled = false,
+  hint,
   onSave,
 }: AliasFieldProps) => {
   const t = useTranslations("common.alias");
@@ -90,7 +94,7 @@ export const AliasField = ({
         </button>
       </div>
       <p id={`${id}-hint`} className="mt-1 text-xs text-muted">
-        {t("privateHint")}
+        {hint ?? t("privateHint")}
       </p>
       <div className="flex min-h-9 items-center justify-between gap-3">
         <span

@@ -17,6 +17,8 @@ export const chatErrors = {
     ),
   messageNotFound: () =>
     notFoundError("MESSAGE_NOT_FOUND", CHAT_MESSAGES.MESSAGE_NOT_FOUND),
+  adminNotFound: () =>
+    notFoundError("ADMIN_NOT_FOUND", CHAT_MESSAGES.ADMIN_NOT_FOUND),
   userNotFound: () =>
     notFoundError("USER_NOT_FOUND", CHAT_MESSAGES.USER_NOT_FOUND),
   postNotFound: () =>

@@ -2,14 +2,18 @@ import {
   CHAT_MESSAGE_MAX_PHOTOS,
   CHAT_PHOTO_ERRORS,
   CHAT_PHOTO_MAX_BYTES,
-  chatAliasesToNicknames,
+  chatAdminLabel,
   chatBuildSnippet,
   chatCheckPhoto,
   chatExtractUrls,
   chatFindMatch,
   chatFoldText,
+  chatIsNicknameTarget,
   chatIsSearchableQuery,
   chatNextReadCursor,
+  chatNicknameOr,
+  chatNicknameRequestSchema,
+  chatParseAdminTarget,
   chatParseCommand,
   chatPhotoSlots,
   chatSearchQuerySchema,
@@ -153,25 +157,89 @@ describe("read cursor", () => {
 });
 
 describe("nicknames", () => {
-  it("maps the viewer's aliases to conversation keys", () => {
-    const aliases = new Map([
-      ["user:7", "Mai"],
-      ["pt", "Thầy"],
-      ["admin:2", "Hoàn"],
-      ["admin:3", "  "],
-      ["user:99", "Lạ"],
-      ["admin:1", "Tôi"],
-    ]);
+  it("accepts the three kinds of target", () => {
+    for (const target of ["user", "pt", "admin:1", "admin:999999999"]) {
+      expect(chatIsNicknameTarget(target), target).toBe(true);
+    }
+  });
 
-    expect(
-      chatAliasesToNicknames(aliases, {
-        viewerKey: "admin:1",
-        traineeUserId: 7,
-      }),
-    ).toEqual({
-      user: "Mai",
-      pt: "Thầy",
-      "admin:2": "Hoàn",
+  it("rejects everything else, including account keys of the social scheme", () => {
+    for (const target of [
+      "",
+      "admin",
+      "admin:",
+      "admin:0",
+      "admin:012",
+      "admin:1234567890",
+      "admin:-1",
+      "admin:1:2",
+      "user:1",
+      "User",
+      "PT",
+      " pt",
+    ]) {
+      expect(chatIsNicknameTarget(target), target).toBe(false);
+    }
+  });
+
+  it("reads the admin id of an admin target only", () => {
+    expect(chatParseAdminTarget("admin:7")).toBe(7);
+    expect(chatParseAdminTarget("user")).toBeNull();
+    expect(chatParseAdminTarget("pt")).toBeNull();
+    expect(chatParseAdminTarget("admin:07")).toBeNull();
+  });
+
+  it("falls back to the real name for a missing or blank nickname", () => {
+    expect(chatNicknameOr({ user: " Bé Na " }, "user", "An")).toBe("Bé Na");
+    expect(chatNicknameOr({ user: "  " }, "user", "An")).toBe("An");
+    expect(chatNicknameOr({}, "pt", "PT")).toBe("PT");
+    expect(chatNicknameOr(undefined, "pt", "PT")).toBe("PT");
+  });
+
+  it("labels a PT: their nickname, then (trainee view) the PT side's, then the real name", () => {
+    const nicknames = { "admin:7": "Coach", pt: "Thầy" };
+
+    expect(chatAdminLabel(nicknames, 7, "hoan", true)).toBe("Coach");
+    expect(chatAdminLabel(nicknames, 8, "pt8", true)).toBe("Thầy");
+    expect(chatAdminLabel(nicknames, null, "PT", true)).toBe("Thầy");
+    // An admin viewing the thread never falls back to the PT-side nickname.
+    expect(chatAdminLabel(nicknames, 8, "pt8", false)).toBe("pt8");
+    expect(chatAdminLabel({ "admin:7": "  " }, 7, "hoan", true)).toBe("hoan");
+    expect(chatAdminLabel({}, 7, "hoan", true)).toBe("hoan");
+  });
+
+  describe("request", () => {
+    const parse = (value: unknown) =>
+      chatNicknameRequestSchema.safeParse(value);
+
+    it("trims, collapses whitespace and lets a blank value clear", () => {
+      expect(parse({ target: "pt", nickname: "  Thầy   Hoàn " })).toMatchObject(
+        {
+          success: true,
+          data: { target: "pt", nickname: "Thầy Hoàn" },
+        },
+      );
+      expect(parse({ target: "user", nickname: "   " })).toMatchObject({
+        success: true,
+        data: { nickname: "" },
+      });
+    });
+
+    it("counts characters, not UTF-16 units: 30 pass, 31 fail", () => {
+      expect(parse({ target: "user", nickname: "👍".repeat(30) }).success).toBe(
+        true,
+      );
+      expect(parse({ target: "user", nickname: "a".repeat(31) }).success).toBe(
+        false,
+      );
+    });
+
+    it("rejects control characters, bad targets and missing fields", () => {
+      expect(parse({ target: "user", nickname: "ab" }).success).toBe(false);
+      expect(parse({ target: "admin:0", nickname: "x" }).success).toBe(false);
+      expect(parse({ target: "user:1", nickname: "x" }).success).toBe(false);
+      expect(parse({ nickname: "x" }).success).toBe(false);
+      expect(parse({ target: "user" }).success).toBe(false);
     });
   });
 });

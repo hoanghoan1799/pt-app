@@ -1,4 +1,3 @@
-import { parseActorRef, userActorKey } from "../users/alias-rules.js";
 import { PT_ALIAS_TARGET } from "../users/constants.js";
 import {
   CHAT_PREVIEW_LENGTH,
@@ -6,6 +5,7 @@ import {
   CHAT_SEARCH_MAX_LENGTH,
   CHAT_SEARCH_MIN_LENGTH,
   CHAT_SNIPPET_CONTEXT,
+  CHAT_USER_READER_KEY,
 } from "./constants.js";
 
 // Pure text rules of the chat: slash commands, links, the accent-insensitive
@@ -279,29 +279,45 @@ export const chatSearchWords = (query: string) =>
 
 // --- Nicknames ----------------------------------------------------------------
 
-// The viewer's aliases in the keys a chat conversation uses: "user" for the
-// conversation's trainee, "pt" and "admin:<id>" as they are. The viewer's own
-// key is never aliased, and aliases of people outside the conversation are
-// left out.
-export const chatAliasesToNicknames = (
-  aliases: ReadonlyMap<string, string>,
-  context: { viewerKey: string; traineeUserId: number },
-): Record<string, string> => {
-  const traineeKey = userActorKey(context.traineeUserId);
-  const nicknames: Record<string, string> = {};
+// Shared conversation nicknames (Messenger style). Targets: the conversation's
+// trainee ("user"), the PT side as a whole ("pt") or one admin ("admin:<id>").
+// The id has at most 9 digits, like the database CHECK on chat_nicknames.
+const CHAT_ADMIN_TARGET = /^admin:([1-9]\d{0,8})$/;
 
-  for (const [targetKey, alias] of aliases) {
-    if (targetKey === context.viewerKey || !alias.trim()) {
-      continue;
-    }
-    if (targetKey === traineeKey) {
-      nicknames.user = alias;
-    } else if (
-      targetKey === PT_ALIAS_TARGET ||
-      parseActorRef(targetKey)?.kind === "admin"
-    ) {
-      nicknames[targetKey] = alias;
-    }
-  }
-  return nicknames;
+export const chatNicknameAdminTarget = (adminId: number) => `admin:${adminId}`;
+
+// The admin id of an "admin:<id>" target; null for "user", "pt" and anything
+// else.
+export const chatParseAdminTarget = (target: string): number | null => {
+  const match = CHAT_ADMIN_TARGET.exec(target);
+
+  return match ? Number(match[1]) : null;
 };
+
+export const chatIsNicknameTarget = (target: string) =>
+  target === CHAT_USER_READER_KEY ||
+  target === PT_ALIAS_TARGET ||
+  CHAT_ADMIN_TARGET.test(target);
+
+// The name shown for a target: the conversation's nickname when one is set and
+// not blank, else the real name.
+export const chatNicknameOr = (
+  nicknames: Readonly<Record<string, string>> | null | undefined,
+  target: string,
+  realName: string,
+) => nicknames?.[target]?.trim() || realName;
+
+// The label of a PT: the conversation's nickname for that admin, else (when
+// `ptFallback`, the trainee's view) the nickname of the PT side as a whole,
+// else the real name.
+export const chatAdminLabel = (
+  nicknames: Readonly<Record<string, string>> | null | undefined,
+  adminId: number | null,
+  realName: string,
+  ptFallback: boolean,
+) =>
+  (adminId === null
+    ? ""
+    : (nicknames?.[chatNicknameAdminTarget(adminId)]?.trim() ?? "")) ||
+  (ptFallback ? (nicknames?.[PT_ALIAS_TARGET]?.trim() ?? "") : "") ||
+  realName;

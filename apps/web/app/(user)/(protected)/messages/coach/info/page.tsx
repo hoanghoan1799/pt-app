@@ -38,6 +38,7 @@ const MessagesInfoPage = async () => {
       userId={user.id}
       conversationId={state.conversationId}
       peerName={sender?.name ?? t("fallbackPeer")}
+      selfName={user.name}
       initialProfile={state.profile}
       chatEnabled={state.chatEnabled}
       peerAvatarUrl={

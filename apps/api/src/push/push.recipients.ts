@@ -13,7 +13,8 @@ export const adminOwnerKey = (id: number) => `admin:${id}`;
 export type AdminRecipient = { adminId: number; locale: Locale };
 
 // Who hears what, from the database: the admins that may be told about a
-// trainee, languages, names and private nicknames. Raw SQL on purpose: the push
+// trainee, languages, names, private nicknames (outside chat) and a
+// conversation's shared nicknames. Raw SQL on purpose: the push
 // side depends on tables, not on the chat or social services.
 @Injectable()
 export class PushRecipients {
@@ -112,8 +113,25 @@ export class PushRecipients {
         : null;
   }
 
+  // The shared nicknames of one conversation by "user" | "pt" | "admin:<id>"
+  // (blank ones left out). Chat pushes name people with these, never with a
+  // private alias.
+  async chatNicknames(conversationId: number): Promise<Record<string, string>> {
+    const rows: { target_key: string; nickname: string }[] =
+      await this.dataSource.query(
+        `SELECT target_key, nickname FROM chat_nicknames WHERE conversation_id = $1`,
+        [conversationId],
+      );
+
+    return Object.fromEntries(
+      rows
+        .filter((row) => row.nickname.trim() !== "")
+        .map((row) => [row.target_key, row.nickname]),
+    );
+  }
+
   // The first non-blank private nickname the owner gave to any of these keys,
-  // in the order given.
+  // in the order given. Used outside chat (social pushes).
   async aliasFor(
     ownerKey: string,
     targetKeys: readonly string[],

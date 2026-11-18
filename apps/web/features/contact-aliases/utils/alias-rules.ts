@@ -88,35 +88,3 @@ export const overlayName = (
 
   return alias ? alias : realName;
 };
-
-// The viewer's aliases in the keys a chat conversation uses: "user" for the
-// conversation's trainee, "pt" and "admin:<id>" as they are. The viewer's own
-// key is never aliased, and aliases of people outside the conversation are
-// left out.
-export const aliasesToConversationNicknames = (
-  aliases: ReadonlyMap<string, string>,
-  context: { viewerKey: string; traineeUserId: number },
-): Record<string, string> => {
-  const traineeKey = userActorKey(context.traineeUserId);
-  const nicknames: Record<string, string> = {};
-
-  for (const [targetKey, alias] of aliases) {
-    if (targetKey === context.viewerKey || !alias.trim()) {
-      continue;
-    }
-    if (targetKey === traineeKey) {
-      nicknames.user = alias;
-    } else if (
-      targetKey === PT_ALIAS_TARGET ||
-      parseActorRef(targetKey)?.kind === "admin"
-    ) {
-      nicknames[targetKey] = alias;
-    }
-  }
-  return nicknames;
-};
-
-// The conversation key back to the global target key, for the editor in the
-// chat settings: "user" is the conversation's trainee.
-export const conversationKeyToTarget = (key: string, traineeUserId: number) =>
-  key === "user" ? userActorKey(traineeUserId) : key;
