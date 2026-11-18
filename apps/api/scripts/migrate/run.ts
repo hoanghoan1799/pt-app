@@ -73,6 +73,7 @@ import {
   describeSourceHost,
   isLocalFile,
   openSource,
+  readSourceSequences,
   readTable,
 } from "./source.js";
 import {
@@ -583,6 +584,7 @@ const verifyTables = async (
   counts: Record<string, number>,
   resolution: OrphanResolution,
   batchSize: number,
+  sourceSequences: Record<string, number>,
 ) => {
   const tables: Report["tables"] = [];
   const avatars: Report["avatars"] = [];
@@ -740,6 +742,7 @@ const verifyTables = async (
   const sequences = await checkSequences(
     target,
     plan.order.filter((table) => schema.identityTables.has(table)),
+    sourceSequences,
   );
 
   return { tables, avatars, sequences };
@@ -857,7 +860,7 @@ const printVerification = (report: Report, log: Log) => {
 
   for (const sequence of badSequences) {
     log(
-      `SEQUENCE MISMATCH ${sequence.table}: next id would be ${sequence.next}, max id is ${sequence.maxId}`,
+      `SEQUENCE MISMATCH ${sequence.table}: next id would be ${sequence.next}, max id is ${sequence.maxId}, source sequence is ${sequence.sourceSequence}`,
     );
   }
 };
@@ -947,6 +950,7 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
       throw new Abort(`Schema mismatch:\n  - ${problems.join("\n  - ")}`);
     }
 
+    const sourceSequences = await readSourceSequences(source);
     const legacy = await countLegacy(source);
     const blocked = legacyProblems(legacy, {
       attachments: options.dropLegacyAttachments,
@@ -1121,6 +1125,7 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
         analysis.counts,
         resolution,
         options.batchSize,
+        sourceSequences,
       );
 
       report.tables = result.tables;
@@ -1168,6 +1173,7 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
     await resetSequences(
       target,
       tableNames.filter((table) => schema.identityTables.has(table)),
+      sourceSequences,
     );
 
     // Proved before COMMIT: a mismatch rolls everything back.
@@ -1181,6 +1187,7 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
       analysis.counts,
       resolution,
       options.batchSize,
+      sourceSequences,
     );
 
     report.tables = result.tables;

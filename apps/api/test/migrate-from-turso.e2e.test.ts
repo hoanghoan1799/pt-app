@@ -261,6 +261,56 @@ describe("data migration from a Turso/SQLite copy", () => {
     }
   });
 
+  it("never reuses an id SQLite handed out to a row deleted before the cutover (sqlite_sequence)", async () => {
+    const { fixture, db } = await setup();
+
+    // The newest user and group were deleted: their ids live on only in
+    // sqlite_sequence (and in text keys such as "user:50" on other rows).
+    await fixture.client.execute(
+      "INSERT INTO users (id, name, name_key, created_at) VALUES (50, 'Đã xoá', 'da xoa', 1700000000)",
+    );
+    await fixture.client.execute("DELETE FROM users WHERE id = 50");
+    await fixture.client.execute(
+      "INSERT INTO chat_groups (id, name, created_by_key, created_at) VALUES (60, 'Đã giải tán', 'admin:1', 1700000000000)",
+    );
+    await fixture.client.execute("DELETE FROM chat_groups WHERE id = 60");
+
+    const { exitCode, report, output } = await migrate(fixture, db);
+
+    expect(exitCode, output).toBe(0);
+    expect(
+      report.sequences.find((sequence) => sequence.table === "users"),
+    ).toMatchObject({ maxId: 5, sourceSequence: 50, next: 51, ok: true });
+
+    // verify reads the same high-water mark and agrees (before any nextval).
+    const verify = await run(
+      {
+        allowRemote: false,
+        batchSize: 5,
+        reset: false,
+        dropLegacyAttachments: true,
+        dropLegacyNicknames: true,
+        mode: "verify",
+        source: fixture.url,
+        target: db.url,
+        orphans: "report",
+      },
+      () => undefined,
+    );
+
+    expect(verify.exitCode).toBe(0);
+
+    const [{ user }] = await db.dataSource.query(
+      `SELECT nextval(pg_get_serial_sequence('"users"', 'id')) AS "user"`,
+    );
+    const [{ group }] = await db.dataSource.query(
+      `SELECT nextval(pg_get_serial_sequence('"chat_groups"', 'id')) AS "group"`,
+    );
+
+    expect(Number(user)).toBe(51);
+    expect(Number(group)).toBe(61);
+  });
+
   it("starts empty identity tables at 1", async () => {
     const { fixture, db } = await setup("sparse");
     const { exitCode, report } = await migrate(fixture, db);
@@ -276,7 +326,13 @@ describe("data migration from a Turso/SQLite copy", () => {
     // users has ids 1, 2 and 5: the next one is 6.
     expect(
       report.sequences.find((sequence) => sequence.table === "users"),
-    ).toEqual({ table: "users", maxId: 5, next: 6, ok: true });
+    ).toEqual({
+      table: "users",
+      maxId: 5,
+      sourceSequence: 5,
+      next: 6,
+      ok: true,
+    });
   });
 
   it("refuses a target that has rows unless --reset, and a second --reset run gives the same checksums", async () => {

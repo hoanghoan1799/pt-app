@@ -113,6 +113,29 @@ const toSourceValue = (value: unknown): SourceValue => {
   return value as number | string;
 };
 
+// The AUTOINCREMENT high-water mark of every source table (sqlite_sequence):
+// the highest id SQLite ever handed out, deleted rows included. PostgreSQL's
+// identity sequences continue after it, so the id of an account deleted before
+// the cutover is never given to a new one (text keys such as "user:12" stay on
+// group messages, photos and other rows after the account is gone).
+export const readSourceSequences = async (
+  client: Client,
+): Promise<Record<string, number>> => {
+  const exists = await client.execute(
+    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'sqlite_sequence'",
+  );
+
+  if (exists.rows.length === 0) {
+    return {};
+  }
+
+  const rows = await client.execute("SELECT name, seq FROM sqlite_sequence");
+
+  return Object.fromEntries(
+    rows.rows.map((row) => [String(row.name), Number(row.seq)]),
+  );
+};
+
 export const countRows = async (client: Client, table: string) => {
   const result = await client.execute(
     `SELECT count(*) AS n FROM ${quote(table)}`,
