@@ -1,7 +1,10 @@
 import { Check, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
+import { accentColorCheck } from "./accent-color.js";
+
 @Entity("admins")
 @Check(`"role" IN ('super_admin', 'pt')`)
+@Check("admins_accent_color_format", accentColorCheck("accent_color"))
 export class Admin {
   @PrimaryGeneratedColumn("identity", { generatedIdentity: "ALWAYS" })
   id!: number;
@@ -47,6 +50,11 @@ export class Admin {
 
   @Column({ type: "text", nullable: true })
   locale!: string | null;
+
+  // The app primary color the admin picked for themselves, normalized
+  // "#rrggbb"; NULL = no personal override.
+  @Column({ type: "text", nullable: true })
+  accentColor!: string | null;
 
   @Column({ type: "timestamptz", default: () => "now()" })
   createdAt!: Date;
