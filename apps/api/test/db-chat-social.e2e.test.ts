@@ -395,7 +395,7 @@ describe("DbChatSocial schema rules", () => {
       ).toBe("23503");
     });
 
-    // PhotoPosition (1795400000000) loosened the photo -> owner side: an owner
+    // PhotoPosition (1795500000000) loosened the photo -> owner side: an owner
     // carries up to 10 photos, and only its cover is pointed at by photo_id.
     it("accepts more photos attached to an owner next to its cover", async () => {
       const { owner, photo } = await c.makeOwner();

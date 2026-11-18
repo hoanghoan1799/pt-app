@@ -19,10 +19,7 @@ const PG_ONLY_COLUMNS: Record<string, string[]> = {
   meal_plan_meals: ["user_id"],
   push_subscriptions: ["kind", "owner_user_id", "owner_admin_id"],
   social_posts: ["idempotency_key", "author_user_id", "author_admin_id"],
-  // position: the order of up to 10 photos (PhotoPosition); the load leaves it
-  // null, which counts as 0, and the photos then order by id.
-  chat_photos: ["client_id", "uploader_admin_id", "position"],
-  dm_photos: ["position"],
+  chat_photos: ["client_id", "uploader_admin_id"],
   social_comments: ["author_user_id", "author_admin_id"],
   social_reactions: ["reactor_user_id", "reactor_admin_id"],
   social_notifications: [
@@ -32,7 +29,7 @@ const PG_ONLY_COLUMNS: Record<string, string[]> = {
     "actor_admin_id",
   ],
   social_reports: ["reporter_user_id", "reporter_admin_id", "target_user_id"],
-  social_post_photos: ["uploader_user_id", "uploader_admin_id", "position"],
+  social_post_photos: ["uploader_user_id", "uploader_admin_id"],
   chat_custom_stickers: ["owner_user_id", "owner_admin_id"],
   contact_aliases: [
     "owner_user_id",

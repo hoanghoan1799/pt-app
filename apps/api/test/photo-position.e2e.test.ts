@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { PhotoPosition1795400000000 } from "../src/migrations/1795400000000-PhotoPosition.js";
+import { PhotoPosition1795500000000 } from "../src/migrations/1795500000000-PhotoPosition.js";
 import { createTestDatabase, type TestDatabase } from "./support/database.js";
 
 // PostgreSQL error codes: 23514 check_violation, 23503 foreign_key_violation,
@@ -243,7 +243,7 @@ describe("PhotoPosition schema rules", () => {
         await attach(q, owner, second, 1);
         await cover(q, owner, first);
       });
-      await new PhotoPosition1795400000000().down(
+      await new PhotoPosition1795500000000().down(
         db.dataSource.createQueryRunner(),
       );
 
@@ -274,7 +274,7 @@ describe("PhotoPosition schema rules", () => {
           ),
         ),
       ).toBe("23503");
-      await new PhotoPosition1795400000000().up(
+      await new PhotoPosition1795500000000().up(
         db.dataSource.createQueryRunner(),
       );
       await inTransaction((q) => attach(q, owner, pending, 1));

@@ -54,8 +54,8 @@ const TABLES: Table[] = [
   },
 ];
 
-export class PhotoPosition1795400000000 implements MigrationInterface {
-  name = "PhotoPosition1795400000000";
+export class PhotoPosition1795500000000 implements MigrationInterface {
+  name = "PhotoPosition1795500000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     for (const t of TABLES) {
