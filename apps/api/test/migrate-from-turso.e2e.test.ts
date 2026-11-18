@@ -229,7 +229,7 @@ describe("data migration from a Turso/SQLite copy", () => {
     // The JSON report is machine readable and holds no connection string.
     const written = readFileSync(reportPath, "utf8");
 
-    expect(JSON.parse(written).tables).toHaveLength(43);
+    expect(JSON.parse(written).tables).toHaveLength(44);
     expect(written).not.toContain(db.url);
   });
 
