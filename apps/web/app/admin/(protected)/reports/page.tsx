@@ -68,6 +68,13 @@ const AdminReportsPage = async () => {
                 ) : report.targetKind !== "user" ? (
                   <p className="text-base text-muted italic">{t("deleted")}</p>
                 ) : null}
+                {report.message && (
+                  <p className="text-sm break-words text-muted">
+                    {t("sender", { name: report.message.senderName })}
+                    {report.message.senderRole === "admin" &&
+                      ` · ${t("trainee", { name: report.message.traineeName })}`}
+                  </p>
+                )}
                 {report.href && (
                   <Link
                     href={report.href}
@@ -75,16 +82,29 @@ const AdminReportsPage = async () => {
                   >
                     {report.targetKind === "user"
                       ? t("viewProfile")
-                      : t("view")}
+                      : report.targetKind === "message"
+                        ? t("viewChat")
+                        : t("view")}
                   </Link>
                 )}
                 <p className="text-sm break-words text-muted">
                   {t("reporter", { name: report.reporterName })}
-                  {report.reason && t("reason", { reason: report.reason })}
+                </p>
+                <p className="text-sm break-words text-muted">
+                  {report.reasonCode
+                    ? t("reasonCode", {
+                        reason: t(`reasons.${report.reasonCode}`),
+                      })
+                    : t("noReason")}
+                  {report.reason && ` · ${t("note", { note: report.reason })}`}
                 </p>
                 <ReportActions
                   reportId={report.id}
-                  canDelete={report.targetKind !== "user"}
+                  canDelete={
+                    report.targetKind !== "user" &&
+                    report.targetKind !== "message"
+                  }
+                  isMessage={report.targetKind === "message"}
                 />
               </li>
             ))}

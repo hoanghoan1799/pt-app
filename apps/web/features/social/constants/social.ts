@@ -44,6 +44,15 @@ export const SOCIAL_MESSAGES = {
 export const FRIEND_REQUESTS_PER_DAY = 20;
 export const FRIEND_REQUEST_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const REPORT_REASON_MAX_LENGTH = 500;
+// Fixed reason list of every report; the label of each code is in
+// messages/*/social.json (reportSheet.reasons). Same codes as @pt/contracts.
+export const REPORT_REASON_CODES = [
+  "spam",
+  "harassment",
+  "inappropriate",
+  "scam",
+  "other",
+] as const;
 
 export const FRIEND_MESSAGES = {
   NOT_FOUND: "Không tìm thấy người dùng.",
@@ -55,4 +64,5 @@ export const FRIEND_MESSAGES = {
   REQUEST_NOT_FOUND: "Không tìm thấy lời mời kết bạn.",
   REASON_TOO_LONG: `Lý do tối đa ${REPORT_REASON_MAX_LENGTH} ký tự.`,
   REPORT_NOT_FOUND: "Không tìm thấy báo cáo.",
+  REASON_REQUIRED: "Hãy chọn lý do báo cáo.",
 } as const;

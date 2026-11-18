@@ -177,6 +177,8 @@ export type ThreadViewer =
       adminId: number;
       adminName: string;
       peerName: string | null;
+      // Super admins read every chat and never report a message.
+      isSuperAdmin?: boolean;
     };
 
 export const USER_VIEWER: ThreadViewer = { role: "user" };
@@ -526,6 +528,20 @@ export const isOwnMessage = (message: ThreadMessage, viewer: ThreadViewer) =>
 
 export const canEditOrUnsend = (message: ThreadMessage, viewer: ThreadViewer) =>
   message.id !== null && !message.deleted && isOwnMessage(message, viewer);
+
+// "Báo cáo" on the long-press sheet: only a stored, visible message from the
+// other side. A trainee reports their PT's messages, a PT their trainee's; a
+// super admin reports nothing. The API checks the same rules again.
+export const canReportMessage = (
+  message: ThreadMessage,
+  viewer: ThreadViewer,
+) =>
+  message.id !== null &&
+  message.delivery === "sent" &&
+  !message.deleted &&
+  (viewer.role === "user"
+    ? message.senderRole === "admin"
+    : message.senderRole === "user" && viewer.isSuperAdmin !== true);
 
 // The emoji I reacted with, if any.
 export const myReactionOf = (

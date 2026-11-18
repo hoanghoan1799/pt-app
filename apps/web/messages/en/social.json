@@ -11,7 +11,11 @@
     "deleteConfirm": "Delete",
     "keep": "Keep",
     "handled": "Handled",
-    "deleteContent": "Delete content"
+    "deleteContent": "Delete content",
+    "hide": "Hide",
+    "hideTitle": "Hide the reported message?",
+    "hideDescription": "The message will disappear from the conversation for everyone.",
+    "hideConfirm": "Hide"
   },
   "unblock": {
     "label": "Unblock",
@@ -115,13 +119,23 @@
     "titles": {
       "post": "Report post",
       "comment": "Report comment",
-      "user": "Report user"
+      "user": "Report user",
+      "message": "Report message"
     },
     "description": "An admin will review your report.",
-    "reasonLabel": "Reason (optional)",
+    "reasonLabel": "Note (optional)",
     "cancel": "Cancel",
     "send": "Send report",
-    "sent": "Report sent. Thank you."
+    "sent": "Report sent. Thank you.",
+    "reasonPrompt": "Reason",
+    "reasons": {
+      "spam": "Spam",
+      "harassment": "Harassment",
+      "inappropriate": "Inappropriate content",
+      "scam": "Scam",
+      "other": "Other"
+    },
+    "chooseReason": "Choose a reason."
   },
   "dmPostQuote": {
     "postUnavailable": "This post is no longer available",

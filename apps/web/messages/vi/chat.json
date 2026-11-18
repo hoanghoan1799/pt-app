@@ -136,7 +136,8 @@
     "reply": "Trả lời",
     "copy": "Sao chép",
     "edit": "Chỉnh sửa",
-    "unsend": "Thu hồi"
+    "unsend": "Thu hồi",
+    "report": "Báo cáo"
   },
   "messageBubble": {
     "viewReply": "Xem tin nhắn được trả lời",

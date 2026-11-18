@@ -136,7 +136,8 @@
     "reply": "回复",
     "copy": "复制",
     "edit": "编辑",
-    "unsend": "撤回"
+    "unsend": "撤回",
+    "report": "举报"
   },
   "messageBubble": {
     "viewReply": "查看被回复的消息",
