@@ -28,14 +28,7 @@ const PG_ONLY_COLUMNS: Record<string, string[]> = {
     "actor_user_id",
     "actor_admin_id",
   ],
-  // reason_code: added by ReportMessages after the frozen Turso snapshot;
-  // copied reports keep NULL ("no reason chosen").
-  social_reports: [
-    "reporter_user_id",
-    "reporter_admin_id",
-    "target_user_id",
-    "reason_code",
-  ],
+  social_reports: ["reporter_user_id", "reporter_admin_id", "target_user_id"],
   social_post_photos: ["uploader_user_id", "uploader_admin_id"],
   chat_custom_stickers: ["owner_user_id", "owner_admin_id"],
   contact_aliases: [
