@@ -10,6 +10,7 @@ import {
 import { Clock } from "../common/clock.js";
 import {
   type NotificationCreatedEvent,
+  type ReportFiledEvent,
   SOCIAL_EVENTS,
 } from "../social/events/social.events.js";
 import { deletedAccountName } from "../social/notifications/notification-content.js";
@@ -34,8 +35,8 @@ export const shouldPushReaction = (lastPushedAt: Date | null, now: Date) =>
 
 // Domain events -> pushes, with the same recipients, titles and bodies as the
 // web: chat messages (not /imlang silent ones), reactions that add or replace
-// an emoji, and the social notifications. Chat and Social only emit events;
-// they never import a sender. Listeners never throw.
+// an emoji, the social notifications and new reports (super admins). Chat and
+// Social only emit events; they never import a sender. Listeners never throw.
 @Injectable()
 export class PushNotifier {
   private readonly logger = new Logger(PushNotifier.name);
@@ -251,6 +252,23 @@ export class PushNotifier {
           caption,
         }),
       );
+    });
+  }
+
+  // A new report: every super admin hears about it, once, in their language.
+  // The push names the kind only. Duplicates never emit the event.
+  @OnEvent(SOCIAL_EVENTS.REPORT_FILED)
+  onReportFiled(event: ReportFiledEvent) {
+    return this.guarded(SOCIAL_EVENTS.REPORT_FILED, async () => {
+      for (const admin of await this.recipients.superAdmins()) {
+        await this.push.sendToOwner(
+          adminOwnerKey(admin.adminId),
+          pushContent.report({
+            kind: event.targetKind,
+            locale: admin.locale,
+          }),
+        );
+      }
     });
   }
 

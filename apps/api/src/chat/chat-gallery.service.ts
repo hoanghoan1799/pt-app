@@ -10,6 +10,7 @@ import {
 import { DataSource } from "typeorm";
 
 import { chatCustomStickerUrl, chatPhotoUrl } from "./chat.mapper.js";
+import { liveMessageSql } from "./message-visibility.js";
 
 type Sender = {
   messageId: number;
@@ -79,7 +80,7 @@ export class ChatGalleryService {
       `SELECT ${SENDER_SELECT}
        FROM chat_messages m
        ${SENDER_JOINS}
-       WHERE m.conversation_id = $1 AND m.deleted_at IS NULL
+       WHERE m.conversation_id = $1 AND ${liveMessageSql("m")}
          AND EXISTS (SELECT 1 FROM chat_photos p
                      WHERE p.message_id = m.id
                        AND p.conversation_id = m.conversation_id)
@@ -239,7 +240,7 @@ export class ChatGalleryService {
       `SELECT ${SENDER_SELECT}, m.body, m.sticker_ref AS "stickerRef",
               m.sticker_url AS "stickerUrl"
        FROM chat_messages m ${SENDER_JOINS}
-       WHERE m.conversation_id = $1 AND m.deleted_at IS NULL AND ${extra}
+       WHERE m.conversation_id = $1 AND ${liveMessageSql("m")} AND ${extra}
          ${before === undefined ? "" : "AND m.id < $3"}
        ORDER BY m.id DESC LIMIT $2`,
       before === undefined

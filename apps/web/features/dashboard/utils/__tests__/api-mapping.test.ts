@@ -13,6 +13,7 @@ const member = (
   name: "Binh",
   displayName: "Bé Bình",
   avatarUpdatedAt: null,
+  avatarUrl: null,
   ptAdminId: 2,
   ptName: "pt",
   assigned: 4,
@@ -27,14 +28,17 @@ const member = (
 });
 
 describe("toMemberProgress", () => {
-  it("carries the nickname and the versioned avatar URL, else none", () => {
+  it("carries the nickname and the API's signed avatar URL, else none", () => {
     const withPhoto = toMemberProgress(
-      member({ avatarUpdatedAt: "2023-11-14T22:13:20.000Z" }),
+      member({
+        avatarUpdatedAt: "2023-11-14T22:13:20.000Z",
+        avatarUrl: "/v1/avatars/user/7?v=1700000000&t=tok",
+      }),
     );
 
     expect(withPhoto.displayName).toBe("Bé Bình");
     expect(withPhoto.name).toBe("Binh");
-    expect(withPhoto.avatarUrl).toBe("/api/avatar/user/7?v=1700000000");
+    expect(withPhoto.avatarUrl).toBe("/api/avatar/user/7?v=1700000000&t=tok");
     expect(toMemberProgress(member()).avatarUrl).toBeNull();
   });
 

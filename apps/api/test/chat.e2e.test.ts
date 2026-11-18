@@ -2018,7 +2018,7 @@ describe("GET /v1/chat/team", () => {
         {
           id: pt.id,
           avatarUrl: expect.stringMatching(
-            /^\/v1\/avatars\/admin\/\d+\?v=\d+$/,
+            /^\/v1\/avatars\/admin\/\d+\?v=\d+&t=[\w-]+$/,
           ),
           verified: false,
         },

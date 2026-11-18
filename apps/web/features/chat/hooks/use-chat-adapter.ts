@@ -58,6 +58,7 @@ export const useChatAdapter = (
   const adminId = viewer.role === "admin" ? viewer.adminId : null;
   const adminName = viewer.role === "admin" ? viewer.adminName : null;
   const peerName = viewer.role === "admin" ? viewer.peerName : null;
+  const isSuperAdmin = viewer.role === "admin" && viewer.isSuperAdmin === true;
 
   return useMemo<ChatAdapter>(() => {
     if (role === "admin" && adminId !== null && adminName !== null) {
@@ -67,7 +68,7 @@ export const useChatAdapter = (
         messagesUrl: `/api/admin/chat/${cid}/messages`,
         editsUrl: (messageId) =>
           `/api/admin/chat/${cid}/messages/${messageId}/edits`,
-        viewer: { role, adminId, adminName, peerName },
+        viewer: { role, adminId, adminName, peerName, isSuperAdmin },
         uploadPhoto: (blob) =>
           uploadPhotoTo(blob, `?as=admin&userId=${userId}`),
         sendMessage: (content, clientId, replyToMessageId, postId) =>
@@ -109,5 +110,13 @@ export const useChatAdapter = (
       unsendMessage: (messageId) => unsendMessageAction({ messageId }),
       markRead: (lastReadMessageId) => markReadAction({ lastReadMessageId }),
     };
-  }, [role, adminId, adminName, peerName, userId, conversationId]);
+  }, [
+    role,
+    adminId,
+    adminName,
+    peerName,
+    isSuperAdmin,
+    userId,
+    conversationId,
+  ]);
 };

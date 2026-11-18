@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { Copy, Pencil, Reply, Undo2 } from "lucide-react";
+import { Copy, Flag, Pencil, Reply, Undo2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
@@ -22,6 +22,8 @@ interface MessageActionsSheetProps {
   viewer: ThreadViewer;
   // False while chat is locked: the thread is read-only, only Copy remains.
   canWrite: boolean;
+  // Set only when the viewer may report this message (see canReportMessage).
+  onReport?: () => void;
   onReact: (emoji: string | null) => void;
   onReply: () => void;
   onCopy: () => void;
@@ -55,7 +57,8 @@ const ActionRow = ({
 
 // Long-press sheet: the six reactions (mine highlighted, tap again removes),
 // the exact send time, then Reply / Copy / Edit / Unsend. Edit and Unsend are
-// only offered on my own messages; a sticker offers neither Copy nor Edit.
+// only offered on my own messages and Report only on the other side's; a
+// sticker offers neither Copy nor Edit.
 export const MessageActionsSheet = ({
   isOpen,
   onOpenChange,
@@ -67,6 +70,7 @@ export const MessageActionsSheet = ({
   onCopy,
   onEdit,
   onUnsend,
+  onReport,
 }: MessageActionsSheetProps) => {
   const locale = useLocale();
   const t = useTranslations("chat.messageActions");
@@ -140,6 +144,14 @@ export const MessageActionsSheet = ({
             icon={<Undo2 className="size-5" aria-hidden />}
             label={t("unsend")}
             onClick={onUnsend}
+            isDanger
+          />
+        )}
+        {onReport && (
+          <ActionRow
+            icon={<Flag className="size-5" aria-hidden />}
+            label={t("report")}
+            onClick={onReport}
             isDanger
           />
         )}

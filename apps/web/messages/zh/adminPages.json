@@ -37,7 +37,8 @@
     "kinds": {
       "post": "动态",
       "comment": "评论",
-      "user": "用户"
+      "user": "用户",
+      "message": "消息"
     },
     "emptyPreview": "（空）",
     "deleted": "内容已被删除。",
@@ -45,7 +46,19 @@
     "view": "查看",
     "reporter": "举报人：{name}",
     "targetName": " · {name}",
-    "reason": " · “{reason}”"
+    "noReason": "未选择原因",
+    "viewChat": "打开对话",
+    "sender": "发送者：{name}",
+    "trainee": "学员：{name}",
+    "note": "备注：“{note}”",
+    "reasonCode": "原因：{reason}",
+    "reasons": {
+      "spam": "垃圾信息",
+      "harassment": "骚扰",
+      "inappropriate": "不当内容",
+      "scam": "诈骗",
+      "other": "其他"
+    }
   },
   "userPage": {
     "metaTitle": "训练计划",

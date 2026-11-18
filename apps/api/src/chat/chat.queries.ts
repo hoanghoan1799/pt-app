@@ -20,6 +20,8 @@ import {
   type ReplyTargetRow,
 } from "./chat.mapper.js";
 import type { ConversationFacts } from "./chat.policy.js";
+import { bumpConversationChange } from "./conversation-change.js";
+import { goneAtSql, liveMessageSql } from "./message-visibility.js";
 import {
   CHAT_POST_QUOTES,
   type ChatPostQuoteReader,
@@ -33,7 +35,7 @@ export const MESSAGE_SELECT = `
          m.photo_id AS "photoId", m.client_id AS "clientId",
          m.created_at AS "createdAt", m.reply_to_message_id AS "replyToMessageId",
          m.reply_post_id AS "replyPostId", m.edited_at AS "editedAt",
-         m.deleted_at AS "deletedAt", m.updated_at AS "updatedAt"
+         ${goneAtSql("m")} AS "deletedAt", m.updated_at AS "updatedAt"
   FROM chat_messages m
   LEFT JOIN admins a ON a.id = m.sender_admin_id`;
 
@@ -174,7 +176,7 @@ export class ChatQueries {
     >(
       `SELECT id, conversation_id AS "conversationId", sender_role AS "senderRole",
               sender_admin_id AS "senderAdminId", body, sticker_ref AS "stickerRef",
-              deleted_at AS "deletedAt", client_id AS "clientId"
+              ${goneAtSql()} AS "deletedAt", client_id AS "clientId"
        FROM chat_messages WHERE id = $1`,
       [messageId],
       manager,
@@ -249,7 +251,7 @@ export class ChatQueries {
         : this.run<ReplyTargetRow[]>(
             `SELECT id, conversation_id AS "conversationId", body,
                     sticker_ref AS "stickerRef", photo_id AS "photoId",
-                    sender_role AS "senderRole", deleted_at AS "deletedAt"
+                    sender_role AS "senderRole", ${goneAtSql()} AS "deletedAt"
              FROM chat_messages WHERE id = ANY($1::int[])`,
             [replyIds],
           ),
@@ -431,26 +433,13 @@ export class ChatQueries {
     );
   }
 
-  // Moves the change cursor of one conversation (strictly increasing, in whole
-  // milliseconds) without touching a message; the cursor defeats the 204 fast
-  // path. Returns the new cursor.
-  async bumpConversationChange(
+  // Moves the change cursor of one conversation (see conversation-change.ts).
+  bumpConversationChange(
     manager: EntityManager,
     conversationId: number,
     now: Date,
   ): Promise<Date> {
-    const result = await this.run<unknown>(
-      `UPDATE chat_conversations
-       SET last_change_at = date_trunc('milliseconds', GREATEST(
-         COALESCE(last_change_at, 'epoch'::timestamptz) + interval '1 millisecond',
-         $2::timestamptz))
-       WHERE id = $1
-       RETURNING last_change_at AS "lastChangeAt"`,
-      [conversationId, now],
-      manager,
-    );
-
-    return returnedRows<{ lastChangeAt: Date }>(result)[0]?.lastChangeAt ?? now;
+    return bumpConversationChange(manager, conversationId, now);
   }
 
   // The same bump for every conversation an account colour shows in: the
@@ -588,7 +577,7 @@ export class ChatQueries {
          ON r.conversation_id = m.conversation_id AND r.reader_key = $2
        WHERE m.conversation_id = ANY($3::int[])
          AND m.sender_role = $1
-         AND m.deleted_at IS NULL
+         AND ${liveMessageSql("m")}
          AND m.silent = false
          AND m.id > COALESCE(r.last_read_message_id, 0)
        GROUP BY m.conversation_id`,

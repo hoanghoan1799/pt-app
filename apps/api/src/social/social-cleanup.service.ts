@@ -2,7 +2,8 @@ import { Injectable } from "@nestjs/common";
 import type { EntityManager } from "typeorm";
 
 // Account deletion removes a trainee's posts, photos, reactions, comments,
-// notifications, friendships, blocks and reports by or about them (A12).
+// notifications, friendships, blocks and reports by or about them (A12; the
+// reports about messages of their chat too).
 // The Users module calls this inside its delete-trainee transaction, with
 // the transaction manager. DMs and chats go with the user row by cascade.
 @Injectable()
@@ -25,7 +26,11 @@ export class SocialCleanupService {
        WHERE reporter_key = $1
           OR (target_kind = 'user' AND target_id = $2)
           OR (target_kind = 'post' AND target_id = ANY($3::int[]))
-          OR (target_kind = 'comment' AND target_id = ANY($4::int[]))`,
+          OR (target_kind = 'comment' AND target_id = ANY($4::int[]))
+          OR (target_kind = 'message' AND target_id IN (
+                SELECT m.id FROM chat_messages m
+                JOIN chat_conversations c ON c.id = m.conversation_id
+                WHERE c.user_id = $2))`,
       [key, userId, postIds, comments.map((comment) => comment.id)],
     );
     await manager.query(

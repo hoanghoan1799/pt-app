@@ -15,6 +15,7 @@ import { inboxPreview } from "./chat.mapper.js";
 import { ChatPolicy } from "./chat.policy.js";
 import { ChatQueries } from "./chat.queries.js";
 import { ChatProfileService } from "./chat-profile.service.js";
+import { goneAtSql } from "./message-visibility.js";
 
 const iso = (date: Date | null) => date?.toISOString() ?? null;
 
@@ -49,7 +50,7 @@ export class ChatInboxService {
                 u.chat_enabled AS "chatEnabled", u.last_seen_at AS "lastSeenAt",
                 u.avatar_updated_at AS "avatarUpdatedAt",
                 lm.body AS "lastBody", lm.sticker_ref AS "lastStickerRef",
-                lm.photo_id AS "lastPhotoId", lm.deleted_at AS "lastDeletedAt",
+                lm.photo_id AS "lastPhotoId", ${goneAtSql("lm")} AS "lastDeletedAt",
                 (SELECT count(*)::int FROM chat_photos lp
                  WHERE lp.message_id = lm.id) AS "lastPhotoCount",
                 lm.sender_role AS "lastSenderRole",

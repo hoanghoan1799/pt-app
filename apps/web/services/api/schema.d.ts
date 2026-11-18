@@ -11619,15 +11619,26 @@ export interface operations {
                         items: {
                             id: number;
                             /** @enum {string} */
-                            targetKind: "post" | "comment" | "user";
+                            targetKind: "post" | "comment" | "user" | "message" | "group_message";
                             targetId: number;
                             reporterName: string;
                             reason: string;
+                            /** @enum {string|null} */
+                            reasonCode: "spam" | "harassment" | "inappropriate" | "scam" | "other" | null;
                             /** Format: date-time */
                             createdAt: string;
                             preview: string | null;
                             targetName: string | null;
                             postId: number | null;
+                            message: {
+                                /** @enum {string} */
+                                senderRole: "user" | "admin";
+                                senderName: string;
+                                traineeId: number;
+                                traineeName: string;
+                                /** @enum {string} */
+                                kind: "text" | "sticker" | "photo";
+                            } | null;
                         }[];
                         openCount: number;
                     };
@@ -11678,8 +11689,10 @@ export interface operations {
             content: {
                 "application/json": {
                     /** @enum {string} */
-                    targetKind: "post" | "comment" | "user";
+                    targetKind: "post" | "comment" | "user" | "message" | "group_message";
                     targetId: number;
+                    /** @enum {string} */
+                    reasonCode?: "spam" | "harassment" | "inappropriate" | "scam" | "other";
                     /** @default  */
                     reason?: string;
                 };
@@ -11772,7 +11785,7 @@ export interface operations {
             content: {
                 "application/json": {
                     /** @enum {string} */
-                    resolution: "kept" | "deleted";
+                    resolution: "kept" | "deleted" | "hidden";
                 };
             };
         };
@@ -14539,6 +14552,7 @@ export interface operations {
                             displayName: string;
                             /** Format: date-time */
                             avatarUpdatedAt: string | null;
+                            avatarUrl: string | null;
                             ptAdminId: number | null;
                             ptName: string | null;
                             assigned: number;

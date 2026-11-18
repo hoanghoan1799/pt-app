@@ -21,6 +21,8 @@ services:
       DATABASE_URL: postgres://pt:pt_local_only@db:5432/ptapp
       WEB_ORIGIN: http://localhost:3000
       PORT: "4000"
+      # Signs avatar URLs; required when NODE_ENV is production (the default). Local value only.
+      AVATAR_URL_SECRET: local-only-avatar-url-secret-0123456789
       # Web push (empty = push switched off). Keys: npx web-push generate-vapid-keys
       VAPID_PUBLIC_KEY: ""
       VAPID_PRIVATE_KEY: ""

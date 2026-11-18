@@ -38,7 +38,7 @@ beforeEach(() => {
     });
 });
 
-// Who may see which photo, the ETag and the year-long cache are the API's:
+// Who may see which photo (a valid signed token), the ETag and the year-long cache are the API's:
 // apps/api/test/avatars.e2e.test.ts ("GET /v1/avatars/:kind/:id").
 describe("GET /api/avatar/[kind]/[id]", () => {
   it("relays the API's photo with the trainee's session", async () => {
@@ -50,6 +50,16 @@ describe("GET /api/avatar/[kind]/[id]", () => {
       "user",
       "/v1/avatars/user/3?v=1793953327",
       expect.objectContaining({ request: expect.any(Request) }),
+    );
+  });
+
+  it("forwards both the version and the signed token, nothing else", async () => {
+    await get("user", 3, "?v=1793953327&t=ab_-9&x=1");
+
+    expect(proxyApiFile).toHaveBeenCalledWith(
+      "user",
+      "/v1/avatars/user/3?v=1793953327&t=ab_-9",
+      expect.anything(),
     );
   });
 

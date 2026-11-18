@@ -11,7 +11,11 @@
     "deleteConfirm": "Xóa",
     "keep": "Giữ",
     "handled": "Đã xử lý",
-    "deleteContent": "Xoá nội dung"
+    "deleteContent": "Xoá nội dung",
+    "hide": "Ẩn",
+    "hideTitle": "Ẩn tin nhắn bị báo cáo?",
+    "hideDescription": "Tin nhắn sẽ biến mất khỏi cuộc trò chuyện với mọi người.",
+    "hideConfirm": "Ẩn"
   },
   "unblock": {
     "label": "Bỏ chặn",
@@ -115,13 +119,23 @@
     "titles": {
       "post": "Báo cáo bài viết",
       "comment": "Báo cáo bình luận",
-      "user": "Báo cáo người dùng"
+      "user": "Báo cáo người dùng",
+      "message": "Báo cáo tin nhắn"
     },
     "description": "Quản trị viên sẽ xem xét báo cáo của bạn.",
-    "reasonLabel": "Lý do (không bắt buộc)",
+    "reasonLabel": "Ghi chú (không bắt buộc)",
     "cancel": "Hủy",
     "send": "Gửi báo cáo",
-    "sent": "Đã gửi báo cáo. Cảm ơn bạn."
+    "sent": "Đã gửi báo cáo. Cảm ơn bạn.",
+    "reasonPrompt": "Lý do",
+    "reasons": {
+      "spam": "Spam",
+      "harassment": "Quấy rối",
+      "inappropriate": "Nội dung không phù hợp",
+      "scam": "Lừa đảo",
+      "other": "Khác"
+    },
+    "chooseReason": "Hãy chọn một lý do."
   },
   "dmPostQuote": {
     "postUnavailable": "Bài viết không còn khả dụng",

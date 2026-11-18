@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import {
   FRIEND_MESSAGES,
+  REPORT_REASON_CODES,
   REPORT_REASON_MAX_LENGTH,
 } from "@/features/social/constants/social";
 import { emailSchema, toEmailKey } from "@/utils/email";
@@ -25,8 +26,9 @@ const idSchema = z.number().int().positive();
 export const userIdSchema = idSchema;
 
 export const reportSchema = z.object({
-  targetKind: z.enum(["post", "comment", "user"]),
+  targetKind: z.enum(["post", "comment", "user", "message"]),
   targetId: idSchema,
+  reasonCode: z.enum(REPORT_REASON_CODES, FRIEND_MESSAGES.REASON_REQUIRED),
   reason: z
     .string()
     .trim()
@@ -37,7 +39,8 @@ export const reportSchema = z.object({
 
 export const resolveReportSchema = z.object({
   reportId: idSchema,
-  resolution: z.enum(["kept", "deleted"]),
+  resolution: z.enum(["kept", "deleted", "hidden"]),
 });
 
-export type ReportTargetKind = "post" | "comment" | "user";
+export type ReportTargetKind = "post" | "comment" | "user" | "message";
+export type ReportReasonCode = (typeof REPORT_REASON_CODES)[number];

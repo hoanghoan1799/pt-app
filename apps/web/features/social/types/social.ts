@@ -146,12 +146,27 @@ export type PostSource =
   | { type: "profile"; kind: AuthorKind; id: number }
   | { type: "admin-feed" };
 
+// What a message report adds to the queue row.
+export interface ReportedMessageView {
+  senderRole: "user" | "admin";
+  senderName: string;
+  // The conversation's trainee (the sender when senderRole is "user").
+  traineeId: number;
+  traineeName: string;
+  kind: "text" | "sticker" | "photo";
+}
+
 export interface ReportView {
   id: number;
-  targetKind: "post" | "comment" | "user";
+  targetKind: "post" | "comment" | "user" | "message";
   targetId: number;
   reporterName: string;
+  // The optional note.
   reason: string;
+  // Null on reports filed before the reason list existed.
+  reasonCode: "spam" | "harassment" | "inappropriate" | "scam" | "other" | null;
+  // Set for a live message report only.
+  message: ReportedMessageView | null;
   createdAt: number;
   // Short text of the reported content; null when it no longer exists.
   preview: string | null;

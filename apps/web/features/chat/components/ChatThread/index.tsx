@@ -42,6 +42,7 @@ import {
 } from "@/features/chat/utils/chat-settings";
 import {
   buildThreadItems,
+  canReportMessage,
   firstStoredId,
   isNearBottom,
   latestAdminId,
@@ -132,6 +133,13 @@ const MessageActionsSheet = dynamic(
     ),
   { ssr: false },
 );
+const ReportSheet = dynamic(
+  () =>
+    import("@/features/social/components/ReportSheet").then(
+      (module) => module.ReportSheet,
+    ),
+  { ssr: false },
+);
 const ReactorsSheet = dynamic(
   () =>
     import("@/features/chat/components/ReactorsSheet").then(
@@ -150,7 +158,7 @@ const EditHistorySheet = dynamic(
 const HIGHLIGHT_MS = 1500;
 // A jumped-to message stays marked a little longer.
 const JUMP_HIGHLIGHT_MS = 2000;
-type SheetKind = "actions" | "reactors" | "history";
+type SheetKind = "actions" | "reactors" | "history" | "report";
 
 // Follows the visual viewport so the composer stays above the on-screen
 // keyboard (iOS does not resize the layout viewport).
@@ -889,6 +897,21 @@ export const ChatThread = ({
           onCopy={() => void handleCopy(sheetMessage)}
           onEdit={() => handleEdit(sheetMessage)}
           onUnsend={() => void handleUnsend(sheetMessage)}
+          onReport={
+            canReportMessage(sheetMessage, adapter.viewer)
+              ? () => openSheet("report", sheetMessage)
+              : undefined
+          }
+        />
+      )}
+      {sheet?.kind === "report" && sheetMessage?.id != null && (
+        <ReportSheet
+          key={sheetMessage.id}
+          isOpen={isSheetOpen}
+          onOpenChange={setIsSheetOpen}
+          mode={viewer.role}
+          targetKind="message"
+          targetId={sheetMessage.id}
         />
       )}
       {sheet?.kind === "reactors" && sheetMessage && (

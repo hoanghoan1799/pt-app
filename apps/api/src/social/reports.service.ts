@@ -1,18 +1,30 @@
 import { Injectable } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
 import type {
+  SocialReportedMessageKind,
+  SocialReportReasonCode,
   SocialReportRequest,
+  SocialReportResolution,
   SocialReportTargetKind,
 } from "@pt/contracts";
 import { DataSource } from "typeorm";
 
+import { ChatModeration } from "../chat/chat-moderation.service.js";
 import { Clock } from "../common/clock.js";
+import { returnedRows } from "../common/sql.js";
 import { AccountDirectory } from "../users/account-directory.service.js";
 import { EngagementService } from "./engagement.service.js";
 import {
+  type ReportFiledEvent,
+  SOCIAL_EVENTS,
+} from "./events/social.events.js";
+import { SocialEventsPublisher } from "./events/social-events.publisher.js";
+import {
   deletedAccountName,
+  photoMessageText,
   postImageOnlyText,
   previewText,
+  stickerMessageText,
 } from "./notifications/notification-content.js";
 import { PostAccess } from "./post-access.service.js";
 import { PostsService } from "./posts.service.js";
@@ -28,10 +40,22 @@ export type ReportView = {
   targetId: number;
   reporterName: string;
   reason: string;
+  reasonCode: SocialReportReasonCode | null;
   createdAt: Date;
   preview: string | null;
   targetName: string | null;
   postId: number | null;
+  message: ReportedMessage | null;
+};
+
+// What a chat message report adds to the queue row.
+export type ReportedMessage = {
+  senderRole: "user" | "admin";
+  senderName: string;
+  // The conversation's trainee (the sender when senderRole is "user").
+  traineeId: number;
+  traineeName: string;
+  kind: SocialReportedMessageKind;
 };
 
 type ReportRow = {
@@ -40,7 +64,19 @@ type ReportRow = {
   target_kind: SocialReportTargetKind;
   target_id: number;
   reason: string;
+  reason_code: SocialReportReasonCode | null;
   created_at: Date;
+};
+
+type MessageReportRow = {
+  id: number;
+  body: string;
+  sticker_ref: string | null;
+  photo_id: number | null;
+  sender_role: "user" | "admin";
+  sender_admin_name: string | null;
+  trainee_id: number;
+  trainee_name: string;
 };
 
 @Injectable()
@@ -52,8 +88,39 @@ export class ReportsService {
     private readonly relationships: RelationshipQueries,
     private readonly posts: PostsService,
     private readonly engagement: EngagementService,
+    private readonly moderation: ChatModeration,
+    private readonly events: SocialEventsPublisher,
     private readonly clock: Clock,
   ) {}
+
+  // A chat message may be reported by the other side only: the trainee reports
+  // what a PT or super admin wrote in their conversation, a PT reports what a
+  // trainee they can access wrote. A super admin reads every chat and never
+  // reports. A missing, unsent or hidden message is gone for the reporter.
+  private async canReportMessage(actor: SocialActor, messageId: number) {
+    if (actor.kind === "admin" && actor.role === "super_admin") {
+      return false;
+    }
+    const rows: { user_id: number; sender_role: "user" | "admin" }[] =
+      await this.dataSource.query(
+        `SELECT c.user_id, m.sender_role
+         FROM chat_messages m JOIN chat_conversations c ON c.id = m.conversation_id
+         WHERE m.id = $1 AND m.deleted_at IS NULL AND m.hidden_by_admin_id IS NULL`,
+        [messageId],
+      );
+    const message = rows[0];
+
+    if (!message) {
+      return false;
+    }
+    if (actor.kind === "user") {
+      return actor.id === message.user_id && message.sender_role === "admin";
+    }
+    return (
+      message.sender_role === "user" &&
+      (await this.access.adminCanAccessUser(actor, message.user_id))
+    );
+  }
 
   // Can this actor see (and so report) the target? Never your own content.
   private async canReport(
@@ -63,6 +130,13 @@ export class ReportsService {
   ): Promise<boolean> {
     const mine = keyOf(actor);
 
+    if (kind === "group_message") {
+      // Reserved for group chats: nothing can be reported yet.
+      return false;
+    }
+    if (kind === "message") {
+      return this.canReportMessage(actor, targetId);
+    }
     if (kind === "post") {
       const post = await this.access.loadVisiblePost(actor, targetId);
 
@@ -107,28 +181,42 @@ export class ReportsService {
     if (!(await this.canReport(actor, input.targetKind, input.targetId))) {
       throw userNotFound();
     }
-    await this.dataSource.query(
-      `INSERT INTO social_reports (reporter_key, target_kind, target_id, reason, status, created_at)
-       VALUES ($1, $2, $3, $4, 'open', $5)
-       ON CONFLICT (reporter_key, target_kind, target_id) WHERE status = 'open'
-       DO NOTHING`,
-      [
-        keyOf(actor),
-        input.targetKind,
-        input.targetId,
-        input.reason.trim(),
-        this.clock.now(),
-      ],
+    const inserted = returnedRows<{ id: number }>(
+      await this.dataSource.query(
+        `INSERT INTO social_reports (reporter_key, target_kind, target_id, reason, reason_code, status, created_at)
+         VALUES ($1, $2, $3, $4, $5, 'open', $6)
+         ON CONFLICT (reporter_key, target_kind, target_id) WHERE status = 'open'
+         DO NOTHING
+         RETURNING id`,
+        [
+          keyOf(actor),
+          input.targetKind,
+          input.targetId,
+          input.reason.trim(),
+          input.reasonCode ?? null,
+          this.clock.now(),
+        ],
+      ),
     );
+
+    // Super admins hear about a new report only, never about a duplicate.
+    if (inserted[0]) {
+      await this.events.publish(SOCIAL_EVENTS.REPORT_FILED, {
+        reportId: inserted[0].id,
+        targetKind: input.targetKind,
+      } satisfies ReportFiledEvent);
+    }
   }
 
   // Super admin only (A14). "kept" leaves the content alone; "deleted" removes
   // the post or comment (a user target has nothing to delete and is just closed
-  // as kept). Every open report on the same target is closed with it.
+  // as kept); "hidden" is for a chat message only and hides it for everybody. A
+  // message cannot be "deleted" and anything else cannot be "hidden". Every open
+  // report on the same target is closed with it.
   async resolve(
     actor: SocialActor,
     reportId: number,
-    resolution: "kept" | "deleted",
+    resolution: SocialReportResolution,
   ) {
     if (actor.kind !== "admin" || actor.role !== "super_admin") {
       throw notAllowed();
@@ -145,9 +233,20 @@ export class ReportsService {
       throw reportNotFound();
     }
     let applied = resolution;
+    const isMessage = report.target_kind === "message";
 
+    if (
+      (resolution === "hidden" && !isMessage) ||
+      (resolution === "deleted" &&
+        (isMessage || report.target_kind === "group_message"))
+    ) {
+      throw notAllowed();
+    }
     if (report.target_kind === "user") {
       applied = "kept";
+    } else if (resolution === "hidden") {
+      // Already gone counts as done.
+      await this.moderation.hide(actor.id, report.target_id);
     } else if (resolution === "deleted") {
       // Already gone counts as done.
       if (report.target_kind === "post") {
@@ -189,12 +288,12 @@ export class ReportsService {
   async listOpen(actor: SocialActor): Promise<ReportView[]> {
     const locale = actor.locale ?? "vi";
     const reports: ReportRow[] = await this.dataSource.query(
-      `SELECT id, reporter_key, target_kind, target_id, reason, created_at
+      `SELECT id, reporter_key, target_kind, target_id, reason, reason_code, created_at
        FROM social_reports WHERE status = 'open' ORDER BY created_at, id`,
     );
     const idsOf = (kind: SocialReportTargetKind) =>
       reports.filter((r) => r.target_kind === kind).map((r) => r.target_id);
-    const [posts, comments, targetUsers]: [
+    const [posts, comments, targetUsers, messages]: [
       {
         id: number;
         author_kind: string;
@@ -210,6 +309,7 @@ export class ReportsService {
         deleted_at: Date | null;
       }[],
       { id: number; name: string }[],
+      MessageReportRow[],
     ] = await Promise.all([
       this.dataSource.query(
         `SELECT id, author_kind, author_id, caption, deleted_at FROM social_posts
@@ -224,6 +324,19 @@ export class ReportsService {
       this.dataSource.query(
         `SELECT id, name FROM users WHERE id = ANY($1::int[])`,
         [idsOf("user")],
+      ),
+      // Live messages only: an unsent or hidden one has nothing left to show.
+      this.dataSource.query(
+        `SELECT m.id, m.body, m.sticker_ref, m.photo_id, m.sender_role,
+                a.username AS sender_admin_name,
+                c.user_id AS trainee_id, u.name AS trainee_name
+         FROM chat_messages m
+         JOIN chat_conversations c ON c.id = m.conversation_id
+         JOIN users u ON u.id = c.user_id
+         LEFT JOIN admins a ON a.id = m.sender_admin_id
+         WHERE m.id = ANY($1::int[])
+           AND m.deleted_at IS NULL AND m.hidden_by_admin_id IS NULL`,
+        [idsOf("message")],
       ),
     ]);
     const accounts = await this.accounts.loadAccounts([
@@ -241,9 +354,47 @@ export class ReportsService {
         targetId: report.target_id,
         reporterName: nameOf(report.reporter_key),
         reason: report.reason,
+        reasonCode: report.reason_code,
         createdAt: report.created_at,
+        message: null,
       };
       const gone = { ...base, preview: null, targetName: null, postId: null };
+
+      if (report.target_kind === "message") {
+        const message = messages.find((m) => m.id === report.target_id);
+
+        if (!message) {
+          return gone;
+        }
+        const kind: SocialReportedMessageKind = message.sticker_ref
+          ? "sticker"
+          : message.photo_id !== null && message.body.trim() === ""
+            ? "photo"
+            : "text";
+        const senderName =
+          message.sender_role === "user"
+            ? message.trainee_name
+            : (message.sender_admin_name ?? "PT");
+
+        return {
+          ...base,
+          message: {
+            senderRole: message.sender_role,
+            senderName,
+            traineeId: message.trainee_id,
+            traineeName: message.trainee_name,
+            kind,
+          },
+          preview:
+            kind === "sticker"
+              ? stickerMessageText(locale)
+              : kind === "photo"
+                ? photoMessageText(locale)
+                : this.snippet(message.body, ""),
+          targetName: senderName,
+          postId: null,
+        };
+      }
 
       if (report.target_kind === "post") {
         const post = posts.find((p) => p.id === report.target_id);

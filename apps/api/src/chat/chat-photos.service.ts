@@ -119,13 +119,17 @@ export class ChatPhotosService {
 
   // The bytes, only for a photo that belongs to a message, to the trainee of
   // the conversation and any admin who can access that trainee (a hidden one
-  // only after the passcode reveal). Everything else is "not found".
+  // only after the passcode reveal). A photo of a message an admin hid is
+  // "not found" for the trainee; admins keep it as evidence of the report.
+  // Everything else is "not found".
   async serve(actor: AuthActor, photoId: number): Promise<StoredFile> {
     const rows: { traineeId: number }[] = await this.dataSource.query(
       `SELECT c.user_id AS "traineeId"
        FROM chat_photos p JOIN chat_conversations c ON c.id = p.conversation_id
-       WHERE p.id = $1 AND p.message_id IS NOT NULL`,
-      [photoId],
+       JOIN chat_messages m ON m.id = p.message_id
+       WHERE p.id = $1 AND p.message_id IS NOT NULL
+         AND ($2::boolean OR m.hidden_by_admin_id IS NULL)`,
+      [photoId, actor.kind === "admin"],
     );
     const trainee = rows[0]
       ? await this.queries.findTraineeFacts(
