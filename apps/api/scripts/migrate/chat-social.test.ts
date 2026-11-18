@@ -15,15 +15,12 @@ const row = (key: string, values: RowRef["values"]): RowRef => ({
 });
 
 describe("withoutLegacy", () => {
-  it("removes the dropped table and columns and nothing else", () => {
+  it("removes the dropped columns and nothing else (chat_nicknames is copied again)", () => {
     const full = loadTursoColumns();
     const reduced = withoutLegacy(full);
 
-    expect(Object.keys(full.tables)).toContain("chat_nicknames");
-    expect(Object.keys(reduced.tables)).not.toContain("chat_nicknames");
-    expect(Object.keys(reduced.tables)).toHaveLength(
-      Object.keys(full.tables).length - 1,
-    );
+    expect(Object.keys(reduced.tables)).toEqual(Object.keys(full.tables));
+    expect(reduced.tables.chat_nicknames).toEqual(full.tables.chat_nicknames);
 
     const names = reduced.tables.chat_messages.columns.map((c) => c.name);
 
@@ -36,14 +33,11 @@ describe("withoutLegacy", () => {
 
 describe("legacyProblems", () => {
   it("blocks per kind until its flag is given", () => {
-    const counts = { attachments: 2, nicknames: 3 };
+    const counts = { attachments: 2 };
 
-    expect(legacyProblems(counts, {})).toHaveLength(2);
-    expect(legacyProblems(counts, { attachments: true })).toHaveLength(1);
-    expect(
-      legacyProblems(counts, { attachments: true, nicknames: true }),
-    ).toEqual([]);
-    expect(legacyProblems({ attachments: 0, nicknames: 0 }, {})).toEqual([]);
+    expect(legacyProblems(counts, {})).toHaveLength(1);
+    expect(legacyProblems(counts, { attachments: true })).toEqual([]);
+    expect(legacyProblems({ attachments: 0 }, {})).toEqual([]);
   });
 });
 

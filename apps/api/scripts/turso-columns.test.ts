@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { buildDataSourceOptions } from "../src/database/data-source-options.js";
 import { MOVED_AVATARS } from "./migrate/avatars.js";
-import { LEGACY_COLUMNS, LEGACY_TABLES } from "./migrate/chat-social.js";
+import { LEGACY_COLUMNS } from "./migrate/chat-social.js";
 import { loadTursoColumns } from "./turso-columns.js";
 import { loadTursoSchemaStatements } from "./turso-schema.js";
 
@@ -49,6 +49,7 @@ const PG_ONLY_COLUMNS: Record<string, string[]> = {
   dm_photos: ["position"],
   chat_reactions: ["reactor_admin_id"],
   chat_reads: ["reader_admin_id"],
+  chat_nicknames: ["target_admin_id"],
 };
 // Columns SQLite has and PostgreSQL moved to another table: the avatar data
 // URLs became rows of user_avatars / admin_avatars (scripts/migrate/avatars.ts
@@ -57,13 +58,12 @@ const SOURCE_ONLY_COLUMNS: Record<string, string[]> = {
   users: ["avatar"],
   admins: ["avatar"],
 };
-// Columns and tables SQLite has and PostgreSQL dropped (DbChatSocial): the data
-// script counts them and aborts unless told to drop them
-// (scripts/migrate/chat-social.ts).
+// Columns and tables SQLite has and PostgreSQL dropped (DbChatSocial; its
+// chat_nicknames table is back, ChatNicknamesRestore): the data script counts
+// them and aborts unless told to drop them (scripts/migrate/chat-social.ts).
 const DROPPED_COLUMNS: Record<string, string[]> = {
   chat_messages: ["attachment_url", "attachment_meta"],
 };
-const DROPPED_TABLES = ["chat_nicknames"];
 // Tables PostgreSQL has and SQLite never had.
 const PG_ONLY_TABLES = ["sessions", "user_avatars", "admin_avatars"];
 
@@ -151,11 +151,7 @@ describe("turso-columns.json against the PostgreSQL entities", () => {
       .filter((name) => !PG_ONLY_TABLES.includes(name))
       .sort();
 
-    expect(
-      Object.keys(mapping.tables)
-        .filter((name) => !DROPPED_TABLES.includes(name))
-        .sort(),
-    ).toEqual(entityTables);
+    expect(Object.keys(mapping.tables).sort()).toEqual(entityTables);
   });
 
   it("has the same column names as the entities, table by table", async () => {
@@ -208,9 +204,8 @@ describe("turso-columns.json against the PostgreSQL entities", () => {
     }
   });
 
-  it("drops exactly the legacy columns and tables the data script handles", () => {
+  it("drops exactly the legacy columns the data script handles (no table is dropped any more)", () => {
     expect(DROPPED_COLUMNS).toEqual(LEGACY_COLUMNS);
-    expect(DROPPED_TABLES).toEqual(LEGACY_TABLES);
 
     for (const [table, columns] of Object.entries(DROPPED_COLUMNS)) {
       for (const name of columns) {
