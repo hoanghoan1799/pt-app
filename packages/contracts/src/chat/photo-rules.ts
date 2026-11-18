@@ -18,7 +18,7 @@ export const chatPhotoSlots = (
 
 // The photo ids a send request carries, in display order: `photoIds`, else the
 // single `photoId` an older client sends, else none.
-export const chatPhotoIdsOf = (input: {
+export const photoIdsOf = (input: {
   photoId?: number | null;
   photoIds?: readonly number[];
 }): number[] => {

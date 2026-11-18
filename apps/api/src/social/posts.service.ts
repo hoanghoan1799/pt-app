@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
 import {
-  chatPhotoIdsOf,
+  photoIdsOf,
   SOCIAL_POST_MAX_PHOTOS,
   SOCIAL_TERMS_VERSION,
   type SocialCreatePostRequest,
@@ -9,9 +9,9 @@ import {
 } from "@pt/contracts";
 import { DataSource } from "typeorm";
 
+import { attachPendingPhotos } from "../common/attach-photos.js";
 import { Clock } from "../common/clock.js";
 import { PostPolicy } from "./domain/post.policy.js";
-import { rowsOf } from "./domain/rows.js";
 import { SOCIAL_EVENTS } from "./events/social.events.js";
 import { SocialEventsPublisher } from "./events/social-events.publisher.js";
 import { PostAccess } from "./post-access.service.js";
@@ -56,7 +56,7 @@ export class PostsService {
   ): Promise<{ postId: number; replayed: boolean }> {
     const caption = input.caption.trim();
     // The list, else the single photo an older client sends.
-    const photoIds = chatPhotoIdsOf(input);
+    const photoIds = photoIdsOf(input);
 
     if (isEmpty(caption, photoIds.length > 0)) {
       throw emptyPost();
@@ -97,18 +97,17 @@ export class PostsService {
         // Only the uploader's own pending photos can be attached, once each.
         // The array order is the display order (position = index) and the
         // first photo is the cover, also the post's photo_id.
-        for (const [position, photoId] of photoIds.entries()) {
-          const attached = rowsOf<unknown>(
-            await manager.query(
-              `UPDATE social_post_photos SET post_id = $1, position = $4
-               WHERE id = $2 AND uploader_key = $3 AND post_id IS NULL RETURNING id`,
-              [id, photoId, keyOf(actor), position],
-            ),
-          );
-
-          if (attached.length === 0) {
-            throw photoNotFound();
-          }
+        if (
+          !(await attachPendingPhotos(manager, {
+            table: "social_post_photos",
+            ownerColumn: "post_id",
+            ownerId: id,
+            photoIds,
+            guard: "uploader_key = $2",
+            guardParams: [keyOf(actor)],
+          }))
+        ) {
+          throw photoNotFound();
         }
         if (photoIds.length > 0) {
           await manager.query(

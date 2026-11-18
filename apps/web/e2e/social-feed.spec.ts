@@ -60,7 +60,7 @@ test("the terms gate the feed, then a post with a photo shows up", async ({
     mimeType: "image/png",
     buffer: PNG_1X1,
   });
-  await expect(page.getByAltText("Ảnh sẽ đăng")).toBeVisible();
+  await expect(page.getByAltText("Ảnh 1 sẽ đăng")).toBeVisible();
   await page.getByRole("button", { name: "Đăng", exact: true }).click();
 
   const post = page.getByRole("article").filter({ hasText: "Bài đầu tiên" });

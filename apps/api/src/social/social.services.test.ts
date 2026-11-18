@@ -63,11 +63,37 @@ describe("PostsService", () => {
     expect(query).not.toHaveBeenCalled();
   });
 
+  // The insert answers the new post's id; the photo lock and the attach answer
+  // one row per requested photo id.
+  const answerPhotos = (query: ReturnType<typeof build>["query"], id: number) => {
+    (
+      query as unknown as {
+        mockImplementation: (
+          fn: (sql: string, params: unknown[]) => Promise<unknown>,
+        ) => void;
+      }
+    ).mockImplementation((sql, params) => {
+      if (sql.includes("INSERT INTO social_posts")) {
+        return Promise.resolve([{ id }]);
+      }
+      return Promise.resolve(
+        sql.includes("social_post_photos")
+          ? (params[sql.includes("unnest") ? 1 : 0] as number[]).map((photo) => ({
+              id: photo,
+            }))
+          : [{ id: 1 }],
+      );
+    });
+  };
+  const attachCall = (query: ReturnType<typeof build>["query"]) =>
+    query.mock.calls
+      .map((call) => call as unknown as [string, unknown[]])
+      .find(([sql]) => sql.includes("UPDATE social_post_photos"));
+
   it("attaches the photos in the given order and points the post at the first", async () => {
     const { service, query } = build();
 
-    query.mockResolvedValueOnce([{ id: 31 }]);
-    query.mockResolvedValue([{ id: 1 }]);
+    answerPhotos(query, 31);
     await expect(
       service.create(
         ann,
@@ -76,15 +102,8 @@ describe("PostsService", () => {
       ),
     ).resolves.toEqual({ postId: 31, replayed: false });
 
-    const attach = query.mock.calls
-      .map((call) => call as unknown as [string, unknown[]])
-      .filter(([sql]) => sql.includes("UPDATE social_post_photos"));
-
-    expect(attach.map(([, params]) => params)).toEqual([
-      [31, 8, "user:1", 0],
-      [31, 3, "user:1", 1],
-      [31, 5, "user:1", 2],
-    ]);
+    // One batch, position = index.
+    expect(attachCall(query)?.[1]).toEqual([31, [8, 3, 5], [0, 1, 2]]);
     expect(
       query.mock.calls
         .map((call) => call as unknown as [string, unknown[]])
@@ -95,19 +114,14 @@ describe("PostsService", () => {
   it("takes the single photoId of an older client as a one-photo post", async () => {
     const { service, query } = build();
 
-    query.mockResolvedValueOnce([{ id: 32 }]);
-    query.mockResolvedValue([{ id: 1 }]);
+    answerPhotos(query, 32);
     await service.create(
       ann,
       { caption: "hi", privacy: "friends", photoId: 4, photoIds: [] },
       null,
     );
 
-    expect(
-      query.mock.calls
-        .map((call) => call as unknown as [string, unknown[]])
-        .find(([sql]) => sql.includes("UPDATE social_post_photos"))?.[1],
-    ).toEqual([32, 4, "user:1", 0]);
+    expect(attachCall(query)?.[1]).toEqual([32, [4], [0]]);
   });
 
   it("refuses an 11th photo and a repeated photo before touching the database", async () => {

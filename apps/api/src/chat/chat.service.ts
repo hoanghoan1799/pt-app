@@ -5,15 +5,15 @@ import {
   chatAdminReaderKey,
   type ChatMessageView,
   chatParseCommand,
-  chatPhotoIdsOf,
   type ChatSendMessageRequest,
+  photoIdsOf,
   stickerToStored,
 } from "@pt/contracts";
 import { DataSource, EntityManager } from "typeorm";
 
 import type { AuthActor } from "../auth/actor.js";
+import { attachPendingPhotos } from "../common/attach-photos.js";
 import { Clock } from "../common/clock.js";
-import { returnedRows } from "../common/sql.js";
 import {
   CustomStickersService,
   stickerOwnerOf,
@@ -81,7 +81,7 @@ export class ChatService {
     ) {
       throw chatErrors.invalidInput();
     }
-    const photoIds = chatPhotoIdsOf(input);
+    const photoIds = photoIdsOf(input);
     const resolved = this.resolveContent(input, photoIds.length > 0);
     const conversation =
       context.conversation ??
@@ -156,21 +156,19 @@ export class ChatService {
       const id = inserted[0].id;
 
       // The array order is the display order (position = index); the first
-      // photo is the cover, also the message's photo_id.
-      for (const [position, photoId] of photoIds.entries()) {
-        const attached = returnedRows<{ id: number }>(
-          await manager.query(
-            `UPDATE chat_photos SET message_id = $1, position = $3
-             WHERE id = $2 AND conversation_id = $4 AND uploader_key = $5
-               AND message_id IS NULL RETURNING id`,
-            [id, photoId, position, conversation.id, uploaderKey],
-          ),
-        );
-
-        // Lost a photo to a parallel send: nothing is stored.
-        if (attached.length === 0) {
-          throw chatErrors.invalidInput();
-        }
+      // photo is the cover, also the message's photo_id. Lost a photo to a
+      // parallel send: nothing is stored.
+      if (
+        !(await attachPendingPhotos(manager, {
+          table: "chat_photos",
+          ownerColumn: "message_id",
+          ownerId: id,
+          photoIds,
+          guard: "conversation_id = $2 AND uploader_key = $3",
+          guardParams: [conversation.id, uploaderKey],
+        }))
+      ) {
+        throw chatErrors.invalidInput();
       }
       if (photoIds.length > 0) {
         await manager.query(

@@ -11,7 +11,6 @@ import {
   chatIsSearchableQuery,
   chatNextReadCursor,
   chatParseCommand,
-  chatPhotoIdsOf,
   chatPhotoSlots,
   chatSearchQuerySchema,
   chatSearchWords,
@@ -19,6 +18,7 @@ import {
   chatThreadQuerySchema,
   findBundledSticker,
   groupPhotosByOwner,
+  photoIdsOf,
   stickerCheckImage,
   stickerInputSchema,
   stickerMapGiphyResponse,
@@ -435,11 +435,11 @@ describe("photos of a message", () => {
   });
 
   it("reads the photo ids of a request, the list first", () => {
-    expect(chatPhotoIdsOf({ photoIds: [3, 1] })).toEqual([3, 1]);
-    expect(chatPhotoIdsOf({ photoId: 7 })).toEqual([7]);
-    expect(chatPhotoIdsOf({ photoId: null })).toEqual([]);
-    expect(chatPhotoIdsOf({ photoId: 7, photoIds: [] })).toEqual([7]);
-    expect(chatPhotoIdsOf({})).toEqual([]);
+    expect(photoIdsOf({ photoIds: [3, 1] })).toEqual([3, 1]);
+    expect(photoIdsOf({ photoId: 7 })).toEqual([7]);
+    expect(photoIdsOf({ photoId: null })).toEqual([]);
+    expect(photoIdsOf({ photoId: 7, photoIds: [] })).toEqual([7]);
+    expect(photoIdsOf({})).toEqual([]);
   });
 
   it("groups rows by owner by position (null counts as 0), then id", () => {
