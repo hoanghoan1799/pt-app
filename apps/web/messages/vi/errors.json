@@ -158,6 +158,7 @@
     "NOT_FOUND": "Không tìm thấy bài viết.",
     "NOT_ALLOWED": "Bạn không có quyền thực hiện thao tác này.",
     "PHOTO_NOT_FOUND": "Không tìm thấy ảnh. Hãy chọn lại ảnh.",
+    "TOO_MANY_PHOTOS": "Mỗi bài viết tối đa {max} ảnh.",
     "PHOTO_TOO_LARGE": "Ảnh quá lớn. Hãy chọn ảnh khác.",
     "COMMENT_EMPTY": "Hãy viết nội dung bình luận.",
     "COMMENT_TOO_LONG": "Bình luận tối đa {max} ký tự.",

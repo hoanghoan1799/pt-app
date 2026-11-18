@@ -126,7 +126,8 @@
   "dmPostQuote": {
     "postUnavailable": "该动态已不可用",
     "postOf": "{name} 的动态",
-    "photoAlt": "动态中的照片"
+    "photoAlt": "动态中的照片",
+    "morePhotos": "还有 {count} 张照片"
   },
   "dmBubbleList": {
     "deleted": "已删除",
@@ -162,7 +163,16 @@
     "removePhoto": "移除照片",
     "addPhoto": "添加照片",
     "submit": "发布",
-    "photo": "照片"
+    "photo": "照片",
+    "photoSlotsFull": "每篇帖子最多 {max} 张照片。",
+    "photosTrimmed": "只能再添加 {count} 张照片（最多 {max} 张），其余已忽略。",
+    "addMorePhotos": "添加照片",
+    "photoUploading": "正在上传照片",
+    "photoFailed": "照片上传失败",
+    "retryPhoto": "重试",
+    "photosPending": "请等待照片上传完成，或移除失败的照片。",
+    "photoCounter": "{count}/{max} 张照片",
+    "photoAltN": "待发布的第 {index} 张照片"
   },
   "postCard": {
     "deleteTitle": "删除这条动态？",
@@ -180,7 +190,9 @@
     "replyInChat": "通过私信回复",
     "edit": "编辑",
     "delete": "删除",
-    "report": "举报"
+    "report": "举报",
+    "photoN": "{name} 的第 {index} 张照片",
+    "morePhotos": "查看另外 {count} 张照片"
   },
   "comments": {
     "label": "评论",

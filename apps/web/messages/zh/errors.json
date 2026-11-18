@@ -158,6 +158,7 @@
     "NOT_FOUND": "未找到该帖子。",
     "NOT_ALLOWED": "你没有权限执行此操作。",
     "PHOTO_NOT_FOUND": "未找到照片，请重新选择。",
+    "TOO_MANY_PHOTOS": "每篇帖子最多 {max} 张照片。",
     "PHOTO_TOO_LARGE": "照片太大，请选择其他照片。",
     "COMMENT_EMPTY": "请输入评论内容。",
     "COMMENT_TOO_LONG": "评论最多 {max} 个字符。",

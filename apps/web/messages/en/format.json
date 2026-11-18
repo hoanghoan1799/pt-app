@@ -92,6 +92,7 @@
     "unsent": "This message was unsent",
     "sticker": "Sticker",
     "photo": "Photo",
+    "photos": "{count} photos",
     "you": "You",
     "yourself": "yourself",
     "youLower": "you",

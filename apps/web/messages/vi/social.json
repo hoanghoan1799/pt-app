@@ -126,7 +126,8 @@
   "dmPostQuote": {
     "postUnavailable": "Bài viết không còn khả dụng",
     "postOf": "Bài viết của {name}",
-    "photoAlt": "Ảnh trong bài viết"
+    "photoAlt": "Ảnh trong bài viết",
+    "morePhotos": "Thêm {count} ảnh nữa"
   },
   "dmBubbleList": {
     "deleted": "Đã xoá",
@@ -162,7 +163,16 @@
     "removePhoto": "Bỏ ảnh",
     "addPhoto": "Thêm ảnh",
     "submit": "Đăng",
-    "photo": "Ảnh"
+    "photo": "Ảnh",
+    "photoSlotsFull": "Tối đa {max} ảnh mỗi bài.",
+    "photosTrimmed": "Chỉ thêm được {count} ảnh nữa (tối đa {max} ảnh). Các ảnh còn lại đã bị bỏ qua.",
+    "addMorePhotos": "Thêm ảnh",
+    "photoUploading": "Đang tải ảnh lên",
+    "photoFailed": "Tải ảnh lên không thành công",
+    "retryPhoto": "Thử lại",
+    "photosPending": "Hãy đợi ảnh tải xong hoặc bỏ ảnh lỗi.",
+    "photoCounter": "{count}/{max} ảnh",
+    "photoAltN": "Ảnh {index} sẽ đăng"
   },
   "postCard": {
     "deleteTitle": "Xóa bài viết này?",
@@ -180,7 +190,9 @@
     "replyInChat": "Trả lời qua tin nhắn",
     "edit": "Sửa",
     "delete": "Xoá",
-    "report": "Báo cáo"
+    "report": "Báo cáo",
+    "photoN": "Ảnh {index} của {name}",
+    "morePhotos": "Xem thêm {count} ảnh"
   },
   "comments": {
     "label": "Bình luận",
