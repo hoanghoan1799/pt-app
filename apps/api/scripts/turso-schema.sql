@@ -1,10 +1,13 @@
--- FROZEN. The SQLite (Turso) schema the production database had when the web
--- app moved to the NestJS API + PostgreSQL. Generated once from the retired
--- Drizzle schema (apps/web/db/schema.ts) with drizzle-kit's SQLite generator
--- against an empty database, never against a remote URL. Do not edit it: it only
--- feeds the one-time data script's test fixture (test/support/turso-fixture.ts)
--- and the check in scripts/turso-columns.test.ts. Statements are separated by
--- the breakpoint marker lines drizzle-kit writes.
+-- FROZEN. The SQLite (Turso) schema of the production database for the one-time
+-- move to the NestJS API + PostgreSQL. Generated from the Drizzle schema
+-- (db/schema.ts) of the production commit company/main 8f0e085 (2026-11-18,
+-- group chat, accent color, user restrictions, report reasons, photo positions)
+-- with drizzle-kit's SQLite generator against an empty database, never against
+-- a remote URL. Do not edit it by hand; regenerate it the same way if production
+-- moves again before the cutover. It only feeds the one-time data script's test
+-- fixture (test/support/turso-fixture.ts) and the check in
+-- scripts/turso-columns.test.ts. Statements are separated by the breakpoint
+-- marker lines drizzle-kit writes.
 CREATE TABLE `admin_hidden_users` (
 	`admin_id` integer NOT NULL,
 	`user_id` integer NOT NULL,
@@ -29,6 +32,7 @@ CREATE TABLE `admins` (
 	`verified_at` integer,
 	`bio` text,
 	`locale` text,
+	`accent_color` text,
 	`created_at` integer DEFAULT (unixepoch()) NOT NULL
 );
 
@@ -89,6 +93,104 @@ CREATE TABLE `chat_custom_stickers` (
 
 --> statement-breakpoint
 CREATE INDEX `chat_custom_stickers_owner` ON `chat_custom_stickers` (`owner_kind`,`owner_id`);
+--> statement-breakpoint
+CREATE TABLE `chat_group_members` (
+	`group_id` integer NOT NULL,
+	`member_key` text NOT NULL,
+	`added_by_key` text NOT NULL,
+	`joined_at` integer NOT NULL,
+	`left_at` integer,
+	`removed_by_key` text,
+	`muted_at` integer,
+	`last_read_message_id` integer DEFAULT 0 NOT NULL,
+	PRIMARY KEY(`group_id`, `member_key`)
+);
+
+--> statement-breakpoint
+CREATE INDEX `chat_group_members_member` ON `chat_group_members` (`member_key`,`left_at`);
+--> statement-breakpoint
+CREATE TABLE `chat_group_message_edits` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`message_id` integer NOT NULL,
+	`previous_body` text NOT NULL,
+	`edited_at` integer NOT NULL
+);
+
+--> statement-breakpoint
+CREATE INDEX `chat_group_message_edits_message` ON `chat_group_message_edits` (`message_id`);
+--> statement-breakpoint
+CREATE TABLE `chat_group_messages` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`group_id` integer NOT NULL,
+	`kind` text NOT NULL,
+	`sender_key` text,
+	`body` text DEFAULT '' NOT NULL,
+	`system_event` text,
+	`audience` text,
+	`client_id` text,
+	`reply_to_message_id` integer,
+	`sticker_ref` text,
+	`sticker_url` text,
+	`photo_id` integer,
+	`silent` integer,
+	`deleted_at` integer,
+	`hidden_by_key` text,
+	`hidden_at` integer,
+	`edited_at` integer,
+	`updated_at` integer,
+	`created_at` integer NOT NULL
+);
+
+--> statement-breakpoint
+CREATE UNIQUE INDEX `chat_group_messages_group_client` ON `chat_group_messages` (`group_id`,`client_id`);
+--> statement-breakpoint
+CREATE INDEX `chat_group_messages_group_id` ON `chat_group_messages` (`group_id`,`id`);
+--> statement-breakpoint
+CREATE TABLE `chat_group_photos` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`group_id` integer NOT NULL,
+	`message_id` integer,
+	`uploader_key` text NOT NULL,
+	`position` integer,
+	`mime` text NOT NULL,
+	`width` integer NOT NULL,
+	`height` integer NOT NULL,
+	`data` blob NOT NULL,
+	`size` integer NOT NULL,
+	`created_at` integer NOT NULL
+);
+
+--> statement-breakpoint
+CREATE INDEX `chat_group_photos_message` ON `chat_group_photos` (`message_id`);
+--> statement-breakpoint
+CREATE INDEX `chat_group_photos_group` ON `chat_group_photos` (`group_id`);
+--> statement-breakpoint
+CREATE TABLE `chat_group_reactions` (
+	`message_id` integer NOT NULL,
+	`reactor_key` text NOT NULL,
+	`emoji` text NOT NULL,
+	`created_at` integer NOT NULL,
+	PRIMARY KEY(`message_id`, `reactor_key`)
+);
+
+--> statement-breakpoint
+CREATE TABLE `chat_groups` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`name` text NOT NULL,
+	`avatar` text,
+	`avatar_updated_at` integer,
+	`created_by_key` text NOT NULL,
+	`managers_only` integer,
+	`last_message_id` integer,
+	`last_message_at` integer,
+	`last_change_at` integer,
+	`dissolved_at` integer,
+	`dissolved_by_admin_id` integer,
+	`created_at` integer NOT NULL
+);
+
+--> statement-breakpoint
+CREATE INDEX `chat_groups_dissolved_last_message` ON `chat_groups` (`dissolved_at`,`last_message_at`);
 --> statement-breakpoint
 CREATE TABLE `chat_hidden_conversations` (
 	`admin_id` integer NOT NULL,
@@ -151,6 +253,7 @@ CREATE TABLE `chat_photos` (
 	`conversation_id` integer NOT NULL,
 	`message_id` integer,
 	`uploader_key` text NOT NULL,
+	`position` integer,
 	`mime` text NOT NULL,
 	`width` integer NOT NULL,
 	`height` integer NOT NULL,
@@ -229,6 +332,7 @@ CREATE TABLE `dm_photos` (
 	`conversation_id` integer NOT NULL,
 	`message_id` integer,
 	`uploader_id` integer NOT NULL,
+	`position` integer,
 	`mime` text NOT NULL,
 	`width` integer NOT NULL,
 	`height` integer NOT NULL,
@@ -524,6 +628,7 @@ CREATE TABLE `social_post_photos` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`uploader_key` text NOT NULL,
 	`post_id` integer,
+	`position` integer,
 	`mime` text NOT NULL,
 	`width` integer NOT NULL,
 	`height` integer NOT NULL,
@@ -565,6 +670,7 @@ CREATE TABLE `social_reports` (
 	`target_kind` text NOT NULL,
 	`target_id` integer NOT NULL,
 	`reason` text DEFAULT '' NOT NULL,
+	`reason_code` text,
 	`status` text NOT NULL,
 	`created_at` integer NOT NULL,
 	`resolved_by` integer,
@@ -575,10 +681,44 @@ CREATE TABLE `social_reports` (
 --> statement-breakpoint
 CREATE INDEX `social_reports_status` ON `social_reports` (`status`,`created_at`);
 --> statement-breakpoint
+CREATE TABLE `theme_locks` (
+	`scope` text PRIMARY KEY NOT NULL,
+	`locked` integer NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
+	`updated_by_admin_id` integer,
+	FOREIGN KEY (`updated_by_admin_id`) REFERENCES `admins`(`id`) ON UPDATE no action ON DELETE set null
+);
+
+--> statement-breakpoint
+CREATE TABLE `theme_settings` (
+	`scope` text PRIMARY KEY NOT NULL,
+	`accent` text NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
+	`updated_by_admin_id` integer,
+	FOREIGN KEY (`updated_by_admin_id`) REFERENCES `admins`(`id`) ON UPDATE no action ON DELETE set null
+);
+
+--> statement-breakpoint
+CREATE TABLE `user_restrictions` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`user_id` integer NOT NULL,
+	`level` text NOT NULL,
+	`until` integer,
+	`reason` text DEFAULT '' NOT NULL,
+	`created_by_admin_id` integer NOT NULL,
+	`created_at` integer NOT NULL,
+	`lifted_at` integer,
+	`lifted_by_admin_id` integer
+);
+
+--> statement-breakpoint
+CREATE INDEX `user_restrictions_user_created` ON `user_restrictions` (`user_id`,`created_at`);
+--> statement-breakpoint
 CREATE TABLE `users` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text NOT NULL,
 	`locale` text,
+	`accent_color` text,
 	`name_key` text NOT NULL,
 	`preferred_meal_count` integer,
 	`food_note` text,

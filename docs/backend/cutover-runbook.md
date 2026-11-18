@@ -2,7 +2,9 @@
 
 Hoan runs every step of this by hand, in this order. Claude never runs the data script against Turso or any remote database; every rehearsal uses a local SQLite file.
 
-The data script is `apps/api/scripts/migrate-from-turso.ts`. It copies the 44 source tables (43 in PostgreSQL: `chat_nicknames` is gone, see below) into an empty PostgreSQL that already has the migrations, then proves the copy is complete. Its SQLite column description (`turso-columns.json`) and DDL (`turso-schema.sql`, frozen, from the retired Drizzle schema) stay in the repo until the cutover is over; the script, both files and the Turso/libSQL dev dependency are deleted afterwards (see "After the cutover").
+The data script is `apps/api/scripts/migrate-from-turso.ts`. It copies the 53 source tables (52 in PostgreSQL: `chat_nicknames` is gone, see below) into an empty PostgreSQL that already has the migrations, then proves the copy is complete. Its SQLite column description (`turso-columns.json`) and DDL (`turso-schema.sql`, frozen) stay in the repo until the cutover is over; the script, both files and the Turso/libSQL dev dependency are deleted afterwards (see "After the cutover").
+
+The freeze matches production at `company/main` 8f0e085 (2026-11-18: group chat, accent color, user restrictions, report reasons, photo positions). A source table or column missing from `turso-columns.json` aborts every mode before any read of the rows. If production gains schema again before the cutover, regenerate both files the same way (drizzle-kit's SQLite `generate` on that commit's `db/schema.ts` against nothing, then the columns generator from 8f48cb5^ `generate-turso-columns.ts`; never against a remote URL), compare the DDL with a local copy's `sqlite_master`, and add the PostgreSQL side.
 
 ## What the script does
 
@@ -105,6 +107,23 @@ Legacy data PostgreSQL no longer has (the source schema and `turso-columns.json`
 - `chat_messages.attachment_url` / `attachment_meta`: nothing reads or writes them (photos have their own table). If any message has a value, the run aborts in every mode (dry run, migrate, verify) with the count and "pass `--drop-legacy-attachments`". With the flag the values are dropped and the count is in the report (`droppedLegacy`) and a warning.
 - `chat_nicknames`: the table is gone (private `contact_aliases` replaced the shared nicknames). A non-empty source table aborts the same way unless `--drop-legacy-nicknames` is passed. In production these rows were already moved to aliases by the old setup script, so the expected count is 0.
 - Pass the same flags to `data:verify`.
+
+The `UserRestrictions`, `AccentTheme` and `ChatGroups` migrations (company/main features) add rules SQLite never had, reported the same way (`scripts/migrate/company-features.ts`, account keys in `account-refs.ts`):
+
+| Rule (table.column) | Reason | Notes |
+| --- | --- | --- |
+| `users.accent_color`, `admins.accent_color`, `theme_settings.accent` | `accent_not_rrggbb` | NULL or lower-case `#rrggbb` |
+| `user_restrictions.lifted_by_admin_id`, `chat_groups.dissolved_by_admin_id`, `chat_group_members.removed_by_key` | `lifted_by_without_lifted_at`, `dissolved_by_without_dissolved_at`, `removed_by_without_left_at` | who did it needs when |
+| `chat_groups.name` | `group_name_length` | 1 to 60 characters (only the length is read) |
+| `chat_groups.last_message_id` | `last_message_in_other_group` | the last message belongs to its group |
+| `chat_group_members.last_read_message_id` | `last_read_negative` | 0 = nothing read |
+| `chat_group_messages.sender_key` | `sender_does_not_match_kind` | a system line has no sender, a message has one |
+| `chat_group_messages.hidden_by_key` | `hidden_by_and_hidden_at_disagree` | both set or both empty |
+| `chat_group_messages.reply_to_message_id` | `reply_in_other_group` | a reply stays in its group |
+| `chat_group_messages.photo_id` | `photo_not_attached_to_message` | the cover is a photo of that message |
+| `chat_group_photos.message_id`, `.size`, `.position` | `photo_message_in_other_group`, `size_not_byte_length`, `position_negative`, `duplicate_position_in_message` | one photo per position of a message; the later id is reported |
+
+Group keys (`member_key`, `reactor_key`, `sender_key`, `uploader_key`, `created_by_key`, `added_by_key`, `removed_by_key`, `hidden_by_key`) must be `user:<id>` / `admin:<id>` (`malformed_key`); only members and reactions are foreign keys to the account (generated ids), the others may name a deleted account. Repaired while reading: `chat_groups.managers_only` and `chat_group_messages.silent` NULL become false. `user_restrictions.created_by_admin_id` is nullable in PostgreSQL (SQLite: NOT NULL), so `--orphans=null` can clear a deleted admin there.
 
 After the load (and in `data:verify`) the script recomputes `last_message_id` (the newest message id of the conversation) and `last_message_at` (that message's `created_at`) for `chat_conversations` and `dm_conversations` and compares them with the stored values. These fields are kept by the app, so a difference is a warning (`derivedChecks` in the report, conversation ids only), never an error and never rewritten. Look at the list before lifting the freeze.
 

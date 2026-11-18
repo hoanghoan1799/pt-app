@@ -74,7 +74,7 @@ const checksums = (report: {
 }) => Object.fromEntries(report.tables.map((t) => [t.table, t.targetChecksum]));
 
 describe("data migration from a Turso/SQLite copy", () => {
-  it("has fixture rows in every one of the 44 tables", async () => {
+  it("has fixture rows in every one of the 53 tables", async () => {
     const { fixture } = await setup();
 
     for (const table of tables) {
@@ -96,8 +96,8 @@ describe("data migration from a Turso/SQLite copy", () => {
     expect(exitCode, output).toBe(0);
     expect(report.status).toBe("ok");
     expect(report.committed).toBe(true);
-    // 44 source tables minus chat_nicknames (dropped, see DbChatSocial).
-    expect(report.tables).toHaveLength(43);
+    // 53 source tables minus chat_nicknames (dropped, see DbChatSocial).
+    expect(report.tables).toHaveLength(52);
     expect(report.droppedLegacy).toEqual([
       {
         item: "chat_messages.attachment_url / attachment_meta (messages)",
@@ -222,16 +222,16 @@ describe("data migration from a Turso/SQLite copy", () => {
       ["user_avatars", 1, true],
     ]);
 
-    // Blob sizes are reported.
-    expect(report.blobs.total.rows).toBe(4);
+    // Blob sizes are reported (the group chat adds a WebP and a PNG photo).
+    expect(report.blobs.total.rows).toBe(6);
     expect(report.blobs.total.bytes).toBe(
-      WEBP_BYTES.length + PNG_BYTES.length * 3,
+      WEBP_BYTES.length * 2 + PNG_BYTES.length * 4,
     );
 
     // The JSON report is machine readable and holds no connection string.
     const written = readFileSync(reportPath, "utf8");
 
-    expect(JSON.parse(written).tables).toHaveLength(43);
+    expect(JSON.parse(written).tables).toHaveLength(52);
     expect(written).not.toContain(db.url);
   });
 
@@ -245,7 +245,9 @@ describe("data migration from a Turso/SQLite copy", () => {
         WHERE table_schema = 'public' AND is_identity = 'YES' AND table_name <> 'sessions'`,
     );
 
-    expect(identities).toHaveLength(31);
+    // + user_restrictions, chat_groups, chat_group_messages,
+    // chat_group_photos, chat_group_message_edits.
+    expect(identities).toHaveLength(36);
 
     for (const { table_name: table } of identities) {
       const [{ max }] = await db.dataSource.query(
@@ -714,6 +716,150 @@ describe("data migration from a Turso/SQLite copy", () => {
       expect(verify.report.warnings.join("\n")).toMatch(
         /chat_conversations: 1 conversation/,
       );
+    });
+  });
+
+  describe("group chat, accent color and user restrictions (company/main tables)", () => {
+    it("copies them with the generated account ids, the photo cycle and NULL booleans as false", async () => {
+      const { fixture, db } = await setup();
+      const { exitCode, output } = await migrate(fixture, db);
+
+      expect(exitCode, output).toBe(0);
+
+      const [group] = await db.dataSource.query(
+        `SELECT managers_only, last_message_id FROM chat_groups WHERE id = 1`,
+      );
+      const messages: {
+        id: number;
+        silent: boolean;
+        photo_id: number | null;
+      }[] = await db.dataSource.query(
+        `SELECT id, silent, photo_id FROM chat_group_messages ORDER BY id`,
+      );
+      const members: {
+        member_key: string;
+        member_user_id: number | null;
+        member_admin_id: number | null;
+      }[] = await db.dataSource.query(
+        `SELECT member_key, member_user_id, member_admin_id FROM chat_group_members ORDER BY member_key`,
+      );
+      const [colors] = await db.dataSource.query(
+        `SELECT (SELECT accent_color FROM users WHERE id = 1) AS "user", (SELECT accent_color FROM admins WHERE id = 1) AS "admin"`,
+      );
+
+      expect(group).toEqual({ managers_only: false, last_message_id: 2 });
+      expect(messages).toEqual([
+        { id: 1, silent: false, photo_id: null },
+        { id: 2, silent: false, photo_id: 1 },
+      ]);
+      expect(members).toEqual([
+        { member_key: "admin:3", member_user_id: null, member_admin_id: 3 },
+        { member_key: "user:1", member_user_id: 1, member_admin_id: null },
+      ]);
+      expect(colors).toEqual({ user: "#3366cc", admin: "#ff8800" });
+    });
+
+    it("reports every new rule with table, column, rule and primary keys, never content", async () => {
+      const { fixture, db } = await setup("company-dirty");
+      const { exitCode, report } = await migrate(fixture, db);
+      const keys = (table: string, column: string, reason: string) =>
+        report.orphans.find(
+          (item) =>
+            item.table === table &&
+            item.column === column &&
+            item.reason === reason,
+        )?.sampleKeys;
+
+      expect(exitCode).toBe(1);
+      expect(report.status).toBe("aborted");
+      expect(keys("users", "accent_color", "accent_not_rrggbb")).toEqual([
+        "90",
+      ]);
+      expect(keys("theme_settings", "accent", "accent_not_rrggbb")).toEqual([
+        "pt",
+      ]);
+      expect(
+        keys(
+          "user_restrictions",
+          "lifted_by_admin_id",
+          "lifted_by_without_lifted_at",
+        ),
+      ).toEqual(["90"]);
+      expect(keys("chat_groups", "name", "group_name_length")).toEqual(["90"]);
+      expect(
+        keys("chat_groups", "last_message_id", "last_message_in_other_group"),
+      ).toEqual(["91"]);
+      expect(
+        keys(
+          "chat_group_members",
+          "removed_by_key",
+          "removed_by_without_left_at",
+        ),
+      ).toEqual(["1:user:2"]);
+      expect(keys("chat_group_members", "member_key", "malformed_key")).toEqual(
+        ["1:user"],
+      );
+      expect(
+        keys("chat_group_messages", "sender_key", "sender_does_not_match_kind"),
+      ).toEqual(["90"]);
+      expect(
+        keys(
+          "chat_group_messages",
+          "reply_to_message_id",
+          "reply_in_other_group",
+        ),
+      ).toEqual(["91"]);
+      expect(
+        keys(
+          "chat_group_messages",
+          "photo_id",
+          "photo_not_attached_to_message",
+        ),
+      ).toEqual(["92"]);
+      expect(
+        keys(
+          "chat_group_messages",
+          "hidden_by_key",
+          "hidden_by_and_hidden_at_disagree",
+        ),
+      ).toEqual(["92"]);
+      expect(keys("chat_group_photos", "size", "size_not_byte_length")).toEqual(
+        ["90"],
+      );
+      expect(
+        keys("chat_group_photos", "position", "duplicate_position_in_message"),
+      ).toEqual(["90"]);
+      expect(await count(db, "users")).toBe(0);
+    });
+
+    it("--orphans=skip drops exactly those rows (and what hangs on them) and verifies", async () => {
+      const { fixture, db } = await setup("company-dirty");
+      const { exitCode, report, output } = await migrate(fixture, db, {
+        orphans: "skip",
+      });
+
+      expect(exitCode, output).toBe(0);
+      expect(report.skippedRows).toEqual(
+        expect.arrayContaining([
+          { table: "users", keys: ["90"] },
+          { table: "theme_settings", keys: ["pt"] },
+          { table: "user_restrictions", keys: ["90"] },
+          { table: "chat_groups", keys: expect.arrayContaining(["90", "91"]) },
+          {
+            table: "chat_group_members",
+            keys: expect.arrayContaining(["1:user:2", "1:user"]),
+          },
+          {
+            table: "chat_group_messages",
+            keys: expect.arrayContaining(["90", "91", "92"]),
+          },
+          { table: "chat_group_photos", keys: ["90"] },
+        ]),
+      );
+      expect(report.tables.every((row) => row.match)).toBe(true);
+      expect(await count(db, "chat_groups")).toBe(1);
+      expect(await count(db, "chat_group_messages")).toBe(2);
+      expect(await count(db, "chat_group_photos")).toBe(2);
     });
   });
 
