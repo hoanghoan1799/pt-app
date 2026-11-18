@@ -1,3 +1,4 @@
+import { aliasValueSchema } from "../users/alias-rules.js";
 import { CHAT_COLOR_KEYS } from "../users/constants.js";
 import {
   CHAT_BODY_MAX_LENGTH,
@@ -7,7 +8,7 @@ import {
   STICKER_GIPHY_QUERY_MAX_LENGTH,
 } from "./constants.js";
 import { stickerInputSchema } from "./stickers.js";
-import { chatIsSearchableQuery } from "./text-rules.js";
+import { chatIsNicknameTarget, chatIsSearchableQuery } from "./text-rules.js";
 import { z } from "zod";
 
 // REST request and response shapes of the chat, stickers and trainee DMs.
@@ -73,6 +74,17 @@ export const chatConversationColorRequestSchema = z.object({
 export type ChatConversationColorRequest = z.infer<
   typeof chatConversationColorRequestSchema
 >;
+
+// Shared nickname of one member of the conversation: `target` is "user", "pt"
+// or "admin:<id>"; `nickname` is trimmed, whitespace collapsed, 1-30
+// characters without control characters, and blank clears it.
+export const chatNicknameRequestSchema = z.object({
+  target: z
+    .string(CHAT_MESSAGES.NICKNAME_INVALID)
+    .refine(chatIsNicknameTarget, CHAT_MESSAGES.NICKNAME_INVALID),
+  nickname: aliasValueSchema,
+});
+export type ChatNicknameRequest = z.infer<typeof chatNicknameRequestSchema>;
 
 const flag = z
   .enum(["0", "1"])
@@ -228,9 +240,10 @@ export const chatMessageResponseSchema = z.object({
   message: chatMessageViewSchema,
 });
 
-// Keys are "user", "pt" and "admin:<id>"; nicknames are the VIEWER's private
-// contact aliases, colours are resolved (an admin's per-conversation override
-// wins over their account colour).
+// Keys are "user", "pt" and "admin:<id>"; nicknames are the conversation's
+// shared ones (every member sees the same; private contact aliases are never
+// used in chat), colours are resolved (an admin's per-conversation override
+// wins over their account colour). Entries exist only when set.
 export const chatProfileSchema = z.object({
   nicknames: z.record(z.string(), z.string()),
   colors: z.record(z.string(), z.enum(CHAT_COLOR_KEYS)),
@@ -480,7 +493,9 @@ export const dmThreadResponseSchema = z.object({
   isReadOnly: z.boolean(),
   // The two members' real names, only for a super admin reading the chat
   // (empty for a member); a deleted account has a null name.
-  members: z.array(z.object({ id: z.number().int(), name: z.string().nullable() })),
+  members: z.array(
+    z.object({ id: z.number().int(), name: z.string().nullable() }),
+  ),
 });
 
 export const dmInboxResponseSchema = z.object({
