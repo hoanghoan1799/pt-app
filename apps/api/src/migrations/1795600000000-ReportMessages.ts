@@ -14,8 +14,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 const OLD_TARGET_KIND_CHECK = "CHK_c032cbed5f50868af1e9050f9c";
 const OLD_RESOLUTION_CHECK = "CHK_0f0332f048537e2909f0477d32";
 
-export class ReportMessages1795500000000 implements MigrationInterface {
-  name = "ReportMessages1795500000000";
+export class ReportMessages1795600000000 implements MigrationInterface {
+  name = "ReportMessages1795600000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
