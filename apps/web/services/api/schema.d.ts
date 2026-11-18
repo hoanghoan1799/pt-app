@@ -766,22 +766,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/avatars/{kind}/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["AvatarsController_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/chat/stickers/custom": {
         parameters: {
             query?: never;
@@ -2263,6 +2247,22 @@ export interface paths {
         head?: never;
         /** Change the grams of a planned food */
         patch: operations["MealPlansController_updateGrams"];
+        trace?: never;
+    };
+    "/v1/avatars/{kind}/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AvatarsController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/realtime/ticket": {
@@ -7796,130 +7796,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        code: string;
-                        message: string;
-                        ref: string;
-                        details?: {
-                            [key: string]: string | number | boolean;
-                        };
-                    };
-                };
-            };
-        };
-    };
-    AvatarsController_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                kind: string;
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The image bytes */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description ETag matches */
-            304: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Missing, invalid or expired session, or wrong credentials */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "image/webp": {
-                        code: string;
-                        message: string;
-                        ref: string;
-                        details?: {
-                            [key: string]: string | number | boolean;
-                        };
-                    };
-                    "image/jpeg": {
-                        code: string;
-                        message: string;
-                        ref: string;
-                        details?: {
-                            [key: string]: string | number | boolean;
-                        };
-                    };
-                    "image/png": {
-                        code: string;
-                        message: string;
-                        ref: string;
-                        details?: {
-                            [key: string]: string | number | boolean;
-                        };
-                    };
-                };
-            };
-            /** @description Not allowed (role, passcode lock or wrong passcode) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "image/webp": {
-                        code: string;
-                        message: string;
-                        ref: string;
-                        details?: {
-                            [key: string]: string | number | boolean;
-                        };
-                    };
-                    "image/jpeg": {
-                        code: string;
-                        message: string;
-                        ref: string;
-                        details?: {
-                            [key: string]: string | number | boolean;
-                        };
-                    };
-                    "image/png": {
-                        code: string;
-                        message: string;
-                        ref: string;
-                        details?: {
-                            [key: string]: string | number | boolean;
-                        };
-                    };
-                };
-            };
-            /** @description Not found (also: outside the PT workspace or hidden) */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "image/webp": {
-                        code: string;
-                        message: string;
-                        ref: string;
-                        details?: {
-                            [key: string]: string | number | boolean;
-                        };
-                    };
-                    "image/jpeg": {
-                        code: string;
-                        message: string;
-                        ref: string;
-                        details?: {
-                            [key: string]: string | number | boolean;
-                        };
-                    };
-                    "image/png": {
                         code: string;
                         message: string;
                         ref: string;
@@ -18981,6 +18857,130 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    AvatarsController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The image bytes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description ETag matches */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/webp": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                    "image/jpeg": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                    "image/png": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/webp": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                    "image/jpeg": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                    "image/png": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/webp": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                    "image/jpeg": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                    "image/png": {
                         code: string;
                         message: string;
                         ref: string;
