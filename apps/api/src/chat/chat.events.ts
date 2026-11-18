@@ -35,6 +35,8 @@ export type ChatMessageSentEvent = Common & {
   body: string;
   hasSticker: boolean;
   hasPhoto: boolean;
+  // How many photos the message carries (0 without any).
+  photoCount: number;
   replyToMessageId: number | null;
 };
 

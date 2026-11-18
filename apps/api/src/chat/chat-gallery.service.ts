@@ -4,6 +4,7 @@ import {
   CHAT_GALLERY_PAGE_SIZE,
   chatExtractUrls,
   type ChatGalleryTab,
+  groupPhotosByOwner,
   stickerToView,
 } from "@pt/contracts";
 import { DataSource } from "typeorm";
@@ -70,20 +71,19 @@ export class ChatGalleryService {
       : this.photos(conversationId, before);
   }
 
-  // Only photo messages that were not unsent.
+  // Only photo messages that were not unsent. Every photo of a message is an
+  // item, in the message's order (3 photos give 3 items), and a page holds
+  // CHAT_GALLERY_PAGE_SIZE messages, so a message is never split across pages.
   async photos(conversationId: number, before: number | undefined) {
     const limit = CHAT_GALLERY_PAGE_SIZE;
-    const rows: (SenderColumns & {
-      photoId: number;
-      width: number;
-      height: number;
-    })[] = await this.dataSource.query(
-      `SELECT ${SENDER_SELECT}, p.id AS "photoId", p.width, p.height
+    const rows: SenderColumns[] = await this.dataSource.query(
+      `SELECT ${SENDER_SELECT}
        FROM chat_messages m
-       JOIN chat_photos p ON p.id = m.photo_id AND p.message_id = m.id
-                         AND p.conversation_id = m.conversation_id
        ${SENDER_JOINS}
        WHERE m.conversation_id = $1 AND ${liveMessageSql("m")}
+         AND EXISTS (SELECT 1 FROM chat_photos p
+                     WHERE p.message_id = m.id
+                       AND p.conversation_id = m.conversation_id)
          ${before === undefined ? "" : "AND m.id < $3"}
        ORDER BY m.id DESC LIMIT $2`,
       before === undefined
@@ -91,15 +91,36 @@ export class ChatGalleryService {
         : [conversationId, limit + 1, before],
     );
     const page = rows.slice(0, limit);
+    const photoRows: {
+      id: number;
+      messageId: number;
+      position: number | null;
+      width: number;
+      height: number;
+    }[] =
+      page.length === 0
+        ? []
+        : await this.dataSource.query(
+            `SELECT id, message_id AS "messageId", position, width, height
+             FROM chat_photos
+             WHERE message_id = ANY($1::int[]) AND conversation_id = $2`,
+            [page.map((row) => row.messageId), conversationId],
+          );
+    const photos = groupPhotosByOwner(
+      photoRows.map((photo) => ({ ...photo, ownerId: photo.messageId })),
+      page.map((row) => row.messageId),
+    );
 
     return {
-      items: page.map((row) => ({
-        ...senderOf(row),
-        photoId: row.photoId,
-        url: chatPhotoUrl(row.photoId),
-        width: row.width,
-        height: row.height,
-      })),
+      items: page.flatMap((row) =>
+        (photos.get(row.messageId) ?? []).map((photo) => ({
+          ...senderOf(row),
+          photoId: photo.id,
+          url: chatPhotoUrl(photo.id),
+          width: photo.width,
+          height: photo.height,
+        })),
+      ),
       nextCursor:
         rows.length > limit && page.length > 0
           ? page[page.length - 1].messageId

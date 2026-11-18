@@ -2,6 +2,7 @@
   "title": "PT App",
   "preview": {
     "photo": "Đã gửi ảnh",
+    "photos": "Đã gửi {count} ảnh",
     "sticker": "Đã gửi sticker",
     "link": "Đã gửi liên kết",
     "fallback": "Đã gửi tin nhắn"

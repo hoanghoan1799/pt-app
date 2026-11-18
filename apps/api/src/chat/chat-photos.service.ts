@@ -93,21 +93,28 @@ export class ChatPhotosService {
     return { id, created: true };
   }
 
-  // A photo may be attached once, by the person who uploaded it, to a message
-  // in the conversation it was uploaded for.
-  async isAttachable(
-    photoId: number,
+  // Photos may be attached once, by the person who uploaded them, to a message
+  // in the conversation they were uploaded for. True when every id qualifies
+  // (each id once; no ids is trivially true).
+  async areAttachable(
+    photoIds: readonly number[],
     conversationId: number,
     uploaderKey: string,
   ) {
+    if (photoIds.length === 0) {
+      return true;
+    }
+    if (new Set(photoIds).size !== photoIds.length) {
+      return false;
+    }
     const rows: unknown[] = await this.dataSource.query(
       `SELECT 1 FROM chat_photos
-       WHERE id = $1 AND conversation_id = $2 AND uploader_key = $3
+       WHERE id = ANY($1::int[]) AND conversation_id = $2 AND uploader_key = $3
          AND message_id IS NULL`,
-      [photoId, conversationId, uploaderKey],
+      [photoIds, conversationId, uploaderKey],
     );
 
-    return rows.length > 0;
+    return rows.length === photoIds.length;
   }
 
   // The bytes, only for a photo that belongs to a message, to the trainee of

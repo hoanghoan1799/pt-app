@@ -1,3 +1,8 @@
+import {
+  CHAT_MESSAGE_MAX_PHOTOS,
+  CHAT_PHOTO_UPLOAD_CONCURRENCY,
+  chatPhotoSlots,
+} from "@pt/contracts";
 import { z } from "zod";
 
 import { getFormatTranslator } from "@/i18n/format-translator";
@@ -14,6 +19,11 @@ export const PHOTO_MAX_SIDE = 1600;
 export const PHOTO_BUBBLE_MAX_WIDTH = 240;
 // A pending photo (uploaded, never sent) is dropped after this long.
 export const PHOTO_PENDING_TTL_MS = 24 * 60 * 60 * 1000;
+
+// Photos in one message (the first is the cover); the API owns the limit.
+export const MAX_MESSAGE_PHOTOS = CHAT_MESSAGE_MAX_PHOTOS;
+// Photos encoded/uploaded at the same time by a composer.
+export const MESSAGE_PHOTO_UPLOAD_CONCURRENCY = CHAT_PHOTO_UPLOAD_CONCURRENCY;
 
 export const PHOTO_PREVIEW = "📷 Ảnh";
 export const PHOTO_ALT = "Ảnh trong tin nhắn";
@@ -201,12 +211,32 @@ export const parsePhotoId = (value: string) =>
 
 export const photoIdSchema = z.number().int().positive();
 
+// Ids of the uploaded photos of one message, in display order (the first is
+// the cover): 0..MAX_MESSAGE_PHOTOS, each id once.
+export const messagePhotoIdsSchema = z
+  .array(photoIdSchema)
+  .max(MAX_MESSAGE_PHOTOS)
+  .refine((ids) => new Set(ids).size === ids.length);
+
+// How many of `picked` new photos fit next to `current` ones, and how many do
+// not (the composer keeps the first ones and says so).
+export const photoSlots = (current: number, picked: number) =>
+  chatPhotoSlots(current, picked, MAX_MESSAGE_PHOTOS);
+
 export interface ChatPhoto {
   url: string;
   width: number;
   height: number;
   alt: string;
 }
+
+// The photo id at the end of a photo URL (chat, DM and group URLs all end in
+// it); 0 when there is none.
+export const photoIdOfUrl = (url: string) => {
+  const id = Number(url.split("?")[0].split("/").pop());
+
+  return Number.isInteger(id) && id > 0 ? id : 0;
+};
 
 export const toChatPhoto = (
   photoId: number | null,
@@ -236,14 +266,22 @@ export const bubbleBox = (
   };
 };
 
-// Inbox line: "📷 Ảnh", or "📷 " + the caption when the photo has text.
+// Inbox line: "📷 Ảnh", "📷 3 ảnh" for several photos, or "📷 " + the caption
+// when the message has text.
 export const photoPreview = (
   caption: string,
   locale: Locale = DEFAULT_LOCALE,
-) =>
-  caption.trim() === ""
-    ? `📷 ${getFormatTranslator(locale)("thread.photo")}`
-    : `📷 ${caption}`;
+  count = 1,
+) => {
+  if (caption.trim() !== "") {
+    return `📷 ${caption}`;
+  }
+  const t = getFormatTranslator(locale);
+
+  return count > 1
+    ? `📷 ${t("thread.photos", { count })}`
+    : `📷 ${t("thread.photo")}`;
+};
 
 // Browser-side encoding plan. The photo is fitted into 1600 px and encoded
 // at the first quality; while it is bigger than the target the quality drops

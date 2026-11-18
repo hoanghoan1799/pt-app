@@ -50,14 +50,25 @@ export const DmPostQuote = ({
         )}
       >
         {post.photo && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={post.photo.url}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="size-10 shrink-0 rounded-lg bg-line object-cover"
-          />
+          <span className="relative size-10 shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={post.photo.url}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="size-10 rounded-lg bg-line object-cover"
+            />
+            {post.photoCount > 1 && (
+              <span
+                role="img"
+                aria-label={t("morePhotos", { count: post.photoCount - 1 })}
+                className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50 text-xs font-semibold text-white"
+              >
+                +{post.photoCount - 1}
+              </span>
+            )}
+          </span>
         )}
         <span className="min-w-0 flex-1 border-l-2 border-accent pl-2 text-left">
           <span className="block truncate text-xs font-semibold text-accent">
@@ -97,17 +108,30 @@ export const DmPostQuote = ({
         </span>
       )}
       {post.photo && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={post.photo.url}
-          alt={t("photoAlt")}
-          width={post.photo.width}
-          height={post.photo.height}
-          loading="lazy"
-          decoding="async"
-          className="w-full rounded-lg bg-line object-cover"
-          style={{ aspectRatio: `${post.photo.width} / ${post.photo.height}` }}
-        />
+        <span className="relative block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={post.photo.url}
+            alt={t("photoAlt")}
+            width={post.photo.width}
+            height={post.photo.height}
+            loading="lazy"
+            decoding="async"
+            className="w-full rounded-lg bg-line object-cover"
+            style={{
+              aspectRatio: `${post.photo.width} / ${post.photo.height}`,
+            }}
+          />
+          {post.photoCount > 1 && (
+            <span
+              role="img"
+              aria-label={t("morePhotos", { count: post.photoCount - 1 })}
+              className="absolute right-2 bottom-2 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white"
+            >
+              +{post.photoCount - 1}
+            </span>
+          )}
+        </span>
       )}
     </Link>
   );

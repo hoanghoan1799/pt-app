@@ -43,6 +43,7 @@ export const loadCoachReplyPostFor = async (
               height: post.photo.height,
             }
           : null,
+        photoCount: post.photos.length,
       }
     : null;
 };

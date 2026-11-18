@@ -92,6 +92,7 @@
     "unsent": "此消息已撤回",
     "sticker": "贴纸",
     "photo": "照片",
+    "photos": "{count} 张照片",
     "you": "你",
     "yourself": "你自己",
     "youLower": "你",

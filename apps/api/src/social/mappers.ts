@@ -17,6 +17,14 @@ import type { ReportView } from "./reports.service.js";
 
 export const socialPhotoUrl = (id: number) => `/v1/social/photos/${id}`;
 
+const toPostPhotos = (post: PostView) =>
+  post.photos.map((photo) => ({
+    id: photo.id,
+    url: socialPhotoUrl(photo.id),
+    width: photo.width,
+    height: photo.height,
+  }));
+
 export const toPostResponse = (post: PostView): SocialPostResponse => ({
   id: post.id,
   authorKind: post.authorKind,
@@ -26,14 +34,8 @@ export const toPostResponse = (post: PostView): SocialPostResponse => ({
   authorVerified: post.authorVerified,
   caption: post.caption,
   privacy: post.privacy,
-  photo: post.photo
-    ? {
-        id: post.photo.id,
-        url: socialPhotoUrl(post.photo.id),
-        width: post.photo.width,
-        height: post.photo.height,
-      }
-    : null,
+  photo: toPostPhotos(post)[0] ?? null,
+  photos: toPostPhotos(post),
   createdAt: post.createdAt.toISOString(),
   edited: post.edited,
   canEdit: post.canEdit,

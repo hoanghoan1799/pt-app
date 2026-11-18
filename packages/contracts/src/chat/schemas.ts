@@ -2,7 +2,9 @@ import { CHAT_COLOR_KEYS } from "../users/constants.js";
 import {
   CHAT_BODY_MAX_LENGTH,
   CHAT_GALLERY_TABS,
+  CHAT_MESSAGE_MAX_PHOTOS,
   CHAT_MESSAGES,
+  CHAT_PHOTO_ERRORS,
   CHAT_REACTION_EMOJIS,
   STICKER_GIPHY_QUERY_MAX_LENGTH,
 } from "./constants.js";
@@ -24,26 +26,39 @@ const bodySchema = z
   .min(1, CHAT_MESSAGES.INVALID_INPUT)
   .max(CHAT_BODY_MAX_LENGTH, CHAT_MESSAGES.INVALID_INPUT);
 
-// Text and/or one photo, or a sticker alone: never a sticker with text or a
-// photo, never nothing. `clientId` is the idempotency key; the
-// `Idempotency-Key` header carries the same value and wins when both exist.
+// Ids of the uploaded photos of one message in display order (the first is the
+// cover): at most CHAT_MESSAGE_MAX_PHOTOS, each id once.
+export const chatPhotoIdsSchema = z
+  .array(positiveInt)
+  .max(CHAT_MESSAGE_MAX_PHOTOS, CHAT_PHOTO_ERRORS.TOO_MANY)
+  .refine((ids) => new Set(ids).size === ids.length, CHAT_MESSAGES.INVALID_INPUT);
+
+// Text and/or up to 10 photos, or a sticker alone: never a sticker with text or
+// a photo, never nothing. `photoIds` is the list; `photoId` is the single photo
+// an older client sends (the two never come together). `clientId` is the
+// idempotency key; the `Idempotency-Key` header carries the same value and wins
+// when both exist.
 export const chatSendMessageRequestSchema = z
   .object({
     body: bodySchema.optional(),
     sticker: stickerInputSchema.optional(),
     photoId: positiveInt.optional(),
+    photoIds: chatPhotoIdsSchema.optional(),
     clientId: z.uuid().optional(),
     replyToMessageId: positiveInt.optional(),
     // A social post this message replies to (needs a text).
     postId: positiveInt.optional(),
   })
-  .refine(
-    (value) =>
-      value.sticker === undefined
-        ? value.body !== undefined || value.photoId !== undefined
-        : value.body === undefined && value.photoId === undefined,
-    CHAT_MESSAGES.INVALID_INPUT,
-  );
+  .refine((value) => value.photoId === undefined || !value.photoIds?.length, {
+    message: CHAT_MESSAGES.INVALID_INPUT,
+  })
+  .refine((value) => {
+    const hasPhotos = value.photoId !== undefined || !!value.photoIds?.length;
+
+    return value.sticker === undefined
+      ? value.body !== undefined || hasPhotos
+      : value.body === undefined && !hasPhotos;
+  }, CHAT_MESSAGES.INVALID_INPUT);
 export type ChatSendMessageRequest = z.infer<
   typeof chatSendMessageRequestSchema
 >;
@@ -184,6 +199,8 @@ export const chatPostQuoteSchema = z.union([
         height: z.number().int(),
       })
       .nullable(),
+    // Photos of the post (0 without any); the quote shows the first one.
+    photoCount: z.number().int(),
   }),
 ]);
 
@@ -196,7 +213,10 @@ export const chatMessageViewSchema = z.object({
   // Empty once the message was unsent.
   body: z.string(),
   sticker: stickerViewSchema.nullable(),
+  // The cover (the first of `photos`), for clients from before several photos.
   photo: photoViewSchema.nullable(),
+  // Every photo in display order; empty without photos and once unsent.
+  photos: z.array(photoViewSchema),
   clientId: z.string(),
   createdAt: iso,
   replyTo: z
@@ -205,6 +225,8 @@ export const chatMessageViewSchema = z.object({
       body: z.string(),
       isSticker: z.boolean(),
       isPhoto: z.boolean(),
+      // Photos of the quoted message (0 without photos or once unsent).
+      photoCount: z.number().int(),
       senderRole: z.enum(["user", "admin"]),
       deleted: z.boolean(),
     })
@@ -457,6 +479,7 @@ export const dmMessageViewSchema = z.object({
   id: z.number().int(),
   senderId: z.number().int(),
   body: z.string().nullable(),
+  // The cover (the first of `photos`) and every photo in display order.
   photo: z
     .object({
       url: z.string(),
@@ -464,6 +487,13 @@ export const dmMessageViewSchema = z.object({
       height: z.number().int(),
     })
     .nullable(),
+  photos: z.array(
+    z.object({
+      url: z.string(),
+      width: z.number().int(),
+      height: z.number().int(),
+    }),
+  ),
   post: chatPostQuoteSchema.nullable(),
   clientId: z.string(),
   createdAt: iso,

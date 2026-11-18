@@ -11,6 +11,7 @@ import {
 const TEXTS = {
   vi: {
     photo: "Đã gửi ảnh",
+    photos: "Đã gửi {count} ảnh",
     sticker: "Đã gửi sticker",
     link: "Đã gửi liên kết",
     fallback: "Đã gửi tin nhắn",
@@ -19,6 +20,7 @@ const TEXTS = {
   },
   en: {
     photo: "Sent a photo",
+    photos: "Sent {count} photos",
     sticker: "Sent a sticker",
     link: "Sent a link",
     fallback: "Sent a message",
@@ -27,6 +29,7 @@ const TEXTS = {
   },
   zh: {
     photo: "发送了一张照片",
+    photos: "发送了 {count} 张照片",
     sticker: "发送了一个贴纸",
     link: "发送了一个链接",
     fallback: "发送了一条消息",
@@ -75,17 +78,22 @@ export const buildPushPreview = ({
   body,
   sticker = false,
   photo = false,
+  photoCount = 1,
   locale = DEFAULT_LOCALE,
 }: {
   body?: string | null;
   sticker?: boolean;
   photo?: boolean;
+  // Photos in the message; more than one is worded as a count.
+  photoCount?: number;
   locale?: Locale;
 }): string => {
   const t = TEXTS[locale];
 
   if (photo) {
-    return t.photo;
+    return photoCount > 1
+      ? t.photos.replace("{count}", String(photoCount))
+      : t.photo;
   }
   if (sticker) {
     return t.sticker;
@@ -122,6 +130,7 @@ export type ChatMessageFacts = {
   body?: string | null;
   sticker?: boolean;
   photo?: boolean;
+  photoCount?: number;
   locale?: Locale;
 };
 
@@ -133,10 +142,11 @@ export const buildChatMessagePush = ({
   body,
   sticker = false,
   photo = false,
+  photoCount = 1,
   locale = DEFAULT_LOCALE,
 }: ChatMessageFacts): PushPayload => ({
   title: senderName.trim() === "" ? PUSH_TITLE : senderName,
-  body: buildPushPreview({ body, sticker, photo, locale }),
+  body: buildPushPreview({ body, sticker, photo, photoCount, locale }),
   url: pathFor(recipientRole, traineeUserId),
   // One notification per conversation: a newer one replaces the older.
   tag: `chat-${conversationId}`,

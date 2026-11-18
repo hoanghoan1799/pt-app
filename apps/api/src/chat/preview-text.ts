@@ -12,6 +12,7 @@ const TEXTS = {
   vi: {
     sticker: "đã gửi một sticker",
     photo: "Ảnh",
+    photos: "{count} ảnh",
     unsent: DM_MESSAGES.UNSENT,
     you: "Bạn: ",
     deletedAccount: "Đã xoá",
@@ -19,6 +20,7 @@ const TEXTS = {
   en: {
     sticker: "sent a sticker",
     photo: "Photo",
+    photos: "{count} photos",
     unsent: "This message was unsent",
     you: "You: ",
     deletedAccount: "Deleted account",
@@ -26,6 +28,7 @@ const TEXTS = {
   zh: {
     sticker: "发送了一个贴纸",
     photo: "照片",
+    photos: "{count} 张照片",
     unsent: "此消息已撤回",
     you: "你：",
     deletedAccount: "已删除的账号",

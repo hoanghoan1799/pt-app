@@ -2,6 +2,7 @@
   "title": "PT App",
   "preview": {
     "photo": "发送了一张照片",
+    "photos": "发送了 {count} 张照片",
     "sticker": "发送了一个贴纸",
     "link": "发送了一个链接",
     "fallback": "发送了一条消息"
