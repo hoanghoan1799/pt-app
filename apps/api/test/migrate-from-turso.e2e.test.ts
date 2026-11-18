@@ -722,7 +722,7 @@ describe("data migration from a Turso/SQLite copy", () => {
 
       expect(first.exitCode, first.output).toBe(0);
       expect(first.report.derivedChecks.map((check) => check.count)).toEqual([
-        0, 0,
+        0, 0, 0,
       ]);
 
       await db.dataSource.query(

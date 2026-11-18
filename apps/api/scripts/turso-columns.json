@@ -1,5 +1,5 @@
 {
-  "source": "apps/web/db/schema.ts",
+  "source": "company/main 8f0e085 db/schema.ts",
   "tables": {
     "admin_hidden_users": {
       "primaryKey": ["admin_id", "user_id"],

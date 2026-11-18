@@ -33,8 +33,6 @@ const photo = (values: RowRef["values"]) => ({
   group_id: 1,
   message_id: null,
   position: null,
-  size: 3,
-  data_length: 3,
   ...values,
 });
 
@@ -58,17 +56,14 @@ describe("repairCompanyRow", () => {
 });
 
 describe("companyScanValues", () => {
-  it("keeps the photo byte length and the name length in characters, never the content", () => {
-    expect(
-      companyScanValues("chat_group_photos", { data: Buffer.from("abcd") }),
-    ).toEqual({ data_length: 4 });
+  it("keeps the group name length in characters, never the name", () => {
     // Two emoji: 4 UTF-16 units, 2 characters (PostgreSQL char_length).
     expect(companyScanValues("chat_groups", { name: "😀😀" })).toEqual({
       name_length: 2,
     });
-    expect(
-      companyScanValues("chat_messages", { data: Buffer.from("a") }),
-    ).toEqual({});
+    expect(companyScanValues("chat_group_photos", { data: Buffer.from("a") })).toEqual(
+      {},
+    );
   });
 });
 
@@ -202,7 +197,7 @@ describe("findCompanyViolations", () => {
     ]);
   });
 
-  it("flags photos of another group, wrong sizes, negative and repeated positions (the later id)", () => {
+  it("flags photos of another group, negative and repeated positions (the later id)", () => {
     expect(
       found({
         chat_group_messages: [row("1", message({}))],
@@ -210,14 +205,13 @@ describe("findCompanyViolations", () => {
           row("11", photo({ message_id: 1, position: 0 })),
           row("10", photo({ message_id: 1, position: 0 })),
           row("12", photo({ group_id: 2, message_id: 1, position: 1 })),
-          row("13", photo({ position: -1, data_length: 4 })),
+          row("13", photo({ position: -1 })),
         ],
       }),
     ).toEqual([
       `chat_group_photos:message_id:12:${COMPANY_REASONS.photoOtherGroup}`,
       `chat_group_photos:position:11:${COMPANY_REASONS.duplicatePosition}`,
       `chat_group_photos:position:13:${COMPANY_REASONS.negativePosition}`,
-      `chat_group_photos:size:13:${COMPANY_REASONS.sizeMismatch}`,
     ]);
   });
 });

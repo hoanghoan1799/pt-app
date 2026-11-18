@@ -100,6 +100,7 @@ export const repairSourceRow = (
 
 // Tables whose size column must equal the byte length of data.
 const IMAGE_TABLES = [
+  "chat_group_photos",
   "chat_photos",
   "dm_photos",
   "social_post_photos",
@@ -162,7 +163,7 @@ const DM_MEMBER_COLUMNS = [
 
 type Rows = Record<string, RowRef[]>;
 
-const byKey = (rows: RowRef[] | undefined) =>
+export const byKey = (rows: RowRef[] | undefined) =>
   new Map((rows ?? []).map((row) => [row.key, row]));
 
 const numeric = (value: unknown) => (typeof value === "number" ? value : null);
@@ -362,22 +363,26 @@ export type DerivedCheck = {
 // ChatService.send keeps last_message_id at the highest message id of the
 // conversation and last_message_at at that message's created_at. Recomputed
 // from the loaded messages and compared; a difference is reported, never fixed
-// (the fields are app-maintained).
+// (the fields are app-maintained). Groups (company/main group-core.ts and
+// group-system-lines.ts) skip the super-admin-only PT-change alert.
+const LAST_MESSAGE_OWNERS = [
+  ["chat_conversations", "chat_messages", "conversation_id", "true"],
+  ["dm_conversations", "dm_messages", "conversation_id", "true"],
+  ["chat_groups", "chat_group_messages", "group_id", "m.audience IS NULL"],
+] as const;
+
 export const checkLastMessages = async (
   target: Client,
 ): Promise<DerivedCheck[]> => {
   const checks: DerivedCheck[] = [];
 
-  for (const [conversations, messages] of [
-    ["chat_conversations", "chat_messages"],
-    ["dm_conversations", "dm_messages"],
-  ]) {
+  for (const [conversations, messages, owner, visible] of LAST_MESSAGE_OWNERS) {
     const result = await target.query<{ id: number }>(
       `SELECT c.id
          FROM ${conversations} c
          LEFT JOIN LATERAL (
            SELECT m.id, m.created_at FROM ${messages} m
-            WHERE m.conversation_id = c.id ORDER BY m.id DESC LIMIT 1
+            WHERE m.${owner} = c.id AND ${visible} ORDER BY m.id DESC LIMIT 1
          ) latest ON true
         WHERE c.last_message_id IS DISTINCT FROM latest.id
            OR c.last_message_at IS DISTINCT FROM latest.created_at

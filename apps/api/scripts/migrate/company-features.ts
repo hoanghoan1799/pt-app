@@ -1,3 +1,5 @@
+import { ACCENT_COLOR_PATTERN } from "../../src/database/entities/accent-color.js";
+import { byKey } from "./chat-social.js";
 import type { RowRef, RowViolation } from "./plan.js";
 
 // The tables and columns production gained after the API branched
@@ -36,23 +38,17 @@ export const repairCompanyRow = (
 
 // ---- 2. rows the new constraints reject -----------------------------------
 
-// Extra values the scan needs that are not columns: the blob's length (never
-// the bytes) and the group name's length in characters (never the name), as
-// PostgreSQL's octet_length and char_length count them.
+// Extra values the scan needs that are not columns: the group name's length
+// in characters (never the name), as PostgreSQL's char_length counts it. The
+// photo byte length and the size rule live with the other image tables in
+// chat-social.ts.
 export const companyScanValues = (
   table: string,
   row: Record<string, unknown>,
-): Record<string, number> => {
-  if (table === "chat_group_photos" && Buffer.isBuffer(row.data)) {
-    return { data_length: row.data.length };
-  }
-
-  if (table === "chat_groups" && typeof row.name === "string") {
-    return { name_length: [...row.name].length };
-  }
-
-  return {};
-};
+): Record<string, number> =>
+  table === "chat_groups" && typeof row.name === "string"
+    ? { name_length: [...row.name].length }
+    : {};
 
 // Source columns the scan reads (kept on the RowRef values). Never a body,
 // name or other content.
@@ -72,6 +68,7 @@ export const COMPANY_SCAN_COLUMNS: Record<string, string[]> = {
     "reply_to_message_id",
     "photo_id",
   ],
+  // size: the image-table rule in chat-social.ts.
   chat_group_photos: ["group_id", "message_id", "position", "size"],
 };
 
@@ -90,17 +87,13 @@ export const COMPANY_REASONS = {
   photoOtherGroup: "photo_message_in_other_group",
   negativePosition: "position_negative",
   duplicatePosition: "duplicate_position_in_message",
-  sizeMismatch: "size_not_byte_length",
 } as const;
 
-// Same pattern as the AccentTheme migration (entities/accent-color.ts).
-const ACCENT = /^#[0-9a-f]{6}$/;
+// Same pattern as the AccentTheme migration.
+const ACCENT = new RegExp(ACCENT_COLOR_PATTERN);
 const NAME_MAX = 60;
 
 type Rows = Record<string, RowRef[]>;
-
-const byKey = (rows: RowRef[] | undefined) =>
-  new Map((rows ?? []).map((row) => [row.key, row]));
 
 const isSet = (value: unknown) => value !== null && value !== undefined;
 
@@ -246,8 +239,8 @@ export const findCompanyViolations = (rows: Rows): RowViolation[] => {
     }
   }
 
-  // Photos: same group as their message, size = byte length, one photo per
-  // position of a message (the later row, by id, is the one reported).
+  // Photos: same group as their message, one photo per position of a message
+  // (the later row, by id, is the one reported).
   const positions = new Set<string>();
   const sortedPhotos = [...(rows.chat_group_photos ?? [])].sort(
     (a, b) => Number(a.key) - Number(b.key),
@@ -268,10 +261,6 @@ export const findCompanyViolations = (rows: Rows): RowViolation[] => {
         row.key,
         COMPANY_REASONS.photoOtherGroup,
       );
-    }
-
-    if (v.size !== v.data_length) {
-      add("chat_group_photos", "size", row.key, COMPANY_REASONS.sizeMismatch);
     }
 
     if (typeof v.position === "number" && v.position < 0) {
