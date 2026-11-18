@@ -93,6 +93,7 @@ The `DbChatSocial` migration adds more rules; the scan reports each one with tab
 | `size` of `chat_photos`, `dm_photos`, `social_post_photos`, `chat_custom_stickers`                                                       | `size_not_byte_length`               | `size` must equal the byte length. Avatars are decoded by the script, so their size is right by construction          |
 | `dm_conversations.user_low`, `social_friendships.user_low`                                                                               | `pair_not_ordered`                   | `user_low < user_high`                                                                                                |
 | `social_friendships.requested_by`                                                                                                        | `requester_not_in_pair`              | the requester is `user_low` or `user_high`                                                                            |
+| `dm_messages.sender_id`, `dm_photos.uploader_id`, `dm_reads.user_id` | `not_conversation_member` | the user is the conversation's `user_low` or `user_high` (a trigger in PostgreSQL; `DbHousekeeping`). A missing conversation stays an ordinary orphan |
 | `social_reports.status`                                                                                                                  | `status_resolution_mismatch`         | `resolved` needs `resolution` and `resolved_at`; `open` needs `resolution`, `resolved_at` and `resolved_by` all empty |
 | `social_reports.reporter_key`                                                                                                            | `duplicate_open_report`              | one open report per reporter and target; the report with the lowest id stays, later duplicates are the violations     |
 
@@ -159,6 +160,7 @@ The image is built from the repo root with `apps/api/Dockerfile` (`node dist/mig
 | `PORT`                                                          | the port the host expects (default 4000)                                                 |
 | `WEB_ORIGIN`                                                    | the production web origin, for example `https://<domain>` (CORS and the realtime socket) |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`        | the existing web push keys (all three, or push is off)                                   |
+| `AVATAR_URL_SECRET`                                             | required: 32+ random characters (for example `openssl rand -base64 48`); signs avatar URLs, rotating it only reissues URLs |
 | `GIPHY_API_KEY`                                                 | optional, sticker search                                                                 |
 | `LOGIN_THROTTLE_LIMIT`, `LOG_LEVEL`, `REALTIME_RECHECK_SECONDS` | optional, see `apps/api/.env.example`                                                    |
 

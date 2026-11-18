@@ -27,11 +27,20 @@ export const SOCIAL_PHOTO_MAX_SIDE = 1600;
 // An upload that never became a post is dropped after this long.
 export const SOCIAL_PHOTO_PENDING_TTL_MS = 24 * 60 * 60 * 1000;
 
+// Photos in one post (the first is the cover, also social_posts.photo_id); the
+// composer uploads this many at a time.
+export const SOCIAL_POST_MAX_PHOTOS = 10;
+export const SOCIAL_POST_PHOTO_UPLOAD_CONCURRENCY = 3;
+
 // Friend requests a trainee may send per day.
 export const SOCIAL_FRIEND_REQUESTS_PER_DAY = 20;
 export const SOCIAL_FRIEND_REQUEST_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-export const SOCIAL_POST_PRIVACIES = ["everyone", "friends", "only_me"] as const;
+export const SOCIAL_POST_PRIVACIES = [
+  "everyone",
+  "friends",
+  "only_me",
+] as const;
 export type SocialPostPrivacy = (typeof SOCIAL_POST_PRIVACIES)[number];
 export const SOCIAL_DEFAULT_POST_PRIVACY: SocialPostPrivacy = "friends";
 
@@ -60,8 +69,42 @@ export const SOCIAL_NOTIFICATION_KINDS = [
 ] as const;
 export type SocialNotificationKind = (typeof SOCIAL_NOTIFICATION_KINDS)[number];
 
-export const SOCIAL_REPORT_TARGET_KINDS = ["post", "comment", "user"] as const;
-export type SocialReportTargetKind = (typeof SOCIAL_REPORT_TARGET_KINDS)[number];
+// "group_message" is accepted for forward compatibility only: no endpoint
+// reports a group message yet.
+export const SOCIAL_REPORT_TARGET_KINDS = [
+  "post",
+  "comment",
+  "user",
+  "message",
+  "group_message",
+] as const;
+export type SocialReportTargetKind =
+  (typeof SOCIAL_REPORT_TARGET_KINDS)[number];
+
+// Fixed reason list of a report; the label of each code is a web translation.
+export const SOCIAL_REPORT_REASON_CODES = [
+  "spam",
+  "harassment",
+  "inappropriate",
+  "scam",
+  "other",
+] as const;
+export type SocialReportReasonCode =
+  (typeof SOCIAL_REPORT_REASON_CODES)[number];
+
+// What an admin may do with a report; "hidden" is for a chat message only and
+// "deleted" is for a post or comment only.
+export const SOCIAL_REPORT_RESOLUTIONS = ["kept", "deleted", "hidden"] as const;
+export type SocialReportResolution = (typeof SOCIAL_REPORT_RESOLUTIONS)[number];
+
+// What a chat message report shows in the admin queue.
+export const SOCIAL_REPORTED_MESSAGE_KINDS = [
+  "text",
+  "sticker",
+  "photo",
+] as const;
+export type SocialReportedMessageKind =
+  (typeof SOCIAL_REPORTED_MESSAGE_KINDS)[number];
 
 export const SOCIAL_RELATIONSHIPS = [
   "none",
@@ -80,6 +123,7 @@ export const SOCIAL_MESSAGES = {
   NOT_FOUND: "Không tìm thấy bài viết.",
   NOT_ALLOWED: "Bạn không có quyền thực hiện thao tác này.",
   PHOTO_NOT_FOUND: "Không tìm thấy ảnh. Hãy chọn lại ảnh.",
+  TOO_MANY_PHOTOS: `Mỗi bài viết tối đa ${SOCIAL_POST_MAX_PHOTOS} ảnh.`,
   PHOTO_TOO_LARGE: "Ảnh quá lớn. Hãy chọn ảnh khác.",
   PHOTO_BAD_IMAGE: "Chỉ gửi được ảnh JPEG, PNG hoặc WebP. Hãy chọn lại ảnh.",
   COMMENT_EMPTY: "Hãy viết nội dung bình luận.",
@@ -99,6 +143,7 @@ export const SOCIAL_FRIEND_MESSAGES = {
   REQUEST_NOT_FOUND: "Không tìm thấy lời mời kết bạn.",
   REASON_TOO_LONG: `Lý do tối đa ${SOCIAL_REPORT_REASON_MAX_LENGTH} ký tự.`,
   REPORT_NOT_FOUND: "Không tìm thấy báo cáo.",
+  REASON_REQUIRED: "Hãy chọn lý do báo cáo.",
 } as const;
 
 // Stable `code` of every social error body.
@@ -108,6 +153,7 @@ export const SOCIAL_ERROR_CODES = {
   POST_NOT_FOUND: "POST_NOT_FOUND",
   COMMENT_NOT_FOUND: "COMMENT_NOT_FOUND",
   PHOTO_NOT_FOUND: "PHOTO_NOT_FOUND",
+  TOO_MANY_PHOTOS: "TOO_MANY_PHOTOS",
   PHOTO_TOO_LARGE: "PHOTO_TOO_LARGE",
   BAD_IMAGE: "BAD_IMAGE",
   NOT_ALLOWED: "SOCIAL_FORBIDDEN",

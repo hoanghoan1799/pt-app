@@ -1,3 +1,8 @@
+import {
+  SOCIAL_POST_MAX_PHOTOS,
+  SOCIAL_POST_PHOTO_UPLOAD_CONCURRENCY,
+} from "@pt/contracts";
+
 // Version of the Terms page text (spec T1, A8). Bump it after editing
 // /terms: everyone has to accept again.
 export const TERMS_VERSION = 1;
@@ -20,6 +25,11 @@ export const REACTION_SUMMARY_TOP = 3;
 export const PUSH_COMMENT_PREVIEW_LENGTH = 60;
 // Post photos are re-encoded in the browser; same target as chat photos.
 export const POST_PHOTO_MAX_BYTES = 400 * 1024;
+// Photos in one post (the first is the cover) and how many the composer
+// encodes and uploads at the same time; the API owns the limit.
+export const MAX_POST_PHOTOS = SOCIAL_POST_MAX_PHOTOS;
+export const POST_PHOTO_UPLOAD_CONCURRENCY =
+  SOCIAL_POST_PHOTO_UPLOAD_CONCURRENCY;
 
 export const POST_PRIVACIES = ["everyone", "friends", "only_me"] as const;
 export const DEFAULT_POST_PRIVACY = "friends";
@@ -33,6 +43,7 @@ export const SOCIAL_MESSAGES = {
   NOT_FOUND: "Không tìm thấy bài viết.",
   NOT_ALLOWED: "Bạn không có quyền thực hiện thao tác này.",
   PHOTO_NOT_FOUND: "Không tìm thấy ảnh. Hãy chọn lại ảnh.",
+  TOO_MANY_PHOTOS: `Mỗi bài viết tối đa ${MAX_POST_PHOTOS} ảnh.`,
   PHOTO_TOO_LARGE: "Ảnh quá lớn. Hãy chọn ảnh khác.",
   COMMENT_EMPTY: "Hãy viết nội dung bình luận.",
   COMMENT_TOO_LONG: `Bình luận tối đa ${COMMENT_MAX_LENGTH} ký tự.`,
@@ -44,6 +55,15 @@ export const SOCIAL_MESSAGES = {
 export const FRIEND_REQUESTS_PER_DAY = 20;
 export const FRIEND_REQUEST_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const REPORT_REASON_MAX_LENGTH = 500;
+// Fixed reason list of every report; the label of each code is in
+// messages/*/social.json (reportSheet.reasons). Same codes as @pt/contracts.
+export const REPORT_REASON_CODES = [
+  "spam",
+  "harassment",
+  "inappropriate",
+  "scam",
+  "other",
+] as const;
 
 export const FRIEND_MESSAGES = {
   NOT_FOUND: "Không tìm thấy người dùng.",
@@ -55,4 +75,5 @@ export const FRIEND_MESSAGES = {
   REQUEST_NOT_FOUND: "Không tìm thấy lời mời kết bạn.",
   REASON_TOO_LONG: `Lý do tối đa ${REPORT_REASON_MAX_LENGTH} ký tự.`,
   REPORT_NOT_FOUND: "Không tìm thấy báo cáo.",
+  REASON_REQUIRED: "Hãy chọn lý do báo cáo.",
 } as const;

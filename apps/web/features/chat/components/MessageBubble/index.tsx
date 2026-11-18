@@ -3,12 +3,14 @@
 import clsx from "clsx";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Avatar } from "@/components/common/Avatar";
 import { AvatarLightbox } from "@/components/common/AvatarLightbox";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { ChatPhotoGrid } from "@/features/chat/components/ChatPhotoGrid";
 import { ChatPhotoImage } from "@/features/chat/components/ChatPhotoImage";
+import { ChatPhotoViewer } from "@/features/chat/components/ChatPhotoViewer";
 import { useBubbleGesture } from "@/features/chat/hooks/use-bubble-gesture";
 import {
   CHAT_TEXT_ON_COLOR,
@@ -17,6 +19,7 @@ import {
 } from "@/features/chat/utils/chat-palette";
 import {
   groupReactions,
+  photosOf,
   quoteLabel,
   quoteText,
   type ThreadItem,
@@ -113,7 +116,12 @@ export const MessageBubble = ({
   const isFailed = message.delivery === "failed";
   const isSending = message.delivery === "sending";
   const isUnsent = message.deleted;
-  const { sticker, photo } = message;
+  const { sticker } = message;
+  // The photos of the message in order; one photo keeps the single image, more
+  // than one is a grid.
+  const photos = photosOf(message);
+  const photo = photos[0] ?? null;
+  const isGrid = photos.length > 1;
   // A sticker is just the picture: no bubble, no background (KAN-145).
   const isSticker = Boolean(sticker) && !isUnsent;
   // A photo (KAN-160) keeps the bubble, so its caption sits under the picture.
@@ -123,13 +131,19 @@ export const MessageBubble = ({
   const locale = useLocale();
   const t = useTranslations("chat.messageBubble");
   const [isViewerOpen, setViewerOpen] = useState(false);
+  // The grid's viewer: which photo is on screen, and the tile the last pointer
+  // tap landed on (the gesture opens the viewer after the double-tap window).
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const tapIndexRef = useRef(0);
   const gesture = useBubbleGesture(isInteractive, {
     onDoubleTap: () => onToggleHeart(message),
     onLongPress: () => onOpenActions(message),
     onSingleTap:
-      (sticker && isSticker) || hasPhoto
-        ? () => setViewerOpen(true)
-        : undefined,
+      isGrid && hasPhoto
+        ? () => setViewerIndex(tapIndexRef.current)
+        : (sticker && isSticker) || hasPhoto
+          ? () => setViewerOpen(true)
+          : undefined,
   });
   const groups = isUnsent ? [] : groupReactions(message.reactions, viewer);
   const { replyTo } = message;
@@ -271,7 +285,15 @@ export const MessageBubble = ({
             />
           ) : (
             <>
-              {photo && hasPhoto && (
+              {photo && hasPhoto && isGrid && (
+                <ChatPhotoGrid
+                  photos={photos}
+                  isDimmed={mine && isSending}
+                  tapIndexRef={tapIndexRef}
+                  onOpen={setViewerIndex}
+                />
+              )}
+              {photo && hasPhoto && !isGrid && (
                 <ChatPhotoImage photo={photo} isDimmed={mine && isSending} />
               )}
               {(isUnsent || message.body !== "" || !hasPhoto) && (
@@ -292,7 +314,15 @@ export const MessageBubble = ({
           )}
         </div>
       </div>
-      {photo && hasPhoto && (
+      {isGrid && hasPhoto && (
+        <ChatPhotoViewer
+          photos={photos}
+          index={viewerIndex}
+          onIndexChange={setViewerIndex}
+          onClose={() => setViewerIndex(null)}
+        />
+      )}
+      {photo && hasPhoto && !isGrid && (
         <AvatarLightbox
           isOpen={isViewerOpen}
           onClose={() => setViewerOpen(false)}

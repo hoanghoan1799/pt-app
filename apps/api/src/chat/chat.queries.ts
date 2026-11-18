@@ -5,6 +5,7 @@ import {
   CHAT_JUMP_MAX_NEWER,
   CHAT_PAGE_SIZE,
   chatNextReadCursor,
+  groupPhotosByOwner,
 } from "@pt/contracts";
 import { DataSource, EntityManager } from "typeorm";
 
@@ -13,11 +14,14 @@ import { returnedRows } from "../common/sql.js";
 import { ChatConversation } from "../database/entities/chat-conversation.entity.js";
 import {
   type MessageContext,
+  type MessagePhotoRow,
   type MessageRow,
   type ReactionRow,
   type ReplyTargetRow,
 } from "./chat.mapper.js";
 import type { ConversationFacts } from "./chat.policy.js";
+import { bumpConversationChange } from "./conversation-change.js";
+import { goneAtSql, liveMessageSql } from "./message-visibility.js";
 import {
   CHAT_POST_QUOTES,
   type ChatPostQuoteReader,
@@ -31,7 +35,7 @@ export const MESSAGE_SELECT = `
          m.photo_id AS "photoId", m.client_id AS "clientId",
          m.created_at AS "createdAt", m.reply_to_message_id AS "replyToMessageId",
          m.reply_post_id AS "replyPostId", m.edited_at AS "editedAt",
-         m.deleted_at AS "deletedAt", m.updated_at AS "updatedAt"
+         ${goneAtSql("m")} AS "deletedAt", m.updated_at AS "updatedAt"
   FROM chat_messages m
   LEFT JOIN admins a ON a.id = m.sender_admin_id`;
 
@@ -172,7 +176,7 @@ export class ChatQueries {
     >(
       `SELECT id, conversation_id AS "conversationId", sender_role AS "senderRole",
               sender_admin_id AS "senderAdminId", body, sticker_ref AS "stickerRef",
-              deleted_at AS "deletedAt", client_id AS "clientId"
+              ${goneAtSql()} AS "deletedAt", client_id AS "clientId"
        FROM chat_messages WHERE id = $1`,
       [messageId],
       manager,
@@ -210,7 +214,8 @@ export class ChatQueries {
       targets: new Map(),
       reactions: new Map(),
       traineeNames: new Map(),
-      photoSizes: new Map(),
+      photos: new Map(),
+      targetPhotoCounts: new Map(),
       posts: new Map(),
     };
 
@@ -225,11 +230,11 @@ export class ChatQueries {
         ),
       ),
     ];
-    const photoIds = [
-      ...new Set(
-        live.flatMap((row) => (row.photoId === null ? [] : [row.photoId])),
-      ),
-    ];
+    // Messages with photos (photo_id is the cover); the photos of one message
+    // come in one query for the whole page.
+    const photoMessageIds = live.flatMap((row) =>
+      row.photoId === null ? [] : [row.id],
+    );
     const postIds = viewer
       ? [
           ...new Set(
@@ -246,7 +251,7 @@ export class ChatQueries {
         : this.run<ReplyTargetRow[]>(
             `SELECT id, conversation_id AS "conversationId", body,
                     sticker_ref AS "stickerRef", photo_id AS "photoId",
-                    sender_role AS "senderRole", deleted_at AS "deletedAt"
+                    sender_role AS "senderRole", ${goneAtSql()} AS "deletedAt"
              FROM chat_messages WHERE id = ANY($1::int[])`,
             [replyIds],
           ),
@@ -267,12 +272,13 @@ export class ChatQueries {
          WHERE c.id = ANY($1::int[])`,
         [conversationIds],
       ),
-      photoIds.length === 0
+      photoMessageIds.length === 0
         ? []
         : // Size only: the bytes are served by GET /v1/chat/photos/:id.
-          this.run<{ id: number; width: number; height: number }[]>(
-            `SELECT id, width, height FROM chat_photos WHERE id = ANY($1::int[])`,
-            [photoIds],
+          this.run<MessagePhotoRow[]>(
+            `SELECT id, message_id AS "messageId", position, width, height
+             FROM chat_photos WHERE message_id = ANY($1::int[])`,
+            [photoMessageIds],
           ),
       viewer && postIds.length > 0
         ? this.postQuotes.views(viewer, postIds)
@@ -291,8 +297,40 @@ export class ChatQueries {
     for (const trainee of trainees) {
       context.traineeNames.set(trainee.conversationId, trainee.name);
     }
-    for (const photo of photos) {
-      context.photoSizes.set(photo.id, photo);
+    const grouped = groupPhotosByOwner(
+      photos.map((photo) => ({ ...photo, ownerId: photo.messageId })),
+      photoMessageIds,
+    );
+
+    for (const [messageId, list] of grouped) {
+      context.photos.set(messageId, list);
+    }
+    // How many photos a quoted message has: the page's own messages are known
+    // already, the rest takes one count query.
+    const quotedWithPhoto = [...context.targets.values()].filter(
+      (target) => target.deletedAt === null && target.photoId !== null,
+    );
+    const unknownCounts = quotedWithPhoto
+      .map((target) => target.id)
+      .filter((id) => !context.photos.has(id));
+
+    for (const target of quotedWithPhoto) {
+      const known = context.photos.get(target.id);
+
+      if (known) {
+        context.targetPhotoCounts.set(target.id, known.length);
+      }
+    }
+    if (unknownCounts.length > 0) {
+      const counts = await this.run<{ messageId: number; total: number }[]>(
+        `SELECT message_id AS "messageId", count(*)::int AS total
+         FROM chat_photos WHERE message_id = ANY($1::int[]) GROUP BY message_id`,
+        [unknownCounts],
+      );
+
+      for (const row of counts) {
+        context.targetPhotoCounts.set(row.messageId, row.total);
+      }
     }
     context.posts = posts;
     return context;
@@ -395,26 +433,13 @@ export class ChatQueries {
     );
   }
 
-  // Moves the change cursor of one conversation (strictly increasing, in whole
-  // milliseconds) without touching a message; the cursor defeats the 204 fast
-  // path. Returns the new cursor.
-  async bumpConversationChange(
+  // Moves the change cursor of one conversation (see conversation-change.ts).
+  bumpConversationChange(
     manager: EntityManager,
     conversationId: number,
     now: Date,
   ): Promise<Date> {
-    const result = await this.run<unknown>(
-      `UPDATE chat_conversations
-       SET last_change_at = date_trunc('milliseconds', GREATEST(
-         COALESCE(last_change_at, 'epoch'::timestamptz) + interval '1 millisecond',
-         $2::timestamptz))
-       WHERE id = $1
-       RETURNING last_change_at AS "lastChangeAt"`,
-      [conversationId, now],
-      manager,
-    );
-
-    return returnedRows<{ lastChangeAt: Date }>(result)[0]?.lastChangeAt ?? now;
+    return bumpConversationChange(manager, conversationId, now);
   }
 
   // The same bump for every conversation an account colour shows in: the
@@ -552,7 +577,7 @@ export class ChatQueries {
          ON r.conversation_id = m.conversation_id AND r.reader_key = $2
        WHERE m.conversation_id = ANY($3::int[])
          AND m.sender_role = $1
-         AND m.deleted_at IS NULL
+         AND ${liveMessageSql("m")}
          AND m.silent = false
          AND m.id > COALESCE(r.last_read_message_id, 0)
        GROUP BY m.conversation_id`,

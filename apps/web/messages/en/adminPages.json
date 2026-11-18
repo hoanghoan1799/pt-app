@@ -37,7 +37,8 @@
     "kinds": {
       "post": "Post",
       "comment": "Comment",
-      "user": "User"
+      "user": "User",
+      "message": "Message"
     },
     "emptyPreview": "(Empty)",
     "deleted": "This content has been deleted.",
@@ -45,7 +46,19 @@
     "view": "View",
     "reporter": "Reported by: {name}",
     "targetName": " · {name}",
-    "reason": " · \"{reason}\""
+    "noReason": "No reason chosen",
+    "viewChat": "Open conversation",
+    "sender": "Sender: {name}",
+    "trainee": "Trainee: {name}",
+    "note": "Note: \"{note}\"",
+    "reasonCode": "Reason: {reason}",
+    "reasons": {
+      "spam": "Spam",
+      "harassment": "Harassment",
+      "inappropriate": "Inappropriate content",
+      "scam": "Scam",
+      "other": "Other"
+    }
   },
   "userPage": {
     "metaTitle": "Workouts",

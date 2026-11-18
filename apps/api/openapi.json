@@ -6261,6 +6261,37 @@
                             ],
                             "additionalProperties": false
                           },
+                          "photos": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string"
+                                },
+                                "width": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "height": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "alt": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "url",
+                                "width",
+                                "height",
+                                "alt"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
                           "clientId": {
                             "type": "string"
                           },
@@ -6285,6 +6316,11 @@
                               "isPhoto": {
                                 "type": "boolean"
                               },
+                              "photoCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
                               "senderRole": {
                                 "type": "string",
                                 "enum": [
@@ -6301,6 +6337,7 @@
                               "body",
                               "isSticker",
                               "isPhoto",
+                              "photoCount",
                               "senderRole",
                               "deleted"
                             ],
@@ -6411,6 +6448,11 @@
                                       "height"
                                     ],
                                     "additionalProperties": false
+                                  },
+                                  "photoCount": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
                                   }
                                 },
                                 "required": [
@@ -6419,7 +6461,8 @@
                                   "authorName",
                                   "authorAvatarUrl",
                                   "caption",
-                                  "photo"
+                                  "photo",
+                                  "photoCount"
                                 ],
                                 "additionalProperties": false
                               }
@@ -6434,6 +6477,7 @@
                           "body",
                           "sticker",
                           "photo",
+                          "photos",
                           "clientId",
                           "createdAt",
                           "replyTo",
@@ -6534,6 +6578,37 @@
                             ],
                             "additionalProperties": false
                           },
+                          "photos": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string"
+                                },
+                                "width": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "height": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "alt": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "url",
+                                "width",
+                                "height",
+                                "alt"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
                           "clientId": {
                             "type": "string"
                           },
@@ -6558,6 +6633,11 @@
                               "isPhoto": {
                                 "type": "boolean"
                               },
+                              "photoCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
                               "senderRole": {
                                 "type": "string",
                                 "enum": [
@@ -6574,6 +6654,7 @@
                               "body",
                               "isSticker",
                               "isPhoto",
+                              "photoCount",
                               "senderRole",
                               "deleted"
                             ],
@@ -6684,6 +6765,11 @@
                                       "height"
                                     ],
                                     "additionalProperties": false
+                                  },
+                                  "photoCount": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
                                   }
                                 },
                                 "required": [
@@ -6692,7 +6778,8 @@
                                   "authorName",
                                   "authorAvatarUrl",
                                   "caption",
-                                  "photo"
+                                  "photo",
+                                  "photoCount"
                                 ],
                                 "additionalProperties": false
                               }
@@ -6707,6 +6794,7 @@
                           "body",
                           "sticker",
                           "photo",
+                          "photos",
                           "clientId",
                           "createdAt",
                           "replyTo",
@@ -7043,6 +7131,16 @@
                     "exclusiveMinimum": true,
                     "maximum": 9007199254740991
                   },
+                  "photoIds": {
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true,
+                      "maximum": 9007199254740991
+                    }
+                  },
                   "clientId": {
                     "type": "string",
                     "format": "uuid",
@@ -7159,6 +7257,37 @@
                           ],
                           "additionalProperties": false
                         },
+                        "photos": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string"
+                              },
+                              "width": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "height": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "alt": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "width",
+                              "height",
+                              "alt"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
                         "clientId": {
                           "type": "string"
                         },
@@ -7183,6 +7312,11 @@
                             "isPhoto": {
                               "type": "boolean"
                             },
+                            "photoCount": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
                             "senderRole": {
                               "type": "string",
                               "enum": [
@@ -7199,6 +7333,7 @@
                             "body",
                             "isSticker",
                             "isPhoto",
+                            "photoCount",
                             "senderRole",
                             "deleted"
                           ],
@@ -7309,6 +7444,11 @@
                                     "height"
                                   ],
                                   "additionalProperties": false
+                                },
+                                "photoCount": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
                                 }
                               },
                               "required": [
@@ -7317,7 +7457,8 @@
                                 "authorName",
                                 "authorAvatarUrl",
                                 "caption",
-                                "photo"
+                                "photo",
+                                "photoCount"
                               ],
                               "additionalProperties": false
                             }
@@ -7332,6 +7473,7 @@
                         "body",
                         "sticker",
                         "photo",
+                        "photos",
                         "clientId",
                         "createdAt",
                         "replyTo",
@@ -9106,6 +9248,37 @@
                             ],
                             "additionalProperties": false
                           },
+                          "photos": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string"
+                                },
+                                "width": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "height": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "alt": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "url",
+                                "width",
+                                "height",
+                                "alt"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
                           "clientId": {
                             "type": "string"
                           },
@@ -9130,6 +9303,11 @@
                               "isPhoto": {
                                 "type": "boolean"
                               },
+                              "photoCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
                               "senderRole": {
                                 "type": "string",
                                 "enum": [
@@ -9146,6 +9324,7 @@
                               "body",
                               "isSticker",
                               "isPhoto",
+                              "photoCount",
                               "senderRole",
                               "deleted"
                             ],
@@ -9256,6 +9435,11 @@
                                       "height"
                                     ],
                                     "additionalProperties": false
+                                  },
+                                  "photoCount": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
                                   }
                                 },
                                 "required": [
@@ -9264,7 +9448,8 @@
                                   "authorName",
                                   "authorAvatarUrl",
                                   "caption",
-                                  "photo"
+                                  "photo",
+                                  "photoCount"
                                 ],
                                 "additionalProperties": false
                               }
@@ -9279,6 +9464,7 @@
                           "body",
                           "sticker",
                           "photo",
+                          "photos",
                           "clientId",
                           "createdAt",
                           "replyTo",
@@ -9379,6 +9565,37 @@
                             ],
                             "additionalProperties": false
                           },
+                          "photos": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string"
+                                },
+                                "width": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "height": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "alt": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "url",
+                                "width",
+                                "height",
+                                "alt"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
                           "clientId": {
                             "type": "string"
                           },
@@ -9403,6 +9620,11 @@
                               "isPhoto": {
                                 "type": "boolean"
                               },
+                              "photoCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
                               "senderRole": {
                                 "type": "string",
                                 "enum": [
@@ -9419,6 +9641,7 @@
                               "body",
                               "isSticker",
                               "isPhoto",
+                              "photoCount",
                               "senderRole",
                               "deleted"
                             ],
@@ -9529,6 +9752,11 @@
                                       "height"
                                     ],
                                     "additionalProperties": false
+                                  },
+                                  "photoCount": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
                                   }
                                 },
                                 "required": [
@@ -9537,7 +9765,8 @@
                                   "authorName",
                                   "authorAvatarUrl",
                                   "caption",
-                                  "photo"
+                                  "photo",
+                                  "photoCount"
                                 ],
                                 "additionalProperties": false
                               }
@@ -9552,6 +9781,7 @@
                           "body",
                           "sticker",
                           "photo",
+                          "photos",
                           "clientId",
                           "createdAt",
                           "replyTo",
@@ -11747,6 +11977,16 @@
                     "exclusiveMinimum": true,
                     "maximum": 9007199254740991
                   },
+                  "photoIds": {
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true,
+                      "maximum": 9007199254740991
+                    }
+                  },
                   "clientId": {
                     "type": "string",
                     "format": "uuid",
@@ -11863,6 +12103,37 @@
                           ],
                           "additionalProperties": false
                         },
+                        "photos": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string"
+                              },
+                              "width": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "height": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "alt": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "width",
+                              "height",
+                              "alt"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
                         "clientId": {
                           "type": "string"
                         },
@@ -11887,6 +12158,11 @@
                             "isPhoto": {
                               "type": "boolean"
                             },
+                            "photoCount": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
                             "senderRole": {
                               "type": "string",
                               "enum": [
@@ -11903,6 +12179,7 @@
                             "body",
                             "isSticker",
                             "isPhoto",
+                            "photoCount",
                             "senderRole",
                             "deleted"
                           ],
@@ -12013,6 +12290,11 @@
                                     "height"
                                   ],
                                   "additionalProperties": false
+                                },
+                                "photoCount": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
                                 }
                               },
                               "required": [
@@ -12021,7 +12303,8 @@
                                 "authorName",
                                 "authorAvatarUrl",
                                 "caption",
-                                "photo"
+                                "photo",
+                                "photoCount"
                               ],
                               "additionalProperties": false
                             }
@@ -12036,6 +12319,7 @@
                         "body",
                         "sticker",
                         "photo",
+                        "photos",
                         "clientId",
                         "createdAt",
                         "replyTo",
@@ -12648,6 +12932,37 @@
                           ],
                           "additionalProperties": false
                         },
+                        "photos": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string"
+                              },
+                              "width": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "height": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "alt": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "width",
+                              "height",
+                              "alt"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
                         "clientId": {
                           "type": "string"
                         },
@@ -12672,6 +12987,11 @@
                             "isPhoto": {
                               "type": "boolean"
                             },
+                            "photoCount": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
                             "senderRole": {
                               "type": "string",
                               "enum": [
@@ -12688,6 +13008,7 @@
                             "body",
                             "isSticker",
                             "isPhoto",
+                            "photoCount",
                             "senderRole",
                             "deleted"
                           ],
@@ -12798,6 +13119,11 @@
                                     "height"
                                   ],
                                   "additionalProperties": false
+                                },
+                                "photoCount": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
                                 }
                               },
                               "required": [
@@ -12806,7 +13132,8 @@
                                 "authorName",
                                 "authorAvatarUrl",
                                 "caption",
-                                "photo"
+                                "photo",
+                                "photoCount"
                               ],
                               "additionalProperties": false
                             }
@@ -12821,6 +13148,7 @@
                         "body",
                         "sticker",
                         "photo",
+                        "photos",
                         "clientId",
                         "createdAt",
                         "replyTo",
@@ -13168,6 +13496,37 @@
                           ],
                           "additionalProperties": false
                         },
+                        "photos": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string"
+                              },
+                              "width": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "height": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "alt": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "width",
+                              "height",
+                              "alt"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
                         "clientId": {
                           "type": "string"
                         },
@@ -13192,6 +13551,11 @@
                             "isPhoto": {
                               "type": "boolean"
                             },
+                            "photoCount": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
                             "senderRole": {
                               "type": "string",
                               "enum": [
@@ -13208,6 +13572,7 @@
                             "body",
                             "isSticker",
                             "isPhoto",
+                            "photoCount",
                             "senderRole",
                             "deleted"
                           ],
@@ -13318,6 +13683,11 @@
                                     "height"
                                   ],
                                   "additionalProperties": false
+                                },
+                                "photoCount": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
                                 }
                               },
                               "required": [
@@ -13326,7 +13696,8 @@
                                 "authorName",
                                 "authorAvatarUrl",
                                 "caption",
-                                "photo"
+                                "photo",
+                                "photoCount"
                               ],
                               "additionalProperties": false
                             }
@@ -13341,6 +13712,7 @@
                         "body",
                         "sticker",
                         "photo",
+                        "photos",
                         "clientId",
                         "createdAt",
                         "replyTo",
@@ -13673,6 +14045,37 @@
                           ],
                           "additionalProperties": false
                         },
+                        "photos": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string"
+                              },
+                              "width": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "height": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "alt": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "width",
+                              "height",
+                              "alt"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
                         "clientId": {
                           "type": "string"
                         },
@@ -13697,6 +14100,11 @@
                             "isPhoto": {
                               "type": "boolean"
                             },
+                            "photoCount": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
                             "senderRole": {
                               "type": "string",
                               "enum": [
@@ -13713,6 +14121,7 @@
                             "body",
                             "isSticker",
                             "isPhoto",
+                            "photoCount",
                             "senderRole",
                             "deleted"
                           ],
@@ -13823,6 +14232,11 @@
                                     "height"
                                   ],
                                   "additionalProperties": false
+                                },
+                                "photoCount": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
                                 }
                               },
                               "required": [
@@ -13831,7 +14245,8 @@
                                 "authorName",
                                 "authorAvatarUrl",
                                 "caption",
-                                "photo"
+                                "photo",
+                                "photoCount"
                               ],
                               "additionalProperties": false
                             }
@@ -13846,6 +14261,7 @@
                         "body",
                         "sticker",
                         "photo",
+                        "photos",
                         "clientId",
                         "createdAt",
                         "replyTo",
@@ -14193,6 +14609,37 @@
                           ],
                           "additionalProperties": false
                         },
+                        "photos": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string"
+                              },
+                              "width": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "height": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "alt": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "width",
+                              "height",
+                              "alt"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
                         "clientId": {
                           "type": "string"
                         },
@@ -14217,6 +14664,11 @@
                             "isPhoto": {
                               "type": "boolean"
                             },
+                            "photoCount": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
                             "senderRole": {
                               "type": "string",
                               "enum": [
@@ -14233,6 +14685,7 @@
                             "body",
                             "isSticker",
                             "isPhoto",
+                            "photoCount",
                             "senderRole",
                             "deleted"
                           ],
@@ -14343,6 +14796,11 @@
                                     "height"
                                   ],
                                   "additionalProperties": false
+                                },
+                                "photoCount": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
                                 }
                               },
                               "required": [
@@ -14351,7 +14809,8 @@
                                 "authorName",
                                 "authorAvatarUrl",
                                 "caption",
-                                "photo"
+                                "photo",
+                                "photoCount"
                               ],
                               "additionalProperties": false
                             }
@@ -14366,6 +14825,7 @@
                         "body",
                         "sticker",
                         "photo",
+                        "photos",
                         "clientId",
                         "createdAt",
                         "replyTo",
@@ -18154,6 +18614,33 @@
                             ],
                             "additionalProperties": false
                           },
+                          "photos": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string"
+                                },
+                                "width": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "height": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "url",
+                                "width",
+                                "height"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
                           "post": {
                             "nullable": true,
                             "anyOf": [
@@ -18226,6 +18713,11 @@
                                       "height"
                                     ],
                                     "additionalProperties": false
+                                  },
+                                  "photoCount": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
                                   }
                                 },
                                 "required": [
@@ -18234,7 +18726,8 @@
                                   "authorName",
                                   "authorAvatarUrl",
                                   "caption",
-                                  "photo"
+                                  "photo",
+                                  "photoCount"
                                 ],
                                 "additionalProperties": false
                               }
@@ -18252,6 +18745,7 @@
                           "senderId",
                           "body",
                           "photo",
+                          "photos",
                           "post",
                           "clientId",
                           "createdAt"
@@ -20358,6 +20852,39 @@
                             ],
                             "additionalProperties": false
                           },
+                          "photos": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "url": {
+                                  "type": "string"
+                                },
+                                "width": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "height": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "url",
+                                "width",
+                                "height"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
                           "createdAt": {
                             "type": "string",
                             "format": "date-time",
@@ -20429,6 +20956,7 @@
                           "caption",
                           "privacy",
                           "photo",
+                          "photos",
                           "createdAt",
                           "edited",
                           "canEdit",
@@ -20633,6 +21161,17 @@
                     "minimum": 0,
                     "exclusiveMinimum": true,
                     "maximum": 2147483647
+                  },
+                  "photoIds": {
+                    "default": [],
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true,
+                      "maximum": 2147483647
+                    }
                   }
                 },
                 "required": [
@@ -20723,6 +21262,39 @@
                           ],
                           "additionalProperties": false
                         },
+                        "photos": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "width": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "height": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "url",
+                              "width",
+                              "height"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
                         "createdAt": {
                           "type": "string",
                           "format": "date-time",
@@ -20794,6 +21366,7 @@
                         "caption",
                         "privacy",
                         "photo",
+                        "photos",
                         "createdAt",
                         "edited",
                         "canEdit",
@@ -21086,6 +21659,39 @@
                       ],
                       "additionalProperties": false
                     },
+                    "photos": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "url": {
+                            "type": "string"
+                          },
+                          "width": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "height": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "url",
+                          "width",
+                          "height"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time",
@@ -21157,6 +21763,7 @@
                     "caption",
                     "privacy",
                     "photo",
+                    "photos",
                     "createdAt",
                     "edited",
                     "canEdit",
@@ -22138,6 +22745,39 @@
                             ],
                             "additionalProperties": false
                           },
+                          "photos": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "url": {
+                                  "type": "string"
+                                },
+                                "width": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "height": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "url",
+                                "width",
+                                "height"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
                           "createdAt": {
                             "type": "string",
                             "format": "date-time",
@@ -22209,6 +22849,7 @@
                           "caption",
                           "privacy",
                           "photo",
+                          "photos",
                           "createdAt",
                           "edited",
                           "canEdit",
@@ -25854,7 +26495,9 @@
                     "enum": [
                       "post",
                       "comment",
-                      "user"
+                      "user",
+                      "message",
+                      "group_message"
                     ]
                   },
                   "targetId": {
@@ -25862,6 +26505,16 @@
                     "minimum": 0,
                     "exclusiveMinimum": true,
                     "maximum": 2147483647
+                  },
+                  "reasonCode": {
+                    "type": "string",
+                    "enum": [
+                      "spam",
+                      "harassment",
+                      "inappropriate",
+                      "scam",
+                      "other"
+                    ]
                   },
                   "reason": {
                     "default": "",
@@ -26089,7 +26742,9 @@
                             "enum": [
                               "post",
                               "comment",
-                              "user"
+                              "user",
+                              "message",
+                              "group_message"
                             ]
                           },
                           "targetId": {
@@ -26102,6 +26757,17 @@
                           },
                           "reason": {
                             "type": "string"
+                          },
+                          "reasonCode": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "spam",
+                              "harassment",
+                              "inappropriate",
+                              "scam",
+                              "other"
+                            ]
                           },
                           "createdAt": {
                             "type": "string",
@@ -26121,6 +26787,46 @@
                             "type": "integer",
                             "minimum": -9007199254740991,
                             "maximum": 9007199254740991
+                          },
+                          "message": {
+                            "nullable": true,
+                            "type": "object",
+                            "properties": {
+                              "senderRole": {
+                                "type": "string",
+                                "enum": [
+                                  "user",
+                                  "admin"
+                                ]
+                              },
+                              "senderName": {
+                                "type": "string"
+                              },
+                              "traineeId": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "traineeName": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "text",
+                                  "sticker",
+                                  "photo"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "senderRole",
+                              "senderName",
+                              "traineeId",
+                              "traineeName",
+                              "kind"
+                            ],
+                            "additionalProperties": false
                           }
                         },
                         "required": [
@@ -26129,10 +26835,12 @@
                           "targetId",
                           "reporterName",
                           "reason",
+                          "reasonCode",
                           "createdAt",
                           "preview",
                           "targetName",
-                          "postId"
+                          "postId",
+                          "message"
                         ],
                         "additionalProperties": false
                       }
@@ -26277,7 +26985,8 @@
                     "type": "string",
                     "enum": [
                       "kept",
-                      "deleted"
+                      "deleted",
+                      "hidden"
                     ]
                   }
                 },
@@ -33507,6 +34216,10 @@
                             "format": "date-time",
                             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                           },
+                          "avatarUrl": {
+                            "nullable": true,
+                            "type": "string"
+                          },
                           "ptAdminId": {
                             "nullable": true,
                             "type": "integer",
@@ -33568,6 +34281,7 @@
                           "name",
                           "displayName",
                           "avatarUpdatedAt",
+                          "avatarUrl",
                           "ptAdminId",
                           "ptName",
                           "assigned",

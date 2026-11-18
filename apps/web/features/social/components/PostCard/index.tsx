@@ -13,6 +13,7 @@ import { Avatar } from "@/components/common/Avatar";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { useConfirm } from "@/components/common/ConfirmDialog/use-confirm";
 import { LazyPhotoViewer } from "@/components/common/LazyPhotoViewer";
+import { PhotoGrid } from "@/components/common/PhotoGrid";
 import { Spinner } from "@/components/common/Spinner";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import {
@@ -166,7 +167,8 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
       className={clsx(
         CARD,
         "space-y-3 p-4",
-        !isDetail && (post.photo ? OFFSCREEN_WITH_PHOTO : OFFSCREEN_TEXT_ONLY),
+        !isDetail &&
+          (post.photos.length > 0 ? OFFSCREEN_WITH_PHOTO : OFFSCREEN_TEXT_ONLY),
       )}
       aria-label={t("postOf", { name: post.authorName })}
     >
@@ -257,43 +259,37 @@ export const PostCard = ({ post, mode, isDetail = false }: PostCardProps) => {
         )
       )}
 
-      {post.photo && (
-        <button
-          type="button"
-          onClick={() => setViewerIndex(0)}
-          aria-label={t("viewPhoto")}
-          className="block w-full overflow-hidden rounded-xl bg-line"
-          style={{ aspectRatio: `${post.photo.width} / ${post.photo.height}` }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={post.photo.url}
-            alt={t("photoAlt")}
-            width={post.photo.width}
-            height={post.photo.height}
-            loading="lazy"
-            decoding="async"
-            className="size-full object-cover"
+      {post.photos.length > 0 && (
+        <>
+          <PhotoGrid
+            photos={post.photos.map((photo) => ({
+              id: photo.id,
+              src: photo.url,
+              width: photo.width,
+              height: photo.height,
+            }))}
+            onOpen={setViewerIndex}
+            labelFor={(index) =>
+              post.photos.length === 1
+                ? t("photoAlt")
+                : t("photoN", { index: index + 1, name: post.authorName })
+            }
+            moreLabelFor={(hidden) => t("morePhotos", { count: hidden })}
           />
-        </button>
-      )}
-
-      {post.photo && (
-        <LazyPhotoViewer
-          photos={[
-            {
-              id: post.photo.id,
-              src: post.photo.url,
+          <LazyPhotoViewer
+            photos={post.photos.map((photo) => ({
+              id: photo.id,
+              src: photo.url,
               label: t("photoOf", { name: post.authorName }),
-            },
-          ]}
-          index={viewerIndex}
-          onIndexChange={setViewerIndex}
-          onClose={() => setViewerIndex(null)}
-          fileNameFor={(photo, mime) =>
-            `anh-${photo.id}.${mime === "image/png" ? "png" : mime === "image/jpeg" ? "jpg" : "webp"}`
-          }
-        />
+            }))}
+            index={viewerIndex}
+            onIndexChange={setViewerIndex}
+            onClose={() => setViewerIndex(null)}
+            fileNameFor={(photo, mime) =>
+              `anh-${photo.id}.${mime === "image/png" ? "png" : mime === "image/jpeg" ? "jpg" : "webp"}`
+            }
+          />
+        </>
       )}
 
       <ReactionBar

@@ -37,7 +37,8 @@
     "kinds": {
       "post": "Bài viết",
       "comment": "Bình luận",
-      "user": "Người dùng"
+      "user": "Người dùng",
+      "message": "Tin nhắn"
     },
     "emptyPreview": "(Trống)",
     "deleted": "Nội dung đã bị xóa.",
@@ -45,7 +46,19 @@
     "view": "Xem",
     "reporter": "Người báo cáo: {name}",
     "targetName": " · {name}",
-    "reason": " · \"{reason}\""
+    "noReason": "Chưa chọn lý do",
+    "viewChat": "Mở cuộc trò chuyện",
+    "sender": "Người gửi: {name}",
+    "trainee": "Học viên: {name}",
+    "note": "Ghi chú: \"{note}\"",
+    "reasonCode": "Lý do: {reason}",
+    "reasons": {
+      "spam": "Spam",
+      "harassment": "Quấy rối",
+      "inappropriate": "Nội dung không phù hợp",
+      "scam": "Lừa đảo",
+      "other": "Khác"
+    }
   },
   "userPage": {
     "metaTitle": "Lịch tập",

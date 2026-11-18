@@ -138,7 +138,8 @@
     "reply": "回复",
     "copy": "复制",
     "edit": "编辑",
-    "unsend": "撤回"
+    "unsend": "撤回",
+    "report": "举报"
   },
   "messageBubble": {
     "viewReply": "查看被回复的消息",
@@ -146,7 +147,9 @@
     "edited": "已编辑",
     "sending": "发送中…",
     "notSent": "未发送",
-    "retry": "重发"
+    "retry": "重发",
+    "photoN": "第 {index} 张，共 {total} 张",
+    "morePhotos": "查看另外 {count} 张照片"
   },
   "replyPost": {
     "replying": "正在回复动态",
@@ -308,5 +311,17 @@
     "closedAll": "已关闭所有气泡",
     "popLabel": "有新消息时显示聊天气泡",
     "popHelp": "收到新消息而你不在该聊天中时，会弹出一个气泡。仅限本设备。"
+  },
+  "photoTray": {
+    "photoAltN": "待发送的第 {index} 张照片",
+    "removePhoto": "移除照片",
+    "addMore": "添加照片",
+    "uploading": "正在上传照片",
+    "failed": "照片上传失败",
+    "retry": "重试",
+    "counter": "{count}/{max} 张照片",
+    "slotsFull": "每条消息最多 {max} 张照片。",
+    "trimmed": "只能再添加 {count} 张照片（最多 {max} 张），其余已跳过。",
+    "pending": "请等待照片上传完成，或移除上传失败的照片。"
   }
 }

@@ -3,6 +3,7 @@ import {
   socialNotificationPageResponseSchema,
   socialPostResponseSchema,
   socialProfileResponseSchema,
+  socialReportResponseSchema,
 } from "@pt/contracts";
 import { describe, expect, it } from "vitest";
 
@@ -29,7 +30,10 @@ describe("mappers", () => {
       authorVerified: false,
       caption: "hi",
       privacy: "friends",
-      photo: { id: 5, width: 100, height: 80 },
+      photos: [
+        { id: 5, width: 100, height: 80 },
+        { id: 6, width: 90, height: 90 },
+      ],
       createdAt,
       edited: false,
       canEdit: true,
@@ -50,6 +54,10 @@ describe("mappers", () => {
       caption: "hi",
       privacy: "friends",
       photo: { id: 5, url: "/v1/social/photos/5", width: 100, height: 80 },
+      photos: [
+        { id: 5, url: "/v1/social/photos/5", width: 100, height: 80 },
+        { id: 6, url: "/v1/social/photos/6", width: 90, height: 90 },
+      ],
       createdAt: "2026-11-12T10:00:00.000Z",
       edited: false,
       canEdit: true,
@@ -128,12 +136,40 @@ describe("mappers", () => {
         targetId: 3,
         reporterName: "Ann",
         reason: "spam",
+        reasonCode: null,
         createdAt,
         preview: null,
         targetName: null,
         postId: null,
+        message: null,
       }).createdAt,
     ).toBe("2026-11-12T10:00:00.000Z");
+  });
+
+  it("maps a message report with its reason code and message facts", () => {
+    const message = {
+      senderRole: "user" as const,
+      senderName: "Ann",
+      traineeId: 2,
+      traineeName: "Ann",
+      kind: "text" as const,
+    };
+    const response = toReportResponse({
+      id: 5,
+      targetKind: "message",
+      targetId: 41,
+      reporterName: "PT Binh",
+      reason: "",
+      reasonCode: "harassment",
+      createdAt,
+      preview: "hello",
+      targetName: "Ann",
+      postId: null,
+      message,
+    });
+
+    expect(socialReportResponseSchema.parse(response)).toEqual(response);
+    expect(response).toMatchObject({ reasonCode: "harassment", message });
   });
 });
 

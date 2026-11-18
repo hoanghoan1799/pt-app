@@ -33,6 +33,9 @@ export interface SerializedChatMessage {
   sticker?: ChatSticker | null;
   // KAN-160: set for a photo message (body is the optional caption).
   photo?: ChatPhoto | null;
+  // Every photo of the message in display order (`photo` is the first). Absent
+  // on older payloads: the single `photo` is then the only one.
+  photos?: ChatPhoto[];
   clientId: string;
   createdAt: string;
   replyTo: SerializedReplyTo | null;
@@ -61,6 +64,8 @@ export interface SerializedReplyTo {
   isSticker?: boolean;
   // The quoted message is a photo: the UI shows "Ảnh" when it has no text.
   isPhoto?: boolean;
+  // Photos of the quoted message when it has several.
+  photoCount?: number;
   senderRole: "user" | "admin";
   deleted: boolean;
 }
@@ -177,6 +182,8 @@ export type ThreadViewer =
       adminId: number;
       adminName: string;
       peerName: string | null;
+      // Super admins read every chat and never report a message.
+      isSuperAdmin?: boolean;
     };
 
 export const USER_VIEWER: ThreadViewer = { role: "user" };
@@ -527,6 +534,20 @@ export const isOwnMessage = (message: ThreadMessage, viewer: ThreadViewer) =>
 export const canEditOrUnsend = (message: ThreadMessage, viewer: ThreadViewer) =>
   message.id !== null && !message.deleted && isOwnMessage(message, viewer);
 
+// "Báo cáo" on the long-press sheet: only a stored, visible message from the
+// other side. A trainee reports their PT's messages, a PT their trainee's; a
+// super admin reports nothing. The API checks the same rules again.
+export const canReportMessage = (
+  message: ThreadMessage,
+  viewer: ThreadViewer,
+) =>
+  message.id !== null &&
+  message.delivery === "sent" &&
+  !message.deleted &&
+  (viewer.role === "user"
+    ? message.senderRole === "admin"
+    : message.senderRole === "user" && viewer.isSuperAdmin !== true);
+
 // The emoji I reacted with, if any.
 export const myReactionOf = (
   message: Pick<ThreadMessage, "reactions">,
@@ -596,6 +617,17 @@ export const groupReactions = (
   return groups;
 };
 
+// The photos of a message, in display order: `photos`, else the one `photo`.
+export const photosOf = (message: {
+  photo?: ChatPhoto | null;
+  photos?: ChatPhoto[];
+}): ChatPhoto[] =>
+  message.photos && message.photos.length > 0
+    ? message.photos
+    : message.photo
+      ? [message.photo]
+      : [];
+
 // What a reply carries about its original (null while it is not stored yet).
 export const toReplyTo = (message: ThreadMessage): SerializedReplyTo | null =>
   message.id === null
@@ -605,6 +637,9 @@ export const toReplyTo = (message: ThreadMessage): SerializedReplyTo | null =>
         body: message.deleted ? "" : toReplySnippet(message.body),
         ...(!message.deleted && message.sticker ? { isSticker: true } : {}),
         ...(!message.deleted && message.photo ? { isPhoto: true } : {}),
+        ...(!message.deleted && photosOf(message).length > 1
+          ? { photoCount: photosOf(message).length }
+          : {}),
         senderRole: message.senderRole,
         deleted: message.deleted,
       };
@@ -643,6 +678,7 @@ export const quoteText = (
     deleted: boolean;
     isSticker?: boolean;
     isPhoto?: boolean;
+    photoCount?: number;
     body: string;
   },
   locale: Locale = DEFAULT_LOCALE,
@@ -653,7 +689,9 @@ export const quoteText = (
     return t("thread.unsent");
   }
   if (quote.isPhoto && quote.body === "") {
-    return t("thread.photo");
+    const count = quote.photoCount ?? 1;
+
+    return count > 1 ? t("thread.photos", { count }) : t("thread.photo");
   }
   return quote.isSticker ? t("thread.sticker") : quote.body;
 };

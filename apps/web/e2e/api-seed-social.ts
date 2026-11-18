@@ -123,5 +123,10 @@ export const reportApi = (
 ) =>
   call("POST", "/v1/social/reports", {
     token,
-    body: { targetKind, targetId, ...(reason ? { reason } : {}) },
+    body: {
+      targetKind,
+      targetId,
+      reasonCode: "spam",
+      ...(reason ? { reason } : {}),
+    },
   });

@@ -59,9 +59,30 @@ import { User } from "./user.entity.js";
   "social_reports_status_resolution",
   `("status" = 'open' AND "resolution" IS NULL AND "resolved_at" IS NULL AND "resolved_by" IS NULL) OR ("status" = 'resolved' AND "resolution" IS NOT NULL AND "resolved_at" IS NOT NULL)`,
 )
-@Check(`"target_kind" IN ('post', 'comment', 'user')`)
 @Check(`"status" IN ('open', 'resolved')`)
-@Check(`"resolution" IN ('kept', 'deleted')`)
+// "message" (chat_messages.id) is the only target with an endpoint now;
+// "group_message" is reserved for group chats.
+@Check(
+  "social_reports_target_kind",
+  `"target_kind" IN ('post', 'comment', 'user', 'message', 'group_message')`,
+)
+@Check(
+  "social_reports_resolution",
+  `"resolution" IN ('kept', 'deleted', 'hidden')`,
+)
+@Check(
+  "social_reports_reason_code",
+  `"reason_code" IN ('spam', 'harassment', 'inappropriate', 'scam', 'other')`,
+)
+// Only a chat message can be hidden, and a report of one always has a reason.
+@Check(
+  "social_reports_hidden_message_only",
+  `"resolution" IS DISTINCT FROM 'hidden' OR "target_kind" IN ('message', 'group_message')`,
+)
+@Check(
+  "social_reports_message_has_reason_code",
+  `"target_kind" NOT IN ('message', 'group_message') OR "reason_code" IS NOT NULL`,
+)
 @Index("social_reports_resolved_by_idx", ["resolvedBy"])
 export class SocialReport {
   @PrimaryGeneratedColumn("identity", { generatedIdentity: "ALWAYS" })
@@ -71,13 +92,19 @@ export class SocialReport {
   reporterKey!: string;
 
   @Column({ type: "text" })
-  targetKind!: "post" | "comment" | "user";
+  targetKind!: "post" | "comment" | "user" | "message" | "group_message";
 
   @Column({ type: "integer" })
   targetId!: number;
 
+  // The optional free-text note.
   @Column({ type: "text", default: "" })
   reason!: string;
+
+  // The fixed reason list; null on a report filed before it existed.
+  @Column({ type: "text", nullable: true })
+  reasonCode!:
+    "spam" | "harassment" | "inappropriate" | "scam" | "other" | null;
 
   @Column({ type: "text" })
   status!: "open" | "resolved";
@@ -96,7 +123,7 @@ export class SocialReport {
   resolvedAt!: Date | null;
 
   @Column({ type: "text", nullable: true })
-  resolution!: "kept" | "deleted" | null;
+  resolution!: "kept" | "deleted" | "hidden" | null;
 
   @GeneratedId(userKeyId("reporter_key"))
   reporterUserId!: number | null;

@@ -12,12 +12,19 @@ interface ReportActionsProps {
   reportId: number;
   // A user report has nothing to delete: one button closes it.
   canDelete: boolean;
+  // A chat message report: Keep / Hide instead of Keep / Delete.
+  isMessage?: boolean;
 }
 
 const SMALL = "min-h-11 flex-1 px-4 text-sm";
 
 // "Giữ" closes the report and leaves the content; "Xoá nội dung" deletes it.
-export const ReportActions = ({ reportId, canDelete }: ReportActionsProps) => {
+// A message report has "Ẩn" instead: the message disappears for everybody.
+export const ReportActions = ({
+  reportId,
+  canDelete,
+  isMessage = false,
+}: ReportActionsProps) => {
   const t = useTranslations("social.reportActions");
   const confirm = useConfirm();
   const { isPending, run } = useSocialAction();
@@ -35,6 +42,19 @@ export const ReportActions = ({ reportId, canDelete }: ReportActionsProps) => {
     }
   };
 
+  const handleHide = async () => {
+    const isConfirmed = await confirm({
+      title: t("hideTitle"),
+      description: t("hideDescription"),
+      confirmLabel: t("hideConfirm"),
+      isDanger: true,
+    });
+
+    if (isConfirmed) {
+      run(() => resolveReportAction({ reportId, resolution: "hidden" }));
+    }
+  };
+
   return (
     <div className="flex gap-2">
       <button
@@ -47,8 +67,20 @@ export const ReportActions = ({ reportId, canDelete }: ReportActionsProps) => {
         className={`${BUTTON_SECONDARY} ${SMALL}`}
       >
         {isPending && <Spinner size="sm" />}
-        {canDelete ? t("keep") : t("handled")}
+        {canDelete || isMessage ? t("keep") : t("handled")}
       </button>
+      {isMessage && (
+        <button
+          type="button"
+          disabled={isPending}
+          aria-busy={isPending}
+          onClick={handleHide}
+          className={`${BUTTON_DANGER} ${SMALL}`}
+        >
+          {isPending && <Spinner size="sm" />}
+          {t("hide")}
+        </button>
+      )}
       {canDelete && (
         <button
           type="button"

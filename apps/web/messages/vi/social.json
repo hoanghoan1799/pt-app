@@ -11,7 +11,11 @@
     "deleteConfirm": "Xóa",
     "keep": "Giữ",
     "handled": "Đã xử lý",
-    "deleteContent": "Xoá nội dung"
+    "deleteContent": "Xoá nội dung",
+    "hide": "Ẩn",
+    "hideTitle": "Ẩn tin nhắn bị báo cáo?",
+    "hideDescription": "Tin nhắn sẽ biến mất khỏi cuộc trò chuyện với mọi người.",
+    "hideConfirm": "Ẩn"
   },
   "unblock": {
     "label": "Bỏ chặn",
@@ -115,18 +119,29 @@
     "titles": {
       "post": "Báo cáo bài viết",
       "comment": "Báo cáo bình luận",
-      "user": "Báo cáo người dùng"
+      "user": "Báo cáo người dùng",
+      "message": "Báo cáo tin nhắn"
     },
     "description": "Quản trị viên sẽ xem xét báo cáo của bạn.",
-    "reasonLabel": "Lý do (không bắt buộc)",
+    "reasonLabel": "Ghi chú (không bắt buộc)",
     "cancel": "Hủy",
     "send": "Gửi báo cáo",
-    "sent": "Đã gửi báo cáo. Cảm ơn bạn."
+    "sent": "Đã gửi báo cáo. Cảm ơn bạn.",
+    "reasonPrompt": "Lý do",
+    "reasons": {
+      "spam": "Spam",
+      "harassment": "Quấy rối",
+      "inappropriate": "Nội dung không phù hợp",
+      "scam": "Lừa đảo",
+      "other": "Khác"
+    },
+    "chooseReason": "Hãy chọn một lý do."
   },
   "dmPostQuote": {
     "postUnavailable": "Bài viết không còn khả dụng",
     "postOf": "Bài viết của {name}",
-    "photoAlt": "Ảnh trong bài viết"
+    "photoAlt": "Ảnh trong bài viết",
+    "morePhotos": "Thêm {count} ảnh nữa"
   },
   "dmBubbleList": {
     "deleted": "Đã xoá",
@@ -162,7 +177,16 @@
     "removePhoto": "Bỏ ảnh",
     "addPhoto": "Thêm ảnh",
     "submit": "Đăng",
-    "photo": "Ảnh"
+    "photo": "Ảnh",
+    "photoSlotsFull": "Tối đa {max} ảnh mỗi bài.",
+    "photosTrimmed": "Chỉ thêm được {count} ảnh nữa (tối đa {max} ảnh). Các ảnh còn lại đã bị bỏ qua.",
+    "addMorePhotos": "Thêm ảnh",
+    "photoUploading": "Đang tải ảnh lên",
+    "photoFailed": "Tải ảnh lên không thành công",
+    "retryPhoto": "Thử lại",
+    "photosPending": "Hãy đợi ảnh tải xong hoặc bỏ ảnh lỗi.",
+    "photoCounter": "{count}/{max} ảnh",
+    "photoAltN": "Ảnh {index} sẽ đăng"
   },
   "postCard": {
     "deleteTitle": "Xóa bài viết này?",
@@ -180,7 +204,9 @@
     "replyInChat": "Trả lời qua tin nhắn",
     "edit": "Sửa",
     "delete": "Xoá",
-    "report": "Báo cáo"
+    "report": "Báo cáo",
+    "photoN": "Ảnh {index} của {name}",
+    "morePhotos": "Xem thêm {count} ảnh"
   },
   "comments": {
     "label": "Bình luận",

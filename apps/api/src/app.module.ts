@@ -14,6 +14,7 @@ import { DmModule } from "./dm/dm.module.js";
 import { FilesModule } from "./files/files.module.js";
 import { FoodsModule } from "./foods/foods.module.js";
 import { HealthController } from "./health/health.controller.js";
+import { HousekeepingModule } from "./housekeeping/housekeeping.module.js";
 import { NutritionModule } from "./nutrition/nutrition.module.js";
 import { PushModule } from "./push/push.module.js";
 import { RealtimeModule } from "./realtime/realtime.module.js";
@@ -45,6 +46,7 @@ import { WorkoutsModule } from "./workouts/workouts.module.js";
     DmModule,
     RealtimeModule,
     PushModule,
+    HousekeepingModule,
   ],
   controllers: [HealthController],
   // Registered globally in configureApp(): APP_FILTER would miss the 404 of

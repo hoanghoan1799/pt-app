@@ -55,18 +55,19 @@ describe("sendMessageSchema", () => {
     const sticker = { customId: 3 };
 
     expect(
-      sendMessageSchema.safeParse({ photoId: 4, clientId: CLIENT_ID }).success,
+      sendMessageSchema.safeParse({ photoIds: [4], clientId: CLIENT_ID })
+        .success,
     ).toBe(true);
     expect(
       sendMessageSchema.parse({
-        photoId: 4,
+        photoIds: [4],
         body: " cơm trưa ",
         clientId: CLIENT_ID,
       }),
-    ).toEqual({ photoId: 4, body: "cơm trưa", clientId: CLIENT_ID });
+    ).toEqual({ photoIds: [4], body: "cơm trưa", clientId: CLIENT_ID });
     expect(
       sendMessageSchema.safeParse({
-        photoId: 4,
+        photoIds: [4],
         sticker,
         clientId: CLIENT_ID,
       }).success,
@@ -76,9 +77,10 @@ describe("sendMessageSchema", () => {
     );
   });
 
-  it.each([0, -1, 1.5, "4"])("rejects photoId %j", (photoId) => {
+  it.each([0, -1, 1.5, "4"])("rejects photoIds [%j]", (photoId) => {
     expect(
-      sendMessageSchema.safeParse({ photoId, clientId: CLIENT_ID }).success,
+      sendMessageSchema.safeParse({ photoIds: [photoId], clientId: CLIENT_ID })
+        .success,
     ).toBe(false);
   });
 

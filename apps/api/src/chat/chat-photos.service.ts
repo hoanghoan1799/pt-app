@@ -93,32 +93,43 @@ export class ChatPhotosService {
     return { id, created: true };
   }
 
-  // A photo may be attached once, by the person who uploaded it, to a message
-  // in the conversation it was uploaded for.
-  async isAttachable(
-    photoId: number,
+  // Photos may be attached once, by the person who uploaded them, to a message
+  // in the conversation they were uploaded for. True when every id qualifies
+  // (each id once; no ids is trivially true).
+  async areAttachable(
+    photoIds: readonly number[],
     conversationId: number,
     uploaderKey: string,
   ) {
+    if (photoIds.length === 0) {
+      return true;
+    }
+    if (new Set(photoIds).size !== photoIds.length) {
+      return false;
+    }
     const rows: unknown[] = await this.dataSource.query(
       `SELECT 1 FROM chat_photos
-       WHERE id = $1 AND conversation_id = $2 AND uploader_key = $3
+       WHERE id = ANY($1::int[]) AND conversation_id = $2 AND uploader_key = $3
          AND message_id IS NULL`,
-      [photoId, conversationId, uploaderKey],
+      [photoIds, conversationId, uploaderKey],
     );
 
-    return rows.length > 0;
+    return rows.length === photoIds.length;
   }
 
   // The bytes, only for a photo that belongs to a message, to the trainee of
   // the conversation and any admin who can access that trainee (a hidden one
-  // only after the passcode reveal). Everything else is "not found".
+  // only after the passcode reveal). A photo of a message an admin hid is
+  // "not found" for the trainee; admins keep it as evidence of the report.
+  // Everything else is "not found".
   async serve(actor: AuthActor, photoId: number): Promise<StoredFile> {
     const rows: { traineeId: number }[] = await this.dataSource.query(
       `SELECT c.user_id AS "traineeId"
        FROM chat_photos p JOIN chat_conversations c ON c.id = p.conversation_id
-       WHERE p.id = $1 AND p.message_id IS NOT NULL`,
-      [photoId],
+       JOIN chat_messages m ON m.id = p.message_id
+       WHERE p.id = $1 AND p.message_id IS NOT NULL
+         AND ($2::boolean OR m.hidden_by_admin_id IS NULL)`,
+      [photoId, actor.kind === "admin"],
     );
     const trainee = rows[0]
       ? await this.queries.findTraineeFacts(

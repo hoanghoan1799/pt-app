@@ -391,16 +391,9 @@ describe("DbChatSocial schema rules", () => {
       ).toBe("23503");
     });
 
-    it("refuses at COMMIT a photo attached to a message that does not point back", async () => {
-      const { owner, photo } = await c.makeOwner();
-      const photoId = await photo();
-
-      expect(
-        await sqlState(inTransaction((q) => attach(q, owner, photoId))),
-      ).toBe("23503");
-    });
-
-    it("refuses a photo attached to a message that points at another photo", async () => {
+    // PhotoPosition (1795500000000) loosened the photo -> owner side: an owner
+    // carries up to 10 photos, and only its cover is pointed at by photo_id.
+    it("accepts more photos attached to an owner next to its cover", async () => {
       const { owner, photo } = await c.makeOwner();
       const first = await photo();
       const second = await photo();
@@ -409,9 +402,38 @@ describe("DbChatSocial schema rules", () => {
         await attach(q, owner, first);
         await point(q, owner, first);
       });
+      await inTransaction((q) => attach(q, owner, second));
+      const rows = await query(
+        `SELECT id FROM ${c.photos} WHERE ${c.ownerColumn} = $1 ORDER BY id`,
+        [owner],
+      );
+
+      expect(rows.map((row: { id: number }) => row.id)).toEqual([first, second]);
+    });
+
+    it("still refuses a photo attached to an owner that does not exist", async () => {
+      const { photo } = await c.makeOwner();
+      const photoId = await photo();
 
       expect(
-        await sqlState(inTransaction((q) => attach(q, owner, second))),
+        await sqlState(inTransaction((q) => attach(q, 2147483000, photoId))),
+      ).toBe("23503");
+    });
+
+    it("still refuses an owner that points at a photo attached to another owner", async () => {
+      const { owner, photo, another } = await c.makeOwner();
+      const other = await another();
+      const first = await photo();
+      const second = await photo();
+
+      await inTransaction(async (q) => {
+        await attach(q, other, first);
+        await attach(q, other, second);
+        await point(q, other, first);
+      });
+
+      expect(
+        await sqlState(inTransaction((q) => point(q, owner, second))),
       ).toBe("23503");
     });
 

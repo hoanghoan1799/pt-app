@@ -26,8 +26,11 @@ import { ReplyBar } from "@/features/chat/components/ReplyBar";
 import { ReplyPostBar } from "@/features/chat/components/ReplyPostBar";
 import { TypingIndicator } from "@/features/chat/components/TypingIndicator";
 import { useChatAdapter } from "@/features/chat/hooks/use-chat-adapter";
-import type { ThreadSnapshot } from "@/features/chat/hooks/use-chat-messages";
-import { useChatMessages } from "@/features/chat/hooks/use-chat-messages";
+import {
+  type SentPhoto,
+  type ThreadSnapshot,
+  useChatMessages,
+} from "@/features/chat/hooks/use-chat-messages";
 import { useChatTransport } from "@/features/chat/hooks/use-chat-transport";
 import { useClearNotifications } from "@/features/chat/hooks/use-clear-notifications";
 import { useNeutralChatColors } from "@/features/chat/hooks/use-neutral-chat-colors";
@@ -39,12 +42,14 @@ import {
 } from "@/features/chat/utils/chat-settings";
 import {
   buildThreadItems,
+  canReportMessage,
   firstStoredId,
   isNearBottom,
   latestAdminId,
   latestAdminName,
   markUnsentQuotes,
   myReactionOf,
+  photosOf,
   quoteText,
   senderLabel,
   type ThreadMessage,
@@ -53,7 +58,6 @@ import {
 } from "@/features/chat/utils/chat-thread-rules";
 import { chatNotificationTags } from "@/features/chat/utils/clear-notifications";
 import { displayNameFor } from "@/features/chat/utils/display-name";
-import type { PreparedPhoto } from "@/features/chat/utils/encode-photo";
 import type { PresenceView } from "@/features/chat/utils/presence-status";
 import { useIsEmbedded } from "@/features/chat-bubbles/hooks/use-is-embedded";
 import type { DmReplyPostView } from "@/features/social/types/dm";
@@ -129,6 +133,13 @@ const MessageActionsSheet = dynamic(
     ),
   { ssr: false },
 );
+const ReportSheet = dynamic(
+  () =>
+    import("@/features/social/components/ReportSheet").then(
+      (module) => module.ReportSheet,
+    ),
+  { ssr: false },
+);
 const ReactorsSheet = dynamic(
   () =>
     import("@/features/chat/components/ReactorsSheet").then(
@@ -147,7 +158,7 @@ const EditHistorySheet = dynamic(
 const HIGHLIGHT_MS = 1500;
 // A jumped-to message stays marked a little longer.
 const JUMP_HIGHLIGHT_MS = 2000;
-type SheetKind = "actions" | "reactors" | "history";
+type SheetKind = "actions" | "reactors" | "history" | "report";
 
 // Follows the visual viewport so the composer stays above the on-screen
 // keyboard (iOS does not resize the layout viewport).
@@ -578,12 +589,12 @@ export const ChatThread = ({
     // Only the target matters; jumpToMessage reads refs and state setters.
   }, [jumpToId]);
 
-  const handleSend = (body: string, photo?: PreparedPhoto) => {
+  const handleSend = (body: string, photos?: SentPhoto[]) => {
     // A post reply needs a text; a photo sent without one leaves it in place.
     const post = activeQuote && body.trim() !== "" ? activeQuote : null;
 
-    if (photo) {
-      chat.sendPhoto(photo, body, replyMessage, post);
+    if (photos) {
+      chat.sendPhotos(photos, body, replyMessage, post);
     } else {
       chat.send(body, replyMessage, post);
     }
@@ -836,6 +847,7 @@ export const ChatThread = ({
                 deleted: replyMessage.deleted,
                 isSticker: Boolean(replyMessage.sticker),
                 isPhoto: Boolean(replyMessage.photo),
+                photoCount: photosOf(replyMessage).length,
                 body: replyMessage.body,
               },
               locale,
@@ -848,6 +860,7 @@ export const ChatThread = ({
           <Composer
             onSend={handleSend}
             canAttachPhoto
+            uploadPhoto={chat.uploadPhoto}
             editing={activeEditing}
             onSaveEdit={handleSaveEdit}
             replyId={replyMessage?.id ?? null}
@@ -884,6 +897,22 @@ export const ChatThread = ({
           onCopy={() => void handleCopy(sheetMessage)}
           onEdit={() => handleEdit(sheetMessage)}
           onUnsend={() => void handleUnsend(sheetMessage)}
+          // Locked chat: read-only, only Copy remains.
+          onReport={
+            chatEnabled && canReportMessage(sheetMessage, adapter.viewer)
+              ? () => openSheet("report", sheetMessage)
+              : undefined
+          }
+        />
+      )}
+      {sheet?.kind === "report" && sheetMessage?.id != null && (
+        <ReportSheet
+          key={sheetMessage.id}
+          isOpen={isSheetOpen}
+          onOpenChange={setIsSheetOpen}
+          mode={viewer.role}
+          targetKind="message"
+          targetId={sheetMessage.id}
         />
       )}
       {sheet?.kind === "reactors" && sheetMessage && (

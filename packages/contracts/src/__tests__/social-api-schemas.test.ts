@@ -2,6 +2,9 @@ import {
   parseSocialActorKey,
   SOCIAL_FRIEND_MESSAGES,
   SOCIAL_MESSAGES,
+  SOCIAL_POST_MAX_PHOTOS,
+  SOCIAL_REPORT_REASON_CODES,
+  SOCIAL_REPORT_TARGET_KINDS,
   socialPairOf,
 } from "../social.js";
 import {
@@ -15,6 +18,7 @@ import {
   socialProfilePathSchema,
   socialReactionRequestSchema,
   socialReportRequestSchema,
+  socialReportResponseSchema,
   socialResolveReportRequestSchema,
 } from "../social-api-schemas.js";
 import { describe, expect, it } from "vitest";
@@ -23,7 +27,7 @@ describe("post requests", () => {
   it("trims the caption, defaults the photo and bounds the length", () => {
     expect(
       socialCreatePostRequestSchema.parse({ caption: "  hi  ", privacy: "friends" }),
-    ).toEqual({ caption: "hi", privacy: "friends", photoId: null });
+    ).toEqual({ caption: "hi", privacy: "friends", photoId: null, photoIds: [] });
     expect(
       socialCreatePostRequestSchema.parse({ caption: "a".repeat(2000), privacy: "only_me", photoId: 4 })
         .photoId,
@@ -44,6 +48,42 @@ describe("post requests", () => {
         socialCreatePostRequestSchema.safeParse({ caption: "x", privacy: "friends", photoId }).success,
       ).toBe(false);
     }
+  });
+});
+
+describe("post requests with several photos", () => {
+  const parse = (extra: object) =>
+    socialCreatePostRequestSchema.safeParse({
+      caption: "x",
+      privacy: "friends",
+      ...extra,
+    });
+
+  it("takes up to 10 distinct photo ids in order", () => {
+    const ids = Array.from({ length: SOCIAL_POST_MAX_PHOTOS }, (_, i) => i + 1);
+
+    expect(parse({ photoIds: [] }).success).toBe(true);
+    expect(parse({ photoIds: [9, 3, 5] }).data?.photoIds).toEqual([9, 3, 5]);
+    expect(parse({ photoIds: ids }).success).toBe(true);
+  });
+
+  it("refuses an 11th photo with its own message", () => {
+    const tooMany = parse({
+      photoIds: Array.from({ length: SOCIAL_POST_MAX_PHOTOS + 1 }, (_, i) => i + 1),
+    });
+
+    expect(tooMany.success).toBe(false);
+    expect(tooMany.error?.issues[0].message).toBe(SOCIAL_MESSAGES.TOO_MANY_PHOTOS);
+  });
+
+  it("refuses a repeated id, a bad id, and photoId together with photoIds", () => {
+    expect(parse({ photoIds: [1, 2, 1] }).success).toBe(false);
+    for (const bad of [0, -1, 1.5, "3", 2147483648]) {
+      expect(parse({ photoIds: [bad] }).success).toBe(false);
+    }
+    expect(parse({ photoId: 4, photoIds: [5] }).success).toBe(false);
+    expect(parse({ photoId: 4, photoIds: [] }).success).toBe(true);
+    expect(parse({ photoId: 4 }).data?.photoId).toBe(4);
   });
 });
 
@@ -89,6 +129,64 @@ describe("reports and friends", () => {
     expect(socialResolveReportRequestSchema.safeParse({ resolution: "ignored" }).success).toBe(false);
     expect(socialFriendRequestSchema.safeParse({ userId: 0 }).success).toBe(false);
     expect(socialFriendRequestSchema.safeParse({ userId: 7 }).success).toBe(true);
+  });
+
+  it("takes an optional reason code for a post, comment or user", () => {
+    expect(
+      socialReportRequestSchema.parse({ targetKind: "comment", targetId: 3, reasonCode: "spam" }),
+    ).toEqual({ targetKind: "comment", targetId: 3, reasonCode: "spam", reason: "" });
+    expect(
+      socialReportRequestSchema.safeParse({ targetKind: "user", targetId: 3, reasonCode: "rude" }).success,
+    ).toBe(false);
+  });
+
+  it("requires a reason code for a chat message", () => {
+    const missing = socialReportRequestSchema.safeParse({ targetKind: "message", targetId: 9 });
+
+    expect(missing.success).toBe(false);
+    expect(missing.error?.issues[0]).toMatchObject({
+      path: ["reasonCode"],
+      message: SOCIAL_FRIEND_MESSAGES.REASON_REQUIRED,
+    });
+    for (const reasonCode of SOCIAL_REPORT_REASON_CODES) {
+      expect(
+        socialReportRequestSchema.parse({ targetKind: "message", targetId: 9, reasonCode, reason: " note " }),
+      ).toEqual({ targetKind: "message", targetId: 9, reasonCode, reason: "note" });
+    }
+  });
+
+  it("accepts group_message for forward compatibility, with a reason code", () => {
+    expect(SOCIAL_REPORT_TARGET_KINDS).toContain("group_message");
+    expect(
+      socialReportRequestSchema.safeParse({ targetKind: "group_message", targetId: 1, reasonCode: "scam" }).success,
+    ).toBe(true);
+    expect(socialReportRequestSchema.safeParse({ targetKind: "group_message", targetId: 1 }).success).toBe(false);
+  });
+
+  it("resolves a report as kept, deleted or hidden", () => {
+    expect(socialResolveReportRequestSchema.parse({ resolution: "hidden" })).toEqual({ resolution: "hidden" });
+  });
+
+  it("describes a message report in the queue", () => {
+    const report = {
+      id: 1,
+      targetKind: "message",
+      targetId: 9,
+      reporterName: "An",
+      reason: "",
+      reasonCode: "harassment",
+      createdAt: "2026-11-18T08:00:00.000Z",
+      preview: "hi",
+      targetName: "Binh",
+      postId: null,
+      message: { senderRole: "user", senderName: "Binh", traineeId: 4, traineeName: "Binh", kind: "text" },
+    };
+
+    expect(socialReportResponseSchema.parse(report)).toEqual(report);
+    expect(
+      socialReportResponseSchema.parse({ ...report, targetKind: "post", reasonCode: null, message: null }).reasonCode,
+    ).toBeNull();
+    expect(socialReportResponseSchema.safeParse({ ...report, reasonCode: "rude" }).success).toBe(false);
   });
 });
 

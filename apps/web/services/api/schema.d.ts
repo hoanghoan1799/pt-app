@@ -4831,6 +4831,12 @@ export interface operations {
                                 height: number;
                                 alt: string;
                             } | null;
+                            photos: {
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
                             clientId: string;
                             createdAt: string;
                             replyTo: {
@@ -4838,6 +4844,7 @@ export interface operations {
                                 body: string;
                                 isSticker: boolean;
                                 isPhoto: boolean;
+                                photoCount: number;
                                 /** @enum {string} */
                                 senderRole: "user" | "admin";
                                 deleted: boolean;
@@ -4866,6 +4873,7 @@ export interface operations {
                                     width: number;
                                     height: number;
                                 } | null;
+                                photoCount: number;
                             }) | null;
                         }[];
                         hasMore: boolean;
@@ -4888,6 +4896,12 @@ export interface operations {
                                 height: number;
                                 alt: string;
                             } | null;
+                            photos: {
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
                             clientId: string;
                             createdAt: string;
                             replyTo: {
@@ -4895,6 +4909,7 @@ export interface operations {
                                 body: string;
                                 isSticker: boolean;
                                 isPhoto: boolean;
+                                photoCount: number;
                                 /** @enum {string} */
                                 senderRole: "user" | "admin";
                                 deleted: boolean;
@@ -4923,6 +4938,7 @@ export interface operations {
                                     width: number;
                                     height: number;
                                 } | null;
+                                photoCount: number;
                             }) | null;
                         }[];
                         lastChangeAt: number;
@@ -5027,6 +5043,7 @@ export interface operations {
                         customId: number;
                     };
                     photoId?: number;
+                    photoIds?: number[];
                     /** Format: uuid */
                     clientId?: string;
                     replyToMessageId?: number;
@@ -5068,6 +5085,12 @@ export interface operations {
                                 height: number;
                                 alt: string;
                             } | null;
+                            photos: {
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
                             clientId: string;
                             createdAt: string;
                             replyTo: {
@@ -5075,6 +5098,7 @@ export interface operations {
                                 body: string;
                                 isSticker: boolean;
                                 isPhoto: boolean;
+                                photoCount: number;
                                 /** @enum {string} */
                                 senderRole: "user" | "admin";
                                 deleted: boolean;
@@ -5103,6 +5127,7 @@ export interface operations {
                                     width: number;
                                     height: number;
                                 } | null;
+                                photoCount: number;
                             }) | null;
                         };
                     };
@@ -5705,6 +5730,12 @@ export interface operations {
                                 height: number;
                                 alt: string;
                             } | null;
+                            photos: {
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
                             clientId: string;
                             createdAt: string;
                             replyTo: {
@@ -5712,6 +5743,7 @@ export interface operations {
                                 body: string;
                                 isSticker: boolean;
                                 isPhoto: boolean;
+                                photoCount: number;
                                 /** @enum {string} */
                                 senderRole: "user" | "admin";
                                 deleted: boolean;
@@ -5740,6 +5772,7 @@ export interface operations {
                                     width: number;
                                     height: number;
                                 } | null;
+                                photoCount: number;
                             }) | null;
                         }[];
                         hasMore: boolean;
@@ -5762,6 +5795,12 @@ export interface operations {
                                 height: number;
                                 alt: string;
                             } | null;
+                            photos: {
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
                             clientId: string;
                             createdAt: string;
                             replyTo: {
@@ -5769,6 +5808,7 @@ export interface operations {
                                 body: string;
                                 isSticker: boolean;
                                 isPhoto: boolean;
+                                photoCount: number;
                                 /** @enum {string} */
                                 senderRole: "user" | "admin";
                                 deleted: boolean;
@@ -5797,6 +5837,7 @@ export interface operations {
                                     width: number;
                                     height: number;
                                 } | null;
+                                photoCount: number;
                             }) | null;
                         }[];
                         lastChangeAt: number;
@@ -6541,6 +6582,7 @@ export interface operations {
                         customId: number;
                     };
                     photoId?: number;
+                    photoIds?: number[];
                     /** Format: uuid */
                     clientId?: string;
                     replyToMessageId?: number;
@@ -6582,6 +6624,12 @@ export interface operations {
                                 height: number;
                                 alt: string;
                             } | null;
+                            photos: {
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
                             clientId: string;
                             createdAt: string;
                             replyTo: {
@@ -6589,6 +6637,7 @@ export interface operations {
                                 body: string;
                                 isSticker: boolean;
                                 isPhoto: boolean;
+                                photoCount: number;
                                 /** @enum {string} */
                                 senderRole: "user" | "admin";
                                 deleted: boolean;
@@ -6617,6 +6666,7 @@ export interface operations {
                                     width: number;
                                     height: number;
                                 } | null;
+                                photoCount: number;
                             }) | null;
                         };
                     };
@@ -6835,6 +6885,12 @@ export interface operations {
                                 height: number;
                                 alt: string;
                             } | null;
+                            photos: {
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
                             clientId: string;
                             createdAt: string;
                             replyTo: {
@@ -6842,6 +6898,7 @@ export interface operations {
                                 body: string;
                                 isSticker: boolean;
                                 isPhoto: boolean;
+                                photoCount: number;
                                 /** @enum {string} */
                                 senderRole: "user" | "admin";
                                 deleted: boolean;
@@ -6870,6 +6927,7 @@ export interface operations {
                                     width: number;
                                     height: number;
                                 } | null;
+                                photoCount: number;
                             }) | null;
                         };
                     };
@@ -6984,6 +7042,12 @@ export interface operations {
                                 height: number;
                                 alt: string;
                             } | null;
+                            photos: {
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
                             clientId: string;
                             createdAt: string;
                             replyTo: {
@@ -6991,6 +7055,7 @@ export interface operations {
                                 body: string;
                                 isSticker: boolean;
                                 isPhoto: boolean;
+                                photoCount: number;
                                 /** @enum {string} */
                                 senderRole: "user" | "admin";
                                 deleted: boolean;
@@ -7019,6 +7084,7 @@ export interface operations {
                                     width: number;
                                     height: number;
                                 } | null;
+                                photoCount: number;
                             }) | null;
                         };
                     };
@@ -7150,6 +7216,12 @@ export interface operations {
                                 height: number;
                                 alt: string;
                             } | null;
+                            photos: {
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
                             clientId: string;
                             createdAt: string;
                             replyTo: {
@@ -7157,6 +7229,7 @@ export interface operations {
                                 body: string;
                                 isSticker: boolean;
                                 isPhoto: boolean;
+                                photoCount: number;
                                 /** @enum {string} */
                                 senderRole: "user" | "admin";
                                 deleted: boolean;
@@ -7185,6 +7258,7 @@ export interface operations {
                                     width: number;
                                     height: number;
                                 } | null;
+                                photoCount: number;
                             }) | null;
                         };
                     };
@@ -7309,6 +7383,12 @@ export interface operations {
                                 height: number;
                                 alt: string;
                             } | null;
+                            photos: {
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
                             clientId: string;
                             createdAt: string;
                             replyTo: {
@@ -7316,6 +7396,7 @@ export interface operations {
                                 body: string;
                                 isSticker: boolean;
                                 isPhoto: boolean;
+                                photoCount: number;
                                 /** @enum {string} */
                                 senderRole: "user" | "admin";
                                 deleted: boolean;
@@ -7344,6 +7425,7 @@ export interface operations {
                                     width: number;
                                     height: number;
                                 } | null;
+                                photoCount: number;
                             }) | null;
                         };
                     };
@@ -8795,6 +8877,11 @@ export interface operations {
                                 width: number;
                                 height: number;
                             } | null;
+                            photos: {
+                                url: string;
+                                width: number;
+                                height: number;
+                            }[];
                             post: ({
                                 id: number;
                                 /** @enum {boolean} */
@@ -8811,6 +8898,7 @@ export interface operations {
                                     width: number;
                                     height: number;
                                 } | null;
+                                photoCount: number;
                             }) | null;
                             clientId: string;
                             createdAt: string;
@@ -9654,6 +9742,12 @@ export interface operations {
                                 width: number;
                                 height: number;
                             } | null;
+                            photos: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                            }[];
                             /** Format: date-time */
                             createdAt: string;
                             edited: boolean;
@@ -9741,6 +9835,8 @@ export interface operations {
                     privacy: "everyone" | "friends" | "only_me";
                     /** @default null */
                     photoId?: number | null;
+                    /** @default [] */
+                    photoIds?: number[];
                 };
             };
         };
@@ -9768,6 +9864,12 @@ export interface operations {
                                 width: number;
                                 height: number;
                             } | null;
+                            photos: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                            }[];
                             /** Format: date-time */
                             createdAt: string;
                             edited: boolean;
@@ -9885,6 +9987,12 @@ export interface operations {
                             width: number;
                             height: number;
                         } | null;
+                        photos: {
+                            id: number;
+                            url: string;
+                            width: number;
+                            height: number;
+                        }[];
                         /** Format: date-time */
                         createdAt: string;
                         edited: boolean;
@@ -10261,6 +10369,12 @@ export interface operations {
                                 width: number;
                                 height: number;
                             } | null;
+                            photos: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                            }[];
                             /** Format: date-time */
                             createdAt: string;
                             edited: boolean;
@@ -11741,15 +11855,26 @@ export interface operations {
                         items: {
                             id: number;
                             /** @enum {string} */
-                            targetKind: "post" | "comment" | "user";
+                            targetKind: "post" | "comment" | "user" | "message" | "group_message";
                             targetId: number;
                             reporterName: string;
                             reason: string;
+                            /** @enum {string|null} */
+                            reasonCode: "spam" | "harassment" | "inappropriate" | "scam" | "other" | null;
                             /** Format: date-time */
                             createdAt: string;
                             preview: string | null;
                             targetName: string | null;
                             postId: number | null;
+                            message: {
+                                /** @enum {string} */
+                                senderRole: "user" | "admin";
+                                senderName: string;
+                                traineeId: number;
+                                traineeName: string;
+                                /** @enum {string} */
+                                kind: "text" | "sticker" | "photo";
+                            } | null;
                         }[];
                         openCount: number;
                     };
@@ -11800,8 +11925,10 @@ export interface operations {
             content: {
                 "application/json": {
                     /** @enum {string} */
-                    targetKind: "post" | "comment" | "user";
+                    targetKind: "post" | "comment" | "user" | "message" | "group_message";
                     targetId: number;
+                    /** @enum {string} */
+                    reasonCode?: "spam" | "harassment" | "inappropriate" | "scam" | "other";
                     /** @default  */
                     reason?: string;
                 };
@@ -11894,7 +12021,7 @@ export interface operations {
             content: {
                 "application/json": {
                     /** @enum {string} */
-                    resolution: "kept" | "deleted";
+                    resolution: "kept" | "deleted" | "hidden";
                 };
             };
         };
@@ -14661,6 +14788,7 @@ export interface operations {
                             displayName: string;
                             /** Format: date-time */
                             avatarUpdatedAt: string | null;
+                            avatarUrl: string | null;
                             ptAdminId: number | null;
                             ptName: string | null;
                             assigned: number;

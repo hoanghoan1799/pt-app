@@ -136,6 +136,32 @@ describe("GET /api/chat/messages", () => {
     );
   });
 
+  it("maps every photo of a message, in order, and keeps the cover as photo", async () => {
+    const photo = (id: number) => ({
+      url: `/v1/chat/photos/${id}`,
+      width: 1,
+      height: 1,
+    });
+
+    state.next = {
+      status: 200,
+      body: {
+        messages: [
+          { id: 1, photo: photo(4), photos: [photo(4), photo(9), photo(6)] },
+        ],
+      },
+    };
+    const response = await messages.GET(get("/api/chat/messages"));
+    const [message] = (await response.json()).messages;
+
+    expect(message.photo.url).toBe("/api/chat/photos/4");
+    expect(message.photos.map((item: { url: string }) => item.url)).toEqual([
+      "/api/chat/photos/4",
+      "/api/chat/photos/9",
+      "/api/chat/photos/6",
+    ]);
+  });
+
   it("answers a refused session with the old JSON, not a redirect", async () => {
     state.next = {
       status: 401,

@@ -19,7 +19,9 @@ const PG_ONLY_COLUMNS: Record<string, string[]> = {
   meal_plan_meals: ["user_id"],
   push_subscriptions: ["kind", "owner_user_id", "owner_admin_id"],
   social_posts: ["idempotency_key", "author_user_id", "author_admin_id"],
-  chat_photos: ["client_id", "uploader_admin_id"],
+  // position: order of the photos inside a post or message (company 2026-11,
+  // not in the frozen Turso DDL; null counts as 0).
+  chat_photos: ["client_id", "uploader_admin_id", "position"],
   social_comments: ["author_user_id", "author_admin_id"],
   social_reactions: ["reactor_user_id", "reactor_admin_id"],
   social_notifications: [
@@ -28,8 +30,15 @@ const PG_ONLY_COLUMNS: Record<string, string[]> = {
     "actor_user_id",
     "actor_admin_id",
   ],
-  social_reports: ["reporter_user_id", "reporter_admin_id", "target_user_id"],
-  social_post_photos: ["uploader_user_id", "uploader_admin_id"],
+  // reason_code: the reason list of message reports (company 2026-11, not in
+  // the frozen Turso DDL; old reports load with null).
+  social_reports: [
+    "reporter_user_id",
+    "reporter_admin_id",
+    "target_user_id",
+    "reason_code",
+  ],
+  social_post_photos: ["uploader_user_id", "uploader_admin_id", "position"],
   chat_custom_stickers: ["owner_user_id", "owner_admin_id"],
   contact_aliases: [
     "owner_user_id",
@@ -37,6 +46,7 @@ const PG_ONLY_COLUMNS: Record<string, string[]> = {
     "target_user_id",
     "target_admin_id",
   ],
+  dm_photos: ["position"],
   chat_reactions: ["reactor_admin_id"],
   chat_reads: ["reader_admin_id"],
 };

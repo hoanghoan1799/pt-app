@@ -25,6 +25,8 @@ const TEXTS = {
     adminPostPhoto: "{name} vừa đăng một ảnh mới",
     deletedAccount: "Đã xóa",
     postImageOnly: "(Bài viết chỉ có ảnh)",
+    stickerMessage: "(Sticker)",
+    photoMessage: "(Ảnh)",
   },
   en: {
     postReaction: "{name} reacted to your post",
@@ -37,6 +39,8 @@ const TEXTS = {
     adminPostPhoto: "{name} posted a new photo",
     deletedAccount: "Deleted account",
     postImageOnly: "(Photo-only post)",
+    stickerMessage: "(Sticker)",
+    photoMessage: "(Photo)",
   },
   zh: {
     postReaction: "{name} 对你的帖子做出了回应",
@@ -49,6 +53,8 @@ const TEXTS = {
     adminPostPhoto: "{name} 发布了一张新照片",
     deletedAccount: "已删除的账号",
     postImageOnly: "（仅图片的帖子）",
+    stickerMessage: "（贴纸）",
+    photoMessage: "（图片）",
   },
 } as const;
 
@@ -68,6 +74,10 @@ export const deletedAccountName = (locale: Locale) =>
   TEXTS[locale].deletedAccount;
 export const postImageOnlyText = (locale: Locale) =>
   TEXTS[locale].postImageOnly;
+// Labels of a chat message that has no text (report queue preview).
+export const stickerMessageText = (locale: Locale) =>
+  TEXTS[locale].stickerMessage;
+export const photoMessageText = (locale: Locale) => TEXTS[locale].photoMessage;
 
 // Flattened and cut short; used for pushes and report previews.
 export const previewText = (

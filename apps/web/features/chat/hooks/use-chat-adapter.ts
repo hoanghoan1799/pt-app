@@ -2,10 +2,7 @@
 
 import { useMemo } from "react";
 
-import type {
-  ChatAdapter,
-  SendContent,
-} from "@/features/chat/hooks/use-chat-messages";
+import type { ChatAdapter } from "@/features/chat/hooks/use-chat-messages";
 import {
   adminMarkReadAction,
   adminSendMessageAction,
@@ -21,20 +18,10 @@ import {
   adminUnsendMessageAction,
 } from "@/features/chat/services/chat-admin-actions";
 import type { ThreadViewer } from "@/features/chat/utils/chat-thread-rules";
+import { contentInput } from "@/features/chat/utils/content-input";
 import { PHOTO_ERRORS } from "@/features/chat/utils/photo-rules";
 
 const USER_MESSAGES_URL = "/api/chat/messages";
-
-// The action input for a text, a sticker or a photo send.
-const contentInput = (content: SendContent) => {
-  if ("sticker" in content) {
-    return { sticker: content.sticker.input };
-  }
-  if ("photo" in content) {
-    return { photoId: content.photo.photoId, body: content.body };
-  }
-  return content;
-};
 
 // Raw bytes to /api/chat/photos; the server reads type and size from them.
 const uploadPhotoTo = async (blob: Blob, query: string) => {
@@ -71,6 +58,7 @@ export const useChatAdapter = (
   const adminId = viewer.role === "admin" ? viewer.adminId : null;
   const adminName = viewer.role === "admin" ? viewer.adminName : null;
   const peerName = viewer.role === "admin" ? viewer.peerName : null;
+  const isSuperAdmin = viewer.role === "admin" && viewer.isSuperAdmin === true;
 
   return useMemo<ChatAdapter>(() => {
     if (role === "admin" && adminId !== null && adminName !== null) {
@@ -80,7 +68,7 @@ export const useChatAdapter = (
         messagesUrl: `/api/admin/chat/${cid}/messages`,
         editsUrl: (messageId) =>
           `/api/admin/chat/${cid}/messages/${messageId}/edits`,
-        viewer: { role, adminId, adminName, peerName },
+        viewer: { role, adminId, adminName, peerName, isSuperAdmin },
         uploadPhoto: (blob) =>
           uploadPhotoTo(blob, `?as=admin&userId=${userId}`),
         sendMessage: (content, clientId, replyToMessageId, postId) =>
@@ -122,5 +110,13 @@ export const useChatAdapter = (
       unsendMessage: (messageId) => unsendMessageAction({ messageId }),
       markRead: (lastReadMessageId) => markReadAction({ lastReadMessageId }),
     };
-  }, [role, adminId, adminName, peerName, userId, conversationId]);
+  }, [
+    role,
+    adminId,
+    adminName,
+    peerName,
+    isSuperAdmin,
+    userId,
+    conversationId,
+  ]);
 };

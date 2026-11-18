@@ -21,6 +21,7 @@ import { serializeMessage } from "@/features/chat/utils/chat-thread-rules";
 import { isEmbedParam } from "@/features/chat-bubbles/utils/bubble-links";
 import { parseDmId } from "@/features/social/utils/dm-rules";
 import { requireAdmin } from "@/services/auth-guard";
+import { isSuperAdmin } from "@/utils/admin-role";
 import { readSearchParam } from "@/utils/search-params";
 import { getTodayDate, resolveSchedule } from "@/utils/week";
 
@@ -129,6 +130,7 @@ const AdminMessagesPage = async ({
         adminId: admin.id,
         adminName: admin.username,
         peerName: header.userName,
+        isSuperAdmin: isSuperAdmin(admin),
       }}
       avatars={avatars}
       emptyText={t("emptyText")}

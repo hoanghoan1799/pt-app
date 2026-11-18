@@ -28,6 +28,8 @@ export const generateOpenApiDocument = async () => {
     "postgres://openapi:openapi@localhost:5432/openapi";
   process.env.NODE_ENV = "production";
   process.env.LOG_LEVEL = "silent";
+  // Only the shape is read; a throwaway secret satisfies the production check.
+  process.env.AVATAR_URL_SECRET ??= "openapi-generation-only-not-a-real-secret";
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(DataSource)

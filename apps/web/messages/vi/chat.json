@@ -138,7 +138,8 @@
     "reply": "Trả lời",
     "copy": "Sao chép",
     "edit": "Chỉnh sửa",
-    "unsend": "Thu hồi"
+    "unsend": "Thu hồi",
+    "report": "Báo cáo"
   },
   "messageBubble": {
     "viewReply": "Xem tin nhắn được trả lời",
@@ -146,7 +147,9 @@
     "edited": "Đã chỉnh sửa",
     "sending": "Đang gửi…",
     "notSent": "Chưa gửi được",
-    "retry": "Gửi lại"
+    "retry": "Gửi lại",
+    "photoN": "Ảnh {index} trên {total}",
+    "morePhotos": "Xem thêm {count} ảnh"
   },
   "replyPost": {
     "replying": "Đang trả lời bài viết",
@@ -308,5 +311,17 @@
     "closedAll": "Đã đóng tất cả bong bóng",
     "popLabel": "Hiện bong bóng chat khi có tin mới",
     "popHelp": "Khi có tin nhắn mới mà bạn không đang ở trong cuộc trò chuyện đó, một bong bóng sẽ hiện lên. Chỉ áp dụng trên máy này."
+  },
+  "photoTray": {
+    "photoAltN": "Ảnh {index} sẽ gửi",
+    "removePhoto": "Bỏ ảnh",
+    "addMore": "Thêm ảnh",
+    "uploading": "Đang tải ảnh lên",
+    "failed": "Tải ảnh lên không thành công",
+    "retry": "Thử lại",
+    "counter": "{count}/{max} ảnh",
+    "slotsFull": "Mỗi tin nhắn tối đa {max} ảnh.",
+    "trimmed": "Chỉ thêm được {count} ảnh nữa (tối đa {max}). Các ảnh còn lại đã bị bỏ qua.",
+    "pending": "Hãy chờ các ảnh tải lên xong hoặc bỏ các ảnh bị lỗi."
   }
 }

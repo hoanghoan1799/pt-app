@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  FRIEND_MESSAGES,
+  REPORT_REASON_CODES,
+} from "@/features/social/constants/social";
+import {
   pairOf,
   parseSearchEmail,
   reportSchema,
+  resolveReportSchema,
 } from "@/features/social/utils/friend-rules";
 
 describe("pairOf", () => {
@@ -26,19 +31,67 @@ describe("parseSearchEmail", () => {
   );
 });
 
+describe("reportSchema reason code", () => {
+  it("requires one of the fixed reason codes for every kind", () => {
+    for (const targetKind of ["post", "comment", "user", "message"]) {
+      const parsed = reportSchema.safeParse({ targetKind, targetId: 1 });
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error?.issues[0].message).toBe(
+        FRIEND_MESSAGES.REASON_REQUIRED,
+      );
+      expect(
+        reportSchema.safeParse({ targetKind, targetId: 1, reasonCode: "scam" })
+          .success,
+      ).toBe(true);
+    }
+    expect(
+      reportSchema.safeParse({
+        targetKind: "message",
+        targetId: 1,
+        reasonCode: "rude",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("takes every code of the list and the hidden resolution", () => {
+    for (const reasonCode of REPORT_REASON_CODES) {
+      expect(
+        reportSchema.parse({ targetKind: "message", targetId: 4, reasonCode })
+          .reasonCode,
+      ).toBe(reasonCode);
+    }
+    expect(
+      resolveReportSchema.safeParse({ reportId: 1, resolution: "hidden" })
+        .success,
+    ).toBe(true);
+    expect(
+      resolveReportSchema.safeParse({ reportId: 1, resolution: "x" }).success,
+    ).toBe(false);
+  });
+});
+
 describe("reportSchema", () => {
   it("defaults the reason to empty and trims it", () => {
-    expect(reportSchema.parse({ targetKind: "post", targetId: 1 }).reason).toBe(
-      "",
-    );
     expect(
-      reportSchema.parse({ targetKind: "user", targetId: 1, reason: " x " })
-        .reason,
+      reportSchema.parse({
+        targetKind: "post",
+        targetId: 1,
+        reasonCode: "spam",
+      }).reason,
+    ).toBe("");
+    expect(
+      reportSchema.parse({
+        targetKind: "user",
+        targetId: 1,
+        reasonCode: "other",
+        reason: " x ",
+      }).reason,
     ).toBe("x");
   });
 
   it("caps the reason at 500 characters and checks kind and id", () => {
-    const base = { targetKind: "post", targetId: 1 };
+    const base = { targetKind: "post", targetId: 1, reasonCode: "spam" };
 
     expect(
       reportSchema.safeParse({ ...base, reason: "x".repeat(500) }).success,

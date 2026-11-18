@@ -30,6 +30,8 @@ export const dmPreviewText = (
   message: {
     body: string | null;
     photoId: number | null;
+    // Photos of the message when it has several (1 when unknown).
+    photoCount?: number;
     deletedAt: Date | null;
   },
   locale?: string | null,
@@ -40,9 +42,12 @@ export const dmPreviewText = (
     return texts.unsent;
   }
   if (message.photoId !== null) {
-    return message.body
-      ? `📷 ${texts.photo} ${message.body}`
-      : `📷 ${texts.photo}`;
+    const label =
+      (message.photoCount ?? 1) > 1
+        ? texts.photos.replace("{count}", String(message.photoCount))
+        : texts.photo;
+
+    return message.body ? `📷 ${label} ${message.body}` : `📷 ${label}`;
   }
   return message.body ?? "";
 };

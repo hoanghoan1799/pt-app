@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { avatarUrl } from "../files/image-rules.js";
 import {
   toAdminAccount,
   toAdminProfile,
@@ -33,7 +34,7 @@ describe("toTraineeSummary / toTraineeDetail", () => {
       name: "Lan",
       displayName: "Champ",
       ptAdminId: 3,
-      avatarUrl: "/v1/avatars/user/7?v=1700000000",
+      avatarUrl: avatarUrl("user", 7, new Date(1_700_000_000_000)),
     });
     expect(toTraineeSummary(userRow).displayName).toBe("Lan");
     expect(toTraineeSummary(userRow, "  ").displayName).toBe("Lan");

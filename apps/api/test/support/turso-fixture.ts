@@ -970,6 +970,32 @@ const chatSocialDirty = (): Entry[] => [
     { id: 92, user_low: 5, user_high: 2, created_at: MS + 6060 },
   ],
   [
+    "dm_messages",
+    {
+      id: 92,
+      conversation_id: 1,
+      sender_id: 5,
+      body: "outsider",
+      client_id: "92929292-9292-4929-8929-929292929292",
+      created_at: MS + 6061,
+    },
+  ],
+  [
+    "dm_photos",
+    {
+      id: 92,
+      conversation_id: 1,
+      uploader_id: 5,
+      mime: "image/png",
+      width: 1,
+      height: 1,
+      data: PNG_BYTES,
+      size: PNG_BYTES.length,
+      created_at: MS + 6062,
+    },
+  ],
+  ["dm_reads", { conversation_id: 1, user_id: 5, last_read_message_id: 0 }],
+  [
     "social_reports",
     {
       id: 92,
