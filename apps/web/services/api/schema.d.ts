@@ -14438,6 +14438,7 @@ export interface operations {
                             displayName: string;
                             /** Format: date-time */
                             avatarUpdatedAt: string | null;
+                            avatarUrl: string | null;
                             ptAdminId: number | null;
                             ptName: string | null;
                             assigned: number;

@@ -160,6 +160,7 @@ The image is built from the repo root with `apps/api/Dockerfile` (`node dist/mig
 | `PORT`                                                          | the port the host expects (default 4000)                                                 |
 | `WEB_ORIGIN`                                                    | the production web origin, for example `https://<domain>` (CORS and the realtime socket) |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`        | the existing web push keys (all three, or push is off)                                   |
+| `AVATAR_URL_SECRET`                                             | required: 32+ random characters (for example `openssl rand -base64 48`); signs avatar URLs, rotating it only reissues URLs |
 | `GIPHY_API_KEY`                                                 | optional, sticker search                                                                 |
 | `LOGIN_THROTTLE_LIMIT`, `LOG_LEVEL`, `REALTIME_RECHECK_SECONDS` | optional, see `apps/api/.env.example`                                                    |
 
