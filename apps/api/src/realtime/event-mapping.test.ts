@@ -25,6 +25,7 @@ const sent: ChatMessageSentEvent = {
   body: "secret text",
   hasSticker: false,
   hasPhoto: false,
+  photoCount: 0,
   replyToMessageId: null,
 };
 

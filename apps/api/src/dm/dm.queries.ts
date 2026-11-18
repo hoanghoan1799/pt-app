@@ -4,6 +4,7 @@ import {
   DM_MESSAGES,
   DM_PAGE_SIZE,
   type DmMessageView,
+  groupPhotosByOwner,
   resolveDisplayName,
   userActorKey,
 } from "@pt/contracts";
@@ -149,38 +150,49 @@ export class DmQueries {
     rows: MessageRow[],
     viewer: AuthActor,
   ): Promise<DmMessageView[]> {
-    const photoIds = rows.flatMap((row) =>
-      row.photoId === null ? [] : [row.photoId],
+    const photoMessageIds = rows.flatMap((row) =>
+      row.photoId === null ? [] : [row.id],
     );
     const postIds = rows.flatMap((row) =>
       row.replyPostId === null ? [] : [row.replyPostId],
     );
     const [photos, posts] = await Promise.all([
-      photoIds.length === 0
+      // Sizes only, the photos of the whole page in one query.
+      photoMessageIds.length === 0
         ? []
         : (this.dataSource.query(
-            `SELECT id, width, height FROM dm_photos WHERE id = ANY($1::int[])`,
-            [photoIds],
-          ) as Promise<{ id: number; width: number; height: number }[]>),
+            `SELECT id, message_id AS "messageId", position, width, height
+             FROM dm_photos WHERE message_id = ANY($1::int[])`,
+            [photoMessageIds],
+          ) as Promise<
+            {
+              id: number;
+              messageId: number;
+              position: number | null;
+              width: number;
+              height: number;
+            }[]
+          >),
       postIds.length === 0 ? new Map() : this.postQuotes.views(viewer, postIds),
     ]);
-    const sizes = new Map(photos.map((photo) => [photo.id, photo]));
+    const byMessage = groupPhotosByOwner(
+      photos.map((photo) => ({ ...photo, ownerId: photo.messageId })),
+      photoMessageIds,
+    );
 
     return rows.map((row) => {
-      const size = row.photoId === null ? undefined : sizes.get(row.photoId);
+      const list = (byMessage.get(row.id) ?? []).map((photo) => ({
+        url: dmPhotoUrl(photo.id),
+        width: photo.width,
+        height: photo.height,
+      }));
 
       return {
         id: row.id,
         senderId: row.senderId,
         body: row.body,
-        photo:
-          row.photoId !== null && size
-            ? {
-                url: dmPhotoUrl(row.photoId),
-                width: size.width,
-                height: size.height,
-              }
-            : null,
+        photo: list[0] ?? null,
+        photos: list,
         post:
           row.replyPostId === null
             ? null
@@ -307,7 +319,7 @@ export class DmQueries {
     const lastIds = conversations.flatMap((row) =>
       row.lastMessageId === null ? [] : [row.lastMessageId],
     );
-    const [people, lasts, unread, mine] = await Promise.all([
+    const [people, lasts, unread, mine, lastPhotoCounts] = await Promise.all([
       this.dataSource.query(
         `SELECT id, name, avatar_updated_at AS "avatarUpdatedAt"
          FROM users WHERE id = ANY($1::int[])`,
@@ -340,6 +352,7 @@ export class DmQueries {
         userActorKey(userId),
         otherIds.map(userActorKey),
       ),
+      this.photoCounts(lastIds),
     ]);
     const personById = new Map(people.map((person) => [person.id, person]));
     const lastById = new Map(lasts.map((message) => [message.id, message]));
@@ -368,7 +381,7 @@ export class DmQueries {
               person.name,
             ),
             avatarUrl: avatarUrl("user", person.id, person.avatarUpdatedAt),
-            preview: `${last.senderId === userId ? previewTexts(locale).you : ""}${dmPreviewText(last, locale)}`,
+            preview: `${last.senderId === userId ? previewTexts(locale).you : ""}${dmPreviewText({ ...last, photoCount: lastPhotoCounts.get(last.id) }, locale)}`,
             lastMessageAt: row.lastMessageAt?.toISOString() ?? null,
             unread: unread.get(row.id) ?? 0,
           },
@@ -388,11 +401,14 @@ export class DmQueries {
       lastPhotoId: number | null;
       lastDeletedAt: Date | null;
       lastId: number | null;
+      lastPhotoCount: number | null;
     })[] = await this.dataSource.query(
       `SELECT c.id, c.user_low AS "userLow", c.user_high AS "userHigh",
               c.last_message_id AS "lastMessageId", c.last_message_at AS "lastMessageAt",
               lo.name AS "lowName", hi.name AS "highName",
               lm.id AS "lastId", lm.body AS "lastBody", lm.photo_id AS "lastPhotoId",
+              (SELECT count(*)::int FROM dm_photos lp WHERE lp.message_id = lm.id)
+                AS "lastPhotoCount",
               lm.deleted_at AS "lastDeletedAt"
        FROM dm_conversations c
        LEFT JOIN users lo ON lo.id = c.user_low
@@ -413,11 +429,27 @@ export class DmQueries {
               {
                 body: row.lastBody,
                 photoId: row.lastPhotoId,
+                photoCount: row.lastPhotoCount ?? 1,
                 deletedAt: row.lastDeletedAt,
               },
               locale,
             ),
     }));
+  }
+
+  // How many photos each of the messages carries (messages without are absent).
+  private async photoCounts(messageIds: readonly number[]) {
+    if (messageIds.length === 0) {
+      return new Map<number, number>();
+    }
+    const rows: { messageId: number; total: number }[] =
+      await this.dataSource.query(
+        `SELECT message_id AS "messageId", count(*)::int AS total
+         FROM dm_photos WHERE message_id = ANY($1::int[]) GROUP BY message_id`,
+        [messageIds],
+      );
+
+    return new Map(rows.map((row) => [row.messageId, row.total]));
   }
 
   async existingBetween(low: number, high: number) {

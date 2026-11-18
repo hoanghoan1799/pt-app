@@ -72,6 +72,7 @@ export class PushNotifier {
         body: event.body,
         sticker: event.hasSticker,
         photo: event.hasPhoto,
+        photoCount: event.photoCount,
       };
 
       if (event.senderRole === "user") {

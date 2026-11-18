@@ -286,6 +286,7 @@ describe("GET /v1/dm/conversations/:cid/messages", () => {
           senderId: ann.id,
           body: "một",
           photo: null,
+          photos: [],
           post: null,
           clientId: expect.any(String),
           createdAt: expect.any(String),
@@ -295,6 +296,7 @@ describe("GET /v1/dm/conversations/:cid/messages", () => {
           senderId: me.id,
           body: "ảnh",
           photo: { url: `/v1/dm/photos/${photoId}`, width: 40, height: 30 },
+          photos: [{ url: `/v1/dm/photos/${photoId}`, width: 40, height: 30 }],
           post: null,
           clientId: expect.any(String),
           createdAt: expect.any(String),
@@ -618,6 +620,130 @@ describe("read marks and unsend", () => {
     );
 
     expect(thread.body.deletedIds).toEqual([mine]);
+  });
+});
+
+describe("DM messages with several photos", () => {
+  // A message with `count` photos: the first (position 0) is the cover, the
+  // others are attached to the message after it.
+  const withPhotos = async (
+    cid: number,
+    sender: Person,
+    count: number,
+    body: string | null = null,
+  ) => {
+    const messageId = await message(cid, sender, body);
+    const cover = await dmPhoto(cid, sender, messageId);
+    const ids = [cover];
+
+    await ds.query(`UPDATE dm_photos SET position = 0 WHERE id = $1`, [cover]);
+    for (let position = 1; position < count; position += 1) {
+      const photo = await ds.getRepository(DmPhoto).save({
+        conversationId: cid,
+        uploaderId: sender.id,
+        messageId,
+        position,
+        mime: "image/png",
+        width: 40 + position,
+        height: 30,
+        data: pngBytes(40, 30, 200),
+        size: pngBytes(40, 30, 200).length,
+        createdAt: clock.now(),
+      });
+
+      ids.push(photo.id);
+    }
+    return { messageId, ids };
+  };
+
+  it("returns every photo in order with the cover as photo, in the thread of both members", async () => {
+    const me = await trainee();
+    const ann = await trainee();
+    const cid = await conversationBetween(me, ann);
+    const { messageId, ids } = await withPhotos(cid, me, 3, "ba ảnh");
+    const old = await message(cid, me, "một ảnh");
+    const oldPhoto = await dmPhoto(cid, me, old);
+
+    for (const person of [me, ann]) {
+      const response = await callWith(
+        app,
+        "get",
+        `/v1/dm/conversations/${cid}/messages`,
+        person.token,
+      );
+      const several = response.body.messages.find(
+        (item: { id: number }) => item.id === messageId,
+      );
+      const single = response.body.messages.find(
+        (item: { id: number }) => item.id === old,
+      );
+
+      expect(several.photos.map((photo: { url: string }) => photo.url)).toEqual(
+        ids.map((id) => `/v1/dm/photos/${id}`),
+      );
+      expect(several.photo).toEqual(several.photos[0]);
+      expect(several.photos.map((photo: { width: number }) => photo.width)).toEqual([
+        40, 41, 42,
+      ]);
+      // A message from before positions (null) is one photo.
+      expect(single.photos).toEqual([
+        { url: `/v1/dm/photos/${oldPhoto}`, width: 40, height: 30 },
+      ]);
+    }
+  });
+
+  it("words the preview with the count for several photos, in the reader's language", async () => {
+    const me = await trainee();
+    const ann = await trainee();
+    const boss = await admin("super_admin");
+    const cid = await conversationBetween(me, ann);
+
+    await withPhotos(cid, ann, 4);
+    const list = await callWith(app, "get", "/v1/dm/conversations", me.token);
+
+    expect(list.body.conversations[0].preview).toBe("📷 4 ảnh");
+    await ds.query(`UPDATE users SET locale = 'en' WHERE id = $1`, [me.id]);
+    expect(
+      (await callWith(app, "get", "/v1/dm/conversations", me.token)).body
+        .conversations[0].preview,
+    ).toBe("📷 4 photos");
+    const adminList = await callWith(app, "get", "/v1/admin/dm/conversations", boss.token);
+
+    expect(
+      adminList.body.conversations.find(
+        (row: { id: number }) => row.id === cid,
+      ).preview,
+    ).toBe("📷 4 ảnh");
+  });
+
+  it("serves every photo of the message and takes all of them back on unsend", async () => {
+    const me = await trainee();
+    const ann = await trainee();
+    const stranger = await trainee();
+    const cid = await conversationBetween(me, ann);
+    const { messageId, ids } = await withPhotos(cid, me, 3);
+
+    for (const id of ids) {
+      expect(
+        (await callWith(app, "get", `/v1/dm/photos/${id}`, ann.token)).status,
+      ).toBe(200);
+      expect(
+        (await callWith(app, "get", `/v1/dm/photos/${id}`, stranger.token))
+          .status,
+      ).toBe(404);
+    }
+    expect(
+      (await callWith(app, "delete", `/v1/dm/messages/${messageId}`, me.token))
+        .status,
+    ).toBe(204);
+    expect(
+      await ds.getRepository(DmPhoto).countBy({ conversationId: cid }),
+    ).toBe(0);
+    for (const id of ids) {
+      expect(
+        (await callWith(app, "get", `/v1/dm/photos/${id}`, ann.token)).status,
+      ).toBe(404);
+    }
   });
 });
 

@@ -24,6 +24,19 @@ describe("buildPushPreview", () => {
     );
   });
 
+  it("names the count when a message carries several photos", () => {
+    expect(buildPushPreview({ body: "caption", photo: true, photoCount: 3 })).toBe(
+      "Đã gửi 3 ảnh",
+    );
+    expect(buildPushPreview({ photo: true, photoCount: 1 })).toBe("Đã gửi ảnh");
+    expect(buildPushPreview({ photo: true, photoCount: 10, locale: "en" })).toBe(
+      "Sent 10 photos",
+    );
+    expect(buildPushPreview({ photo: true, photoCount: 2, locale: "zh" })).toBe(
+      "发送了 2 张照片",
+    );
+  });
+
   it("shows a link label for a message that is only links", () => {
     expect(buildPushPreview({ body: "https://example.com/a" })).toBe(
       "Đã gửi liên kết",
