@@ -897,8 +897,9 @@ export const ChatThread = ({
           onCopy={() => void handleCopy(sheetMessage)}
           onEdit={() => handleEdit(sheetMessage)}
           onUnsend={() => void handleUnsend(sheetMessage)}
+          // Locked chat: read-only, only Copy remains.
           onReport={
-            canReportMessage(sheetMessage, adapter.viewer)
+            chatEnabled && canReportMessage(sheetMessage, adapter.viewer)
               ? () => openSheet("report", sheetMessage)
               : undefined
           }
