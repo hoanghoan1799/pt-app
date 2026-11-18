@@ -11,6 +11,7 @@ import { AppConfigModule } from "./config/app-config.module.js";
 import { ContactAliasesModule } from "./contact-aliases/contact-aliases.module.js";
 import { DatabaseModule } from "./database/database.module.js";
 import { DmModule } from "./dm/dm.module.js";
+import { AvatarsModule } from "./files/avatars.module.js";
 import { FilesModule } from "./files/files.module.js";
 import { FoodsModule } from "./foods/foods.module.js";
 import { HealthController } from "./health/health.controller.js";
@@ -36,6 +37,7 @@ import { WorkoutsModule } from "./workouts/workouts.module.js";
     UsersModule,
     ContactAliasesModule,
     FilesModule,
+    AvatarsModule,
     WorkoutsModule,
     FoodsModule,
     NutritionModule,

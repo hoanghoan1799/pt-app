@@ -20,6 +20,7 @@ import type { AuthActor } from "../auth/actor.js";
 import { Actor, Roles } from "../auth/decorators/index.js";
 import { ApiErrors } from "../common/openapi/api-errors.js";
 import { AvatarService } from "./avatar.service.js";
+import { AvatarAccess } from "../social/avatar-access.service.js";
 import { avatarVersion } from "./image-rules.js";
 
 const notFound = () =>
@@ -28,12 +29,17 @@ const notFound = () =>
 @ApiTags("avatars")
 @Controller("avatars")
 export class AvatarsController {
-  constructor(private readonly avatars: AvatarService) {}
+  constructor(
+    private readonly avatars: AvatarService,
+    private readonly access: AvatarAccess,
+  ) {}
 
   // Payloads carry `?v=<version>` URLs, not the image. With a matching `v` the
   // bytes never change and cache for a year; without it the browser revalidates
-  // by ETag. Any admin sees every photo; a trainee sees their own and the PT
-  // team's (once they have a conversation), never another trainee's. Anything
+  // by ETag. Access depends on the viewer, so every response is `private`.
+  // A trainee's photo: the trainee, a super admin, the PT of their workspace,
+  // and trainees who can see them socially (AvatarAccess). The PT team's
+  // photos: any admin, and a trainee once they have a conversation. Anything
   // else answers like a missing photo so ids cannot be probed.
   @Get(":kind/:id")
   @Roles("super_admin", "pt", "trainee")
@@ -84,12 +90,9 @@ export class AvatarsController {
     actor: AuthActor,
     target: { kind: "user" | "admin"; id: number },
   ) {
-    if (actor.kind === "admin") {
-      return true;
-    }
     if (target.kind === "user") {
-      return actor.id === target.id;
+      return this.access.canViewUserAvatar(actor, target.id);
     }
-    return this.avatars.hasConversation(actor.id);
+    return actor.kind === "admin" || this.avatars.hasConversation(actor.id);
   }
 }

@@ -15,8 +15,9 @@ const json = (error: string, status: number) =>
   );
 
 // The profile photo (KAN-157). Payloads carry `?v=<version>` URLs, not the
-// image, so polling stays small. The API decides who may see which photo (any
-// admin every photo; a trainee their own and the PT team's once they have a
+// image, so polling stays small. The API decides who may see which photo (a
+// trainee's: themself, a super admin, their PT, trainees who can see them
+// socially; the PT team's: any admin, a trainee once they have a
 // conversation), answers 404 for everything else, and sets the ETag and the
 // year-long cache for a matching `v`; this route only picks whose session to
 // send and relays the bytes.

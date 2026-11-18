@@ -361,10 +361,14 @@ describe("GET /v1/avatars/:kind/:id", () => {
     ).toBe(200);
   });
 
-  it("lets any admin see any photo, and 404s for missing photos, bad kinds and bad ids", async () => {
-    const me = await trainee();
-    const bare = await trainee();
+  it("lets an admin see the photo of a trainee in their scope, and 404s for missing photos, bad kinds and bad ids", async () => {
     const pt = await admin();
+    const seeded = await seedUser(ds, { ptAdminId: pt.id });
+    const me = {
+      ...seeded,
+      token: await tokenOf(app, { kind: "user", ...seeded }),
+    };
+    const bare = await seedUser(ds, { ptAdminId: pt.id });
 
     await call(app, "put", "/v1/users/me/avatar", me.token, {
       dataUrl: PNG_URL,
