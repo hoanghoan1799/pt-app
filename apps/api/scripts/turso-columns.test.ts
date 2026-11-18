@@ -28,7 +28,14 @@ const PG_ONLY_COLUMNS: Record<string, string[]> = {
     "actor_user_id",
     "actor_admin_id",
   ],
-  social_reports: ["reporter_user_id", "reporter_admin_id", "target_user_id"],
+  // reason_code: the reason list of message reports (company 2026-11, not in
+  // the frozen Turso DDL; old reports load with null).
+  social_reports: [
+    "reporter_user_id",
+    "reporter_admin_id",
+    "target_user_id",
+    "reason_code",
+  ],
   social_post_photos: ["uploader_user_id", "uploader_admin_id"],
   chat_custom_stickers: ["owner_user_id", "owner_admin_id"],
   contact_aliases: [
