@@ -103,6 +103,7 @@ const apiPost = (id: number, overrides: Record<string, unknown> = {}) => ({
   caption: `post ${id}`,
   privacy: "friends",
   photo: null,
+  photos: [],
   createdAt: "2026-11-01T10:00:00.000Z",
   edited: false,
   canEdit: true,
@@ -132,7 +133,7 @@ describe("posts", () => {
 
     const result = await social.createPostAction(
       "user",
-      { caption: "hi", privacy: "friends", photoId: 5 },
+      { caption: "hi", privacy: "friends", photoIds: [5, 3] },
       "key-1",
     );
 
@@ -144,7 +145,7 @@ describe("posts", () => {
       idempotencyKey: "key-1",
     });
     expect(lastCall().options).toMatchObject({
-      body: { caption: "hi", privacy: "friends", photoId: 5 },
+      body: { caption: "hi", privacy: "friends", photoIds: [5, 3] },
     });
   });
 
@@ -154,7 +155,7 @@ describe("posts", () => {
 
     await social.createPostAction(
       "admin",
-      { caption: "news", privacy: "everyone", photoId: null },
+      { caption: "news", privacy: "everyone", photoIds: [] },
       "key-2",
     );
 
@@ -164,12 +165,12 @@ describe("posts", () => {
   it("rejects a bad privacy or a long caption before calling the API", async () => {
     const bad = await social.createPostAction(
       "user",
-      { caption: "x", privacy: "public", photoId: null },
+      { caption: "x", privacy: "public", photoIds: [] },
       "k",
     );
     const long = await social.createPostAction(
       "user",
-      { caption: "a".repeat(2001), privacy: "friends", photoId: null },
+      { caption: "a".repeat(2001), privacy: "friends", photoIds: [] },
       "k",
     );
 
@@ -187,7 +188,7 @@ describe("posts", () => {
 
     const empty = await social.createPostAction(
       "user",
-      { caption: "", privacy: "friends", photoId: null },
+      { caption: "", privacy: "friends", photoIds: [] },
       "k",
     );
 
@@ -204,7 +205,7 @@ describe("posts", () => {
     });
     const terms = await social.createPostAction(
       "user",
-      { caption: "hi", privacy: "friends", photoId: null },
+      { caption: "hi", privacy: "friends", photoIds: [] },
       "k",
     );
 
@@ -257,7 +258,10 @@ describe("paging", () => {
     answer("GET", "/v1/social/feed", 200, {
       items: [
         apiPost(9, {
-          photo: { id: 3, url: "/v1/social/photos/3", width: 4, height: 5 },
+          photos: [
+            { id: 3, url: "/v1/social/photos/3", width: 4, height: 5 },
+            { id: 8, url: "/v1/social/photos/8", width: 6, height: 7 },
+          ],
           authorAvatarUrl: "/v1/avatars/user/7?v=12",
         }),
       ],
@@ -281,7 +285,10 @@ describe("paging", () => {
     expect(result.page.posts[0]).toMatchObject({
       id: 9,
       createdAt: Date.parse("2026-11-01T10:00:00.000Z"),
-      photo: { id: 3, url: "/api/social/photos/3" },
+      photos: [
+        { id: 3, url: "/api/social/photos/3", width: 4, height: 5 },
+        { id: 8, url: "/api/social/photos/8", width: 6, height: 7 },
+      ],
       authorAvatarUrl: "/api/avatar/user/7?v=12",
     });
   });
