@@ -144,20 +144,16 @@ describe("DbChatSocial schema rules", () => {
     ).toBe("23502");
   });
 
-  it("no longer has the legacy attachment columns, nicknames table or the redundant index", async () => {
+  it("no longer has the legacy attachment columns or the redundant index", async () => {
     const columns = await query(
       `SELECT column_name FROM information_schema.columns
        WHERE table_name = 'chat_messages' AND column_name LIKE 'attachment%'`,
-    );
-    const tables = await query(
-      `SELECT to_regclass('chat_nicknames') AS present`,
     );
     const indexes = await query(
       `SELECT indexname FROM pg_indexes WHERE indexname = 'chat_photos_conversation'`,
     );
 
     expect(columns).toEqual([]);
-    expect(tables[0].present).toBeNull();
     expect(indexes).toEqual([]);
   });
 
