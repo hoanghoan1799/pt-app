@@ -22,6 +22,8 @@ import {
   type ChatMarkReadRequest,
   chatMarkReadRequestSchema,
   chatMessageResponseSchema,
+  type ChatNicknameRequest,
+  chatNicknameRequestSchema,
   chatProfileResponseSchema,
   chatReadResponseSchema,
   type ChatSearchQuery,
@@ -169,6 +171,27 @@ export class ChatConversationsController {
       : { items: [], nextCursor: null };
   }
 
+  @Put("conversations/me/nickname")
+  @User()
+  @ApiRoute({
+    summary:
+      "Set or clear (blank) a shared nickname in my conversation: me, the PT side (pt) or one PT (admin:<id>); everybody in it sees it",
+    body: chatNicknameRequestSchema,
+    response: chatProfileResponseSchema,
+    errors: [400, 401, 403, 404],
+  })
+  async myNickname(
+    @Actor() actor: UserActor,
+    @Body({ schema: chatNicknameRequestSchema }) body: ChatNicknameRequest,
+  ) {
+    return {
+      profile: await this.profiles.setNickname(
+        await this.access.own(actor),
+        body,
+      ),
+    };
+  }
+
   @Post("conversations/me/read")
   @User()
   @HttpCode(200)
@@ -202,7 +225,7 @@ export class ChatConversationsController {
   async header(@Actor() actor: AdminActor, @Param("cid", idParam) cid: number) {
     const context = await this.access.forConversation(actor, cid);
 
-    return this.inbox.header(actor, context.trainee, cid);
+    return this.inbox.header(context.trainee, cid);
   }
 
   @Get("conversations/:cid/messages")
@@ -281,6 +304,28 @@ export class ChatConversationsController {
     };
   }
 
+  @Put("conversations/:cid/nickname")
+  @Admin()
+  @ApiRoute({
+    summary:
+      "Set or clear (blank) a shared nickname in a conversation: the trainee (user), the PT side (pt), a PT (admin:<id>) or me; everybody in it sees it",
+    body: chatNicknameRequestSchema,
+    response: chatProfileResponseSchema,
+    errors: [400, 401, 403, 404],
+  })
+  async nickname(
+    @Actor() actor: AdminActor,
+    @Param("cid", idParam) cid: number,
+    @Body({ schema: chatNicknameRequestSchema }) body: ChatNicknameRequest,
+  ) {
+    return {
+      profile: await this.profiles.setNickname(
+        await this.access.forConversation(actor, cid),
+        body,
+      ),
+    };
+  }
+
   @Put("conversations/:cid/color")
   @Admin()
   @ApiRoute({
@@ -319,7 +364,7 @@ export class ChatConversationsController {
     const context = await this.access.forTraineeId(actor, userId);
     const conversation = await this.access.ensureConversation(context);
 
-    return this.inbox.header(actor, context.trainee, conversation?.id ?? null);
+    return this.inbox.header(context.trainee, conversation?.id ?? null);
   }
 
   @Post("trainees/:userId/messages")

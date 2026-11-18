@@ -298,6 +298,20 @@ const createdAt = async (endpoint: string) =>
 
 const clockIso = (date: Date) => date.toISOString();
 
+// A shared nickname of a conversation (what chat pushes use).
+const nickname = async (
+  conversationId: number,
+  target: string,
+  value: string,
+  setBy = "user",
+) => {
+  await ds.query(
+    `INSERT INTO chat_nicknames (conversation_id, target_key, nickname, set_by_key, updated_at)
+     VALUES ($1, $2, $3, $4, now())`,
+    [conversationId, target, value, setBy],
+  );
+};
+
 describe("a trainee message", () => {
   it("pushes the PT team that may hear it, with the web's title, body and link", async () => {
     const ptA = await admin("pt");
@@ -339,16 +353,17 @@ describe("a trainee message", () => {
     expect((await stored(devices.ptA))[0].lastSuccessAt).not.toBeNull();
   });
 
-  it("uses the PT's own nickname for the trainee, and their language", async () => {
+  it("uses the conversation's nickname for the trainee (not the PT's private alias), and their language", async () => {
     const pt = await admin("pt");
     const me = await trainee({ ptAdminId: pt.id });
     const endpoint = await device(pt.token);
 
     await ds.query(
       `INSERT INTO contact_aliases (owner_key, target_key, alias, updated_at)
-       VALUES ($1, $2, 'Anh An', now())`,
+       VALUES ($1, $2, 'Riêng', now())`,
       [`admin:${pt.id}`, `user:${me.id}`],
     );
+    await nickname(await ensureConversation(ds, me.id), "user", "Anh An");
     await ds.query(`UPDATE admins SET locale = 'en' WHERE id = $1`, [pt.id]);
     await send(me.token, { body: "https://example.com/video" });
 
@@ -446,24 +461,25 @@ describe("a PT message", () => {
     });
     expect(sender.to(other)).toEqual([]);
 
-    // The trainee's private nickname for this PT wins; one for the whole PT
-    // side is the second choice.
+    // A private alias is never used in chat.
     await ds.query(
       `INSERT INTO contact_aliases (owner_key, target_key, alias, updated_at)
-       VALUES ($1, 'pt', 'Huấn luyện viên', now())`,
-      [`user:${me.id}`],
-    );
-    await ptSend(pt.token, me.id, { body: "hai" });
-    await sender.waitForCalls(2);
-    expect(sender.calls[1].payload.title).toBe("Huấn luyện viên");
-    await ds.query(
-      `INSERT INTO contact_aliases (owner_key, target_key, alias, updated_at)
-       VALUES ($1, $2, 'Thầy Bình', now())`,
+       VALUES ($1, $2, 'Riêng', now())`,
       [`user:${me.id}`, `admin:${pt.id}`],
     );
-    await ptSend(pt.token, me.id, { body: "ba" });
+    await ptSend(pt.token, me.id, { body: "một" });
+    await sender.waitForCalls(2);
+    expect(sender.calls[1].payload.title).toBe(pt.username);
+    // The conversation's nickname for the whole PT side is the second choice,
+    // the one for this PT the first.
+    await nickname(conversationId, "pt", "Huấn luyện viên");
+    await ptSend(pt.token, me.id, { body: "hai" });
     await sender.waitForCalls(3);
-    expect(sender.calls[2].payload.title).toBe("Thầy Bình");
+    expect(sender.calls[2].payload.title).toBe("Huấn luyện viên");
+    await nickname(conversationId, `admin:${pt.id}`, "Thầy Bình");
+    await ptSend(pt.token, me.id, { body: "ba" });
+    await sender.waitForCalls(4);
+    expect(sender.calls[3].payload.title).toBe("Thầy Bình");
   });
 
   it("speaks the trainee's language", async () => {
@@ -532,6 +548,46 @@ describe("reactions", () => {
     await pause(400);
     expect(sender.calls).toHaveLength(2);
     expect(sender.to(team)).toEqual([]);
+  });
+
+  it("names the reactor by the conversation's nickname, for either side", async () => {
+    const pt = await admin("pt");
+    const me = await trainee({ ptAdminId: pt.id });
+    const mine = await device(me.token);
+    const team = await device(pt.token);
+    const mineSent = await send(me.token, { body: "của học viên" });
+    const conversationId = await ensureConversation(ds, me.id);
+    const ptSent = await ptSend(pt.token, me.id, { body: "của PT" });
+
+    await sender.waitForCalls(2);
+    sender.reset();
+    // A private alias is ignored; the shared PT-side nickname names the PT
+    // for the trainee, the trainee's own nickname names them for the PT.
+    await ds.query(
+      `INSERT INTO contact_aliases (owner_key, target_key, alias, updated_at)
+       VALUES ($1, 'pt', 'Riêng', now())`,
+      [`user:${me.id}`],
+    );
+    await nickname(conversationId, "pt", "Thầy");
+    await nickname(conversationId, "user", "Bé Na");
+
+    await react(pt.token, mineSent.body.message.id, "💪");
+    await sender.waitForCalls(1);
+    expect(sender.to(mine)[0].payload.body).toBe(
+      "Thầy đã thả 💪 vào tin nhắn của bạn",
+    );
+    await react(me.token, ptSent.body.message.id, "👍");
+    await sender.waitForCalls(2);
+    expect(sender.to(team)[0].payload.body).toBe(
+      "Bé Na đã thả 👍 vào tin nhắn của bạn",
+    );
+    // This PT's own nickname beats the PT-side one.
+    await nickname(conversationId, `admin:${pt.id}`, "Coach", "user");
+    await react(pt.token, mineSent.body.message.id, "❤️");
+    await sender.waitForCalls(3);
+    expect(sender.to(mine)[1].payload.body).toBe(
+      "Coach đã thả ❤️ vào tin nhắn của bạn",
+    );
   });
 
   it("tells a PT who wrote the message that the trainee reacted, in the PT's language", async () => {

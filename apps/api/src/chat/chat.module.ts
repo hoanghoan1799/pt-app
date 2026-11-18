@@ -1,7 +1,6 @@
 import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/auth.module.js";
-import { ContactAliasesModule } from "../contact-aliases/contact-aliases.module.js";
 import { DmModule } from "../dm/dm.module.js";
 import { FilesModule } from "../files/files.module.js";
 import { StickersModule } from "../stickers/stickers.module.js";
@@ -31,7 +30,6 @@ import { PostQuotesModule } from "./post-quotes.module.js";
     FilesModule,
     StickersModule,
     DmModule,
-    ContactAliasesModule,
     PostQuotesModule,
   ],
   controllers: [ChatConversationsController, ChatMessagesController],

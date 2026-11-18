@@ -6,22 +6,23 @@ import {
   CHAT_COLOR_KEYS,
   CHAT_USER_READER_KEY,
   chatAdminReaderKey,
-  chatAliasesToNicknames,
   type ChatColorKey,
+  type ChatNicknameRequest,
+  chatParseAdminTarget,
   type ChatProfile,
-  userActorKey,
+  toAdminRole,
 } from "@pt/contracts";
 import { DataSource } from "typeorm";
 
-import type { AuthActor } from "../auth/actor.js";
 import { Clock } from "../common/clock.js";
-import { ContactAliasesService } from "../contact-aliases/contact-aliases.service.js";
 import { ChatAccess, type ChatContext } from "./chat.access.js";
+import { chatErrors } from "./chat.errors.js";
 import {
   CHAT_EVENTS,
   ChatEvents,
   type ChatProfileChangedEvent,
 } from "./chat.events.js";
+import { ChatPolicy } from "./chat.policy.js";
 import { ChatQueries } from "./chat.queries.js";
 
 const isColorKey = (value: unknown): value is ChatColorKey =>
@@ -31,33 +32,33 @@ const isColorKey = (value: unknown): value is ChatColorKey =>
 export const EMPTY_PROFILE: ChatProfile = { nicknames: {}, colors: {} };
 
 // Nicknames and bubble colours of a conversation (KAN-141). Nicknames are the
-// VIEWER's private contact aliases for the people in it, never anybody else's.
+// conversation's own, Messenger style: anyone in it may set or clear the
+// nickname of anyone in it (themselves included) and every member sees the
+// same ones. The viewer's private contact aliases are never used in chat.
 @Injectable()
 export class ChatProfileService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly queries: ChatQueries,
     private readonly access: ChatAccess,
-    private readonly aliases: ContactAliasesService,
+    private readonly policy: ChatPolicy,
     private readonly events: ChatEvents,
     private readonly clock: Clock,
   ) {}
 
   // `colors` is already resolved: an admin's per-conversation override wins
-  // over their account colour.
-  async load(
-    conversationId: number,
-    actor: AuthActor,
-    traineeUserId: number,
-  ): Promise<ChatProfile> {
-    const [aliases, rows] = await Promise.all([
-      this.aliases.listFor(actor),
+  // over their account colour. Both sides get the same `nicknames`.
+  async load(conversationId: number): Promise<ChatProfile> {
+    const [nicknameRows, rows] = await Promise.all([
+      this.queries.nicknameRows(conversationId),
       this.queries.colorRows(conversationId),
     ]);
-    const viewerKey =
-      actor.kind === "admin" ? adminActorKey(actor.id) : userActorKey(actor.id);
     const colors: Record<string, ChatColorKey> = {};
+    const nicknames: Record<string, string> = {};
 
+    for (const row of nicknameRows) {
+      nicknames[row.targetKey] = row.nickname;
+    }
     if (isColorKey(rows.trainee)) {
       colors[CHAT_USER_READER_KEY] = rows.trainee;
     }
@@ -71,13 +72,94 @@ export class ChatProfileService {
         colors[chatAdminReaderKey(row.adminId)] = row.color;
       }
     }
-    return {
-      nicknames: chatAliasesToNicknames(new Map(Object.entries(aliases)), {
-        viewerKey,
-        traineeUserId,
-      }),
-      colors,
-    };
+    return { nicknames, colors };
+  }
+
+  // Sets (or, with a blank nickname, clears) the nickname of one member of the
+  // conversation. Checks in this order: the caller reads the conversation (the
+  // context), the chat lock, then the target ("user" and "pt" always belong to
+  // the conversation; "admin:<id>" must be an existing admin who may work with
+  // its trainee). Saving the stored value again changes nothing. A change is
+  // silent: no message and no push, only the profile event so the other
+  // members' screens refresh the names.
+  async setNickname(context: ChatContext, request: ChatNicknameRequest) {
+    const { actor, trainee } = context;
+
+    this.access.requireWrite(context);
+    // A locked chat was refused above, so a trainee with chat on has one.
+    const conversation = await this.access.ensureConversation(context);
+
+    if (!conversation) {
+      throw chatErrors.conversationNotFound();
+    }
+    const adminId = chatParseAdminTarget(request.target);
+
+    if (adminId !== null) {
+      const admin = await this.queries.findAdminForNickname(adminId);
+
+      if (
+        !admin ||
+        !this.policy.isConversationAdmin(
+          { id: admin.id, role: toAdminRole(admin.role) },
+          trainee,
+        )
+      ) {
+        throw chatErrors.adminNotFound();
+      }
+    }
+    const setByKey =
+      actor.kind === "admin" ? adminActorKey(actor.id) : CHAT_USER_READER_KEY;
+    const changedAt = await this.dataSource
+      .transaction(async (manager) => {
+        const stored = await this.queries.findNickname(
+          manager,
+          conversation.id,
+          request.target,
+        );
+
+        if ((stored ?? "") === request.nickname) {
+          return null;
+        }
+        if (request.nickname === "") {
+          await this.queries.clearNickname(
+            manager,
+            conversation.id,
+            request.target,
+          );
+        } else {
+          await this.queries.saveNickname(manager, {
+            conversationId: conversation.id,
+            targetKey: request.target,
+            nickname: request.nickname,
+            setByKey,
+            now: this.clock.now(),
+          });
+        }
+        return this.queries.bumpConversationChange(
+          manager,
+          conversation.id,
+          this.clock.now(),
+        );
+      })
+      .catch((error: unknown) => {
+        // The admin was removed between the check and the write.
+        if (
+          (error as { driverError?: { code?: string } }).driverError?.code ===
+          "23503"
+        ) {
+          throw chatErrors.adminNotFound();
+        }
+        throw error;
+      });
+
+    if (changedAt) {
+      this.events.publish(CHAT_EVENTS.profileChanged, {
+        conversationId: conversation.id,
+        traineeUserId: trainee.traineeId,
+        changedAt: changedAt.getTime(),
+      } satisfies ChatProfileChangedEvent);
+    }
+    return this.load(conversation.id);
   }
 
   // An admin's colour for one conversation only; null removes the override.
@@ -90,7 +172,7 @@ export class ChatProfileService {
 
     this.access.requireWrite(context);
     if (actor.kind !== "admin") {
-      return this.load(conversation.id, actor, trainee.traineeId);
+      return this.load(conversation.id);
     }
     const changedAt = await this.dataSource.transaction(async (manager) => {
       if (color === null) {
@@ -119,7 +201,7 @@ export class ChatProfileService {
       traineeUserId: trainee.traineeId,
       changedAt: changedAt.getTime(),
     } satisfies ChatProfileChangedEvent);
-    return this.load(conversation.id, actor, trainee.traineeId);
+    return this.load(conversation.id);
   }
 
   // An account colour changed (users.chat_color / admins.chat_color): move the

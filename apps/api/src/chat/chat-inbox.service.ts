@@ -2,13 +2,13 @@ import { Injectable } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
 import {
   CHAT_USER_READER_KEY,
+  chatAdminLabel,
   chatAdminReaderKey,
-  resolveDisplayName,
+  chatNicknameOr,
 } from "@pt/contracts";
 import { DataSource } from "typeorm";
 
 import type { AdminActor, UserActor } from "../auth/actor.js";
-import { ContactAliasesService } from "../contact-aliases/contact-aliases.service.js";
 import { DmQueries } from "../dm/dm.queries.js";
 import { avatarUrl } from "../files/image-rules.js";
 import { inboxPreview } from "./chat.mapper.js";
@@ -28,7 +28,6 @@ export class ChatInboxService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly queries: ChatQueries,
-    private readonly aliases: ContactAliasesService,
     private readonly dm: DmQueries,
     private readonly policy: ChatPolicy,
     private readonly profiles: ChatProfileService,
@@ -97,8 +96,8 @@ export class ChatInboxService {
         }[]
       >,
     ]);
-    const nicknames = await this.aliases.loadTraineeAliases(
-      admin.id,
+    // The conversation's shared nickname for the trainee, never a private alias.
+    const nicknames = await this.queries.traineeNicknames(
       rows.map((row) => row.userId),
     );
     const unreadById = new Map(
@@ -110,10 +109,7 @@ export class ChatInboxService {
         conversationId: row.conversationId,
         userId: row.userId,
         userName: row.userName,
-        displayName: resolveDisplayName(
-          nicknames.get(row.userId),
-          row.userName,
-        ),
+        displayName: nicknames.get(row.userId)?.trim() || row.userName,
         chatEnabled: row.chatEnabled === true,
         preview: inboxPreview(
           {
@@ -244,10 +240,10 @@ export class ChatInboxService {
     };
   }
 
-  // The header of a conversation for an admin: the trainee as this admin sees
-  // them (private nickname), chat switch, presence and the colours/nicknames.
+  // The header of a conversation for an admin: the trainee as the
+  // conversation names them (shared nickname), chat switch, presence and the
+  // colours/nicknames.
   async header(
-    admin: AdminActor,
     trainee: {
       traineeId: number;
       name: string;
@@ -257,25 +253,20 @@ export class ChatInboxService {
     },
     conversationId: number | null,
   ) {
-    const nicknames = await this.aliases.loadTraineeAliases(admin.id, [
-      trainee.traineeId,
-    ]);
+    const profile =
+      conversationId === null
+        ? { nicknames: {}, colors: {} }
+        : await this.profiles.load(conversationId);
 
     return {
       conversationId,
       userId: trainee.traineeId,
       userName: trainee.name,
-      displayName: resolveDisplayName(
-        nicknames.get(trainee.traineeId),
-        trainee.name,
-      ),
+      displayName: chatNicknameOr(profile.nicknames, "user", trainee.name),
       chatEnabled: trainee.chatEnabled,
       avatarUrl: avatarUrl("user", trainee.traineeId, trainee.avatarUpdatedAt),
       lastSeenAt: iso(trainee.lastSeenAt),
-      profile:
-        conversationId === null
-          ? { nicknames: {}, colors: {} }
-          : await this.profiles.load(conversationId, admin, trainee.traineeId),
+      profile,
     };
   }
 
@@ -293,7 +284,7 @@ export class ChatInboxService {
       return [];
     }
     const [profile, latest, teamLastSeen] = await Promise.all([
-      this.profiles.load(conversation.id, actor, actor.id),
+      this.profiles.load(conversation.id),
       this.queries.latestAdminSender(conversation.id),
       this.queries.adminTeamLastSeen(),
     ]);
@@ -309,7 +300,13 @@ export class ChatInboxService {
       {
         userId: actor.id,
         conversationId: conversation.id,
-        name: profile.nicknames.pt?.trim() || realName,
+        // Their nickname for that PT, else for the PT side, else the real name.
+        name: chatAdminLabel(
+          profile.nicknames,
+          latest?.id ?? null,
+          realName,
+          true,
+        ),
         avatarUrl: latest?.id
           ? avatarUrl("admin", latest.id, adminPhoto[0]?.updatedAt)
           : null,
@@ -336,14 +333,12 @@ export class ChatInboxService {
         if (!conversation) {
           return null;
         }
-        const nicknames = await this.aliases.loadTraineeAliases(admin.id, [
-          userId,
-        ]);
+        const nicknames = await this.queries.traineeNicknames([userId]);
 
         return {
           userId,
           conversationId: conversation.id,
-          name: resolveDisplayName(nicknames.get(userId), trainee.name),
+          name: nicknames.get(userId)?.trim() || trainee.name,
           avatarUrl: avatarUrl("user", userId, trainee.avatarUpdatedAt),
           lastSeenAt: iso(trainee.lastSeenAt),
         };

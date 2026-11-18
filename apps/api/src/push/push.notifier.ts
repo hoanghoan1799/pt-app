@@ -1,6 +1,12 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { OnEvent } from "@nestjs/event-emitter";
-import { adminActorKey, PT_ALIAS_TARGET, userActorKey } from "@pt/contracts";
+import {
+  adminActorKey,
+  CHAT_USER_READER_KEY,
+  chatAdminLabel,
+  chatNicknameOr,
+  chatParseAdminTarget,
+} from "@pt/contracts";
 
 import {
   CHAT_EVENTS,
@@ -74,6 +80,12 @@ export class PushNotifier {
         photo: event.hasPhoto,
       };
 
+      // Inside chat people are named by the conversation's shared nicknames
+      // (the same for every recipient), never by a private alias.
+      const nicknames = await this.recipients.chatNicknames(
+        event.conversationId,
+      );
+
       if (event.senderRole === "user") {
         const traineeName = await this.recipients.traineeName(
           event.traineeUserId,
@@ -82,18 +94,16 @@ export class PushNotifier {
         for (const admin of await this.recipients.adminsForTrainee(
           event.traineeUserId,
         )) {
-          const owner = adminOwnerKey(admin.adminId);
-          const alias = await this.recipients.aliasFor(owner, [
-            userActorKey(event.traineeUserId),
-          ]);
-
           await this.push.sendToOwner(
-            owner,
+            adminOwnerKey(admin.adminId),
             pushContent.chat_message({
               ...base,
               recipientRole: "admin",
-              senderName:
-                alias || traineeName || traineeFallbackName(admin.locale),
+              senderName: chatNicknameOr(
+                nicknames,
+                CHAT_USER_READER_KEY,
+                traineeName || traineeFallbackName(admin.locale),
+              ),
               locale: admin.locale,
             }),
           );
@@ -101,14 +111,8 @@ export class PushNotifier {
         return;
       }
       const owner = userOwnerKey(event.traineeUserId);
-      // The title names the PT the way the trainee calls them: a nickname for
+      // The title names the PT the way the conversation does: a nickname for
       // that admin, else for the whole PT side, else the real name.
-      const alias = await this.recipients.aliasFor(owner, [
-        ...(event.senderAdminId === null
-          ? []
-          : [adminActorKey(event.senderAdminId)]),
-        PT_ALIAS_TARGET,
-      ]);
       const realName =
         event.senderAdminId === null
           ? null
@@ -119,7 +123,12 @@ export class PushNotifier {
         pushContent.chat_message({
           ...base,
           recipientRole: "user",
-          senderName: alias || realName || PT_FALLBACK_NAME,
+          senderName: chatAdminLabel(
+            nicknames,
+            event.senderAdminId,
+            realName || PT_FALLBACK_NAME,
+            true,
+          ),
           locale: await this.recipients.localeOf(owner),
         }),
       );
@@ -137,6 +146,9 @@ export class PushNotifier {
     }
     return this.guarded(CHAT_EVENTS.reactionChanged, async () => {
       const reactorIsAdmin = event.reactorKey.startsWith("admin:");
+      const nicknames = await this.recipients.chatNicknames(
+        event.conversationId,
+      );
       let owner: string;
       let recipientRole: "user" | "admin";
       let locale;
@@ -168,20 +180,22 @@ export class PushNotifier {
         recipientRole = "admin";
         locale = admin.locale;
       }
-      // The recipient's own nickname for the reactor (a trainee also has one
-      // for the whole PT side), never anybody else's.
-      const alias = await this.recipients.aliasFor(owner, [
-        event.reactorKey,
-        ...(recipientRole === "user" && reactorIsAdmin
-          ? [PT_ALIAS_TARGET]
-          : []),
-      ]);
+      // The conversation's nickname for the reactor (a trainee sees the one
+      // for the whole PT side when the admin has none), else the real name.
+      const reactorName = reactorIsAdmin
+        ? chatAdminLabel(
+            nicknames,
+            chatParseAdminTarget(event.reactorKey),
+            event.reactorName,
+            recipientRole === "user",
+          )
+        : chatNicknameOr(nicknames, event.reactorKey, event.reactorName);
 
       await this.push.sendToOwner(
         owner,
         pushContent.chat_reaction({
           recipientRole,
-          reactorName: alias || event.reactorName,
+          reactorName,
           emoji,
           traineeUserId: event.traineeUserId,
           conversationId: event.conversationId,

@@ -1608,14 +1608,26 @@ describe("inbox", () => {
     ).toEqual([fresh.id]);
   });
 
-  it("applies my private nickname and shows an unsent last message empty", async () => {
+  it("applies the conversation's nickname, never my private alias, and shows an unsent last message empty", async () => {
     const pt = await admin("pt");
     const a = await trainee({ ptAdminId: pt.id });
     const sent = await sendAs(a.token, { body: "sẽ thu hồi" });
 
     await callWith(app, "put", `/v1/contact-aliases/user:${a.id}`, pt.token, {
-      body: { alias: "Bạn Mai" },
+      body: { alias: "Biệt danh riêng" },
     });
+    // The private alias alone changes nothing inside chat.
+    expect(
+      (await callWith(app, "get", "/v1/chat/inbox", pt.token)).body
+        .conversations[0].displayName,
+    ).toBe(a.name);
+    await callWith(
+      app,
+      "put",
+      `/v1/chat/conversations/${(await conversationOf(a.id)).id}/nickname`,
+      pt.token,
+      { body: { target: "user", nickname: "Bạn Mai" } },
+    );
     await callWith(
       app,
       "delete",
@@ -1777,16 +1789,24 @@ describe("PT access to a conversation", () => {
     expect(response.body.code).toBe("ADMIN_LOCKED");
   });
 
-  it("serves the conversation header with my nickname and the chat switch", async () => {
+  it("serves the conversation header with the shared nickname and the chat switch", async () => {
     const pt = await admin("pt");
     const me = await trainee({ ptAdminId: pt.id });
     const fresh = await trainee({ ptAdminId: pt.id });
 
     await sendAs(me.token, { body: "hi" });
-    await callWith(app, "put", `/v1/contact-aliases/user:${me.id}`, pt.token, {
-      body: { alias: "Mai" },
-    });
     const conversation = await conversationOf(me.id);
+
+    await callWith(app, "put", `/v1/contact-aliases/user:${me.id}`, pt.token, {
+      body: { alias: "Riêng" },
+    });
+    await callWith(
+      app,
+      "put",
+      `/v1/chat/conversations/${conversation.id}/nickname`,
+      pt.token,
+      { body: { target: "user", nickname: "Mai" } },
+    );
     const header = await callWith(
       app,
       "get",
@@ -1961,7 +1981,10 @@ describe("bubbles", () => {
     await enableChat(ds, locked.id, false);
     await ptSend(pt, mine.id, { body: "chào" });
     await callWith(app, "put", `/v1/contact-aliases/pt`, mine.token, {
-      body: { alias: "Thầy Hoàn" },
+      body: { alias: "Riêng" },
+    });
+    await callWith(app, "put", "/v1/chat/conversations/me/nickname", mine.token, {
+      body: { target: "pt", nickname: "Thầy Hoàn" },
     });
 
     const coach = await callWith(app, "get", "/v1/chat/bubbles", mine.token);
