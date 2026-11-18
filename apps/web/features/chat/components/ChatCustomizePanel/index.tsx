@@ -12,7 +12,9 @@ import {
 import { ColorSwatches } from "@/features/chat/components/ColorSwatches";
 import {
   adminSetConversationColorAction,
+  adminSetNicknameAction,
   setChatColorAction,
+  setNicknameAction,
 } from "@/features/chat/services/chat-profile-actions";
 import {
   type ChatColorKey,
@@ -25,11 +27,6 @@ import {
 } from "@/features/chat/utils/chat-settings";
 import type { ThreadViewer } from "@/features/chat/utils/chat-thread-rules";
 import { AliasField } from "@/features/contact-aliases/components/AliasField";
-import {
-  adminSetContactAliasAction,
-  setContactAliasAction,
-} from "@/features/contact-aliases/services/contact-alias-actions";
-import { conversationKeyToTarget } from "@/features/contact-aliases/utils/alias-rules";
 import { cn } from "@/utils/cn";
 
 interface ActionResult {
@@ -40,33 +37,32 @@ interface ActionResult {
 
 export interface ChatCustomizePanelProps {
   viewer: ThreadViewer;
-  // The trainee of this conversation (either side's page knows it).
-  traineeUserId: number;
   conversationId: number | null;
-  // The other person's real name, shown when there is no nickname.
+  // Real names, shown when there is no nickname.
   peerName: string;
+  selfName: string;
   profile: ChatProfileView;
   onProfileChange: (profile: ChatProfileView) => void;
   chatEnabled: boolean;
 }
 
 // The old conversation settings sheet (KAN-142, spec D1, D4), now the
-// "Tuỳ chỉnh" panel of the chat info page: a private nickname for the other
-// person (only you see it) and the bubble colour. An admin can also give this
-// conversation its own colour. While the chat is locked the colours are
-// read-only; a private nickname stays editable (it changes nobody else's view).
+// "Tuỳ chỉnh" panel of the chat info page: Messenger-style nicknames for the
+// other person and for yourself (everybody in this conversation sees them) and
+// the bubble colour. An admin can also give this conversation its own colour.
+// While the chat is locked everything is read-only.
 export const ChatCustomizePanel = ({
   viewer,
-  traineeUserId,
   conversationId,
   peerName,
+  selfName,
   profile,
   onProfileChange,
   chatEnabled,
 }: ChatCustomizePanelProps) => {
   const t = useTranslations("chat.customize");
   const isAdmin = viewer.role === "admin";
-  const { other, self } = settingsTargets(viewer, { peerName });
+  const { other, self } = settingsTargets(viewer, { peerName, selfName });
   const [colorError, setColorError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const readOnly = !chatEnabled;
@@ -95,33 +91,16 @@ export const ChatCustomizePanel = ({
     }
   };
 
-  // The nickname is private to this viewer, so it is not tied to the chat
-  // lock and nothing is broadcast; only this screen's copy is updated.
-  const saveNickname = async (_targetKey: string, alias: string) => {
-    try {
-      const targetKey = conversationKeyToTarget(other.key, traineeUserId);
-      const result = await (
-        viewer.role === "admin"
-          ? adminSetContactAliasAction
-          : setContactAliasAction
-      )({ targetKey, alias });
-
-      if (result.status !== "success") {
-        return result.message ?? t("failed");
-      }
-      const nicknames = { ...profile.nicknames };
-
-      if (result.alias) {
-        nicknames[other.key] = result.alias;
-      } else {
-        delete nicknames[other.key];
-      }
-      onProfileChange({ ...profile, nicknames });
-      return null;
-    } catch {
-      return t("failed");
-    }
-  };
+  const saveNickname = (target: string, nickname: string) =>
+    run(() =>
+      viewer.role === "admin"
+        ? adminSetNicknameAction({
+            conversationId: conversationId ?? 0,
+            target,
+            nickname,
+          })
+        : setNicknameAction({ target, nickname }),
+    );
 
   const pickColor = (color: ChatColorKey) => {
     setColorError(null);
@@ -170,10 +149,23 @@ export const ChatCustomizePanel = ({
         <AliasField
           key={`${other.key}:${profile.nicknames[other.key] ?? ""}`}
           id="chat-nickname-other"
-          label={t("nicknameOf", { name: peerName })}
+          label={t("nicknameOf", { name: other.realName })}
           targetKey={other.key}
-          realName={peerName}
+          realName={other.realName}
           saved={profile.nicknames[other.key]}
+          disabled={readOnly}
+          hint={t("sharedHint")}
+          onSave={saveNickname}
+        />
+        <AliasField
+          key={`${self.key}:${profile.nicknames[self.key] ?? ""}`}
+          id="chat-nickname-self"
+          label={t("nicknameSelf")}
+          targetKey={self.key}
+          realName={self.realName}
+          saved={profile.nicknames[self.key]}
+          disabled={readOnly}
+          hint={t("sharedHint")}
           onSave={saveNickname}
         />
       </section>

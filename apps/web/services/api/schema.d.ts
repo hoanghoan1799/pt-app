@@ -441,6 +441,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/chat/conversations/me/nickname": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set or clear (blank) a shared nickname in my conversation: me, the PT side (pt) or one PT (admin:<id>); everybody in it sees it */
+        put: operations["ChatConversationsController_myNickname"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/chat/conversations/me/read": {
         parameters: {
             query?: never;
@@ -537,6 +554,23 @@ export interface paths {
         put?: never;
         /** Mark a conversation read for me (per admin) */
         post: operations["ChatConversationsController_read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/conversations/{cid}/nickname": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set or clear (blank) a shared nickname in a conversation: the trainee (user), the PT side (pt), a PT (admin:<id>) or me; everybody in it sees it */
+        put: operations["ChatConversationsController_nickname"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5349,6 +5383,106 @@ export interface operations {
             };
         };
     };
+    ChatConversationsController_myNickname: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    target: string;
+                    nickname: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        profile: {
+                            nicknames: {
+                                [key: string]: string;
+                            };
+                            colors: {
+                                [key: string]: "orange" | "red" | "pink" | "purple" | "indigo" | "blue" | "teal" | "green";
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
     ChatConversationsController_myRead: {
         parameters: {
             query?: never;
@@ -6006,6 +6140,108 @@ export interface operations {
                 content: {
                     "application/json": {
                         lastReadMessageId: number;
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    ChatConversationsController_nickname: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cid: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    target: string;
+                    nickname: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        profile: {
+                            nicknames: {
+                                [key: string]: string;
+                            };
+                            colors: {
+                                [key: string]: "orange" | "red" | "pink" | "purple" | "indigo" | "blue" | "teal" | "green";
+                            };
+                        };
                     };
                 };
             };

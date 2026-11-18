@@ -1,6 +1,6 @@
-// Shown name in chat (KAN-141, spec D2): the viewer's own private nickname if
-// there is one, else the real name. The nicknames passed in are always the
-// viewer's, never anybody else's (docs/specs/private-nicknames.md).
+// Shown name in chat (KAN-141, spec D2): the conversation's shared nickname if
+// there is one, else the real name. Private contact aliases are not used in
+// chat (docs/specs/messenger-nicknames.md).
 
 export const resolveDisplayName = (
   nickname: string | null | undefined,

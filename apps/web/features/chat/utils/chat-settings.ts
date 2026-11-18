@@ -10,8 +10,8 @@ import { displayNameFor } from "@/features/chat/utils/display-name";
 // Pure rules behind the conversation settings sheet and the coloured bubbles
 // (KAN-142, spec D1, D2, D4). Keys are "user", "pt" and "admin:<id>".
 
-// The viewer's private nicknames and the resolved bubble colours as the thread
-// payload carries them.
+// The conversation's shared nicknames and the resolved bubble colours as the
+// thread payload carries them.
 export interface ChatProfileView {
   nicknames: Record<string, string>;
   colors: Record<string, string>;
@@ -30,22 +30,23 @@ export interface NicknameTarget {
   realName: string;
 }
 
-// What the settings sheet edits. `other` is the one person the viewer may
-// give a PRIVATE nickname (nobody names themselves): for a trainee the PT side
-// as a whole ("pt"), for an admin the trainee ("user"). `self` is whose bubble
+// The two nicknames the settings sheet edits: the other person and the viewer
+// (anyone in the conversation may name anyone in it, themselves included).
+// Trainee: the PT side as a whole ("pt") and themselves ("user"). Admin: the
+// trainee ("user") and themselves ("admin:<id>"). `self` is also whose bubble
 // colour the sheet picks.
 export const settingsTargets = (
   viewer: ThreadViewer,
-  names: { peerName: string },
-): { other: NicknameTarget; self: { key: string } } =>
+  names: { peerName: string; selfName: string },
+): { other: NicknameTarget; self: NicknameTarget } =>
   viewer.role === "admin"
     ? {
         other: { key: "user", realName: names.peerName },
-        self: { key: adminKey(viewer.adminId) },
+        self: { key: adminKey(viewer.adminId), realName: names.selfName },
       }
     : {
         other: { key: "pt", realName: names.peerName },
-        self: { key: "user" },
+        self: { key: "user", realName: names.selfName },
       };
 
 // The key a message's bubble colour is looked up under.
@@ -77,9 +78,8 @@ export const bubbleColorFor = (
   return mine ? DEFAULT_CHAT_COLOR : null;
 };
 
-// Name of a PT sender label: the viewer's nickname for that admin, else for
-// the trainee their nickname for the PT side, else the real name. The
-// nicknames are the viewer's own private ones.
+// Name of a PT sender label: the conversation's nickname for that admin, else
+// for the trainee the shared PT one, else the real name.
 export const adminLabel = (
   nicknames: Readonly<Record<string, string>>,
   adminId: number | null,
@@ -97,8 +97,8 @@ export const adminLabel = (
     : realName;
 };
 
-// Name of a reactor in the reactors sheet: the viewer's nickname for them (for
-// an admin, else for the trainee the one for the PT side), else the real name.
+// Name of a reactor in the reactors sheet: their shared nickname (for an
+// admin, else for the trainee the shared PT one), else the real name.
 export const reactorLabel = (
   nicknames: Readonly<Record<string, string>>,
   reactorKey: string,

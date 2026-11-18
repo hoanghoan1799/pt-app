@@ -5,6 +5,7 @@ import { photoIdSchema } from "@/features/chat/utils/photo-rules";
 import { stickerInputSchema } from "@/features/chat/utils/sticker-rules";
 import {
   ALIAS_MAX_LENGTH,
+  aliasValueSchema,
   PT_ALIAS_TARGET,
 } from "@/features/contact-aliases/utils/alias-rules";
 
@@ -68,9 +69,10 @@ export const editSchema = z.object({
 
 export const unsendSchema = z.object({ messageId: messageIdSchema });
 
-// Nicknames are private aliases (contact-aliases); the chat keeps their keys:
-// the trainee ("user"), the PT side as a whole ("pt") or one admin
-// ("admin:<id>").
+// Shared conversation nicknames (Messenger style; the API stores them in
+// chat_nicknames). Targets: the trainee ("user"), the PT side as a whole
+// ("pt") or one admin ("admin:<id>"). The length and character rules are the
+// alias rules.
 export const CHAT_NICKNAME_MAX_LENGTH = ALIAS_MAX_LENGTH;
 export const PT_TARGET_KEY = PT_ALIAS_TARGET;
 
@@ -81,6 +83,22 @@ export const parseAdminTarget = (target: string) => {
 
   return match ? Number(match[1]) : null;
 };
+
+export const nicknameTargetSchema = z
+  .string()
+  .refine(
+    (value) =>
+      value === USER_READER_KEY ||
+      value === PT_TARGET_KEY ||
+      ADMIN_TARGET.test(value),
+  );
+
+// Trimmed, whitespace collapsed, 1-30 characters, no control characters; an
+// empty value clears the nickname.
+export const nicknameSchema = z.object({
+  target: nicknameTargetSchema,
+  nickname: aliasValueSchema,
+});
 
 // null = back to the default colour (or, for an override, no override).
 export const colorSchema = z.object({

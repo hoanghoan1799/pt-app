@@ -14,23 +14,30 @@ const admin = {
 };
 
 describe("settingsTargets", () => {
-  it("lets the trainee name the PT side, and picks their own colour", () => {
-    expect(settingsTargets({ role: "user" }, { peerName: "PT" })).toEqual({
+  it("gives the trainee the PT side and themselves to nickname", () => {
+    expect(
+      settingsTargets({ role: "user" }, { peerName: "PT", selfName: "An" }),
+    ).toEqual({
       other: { key: "pt", realName: "PT" },
-      self: { key: "user" },
+      self: { key: "user", realName: "An" },
     });
   });
 
-  it("lets the admin name the trainee, and picks their own colour", () => {
-    expect(settingsTargets(admin, { peerName: "An" })).toEqual({
+  it("gives the admin the trainee and their own admin key", () => {
+    expect(
+      settingsTargets(admin, { peerName: "An", selfName: "hoan" }),
+    ).toEqual({
       other: { key: "user", realName: "An" },
-      self: { key: "admin:7" },
+      self: { key: "admin:7", realName: "hoan" },
     });
   });
 
-  it("never offers a nickname for yourself", () => {
+  it("offers two different people on either side", () => {
     for (const viewer of [{ role: "user" as const }, admin]) {
-      const { other, self } = settingsTargets(viewer, { peerName: "x" });
+      const { other, self } = settingsTargets(viewer, {
+        peerName: "x",
+        selfName: "y",
+      });
 
       expect(other.key).not.toBe(self.key);
     }

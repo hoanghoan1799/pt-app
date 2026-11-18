@@ -6,6 +6,7 @@ import {
   colorSchema,
   historyCursorSchema,
   nextReadCursor,
+  nicknameSchema,
   parseAdminTarget,
   sendMessageSchema,
   toPreview,
@@ -154,6 +155,35 @@ describe("admin target and colour schemas", () => {
     expect(colorSchema.safeParse({ color: null }).success).toBe(true);
     expect(colorSchema.safeParse({ color: "#fff" }).success).toBe(false);
     expect(colorSchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe("nicknameSchema", () => {
+  const parse = (value: unknown) => nicknameSchema.safeParse(value);
+
+  it("accepts the three targets, trims and collapses whitespace, and lets blank clear", () => {
+    for (const target of ["user", "pt", "admin:12"]) {
+      expect(parse({ target, nickname: "x" }).success, target).toBe(true);
+    }
+    expect(parse({ target: "pt", nickname: "  Thầy   Hoàn " })).toMatchObject({
+      data: { nickname: "Thầy Hoàn" },
+    });
+    expect(parse({ target: "pt", nickname: "  " })).toMatchObject({
+      data: { nickname: "" },
+    });
+  });
+
+  it("counts 30 characters (code points) and refuses 31, control characters and bad targets", () => {
+    expect(parse({ target: "pt", nickname: "👍".repeat(30) }).success).toBe(
+      true,
+    );
+    expect(parse({ target: "pt", nickname: "a".repeat(31) }).success).toBe(
+      false,
+    );
+    expect(parse({ target: "pt", nickname: "a\u0007" }).success).toBe(false);
+    for (const target of ["", "admin", "admin:x", "user:1", "PT"]) {
+      expect(parse({ target, nickname: "x" }).success, target).toBe(false);
+    }
   });
 });
 
