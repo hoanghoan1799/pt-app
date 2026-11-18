@@ -4,6 +4,7 @@ import {
   COMPANY_REASONS,
   companyScanValues,
   findCompanyViolations,
+  NULL_INSTEAD_OF_SKIP,
   repairCompanyRow,
 } from "./company-features.js";
 import type { RowRef } from "./plan.js";
@@ -127,6 +128,33 @@ describe("findCompanyViolations", () => {
       `admins:accent_color:2:${COMPANY_REASONS.accentFormat}`,
       `theme_settings:accent:pt:${COMPANY_REASONS.accentFormat}`,
       `users:accent_color:1:${COMPANY_REASONS.accentFormat}`,
+    ]);
+  });
+
+  it("marks only the clearable rules nullable: personal colors and a restriction's lifted_by", () => {
+    const nullable = findCompanyViolations({
+      users: [row("1", { accent_color: "#FF8800" })],
+      theme_settings: [row("pt", { accent: "cam" })],
+      user_restrictions: [row("1", { lifted_at: null, lifted_by_admin_id: 3 })],
+      chat_groups: [
+        row("1", {
+          name_length: 3,
+          last_message_id: null,
+          dissolved_at: null,
+          dissolved_by_admin_id: 3,
+        }),
+      ],
+    }).map((v) => `${v.table}:${v.column}:${v.nullable === true}`);
+
+    expect(nullable.sort()).toEqual([
+      "chat_groups:dissolved_by_admin_id:false",
+      "theme_settings:accent:false",
+      "user_restrictions:lifted_by_admin_id:true",
+      "users:accent_color:true",
+    ]);
+    expect([...NULL_INSTEAD_OF_SKIP].sort()).toEqual([
+      "user_restrictions.created_by_admin_id",
+      "user_restrictions.lifted_by_admin_id",
     ]);
   });
 

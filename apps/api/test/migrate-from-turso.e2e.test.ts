@@ -873,6 +873,9 @@ describe("data migration from a Turso/SQLite copy", () => {
           "lifted_by_without_lifted_at",
         ),
       ).toEqual(["90"]);
+      expect(
+        keys("user_restrictions", "created_by_admin_id", "missing_parent"),
+      ).toEqual(["91"]);
       expect(keys("chat_groups", "name", "group_name_length")).toEqual(["90"]);
       expect(
         keys("chat_groups", "last_message_id", "last_message_in_other_group"),
@@ -929,9 +932,7 @@ describe("data migration from a Turso/SQLite copy", () => {
       expect(exitCode, output).toBe(0);
       expect(report.skippedRows).toEqual(
         expect.arrayContaining([
-          { table: "users", keys: ["90"] },
           { table: "theme_settings", keys: ["pt"] },
-          { table: "user_restrictions", keys: ["90"] },
           { table: "chat_groups", keys: expect.arrayContaining(["90", "91"]) },
           {
             table: "chat_group_members",
@@ -948,6 +949,54 @@ describe("data migration from a Turso/SQLite copy", () => {
       expect(await count(db, "chat_groups")).toBe(1);
       expect(await count(db, "chat_group_messages")).toBe(2);
       expect(await count(db, "chat_group_photos")).toBe(2);
+    });
+
+    it("--orphans=skip never drops a user restriction or an account over a clearable value: it clears it", async () => {
+      const { fixture, db } = await setup("company-dirty");
+      const { exitCode, report, output } = await migrate(fixture, db, {
+        orphans: "skip",
+      });
+
+      expect(exitCode, output).toBe(0);
+
+      const skippedTables = report.skippedRows.map((row) => row.table);
+
+      expect(skippedTables).not.toContain("user_restrictions");
+      expect(skippedTables).not.toContain("users");
+      expect(report.nulledValues).toEqual(
+        expect.arrayContaining([
+          { table: "users", column: "accent_color", keys: ["90"] },
+          {
+            table: "user_restrictions",
+            column: "lifted_by_admin_id",
+            keys: ["90"],
+          },
+          {
+            table: "user_restrictions",
+            column: "created_by_admin_id",
+            keys: ["91"],
+          },
+        ]),
+      );
+
+      const restrictions: {
+        id: number;
+        lifted_at: Date | null;
+        lifted_by_admin_id: number | null;
+        created_by_admin_id: number | null;
+      }[] = await db.dataSource.query(
+        `SELECT id, lifted_at, lifted_by_admin_id, created_by_admin_id FROM user_restrictions WHERE id IN (90, 91) ORDER BY id`,
+      );
+      const [user] = await db.dataSource.query(
+        `SELECT accent_color FROM users WHERE id = 90`,
+      );
+
+      // Both blocks are still active (never lifted).
+      expect(restrictions).toEqual([
+        { id: 90, lifted_at: null, lifted_by_admin_id: null, created_by_admin_id: 1 },
+        { id: 91, lifted_at: null, lifted_by_admin_id: null, created_by_admin_id: null },
+      ]);
+      expect(user.accent_color).toBeNull();
     });
   });
 

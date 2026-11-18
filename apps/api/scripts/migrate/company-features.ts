@@ -72,6 +72,15 @@ export const COMPANY_SCAN_COLUMNS: Record<string, string[]> = {
   chat_group_photos: ["group_id", "message_id", "position", "size"],
 };
 
+// Foreign keys whose orphan is cleared instead of dropping the row under
+// --orphans=skip: a user restriction must survive its admin (PostgreSQL itself
+// sets these to NULL when an admin is deleted). Dropping it would silently lift
+// a block.
+export const NULL_INSTEAD_OF_SKIP: ReadonlySet<string> = new Set([
+  "user_restrictions.created_by_admin_id",
+  "user_restrictions.lifted_by_admin_id",
+]);
+
 export const COMPANY_REASONS = {
   accentFormat: "accent_not_rrggbb",
   liftedByWithoutLiftedAt: "lifted_by_without_lifted_at",
@@ -99,8 +108,14 @@ const isSet = (value: unknown) => value !== null && value !== undefined;
 
 export const findCompanyViolations = (rows: Rows): RowViolation[] => {
   const found: RowViolation[] = [];
-  const add = (table: string, column: string, key: string, reason: string) =>
-    found.push({ table, column, key, reason });
+  const add = (
+    table: string,
+    column: string,
+    key: string,
+    reason: string,
+    nullable = false,
+  ) =>
+    found.push({ table, column, key, reason, ...(nullable ? { nullable } : {}) });
 
   // Colors: NULL or normalized "#rrggbb".
   for (const [table, column] of [
@@ -111,13 +126,23 @@ export const findCompanyViolations = (rows: Rows): RowViolation[] => {
     for (const row of rows[table] ?? []) {
       const value = row.values[column];
 
+      // A bad personal color is cleared (the default applies) rather than
+      // dropping the account; theme_settings.accent is NOT NULL.
       if (isSet(value) && !(typeof value === "string" && ACCENT.test(value))) {
-        add(table, column, row.key, COMPANY_REASONS.accentFormat);
+        add(
+          table,
+          column,
+          row.key,
+          COMPANY_REASONS.accentFormat,
+          table !== "theme_settings",
+        );
       }
     }
   }
 
-  // "who did it" needs "when".
+  // "who did it" needs "when". Only the restriction's lifted_by is cleared
+  // (still never lifted, still active); the others stop the run or drop the
+  // row like any rule.
   for (const [table, by, at, reason] of [
     [
       "user_restrictions",
@@ -140,7 +165,7 @@ export const findCompanyViolations = (rows: Rows): RowViolation[] => {
   ] as const) {
     for (const row of rows[table] ?? []) {
       if (isSet(row.values[by]) && !isSet(row.values[at])) {
-        add(table, by, row.key, reason);
+        add(table, by, row.key, reason, table === "user_restrictions");
       }
     }
   }

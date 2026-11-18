@@ -176,6 +176,11 @@ export type RowViolation = {
   column: string;
   key: string;
   reason: string;
+  // The rule is met by clearing this (nullable) column, and clearing it keeps
+  // the row's meaning (a never-lifted restriction stays active, an account
+  // without a valid color uses the default). --orphans=null and skip then set
+  // it to NULL instead of refusing or dropping the row; report still stops.
+  nullable?: boolean;
 };
 
 export const resolveOrphans = (
@@ -183,6 +188,10 @@ export const resolveOrphans = (
   sourceRows: Record<string, RowRef[]>,
   mode: OrphanMode,
   violations: RowViolation[] = [],
+  // "table.column" foreign keys whose orphan is set to NULL under
+  // --orphans=skip instead of dropping the row (the row must survive a missing
+  // parent: an active user restriction outlives the admin who created it).
+  nullInsteadOfSkip: ReadonlySet<string> = new Set(),
 ): OrphanResolution => {
   const fks = [...foreignKeys].sort(byName);
   // Work on copies: the caller keeps the original rows.
@@ -242,6 +251,15 @@ export const resolveOrphans = (
     }
   };
 
+  const nullValue = (table: string, column: string, key: string) => {
+    const columns = nulledKeys.get(table) ?? new Map();
+    const keys = columns.get(column) ?? new Set<string>();
+
+    keys.add(key);
+    columns.set(column, keys);
+    nulledKeys.set(table, columns);
+  };
+
   for (let round = 1; ; round += 1) {
     const reason = round === 1 ? "missing_parent" : "parent_skipped";
     const parents = new Map<string, Set<number | string>>();
@@ -257,7 +275,19 @@ export const resolveOrphans = (
           nullable: false,
         };
 
-        if (mode === "null") {
+        if (violation.nullable && mode !== "report") {
+          record(groups, fk, violation.reason, violation.key);
+          nullValue(violation.table, violation.column, violation.key);
+
+          // The foreign key scan below then sees the cleared value.
+          const cleared = rows[violation.table]?.find(
+            (row) => row.key === violation.key,
+          );
+
+          if (cleared) {
+            cleared.values[violation.column] = null;
+          }
+        } else if (mode === "null") {
           record(unnullable, fk, violation.reason, violation.key);
         } else {
           record(groups, fk, violation.reason, violation.key);
@@ -288,20 +318,24 @@ export const resolveOrphans = (
         if (mode === "null") {
           if (fk.nullable && !fk.derived) {
             record(groups, fk, reason, row.key);
-
-            const columns = nulledKeys.get(fk.table) ?? new Map();
-            const keys = columns.get(fk.column) ?? new Set<string>();
-
-            keys.add(row.key);
-            columns.set(fk.column, keys);
-            nulledKeys.set(fk.table, columns);
+            nullValue(fk.table, fk.column, row.key);
           } else {
             record(unnullable, fk, reason, row.key);
           }
         } else {
           record(groups, fk, reason, row.key);
 
-          if (mode === "skip") {
+          if (
+            mode === "skip" &&
+            fk.nullable &&
+            !fk.derived &&
+            nullInsteadOfSkip.has(`${fk.table}.${fk.column}`)
+          ) {
+            // The row stays; cleared here so a later round does not count it
+            // again.
+            nullValue(fk.table, fk.column, row.key);
+            row.values[fk.column] = null;
+          } else if (mode === "skip") {
             toSkip.push({ table: fk.table, key: row.key });
           }
         }

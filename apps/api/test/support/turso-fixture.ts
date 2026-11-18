@@ -1214,6 +1214,17 @@ const companyDirty = (): Entry[] => [
       lifted_by_admin_id: 1,
     },
   ],
+  // An active block whose admin was deleted in SQLite (no FKs there).
+  [
+    "user_restrictions",
+    {
+      id: 91,
+      user_id: 1,
+      level: "restricted",
+      created_by_admin_id: 99,
+      created_at: MS + 8001,
+    },
+  ],
   [
     "chat_groups",
     { id: 90, name: "", created_by_key: "admin:1", created_at: MS + 8010 },

@@ -31,6 +31,7 @@ import {
   COMPANY_SCAN_COLUMNS,
   companyScanValues,
   findCompanyViolations,
+  NULL_INSTEAD_OF_SKIP,
 } from "./company-features.js";
 import {
   backfills,
@@ -1040,6 +1041,7 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
           withoutSkipped(analysis.rows, violations.skipped),
         ),
       ],
+      NULL_INSTEAD_OF_SKIP,
     );
 
     for (const [table, keys] of Object.entries(violations.skipped)) {
