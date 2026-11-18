@@ -26,12 +26,22 @@ import { ChatMessage } from "./chat-message.entity.js";
 })
 // Unique so that chat_messages (id, photo_id) can reference it.
 @Index("chat_photos_message_photo", ["messageId", "id"], { unique: true })
-// Deferred: the app attaches the photo (message_id) before the message points
-// back (photo_id), inside one transaction. Deleting the message deletes it.
-@ForeignKey(() => ChatMessage, ["messageId", "id"], ["id", "photoId"], {
+// A message carries up to 10 photos; position is the order (0 = cover, also
+// chat_messages.photo_id). Deferred: the app attaches the photos (message_id)
+// before the message points at its cover (photo_id), inside one transaction.
+// Deleting the message deletes them.
+@ForeignKey(() => ChatMessage, ["messageId"], ["id"], {
   name: "fk_chat_photos_message",
   onDelete: "CASCADE",
   deferrable: "INITIALLY DEFERRED",
+})
+@Check(
+  "chat_photos_position_nonnegative",
+  `"position" IS NULL OR "position" >= 0`,
+)
+@Index("chat_photos_message_position", ["messageId", "position"], {
+  unique: true,
+  where: `"message_id" IS NOT NULL AND "position" IS NOT NULL`,
 })
 @Check("chat_photos_size_matches_data", `"size" = octet_length("data")`)
 @Index(
@@ -56,6 +66,11 @@ export class ChatPhoto {
 
   @Column({ type: "text" })
   uploaderKey!: string;
+
+  // Order inside the message (0 = cover); null (a message from before several
+  // photos) counts as 0.
+  @Column({ type: "integer", nullable: true })
+  position!: number | null;
 
   // Idempotency-Key of the upload: a retry with the same key finds this row.
   @Column({ type: "text", nullable: true })
