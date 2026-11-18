@@ -42,13 +42,28 @@ describe("ExpiredRowsPurge timer", () => {
     const { service, query } = build("production", 30);
 
     service.onModuleInit();
-    expect(vi.getTimerCount()).toBe(1);
-    await vi.advanceTimersByTimeAsync(29 * 60_000);
+    expect(vi.getTimerCount()).toBe(2); // startup delay + interval
+    await vi.advanceTimersByTimeAsync(59_000);
     expect(query).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(query).toHaveBeenCalledTimes(3); // first purge after 60 s: two login_attempts statements, one rate_limits
+    await vi.advanceTimersByTimeAsync(28 * 60_000);
+    expect(query).toHaveBeenCalledTimes(3);
     await vi.advanceTimersByTimeAsync(60_000);
-    expect(query).toHaveBeenCalledTimes(3); // two login_attempts statements, one rate_limits
+    expect(query).toHaveBeenCalledTimes(6); // then on the 30 min interval
     service.onModuleDestroy();
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("clears the pending startup purge on destroy", async () => {
+    vi.useFakeTimers();
+    const { service, query } = build("production", 30);
+
+    service.onModuleInit();
+    service.onModuleDestroy();
+    expect(vi.getTimerCount()).toBe(0);
+    await vi.advanceTimersByTimeAsync(2 * 60 * 60_000);
+    expect(query).not.toHaveBeenCalled();
   });
 
   it("survives a failing purge and runs again later", async () => {

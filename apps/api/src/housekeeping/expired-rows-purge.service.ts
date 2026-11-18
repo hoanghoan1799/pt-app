@@ -17,6 +17,8 @@ import { APP_ENV } from "../config/app-config.module.js";
 import type { Env } from "../config/env.schema.js";
 
 export const PURGE_BATCH_SIZE = 1000;
+// The first purge after boot, so frequent restarts still purge.
+export const PURGE_STARTUP_DELAY_MS = 60_000;
 
 // A rate_limits row is a fixed-window counter whose window length lives in the
 // code that writes it. The longest window in use is the friend-request one
@@ -45,6 +47,7 @@ export type PurgeResult = { loginAttempts: number; rateLimits: number };
 export class ExpiredRowsPurge implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ExpiredRowsPurge.name);
   private timer: ReturnType<typeof setInterval> | null = null;
+  private startupTimer: ReturnType<typeof setTimeout> | null = null;
   private running = false;
 
   constructor(
@@ -62,6 +65,11 @@ export class ExpiredRowsPurge implements OnModuleInit, OnModuleDestroy {
     if (this.env.NODE_ENV === "test" || minutes === 0) {
       return;
     }
+    this.startupTimer = setTimeout(() => {
+      this.startupTimer = null;
+      void this.runSafely();
+    }, PURGE_STARTUP_DELAY_MS);
+    this.startupTimer.unref();
     this.timer = setInterval(() => {
       void this.runSafely();
     }, minutes * 60_000);
@@ -69,6 +77,10 @@ export class ExpiredRowsPurge implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleDestroy() {
+    if (this.startupTimer) {
+      clearTimeout(this.startupTimer);
+      this.startupTimer = null;
+    }
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;
