@@ -1,6 +1,7 @@
 import { SOCIAL_FRIEND_MESSAGES } from "@pt/contracts";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
+import { migrations } from "../src/migrations/index.js";
 import { PUSH_SENDERS } from "../src/push/push-sender.js";
 import { SocialCleanupService } from "../src/social/social-cleanup.service.js";
 import { hideTrainee } from "./support/auth.js";
@@ -887,7 +888,16 @@ describe("schema rules and the migration", () => {
          VALUES ('user:${user}', 'user', ${user}, 'spam', 'open', now()),
                 ('user:${user}', 'message', 7, 'spam', 'open', now())`,
       );
-      await db.dataSource.undoLastMigration({ transaction: "each" });
+      // Undo every migration after ReportMessages, then ReportMessages itself.
+      const after =
+        migrations.length -
+        migrations.findIndex(
+          (migration) => migration.name === "ReportMessages1795600000000",
+        );
+
+      for (let i = 0; i < after; i += 1) {
+        await db.dataSource.undoLastMigration({ transaction: "each" });
+      }
 
       expect(
         await db.dataSource.query(

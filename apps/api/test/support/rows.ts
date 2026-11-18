@@ -51,7 +51,14 @@ export const insertRow = async (
   if (Buffer.isBuffer(row.data) && !("size" in values)) {
     row.size = row.data.length;
   }
-  const result = await dataSource.getRepository(entity).insert(row);
+  // Only the columns set here: the others take their DEFAULT, and a test on an
+  // older schema (before a migration that added a column) still works.
+  const result = await dataSource
+    .createQueryBuilder()
+    .insert()
+    .into(entity, Object.keys(row))
+    .values(row)
+    .execute();
 
   return (result.identifiers[0]?.id as number | undefined) ?? 0;
 };
