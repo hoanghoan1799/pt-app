@@ -47,6 +47,7 @@ describe("toMessageView", () => {
       body: "xin chào",
       sticker: null,
       photo: null,
+      photos: [],
       clientId: "client-1",
       createdAt: "2026-11-12T10:00:00.000Z",
       replyTo: null,
@@ -106,7 +107,9 @@ describe("toMessageView", () => {
             ],
           ],
         ]),
-        photoSizes: new Map([[3, { width: 1, height: 1 }]]),
+        photos: new Map([
+          [5, [{ id: 3, messageId: 5, position: 0, width: 1, height: 1 }]],
+        ]),
         posts: new Map([[9, { id: 9, available: false as const }]]),
       }),
     );
@@ -116,6 +119,7 @@ describe("toMessageView", () => {
       deleted: true,
       sticker: null,
       photo: null,
+      photos: [],
       replyTo: null,
       reactions: [],
       post: null,
@@ -125,7 +129,11 @@ describe("toMessageView", () => {
   it("builds the photo from its size and the versioned API URL", () => {
     const view = toMessageView(
       row({ photoId: 3 }),
-      context({ photoSizes: new Map([[3, { width: 640, height: 480 }]]) }),
+      context({
+        photos: new Map([
+          [5, [{ id: 3, messageId: 5, position: null, width: 640, height: 480 }]],
+        ]),
+      }),
     );
 
     expect(view.photo).toEqual({
@@ -134,7 +142,33 @@ describe("toMessageView", () => {
       height: 480,
       alt: "Ảnh trong tin nhắn",
     });
+    expect(view.photos).toEqual([view.photo]);
     expect(toMessageView(row({ photoId: 3 }), context()).photo).toBeNull();
+  });
+
+  it("lists every photo in the given order and keeps the first as the cover", () => {
+    const view = toMessageView(
+      row({ photoId: 3 }),
+      context({
+        photos: new Map([
+          [
+            5,
+            [
+              { id: 3, messageId: 5, position: 0, width: 10, height: 10 },
+              { id: 8, messageId: 5, position: 1, width: 20, height: 10 },
+              { id: 6, messageId: 5, position: 2, width: 30, height: 10 },
+            ],
+          ],
+        ]),
+      }),
+    );
+
+    expect(view.photos.map((photo) => photo.url)).toEqual([
+      "/v1/chat/photos/3",
+      "/v1/chat/photos/8",
+      "/v1/chat/photos/6",
+    ]);
+    expect(view.photo).toEqual(view.photos[0]);
   });
 
   it("derives a personal sticker's URL from its ref and checks the other kinds", () => {
@@ -181,6 +215,7 @@ describe("toMessageView", () => {
       body: "x".repeat(120),
       isSticker: false,
       isPhoto: false,
+      photoCount: 0,
       senderRole: "admin",
       deleted: false,
     });
@@ -220,6 +255,7 @@ describe("toMessageView", () => {
       body: "",
       isSticker: false,
       isPhoto: false,
+      photoCount: 0,
       senderRole: "user",
       deleted: true,
     });
@@ -248,8 +284,45 @@ describe("toMessageView", () => {
       }),
     );
 
-    expect(sticker.replyTo).toMatchObject({ isSticker: true, isPhoto: false });
-    expect(photo.replyTo).toMatchObject({ isSticker: false, isPhoto: true });
+    expect(sticker.replyTo).toMatchObject({
+      isSticker: true,
+      isPhoto: false,
+      photoCount: 0,
+    });
+    expect(photo.replyTo).toMatchObject({
+      isSticker: false,
+      isPhoto: true,
+      photoCount: 1,
+    });
+  });
+
+  it("counts the photos of a quoted message, and none once it is unsent", () => {
+    const target = {
+      id: 2,
+      conversationId: 1,
+      body: "",
+      stickerRef: null,
+      photoId: 4,
+      senderRole: "user" as const,
+      deletedAt: null,
+    };
+    const many = toMessageView(
+      row({ replyToMessageId: 2 }),
+      context({
+        targets: new Map([[2, target]]),
+        targetPhotoCounts: new Map([[2, 4]]),
+      }),
+    );
+    const unsent = toMessageView(
+      row({ replyToMessageId: 2 }),
+      context({
+        targets: new Map([[2, { ...target, deletedAt: LATER }]]),
+        targetPhotoCounts: new Map([[2, 4]]),
+      }),
+    );
+
+    expect(many.replyTo).toMatchObject({ isPhoto: true, photoCount: 4 });
+    expect(unsent.replyTo).toMatchObject({ isPhoto: false, photoCount: 0 });
   });
 
   it("names reactors: the trainee by name, an admin by username, deleted admins as PT", () => {
@@ -321,6 +394,19 @@ describe("inboxPreview", () => {
         deletedAt: NOW,
       }),
     ).toBe("");
+  });
+
+  it("names the count when the last message has several photos", () => {
+    const last = { body: "", stickerRef: null, photoId: 1, deletedAt: null };
+
+    expect(inboxPreview({ ...last, photoCount: 3 })).toBe("📷 3 ảnh");
+    expect(inboxPreview({ ...last, photoCount: 3 }, "en")).toBe("📷 3 photos");
+    expect(inboxPreview({ ...last, photoCount: 3 }, "zh")).toBe("📷 3 张照片");
+    expect(inboxPreview({ ...last, photoCount: 1 })).toBe("📷 Ảnh");
+    // A caption wins over the count.
+    expect(inboxPreview({ ...last, body: "bữa trưa", photoCount: 3 })).toBe(
+      "📷 bữa trưa",
+    );
   });
 
   it("describes stickers and photos and cuts long text at 80 characters", () => {

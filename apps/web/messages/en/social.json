@@ -140,7 +140,8 @@
   "dmPostQuote": {
     "postUnavailable": "This post is no longer available",
     "postOf": "Post by {name}",
-    "photoAlt": "Photo in the post"
+    "photoAlt": "Photo in the post",
+    "morePhotos": "{count} more photos"
   },
   "dmBubbleList": {
     "deleted": "Deleted",
@@ -176,7 +177,16 @@
     "removePhoto": "Remove photo",
     "addPhoto": "Add photo",
     "submit": "Post",
-    "photo": "Photo"
+    "photo": "Photo",
+    "photoSlotsFull": "At most {max} photos per post.",
+    "photosTrimmed": "Only {count} more photos fit (max {max}). The rest were skipped.",
+    "addMorePhotos": "Add photos",
+    "photoUploading": "Uploading photo",
+    "photoFailed": "Photo upload failed",
+    "retryPhoto": "Retry",
+    "photosPending": "Wait for the photos to finish uploading or remove the failed ones.",
+    "photoCounter": "{count}/{max} photos",
+    "photoAltN": "Photo {index} to post"
   },
   "postCard": {
     "deleteTitle": "Delete this post?",
@@ -194,7 +204,9 @@
     "replyInChat": "Reply in chat",
     "edit": "Edit",
     "delete": "Delete",
-    "report": "Report"
+    "report": "Report",
+    "photoN": "Photo {index} by {name}",
+    "morePhotos": "View {count} more photos"
   },
   "comments": {
     "label": "Comments",

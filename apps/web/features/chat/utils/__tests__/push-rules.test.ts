@@ -65,6 +65,21 @@ describe("buildPushPreview", () => {
       "Đã gửi ảnh",
     );
     expect(buildPushPreview({ photo: true })).toBe("Đã gửi ảnh");
+    expect(buildPushPreview({ photo: true, photoCount: 1 })).toBe("Đã gửi ảnh");
+    expect(buildPushPreview({ photo: true, photoCount: 4 })).toBe(
+      "Đã gửi 4 ảnh",
+    );
+    expect(
+      buildPushPreview({
+        body: "Bữa trưa",
+        photo: true,
+        photoCount: 4,
+        locale: "en",
+      }),
+    ).toBe("Sent 4 photos");
+    expect(buildPushPreview({ photo: true, photoCount: 2, locale: "zh" })).toBe(
+      "发送了 2 张照片",
+    );
   });
 
   it("says a sticker was sent", () => {

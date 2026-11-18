@@ -665,6 +665,15 @@ describe("reply and time helpers", () => {
       deleted: false,
     });
     expect(quoteText(bare!)).toBe("Ảnh");
+    expect(
+      quoteText({ deleted: false, isPhoto: true, photoCount: 1, body: "" }),
+    ).toBe("Ảnh");
+    expect(
+      quoteText({ deleted: false, isPhoto: true, photoCount: 4, body: "" }),
+    ).toBe("4 ảnh");
+    expect(
+      quoteText({ deleted: false, isPhoto: true, photoCount: 4, body: "đẹp" }),
+    ).toBe("đẹp");
     expect(quoteText(captioned!)).toBe("bữa trưa");
     expect(
       toReplyTo(toThreadMessage(msg(6, { body: "", photo, deleted: true })))

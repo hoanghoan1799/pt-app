@@ -172,6 +172,7 @@ describe("sending (trainee)", () => {
           body: "Chào PT",
           hasSticker: false,
           hasPhoto: false,
+          photoCount: 0,
           replyToMessageId: null,
         },
       },
@@ -414,6 +415,7 @@ describe("replies and stickers", () => {
       body: "a".repeat(120),
       isSticker: false,
       isPhoto: false,
+      photoCount: 0,
       senderRole: "user",
       deleted: false,
     });

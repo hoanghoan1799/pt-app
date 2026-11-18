@@ -12,6 +12,7 @@ import {
   summarizeReactions,
 } from "./domain/reactions.js";
 import { deletedAccountName } from "./notifications/notification-content.js";
+import { loadPostPhotos } from "./photos/post-photos.queries.js";
 import {
   MAX_ID,
   POST_COLUMNS,
@@ -31,7 +32,8 @@ export type PostView = {
   authorVerified: boolean;
   caption: string;
   privacy: SocialPostPrivacy;
-  photo: { id: number; width: number; height: number } | null;
+  // In display order; the first is the cover.
+  photos: { id: number; width: number; height: number }[];
   createdAt: Date;
   edited: boolean;
   canEdit: boolean;
@@ -41,10 +43,6 @@ export type PostView = {
 };
 
 export type PostPageView = { items: PostView[]; nextCursor: string | null };
-
-type PostWithPhoto = PostRow & {
-  photo: { width: number; height: number } | null;
-};
 
 // A tiny builder so a filter can add parameters without counting indexes.
 class Sql {
@@ -74,7 +72,7 @@ export class PostQueries {
   // Turns post rows into card data: author names/avatars/ticks, photo sizes,
   // engagement and what the viewer may do with each post.
   private async toViews(
-    rows: PostWithPhoto[],
+    rows: PostRow[],
     viewer: SocialActor,
   ): Promise<PostView[]> {
     const viewerKey = keyOf(viewer);
@@ -82,10 +80,16 @@ export class PostQueries {
       rows.map((row) => keyOf({ kind: row.authorKind, id: row.authorId })),
       viewerKey,
     );
-    const engagement = await this.loadEngagement(
-      rows.map((row) => row.id),
-      viewer,
-    );
+    const [engagement, photos] = await Promise.all([
+      this.loadEngagement(
+        rows.map((row) => row.id),
+        viewer,
+      ),
+      loadPostPhotos(
+        this.dataSource,
+        rows.map((row) => row.id),
+      ),
+    ]);
 
     return rows.map((post) => {
       const ref: AuthorRef = { kind: post.authorKind, id: post.authorId };
@@ -101,10 +105,7 @@ export class PostQueries {
         authorVerified: author?.verified ?? false,
         caption: post.caption ?? "",
         privacy: post.privacy,
-        photo:
-          post.photoId !== null && post.photo
-            ? { id: post.photoId, ...post.photo }
-            : null,
+        photos: photos.get(post.id) ?? [],
         createdAt: post.createdAt,
         edited: post.updatedAt.getTime() > post.createdAt.getTime(),
         canEdit: this.policy.canEdit(viewer, ref),
@@ -180,27 +181,15 @@ export class PostQueries {
     const sql = new Sql();
     const where = build(sql);
     const after = cursor === null ? "TRUE" : `p.id < ${sql.add(cursor)}`;
-    const rows: (Parameters<typeof toPostRow>[0] & {
-      photo_width: number | null;
-      photo_height: number | null;
-    })[] = await this.dataSource.query(
-      `SELECT ${POST_COLUMNS}, ph.width AS photo_width, ph.height AS photo_height
+    const rows: Parameters<typeof toPostRow>[0][] = await this.dataSource.query(
+      `SELECT ${POST_COLUMNS}
        FROM social_posts p
-       LEFT JOIN social_post_photos ph ON ph.id = p.photo_id
        WHERE p.deleted_at IS NULL AND ${after} AND (${where})
        ORDER BY p.id DESC LIMIT ${sql.add(limit + 1)}`,
       sql.params,
     );
     const page = rows.slice(0, limit);
-    const items = await this.toViews(
-      page.map((row) => ({
-        ...toPostRow(row),
-        photo: row.photo_width
-          ? { width: row.photo_width, height: row.photo_height ?? 0 }
-          : null,
-      })),
-      viewer,
-    );
+    const items = await this.toViews(page.map(toPostRow), viewer);
     const last = page.at(-1);
 
     return {
@@ -316,18 +305,7 @@ export class PostQueries {
     if (!visible) {
       return null;
     }
-    const photo = visible.photoId
-      ? ((
-          await this.dataSource.query(
-            `SELECT width, height FROM social_post_photos WHERE id = $1`,
-            [visible.photoId],
-          )
-        )[0] as { width: number; height: number } | undefined)
-      : undefined;
-    const [view] = await this.toViews(
-      [{ ...visible, photo: photo ?? null }],
-      viewer,
-    );
+    const [view] = await this.toViews([visible], viewer);
 
     return view ?? null;
   }

@@ -75,6 +75,31 @@ describe("helpers", () => {
     );
   });
 
+  it("names the photo count in the preview and the push when there are several", () => {
+    expect(dmPreview({ body: null, photoId: 2, deleted: false }, "vi", 3)).toBe(
+      "📷 3 ảnh",
+    );
+    expect(
+      dmPreview({ body: "đẹp", photoId: 2, deleted: false }, "en", 3),
+    ).toBe("📷 3 photos đẹp");
+    expect(
+      buildDmPushPayload({
+        senderName: "An",
+        conversationId: 4,
+        photo: true,
+        photoCount: 3,
+      }).body,
+    ).toBe("Đã gửi 3 ảnh");
+    expect(
+      buildDmPushPayload({
+        senderName: "An",
+        conversationId: 4,
+        photo: true,
+        photoCount: 1,
+      }).body,
+    ).toBe("Đã gửi ảnh");
+  });
+
   it("builds a push titled with the sender and showing the text", () => {
     expect(
       buildDmPushPayload({

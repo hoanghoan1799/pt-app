@@ -11,6 +11,7 @@ import { pause } from "./support/realtime.js";
 import {
   createSocialWorld,
   destroySocialWorld,
+  PNG_1X1,
   social,
   type SocialWorld,
 } from "./support/social.js";
@@ -202,6 +203,31 @@ describe("quoting a post in the coach chat", () => {
       authorAvatarUrl: null,
       caption: "Bài tập tuần này",
       photo: null,
+      photoCount: 0,
+    });
+  });
+
+  it("quotes the cover of a post with several photos and counts them", async () => {
+    const ids: number[] = [];
+
+    for (let index = 0; index < 3; index += 1) {
+      ids.push((await api.upload(w.tokens.ptA, PNG_1X1)).body.photo.id);
+    }
+    const created = await api.post("/posts", w.tokens.ptA, {
+      caption: "Ba ảnh bài tập",
+      privacy: "everyone",
+      photoIds: ids,
+    });
+    const response = await sendAnn({
+      body: "đẹp quá",
+      postId: created.body.post.id,
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body.message.post).toMatchObject({
+      available: true,
+      photo: { url: `/v1/social/photos/${ids[0]}`, width: 1, height: 1 },
+      photoCount: 3,
     });
   });
 

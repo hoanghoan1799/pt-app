@@ -145,7 +145,9 @@
     "edited": "Edited",
     "sending": "Sending…",
     "notSent": "Not sent",
-    "retry": "Retry"
+    "retry": "Retry",
+    "photoN": "Photo {index} of {total}",
+    "morePhotos": "View {count} more photos"
   },
   "replyPost": {
     "replying": "Replying to a post",
@@ -307,5 +309,17 @@
     "closedAll": "Closed all bubbles",
     "popLabel": "Show a chat bubble on new messages",
     "popHelp": "When a new message arrives and you are not in that chat, a bubble pops up. This device only."
+  },
+  "photoTray": {
+    "photoAltN": "Photo {index} to send",
+    "removePhoto": "Remove photo",
+    "addMore": "Add photos",
+    "uploading": "Uploading photo",
+    "failed": "Photo upload failed",
+    "retry": "Retry",
+    "counter": "{count}/{max} photos",
+    "slotsFull": "At most {max} photos per message.",
+    "trimmed": "Only {count} more photos fit (max {max}). The rest were skipped.",
+    "pending": "Wait for the photos to finish uploading or remove the failed ones."
   }
 }

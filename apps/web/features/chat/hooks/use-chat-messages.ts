@@ -71,9 +71,14 @@ export type MessageActionResult =
 export type SendContent =
   | { body: string }
   | { sticker: { input: StickerInput; display: ChatSticker } }
-  // KAN-160: the resized image is uploaded first; `photoId` is kept once it
-  // is, so "Gửi lại" never uploads it twice. `body` is the optional caption.
-  | { photo: PreparedPhoto & { photoId?: number }; body?: string };
+  // KAN-160: the composer uploads the resized images first, so every photo
+  // already has its id here ("Gửi lại" never uploads again). `body` is the
+  // optional caption.
+  | { photos: SentPhoto[]; body?: string };
+
+// A photo the composer has already uploaded: its server id and the resized
+// image (for the bubble shown while sending).
+export type SentPhoto = PreparedPhoto & { photoId: number };
 
 // What differs between the trainee and the admin view of the same thread.
 export interface ChatAdapter {
@@ -267,17 +272,9 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
       postId?: number,
     ) => {
       try {
-        const { viewer, sendMessage, uploadPhoto } = adapterRef.current;
-        let toSend = content;
-
-        if ("photo" in content && content.photo.photoId === undefined) {
-          const photoId = await uploadPhoto(content.photo.blob);
-
-          toSend = { ...content, photo: { ...content.photo, photoId } };
-          pendingContent.current.set(clientId, toSend);
-        }
+        const { viewer, sendMessage } = adapterRef.current;
         const result = await sendMessage(
-          toSend,
+          content,
           clientId,
           replyToMessageId,
           postId,
@@ -323,7 +320,7 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
     (
       content: SendContent,
       replyTo: ThreadMessage | null | undefined,
-      fields: Pick<ThreadMessage, "body" | "sticker" | "photo">,
+      fields: Pick<ThreadMessage, "body" | "sticker" | "photo" | "photos">,
       post: DmReplyPostView | null = null,
     ) => {
       const clientId = crypto.randomUUID();
@@ -386,11 +383,11 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
     [sendContent],
   );
 
-  // The bubble shows the local image at once; the stored message (same
-  // clientId) replaces it with the served one.
-  const sendPhoto = useCallback(
+  // The bubble shows the local images at once; the stored message (same
+  // clientId) replaces them with the served ones.
+  const sendPhotos = useCallback(
     (
-      photo: PreparedPhoto,
+      photos: SentPhoto[],
       rawBody: string,
       replyTo?: ThreadMessage | null,
       post?: DmReplyPostView | null,
@@ -399,22 +396,31 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
       // The server parses the caption again; the bubble shows it stripped.
       const shown = parseChatCommand(body).body;
 
+      const shownPhotos = photos.map((photo) => ({
+        url: URL.createObjectURL(photo.blob),
+        width: photo.width,
+        height: photo.height,
+        alt: PHOTO_ALT,
+      }));
+
       sendContent(
-        { photo, ...(body ? { body } : {}) },
+        { photos, ...(body ? { body } : {}) },
         replyTo,
         {
           body: shown,
-          photo: {
-            url: URL.createObjectURL(photo.blob),
-            width: photo.width,
-            height: photo.height,
-            alt: PHOTO_ALT,
-          },
+          photo: shownPhotos[0] ?? null,
+          photos: shownPhotos,
         },
         post,
       );
     },
     [sendContent],
+  );
+
+  // The composer uploads each picked photo through the thread's own route.
+  const uploadPhoto = useCallback(
+    (blob: Blob) => adapterRef.current.uploadPhoto(blob),
+    [],
   );
 
   const retry = useCallback(
@@ -590,7 +596,8 @@ export const useChatMessages = ({ adapter, initial, isViewing }: Options) => {
     loadOlder,
     send,
     sendSticker,
-    sendPhoto,
+    sendPhotos,
+    uploadPhoto,
     retry,
     react,
     edit,

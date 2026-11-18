@@ -252,6 +252,7 @@ export const useDmThread = ({ conversationId, meId, initial }: Options) => {
         senderId: meId,
         body: body.trim() === "" ? null : body.trim(),
         photo,
+        photos: photo ? [photo] : [],
         post,
         clientId: crypto.randomUUID(),
         createdAt: new Date().toISOString(),

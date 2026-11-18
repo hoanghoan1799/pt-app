@@ -47,14 +47,12 @@ export const toPostView = (post: SocialPostResponse): PostView => ({
   authorVerified: post.authorVerified,
   caption: post.caption,
   privacy: post.privacy,
-  photo: post.photo
-    ? {
-        id: post.photo.id,
-        url: socialPhotoUrl(post.photo.id),
-        width: post.photo.width,
-        height: post.photo.height,
-      }
-    : null,
+  photos: post.photos.map((photo) => ({
+    id: photo.id,
+    url: socialPhotoUrl(photo.id),
+    width: photo.width,
+    height: photo.height,
+  })),
   createdAt: Date.parse(post.createdAt),
   edited: post.edited,
   canEdit: post.canEdit,

@@ -1,15 +1,17 @@
 import { Injectable } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
 import {
+  photoIdsOf,
+  SOCIAL_POST_MAX_PHOTOS,
   SOCIAL_TERMS_VERSION,
   type SocialCreatePostRequest,
   type SocialEditPostRequest,
 } from "@pt/contracts";
 import { DataSource } from "typeorm";
 
+import { attachPendingPhotos } from "../common/attach-photos.js";
 import { Clock } from "../common/clock.js";
 import { PostPolicy } from "./domain/post.policy.js";
-import { rowsOf } from "./domain/rows.js";
 import { SOCIAL_EVENTS } from "./events/social.events.js";
 import { SocialEventsPublisher } from "./events/social-events.publisher.js";
 import { PostAccess } from "./post-access.service.js";
@@ -18,6 +20,7 @@ import {
   notAllowed,
   photoNotFound,
   postNotFound,
+  tooManyPhotos,
 } from "./social.errors.js";
 import { keyOf, type SocialActor } from "./social-actor.js";
 
@@ -52,9 +55,17 @@ export class PostsService {
     idempotencyKey: string | null,
   ): Promise<{ postId: number; replayed: boolean }> {
     const caption = input.caption.trim();
+    // The list, else the single photo an older client sends.
+    const photoIds = photoIdsOf(input);
 
-    if (isEmpty(caption, input.photoId !== null)) {
+    if (isEmpty(caption, photoIds.length > 0)) {
       throw emptyPost();
+    }
+    if (photoIds.length > SOCIAL_POST_MAX_PHOTOS) {
+      throw tooManyPhotos();
+    }
+    if (new Set(photoIds).size !== photoIds.length) {
+      throw photoNotFound();
     }
     if (idempotencyKey) {
       const existing = await this.findByKey(actor, idempotencyKey);
@@ -83,22 +94,25 @@ export class PostsService {
         );
         const id = rows[0].id;
 
-        if (input.photoId !== null) {
-          // Only the uploader's own pending photo can be attached, once.
-          const attached = rowsOf<unknown>(
-            await manager.query(
-              `UPDATE social_post_photos SET post_id = $1
-               WHERE id = $2 AND uploader_key = $3 AND post_id IS NULL RETURNING id`,
-              [id, input.photoId, keyOf(actor)],
-            ),
-          );
-
-          if (attached.length === 0) {
-            throw photoNotFound();
-          }
+        // Only the uploader's own pending photos can be attached, once each.
+        // The array order is the display order (position = index) and the
+        // first photo is the cover, also the post's photo_id.
+        if (
+          !(await attachPendingPhotos(manager, {
+            table: "social_post_photos",
+            ownerColumn: "post_id",
+            ownerId: id,
+            photoIds,
+            guard: "uploader_key = $2",
+            guardParams: [keyOf(actor)],
+          }))
+        ) {
+          throw photoNotFound();
+        }
+        if (photoIds.length > 0) {
           await manager.query(
             `UPDATE social_posts SET photo_id = $1 WHERE id = $2`,
-            [input.photoId, id],
+            [photoIds[0], id],
           );
         }
         if (actor.kind === "user") {

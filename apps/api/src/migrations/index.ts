@@ -6,6 +6,7 @@ import { AvatarTables1795000000000 } from "./1795000000000-AvatarTables.js";
 import { DbConstraints1795100000000 } from "./1795100000000-DbConstraints.js";
 import { DbChatSocial1795200000000 } from "./1795200000000-DbChatSocial.js";
 import { DbHousekeeping1795300000000 } from "./1795300000000-DbHousekeeping.js";
+import { PhotoPosition1795500000000 } from "./1795500000000-PhotoPosition.js";
 import { ReportMessages1795600000000 } from "./1795600000000-ReportMessages.js";
 import { UserRestrictions1795700000000 } from "./1795700000000-UserRestrictions.js";
 import { AccentTheme1795800000000 } from "./1795800000000-AccentTheme.js";
@@ -22,6 +23,7 @@ export const migrations = [
   DbConstraints1795100000000,
   DbChatSocial1795200000000,
   DbHousekeeping1795300000000,
+  PhotoPosition1795500000000,
   ReportMessages1795600000000,
   UserRestrictions1795700000000,
   AccentTheme1795800000000,

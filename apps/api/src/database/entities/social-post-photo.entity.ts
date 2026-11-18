@@ -35,10 +35,20 @@ import { User } from "./user.entity.js";
   where: `"uploader_admin_id" IS NOT NULL`,
 })
 @Index("social_post_photos_post_photo", ["postId", "id"], { unique: true })
-@ForeignKey(() => SocialPost, ["postId", "id"], ["id", "photoId"], {
+// Up to 10 photos per post; position is the order (0 = cover, also
+// social_posts.photo_id).
+@ForeignKey(() => SocialPost, ["postId"], ["id"], {
   name: "fk_social_post_photos_post",
   onDelete: "CASCADE",
   deferrable: "INITIALLY DEFERRED",
+})
+@Check(
+  "social_post_photos_position_nonnegative",
+  `"position" IS NULL OR "position" >= 0`,
+)
+@Index("social_post_photos_post_position", ["postId", "position"], {
+  unique: true,
+  where: `"post_id" IS NOT NULL AND "position" IS NOT NULL`,
 })
 @Check(
   "social_post_photos_size_matches_data",
@@ -54,6 +64,10 @@ export class SocialPostPhoto {
 
   @Column({ type: "integer", nullable: true })
   postId!: number | null;
+
+  // Order inside the post (0 = cover); null counts as 0.
+  @Column({ type: "integer", nullable: true })
+  position!: number | null;
 
   @Column({ type: "text" })
   mime!: "image/webp" | "image/jpeg" | "image/png";

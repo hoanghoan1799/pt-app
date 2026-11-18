@@ -167,6 +167,7 @@ describe("create, edit and delete", () => {
       caption: "Chạy bộ sáng nay",
       privacy: "everyone",
       photo: null,
+      photos: [],
       edited: false,
       canEdit: true,
       canDelete: true,
@@ -810,6 +811,191 @@ describe("photo serving", () => {
 
     await api.delete(`/posts/${post}`, w.tokens.ann);
     expect(await status(`/photos/${photo}`, "ann")).toBe(404);
+  });
+});
+
+describe("posts with several photos", () => {
+  const uploadMany = async (who: Token, total: number) => {
+    const ids: number[] = [];
+
+    for (let index = 0; index < total; index += 1) {
+      ids.push((await api.upload(w.tokens[who], PNG_1X1)).body.photo.id);
+    }
+    return ids;
+  };
+  const urls = (ids: number[]) => ids.map((id) => `/v1/social/photos/${id}`);
+  const urlsOf = (photos: { url: string }[]) => photos.map((photo) => photo.url);
+  const rowsOf = (postId: number) =>
+    w.ds.query(
+      `SELECT id, position FROM social_post_photos WHERE post_id = $1
+       ORDER BY COALESCE(position, 0), id`,
+      [postId],
+    ) as Promise<{ id: number; position: number | null }[]>;
+
+  it("attaches the photos in the given order and returns them with the cover first", async () => {
+    const [a, b, c] = await uploadMany("ann", 3);
+    const created = await api.post("/posts", w.tokens.ann, {
+      caption: "ba ảnh",
+      privacy: "everyone",
+      photoIds: [c, a, b],
+    });
+
+    expect(created.status).toBe(201);
+    expect(urlsOf(created.body.post.photos)).toEqual(urls([c, a, b]));
+    expect(created.body.post.photo).toEqual(created.body.post.photos[0]);
+    expect(await rowsOf(created.body.post.id)).toEqual([
+      { id: c, position: 0 },
+      { id: a, position: 1 },
+      { id: b, position: 2 },
+    ]);
+    expect(
+      await count(
+        w.ds,
+        `SELECT photo_id AS count FROM social_posts WHERE id = $1`,
+        [created.body.post.id],
+      ),
+    ).toBe(c);
+    // The detail page, the feed and the profile list agree.
+    const detail = await api.get(`/posts/${created.body.post.id}`, w.tokens.ben);
+    const feed = await api.get("/feed?limit=50", w.tokens.ann);
+    const listed = feed.body.items.find(
+      (post: { id: number }) => post.id === created.body.post.id,
+    );
+
+    expect(urlsOf(detail.body.photos)).toEqual(urls([c, a, b]));
+    expect(urlsOf(listed.photos)).toEqual(urls([c, a, b]));
+    for (const id of [a, b, c]) {
+      expect(await status(`/photos/${id}`, "ben")).toBe(200);
+    }
+  });
+
+  it("accepts ten photos and refuses an eleventh with its message", async () => {
+    const ids = await uploadMany("ann", 11);
+    const refused = await api.post("/posts", w.tokens.ann, {
+      caption: "quá nhiều",
+      privacy: "everyone",
+      photoIds: ids,
+    });
+
+    expect(refused.status).toBe(400);
+    expect(JSON.stringify(refused.body)).toContain(
+      SOCIAL_MESSAGES.TOO_MANY_PHOTOS,
+    );
+    const ten = await api.post("/posts", w.tokens.ann, {
+      caption: "",
+      privacy: "everyone",
+      photoIds: ids.slice(0, 10),
+    });
+
+    expect(ten.status).toBe(201);
+    expect(ten.body.post.photos).toHaveLength(10);
+  });
+
+  it("takes the single photoId of an older client as a one-photo post", async () => {
+    const [only] = await uploadMany("ann", 1);
+    const created = await api.post("/posts", w.tokens.ann, {
+      caption: "một ảnh",
+      privacy: "everyone",
+      photoId: only,
+    });
+
+    expect(created.status).toBe(201);
+    expect(urlsOf(created.body.post.photos)).toEqual(urls([only]));
+    expect(created.body.post.photo.id).toBe(only);
+    expect(await rowsOf(created.body.post.id)).toEqual([
+      { id: only, position: 0 },
+    ]);
+    expect(
+      (
+        await api.post("/posts", w.tokens.ann, {
+          caption: "x",
+          privacy: "everyone",
+          photoId: only,
+          photoIds: [only],
+        })
+      ).status,
+    ).toBe(400);
+  });
+
+  it("stores no post when one photo is someone else's, used, repeated or unknown", async () => {
+    const [mine, used] = await uploadMany("ann", 2);
+    const [theirs] = await uploadMany("ben", 1);
+
+    await api.post("/posts", w.tokens.ann, {
+      caption: "dùng rồi",
+      privacy: "everyone",
+      photoIds: [used],
+    });
+    const before = await count(w.ds, `SELECT count(*)::int FROM social_posts`);
+
+    for (const bad of [theirs, used, 999999]) {
+      const response = await api.post("/posts", w.tokens.ann, {
+        caption: "x",
+        privacy: "everyone",
+        photoIds: [mine, bad],
+      });
+
+      expect(response.status, String(bad)).toBe(404);
+      expect(response.body.code).toBe("PHOTO_NOT_FOUND");
+    }
+    expect(
+      (
+        await api.post("/posts", w.tokens.ann, {
+          caption: "x",
+          privacy: "everyone",
+          photoIds: [mine, mine],
+        })
+      ).status,
+    ).toBe(400);
+    expect(await count(w.ds, `SELECT count(*)::int FROM social_posts`)).toBe(
+      before,
+    );
+    // The good photo is still pending and usable.
+    expect(
+      (
+        await api.post("/posts", w.tokens.ann, {
+          caption: "x",
+          privacy: "everyone",
+          photoIds: [mine],
+        })
+      ).status,
+    ).toBe(201);
+  });
+
+  it("keeps the photos when the caption is edited, and deletes all of them with the post", async () => {
+    const ids = await uploadMany("ann", 3);
+    const id = await createPost("ann", "xoá cả bộ", "everyone", {
+      photoIds: ids,
+    });
+
+    await w.clock.advance(60_000);
+    expect(
+      (
+        await api.patch(`/posts/${id}`, w.tokens.ann, {
+          caption: "",
+          privacy: "friends",
+        })
+      ).status,
+    ).toBe(204);
+    expect(await rowsOf(id)).toHaveLength(3);
+    expect((await api.delete(`/posts/${id}`, w.tokens.ann)).status).toBe(204);
+    expect(await rowsOf(id)).toEqual([]);
+    for (const photo of ids) {
+      expect(await status(`/photos/${photo}`, "ann")).toBe(404);
+    }
+  });
+
+  it("shows a post from before positions (null) as one photo", async () => {
+    const [legacy] = await uploadMany("ann", 1);
+    const id = await createPost("ann", "cũ", "everyone", { photoId: legacy });
+
+    await w.ds.query(`UPDATE social_post_photos SET position = NULL WHERE id = $1`, [
+      legacy,
+    ]);
+    const detail = await api.get(`/posts/${id}`, w.tokens.ann);
+
+    expect(detail.body.photos).toHaveLength(1);
+    expect(detail.body.photo).toEqual(detail.body.photos[0]);
   });
 });
 

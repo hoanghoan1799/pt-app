@@ -32,8 +32,9 @@ interface SendInput {
     | { pack: string; id: string }
     | { giphyId: string; url: string }
     | { customId: number };
-  // KAN-160: a photo uploaded to /api/chat/photos, plus optional text.
-  photoId?: number;
+  // KAN-160: up to 10 photos uploaded to /api/chat/photos (the first is the
+  // cover), plus optional text.
+  photoIds?: number[];
   clientId: string;
   replyToMessageId?: number;
   // The social post being replied to; needs a text.

@@ -2,6 +2,7 @@
   "title": "PT App",
   "preview": {
     "photo": "Sent a photo",
+    "photos": "Sent {count} photos",
     "sticker": "Sent a sticker",
     "link": "Sent a link",
     "fallback": "Sent a message"

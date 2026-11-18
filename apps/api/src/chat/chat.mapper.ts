@@ -13,6 +13,7 @@ import { previewTexts } from "./preview-text.js";
 // sticker and reactions here, so every reader gets the same redaction.
 
 export const chatPhotoUrl = (id: number) => `/v1/chat/photos/${id}`;
+export const PHOTO_ALT = "Ảnh trong tin nhắn";
 export const chatCustomStickerUrl = (id: number) =>
   `/v1/chat/stickers/custom/${id}`;
 
@@ -34,6 +35,15 @@ export type MessageRow = {
   editedAt: Date | null;
   deletedAt: Date | null;
   updatedAt: Date | null;
+};
+
+// A photo of a message without its bytes (served by GET /v1/chat/photos/:id).
+export type MessagePhotoRow = {
+  id: number;
+  messageId: number;
+  position: number | null;
+  width: number;
+  height: number;
 };
 
 export type ReplyTargetRow = {
@@ -60,7 +70,10 @@ export type MessageContext = {
   reactions: Map<number, ReactionRow[]>;
   // conversation id -> the trainee's name
   traineeNames: Map<number, string>;
-  photoSizes: Map<number, { width: number; height: number }>;
+  // message id -> its photos in display order (position, then id)
+  photos: Map<number, MessagePhotoRow[]>;
+  // reply target message id -> how many photos it has
+  targetPhotoCounts: Map<number, number>;
   posts: Map<number, ChatPostQuote>;
 };
 
@@ -68,7 +81,8 @@ export const emptyContext = (): MessageContext => ({
   targets: new Map(),
   reactions: new Map(),
   traineeNames: new Map(),
-  photoSizes: new Map(),
+  photos: new Map(),
+  targetPhotoCounts: new Map(),
   posts: new Map(),
 });
 
@@ -83,6 +97,7 @@ export const reactorNameOf = (
 const toReplyTo = (
   row: MessageRow,
   target: ReplyTargetRow | undefined,
+  photoCount: number | undefined,
 ): ChatMessageView["replyTo"] =>
   // A quote from another conversation never leaks a snippet.
   row.deletedAt === null &&
@@ -93,6 +108,10 @@ const toReplyTo = (
         body: target.deletedAt ? "" : chatToReplySnippet(target.body),
         isSticker: target.deletedAt === null && target.stickerRef !== null,
         isPhoto: target.deletedAt === null && target.photoId !== null,
+        photoCount:
+          target.deletedAt === null && target.photoId !== null
+            ? Math.max(1, photoCount ?? 1)
+            : 0,
         senderRole: target.senderRole,
         deleted: target.deletedAt !== null,
       }
@@ -103,8 +122,14 @@ export const toMessageView = (
   context: MessageContext,
 ): ChatMessageView => {
   const deleted = row.deletedAt !== null;
-  const size =
-    row.photoId === null ? undefined : context.photoSizes.get(row.photoId);
+  const photos = deleted
+    ? []
+    : (context.photos.get(row.id) ?? []).map((photo) => ({
+        url: chatPhotoUrl(photo.id),
+        width: photo.width,
+        height: photo.height,
+        alt: PHOTO_ALT,
+      }));
   const sticker = deleted
     ? null
     : stickerToView(row.stickerRef, row.stickerUrl, chatCustomStickerUrl);
@@ -117,15 +142,8 @@ export const toMessageView = (
     senderAdminName: row.senderAdminName,
     body: deleted ? "" : row.body,
     sticker,
-    photo:
-      deleted || row.photoId === null || !size
-        ? null
-        : {
-            url: chatPhotoUrl(row.photoId),
-            width: size.width,
-            height: size.height,
-            alt: "Ảnh trong tin nhắn",
-          },
+    photo: photos[0] ?? null,
+    photos,
     clientId: row.clientId,
     createdAt: row.createdAt.toISOString(),
     replyTo: toReplyTo(
@@ -133,6 +151,9 @@ export const toMessageView = (
       row.replyToMessageId === null
         ? undefined
         : context.targets.get(row.replyToMessageId),
+      row.replyToMessageId === null
+        ? undefined
+        : context.targetPhotoCounts.get(row.replyToMessageId),
     ),
     editedAt: row.editedAt?.toISOString() ?? null,
     deleted,
@@ -160,6 +181,8 @@ export const inboxPreview = (
     body: string | null;
     stickerRef: string | null;
     photoId: number | null;
+    // Photos of the last message when it has several (1 when unknown).
+    photoCount?: number;
     deletedAt: Date | null;
   },
   locale?: string | null,
@@ -177,7 +200,12 @@ export const inboxPreview = (
     return texts.sticker;
   }
   if (last.photoId) {
-    return text.trim() === "" ? `📷 ${texts.photo}` : `📷 ${text}`;
+    if (text.trim() !== "") {
+      return `📷 ${text}`;
+    }
+    return (last.photoCount ?? 1) > 1
+      ? `📷 ${texts.photos.replace("{count}", String(last.photoCount))}`
+      : `📷 ${texts.photo}`;
   }
   return text;
 };

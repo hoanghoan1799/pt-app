@@ -10,18 +10,14 @@ import {
   X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import {
-  type ChangeEvent,
-  type KeyboardEvent,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { Spinner } from "@/components/common/Spinner";
+import { PhotoTray } from "@/features/chat/components/PhotoTray";
 import type { PickedSticker } from "@/features/chat/components/StickerPanel";
 import { StickerSuggestions } from "@/features/chat/components/StickerSuggestions";
+import type { SentPhoto } from "@/features/chat/hooks/use-chat-messages";
+import { useMessagePhotos } from "@/features/chat/hooks/use-message-photos";
 import { useStickerSuggestSetting } from "@/features/chat/hooks/use-sticker-suggest-setting";
 import {
   type ChatCommand,
@@ -31,19 +27,18 @@ import {
 } from "@/features/chat/utils/chat-commands";
 import { CHAT_BODY_MAX_LENGTH } from "@/features/chat/utils/chat-rules";
 import {
-  encodePhoto,
-  PhotoImageError,
-  type PreparedPhoto,
-} from "@/features/chat/utils/encode-photo";
-import { PHOTO_ERRORS } from "@/features/chat/utils/photo-rules";
-import { useLocalizeMessage } from "@/i18n/use-localize-message";
+  MAX_MESSAGE_PHOTOS,
+  PHOTO_ERRORS,
+} from "@/features/chat/utils/photo-rules";
 
 interface ComposerProps {
-  // `photo` is the resized image picked with the photo button (KAN-160); the
-  // text is then its optional caption.
-  onSend: (body: string, photo?: PreparedPhoto) => void;
-  // Shows the photo button (hidden while editing).
+  // `photos` are the images picked with the photo button (KAN-160, up to 10),
+  // already resized and uploaded; the text is then their optional caption.
+  onSend: (body: string, photos?: SentPhoto[]) => void;
+  // Shows the photo button (hidden while editing). Needs `uploadPhoto`.
   canAttachPhoto?: boolean;
+  // Uploads one resized photo and returns its id (throws with a message).
+  uploadPhoto?: (blob: Blob) => Promise<number>;
   // Called on every edit that leaves text in the box; the owner throttles.
   onTyping?: () => void;
   placeholder?: string;
@@ -77,6 +72,7 @@ const CommandIcon = ({ command }: { command: ChatCommand }) => {
 export const Composer = ({
   onSend,
   canAttachPhoto = false,
+  uploadPhoto,
   onTyping,
   placeholder,
   editing = null,
@@ -86,18 +82,20 @@ export const Composer = ({
   onSendSticker,
 }: ComposerProps) => {
   const t = useTranslations("chat.composer");
-  const localize = useLocalizeMessage();
+  const tTray = useTranslations("chat.photoTray");
   const [value, setValue] = useState("");
   const [draft, setDraft] = useState("");
   const [seenEditId, setSeenEditId] = useState<number | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  // The picked photo, already resized, with a local URL for the preview.
-  const [photo, setPhoto] = useState<{
-    prepared: PreparedPhoto;
-    previewUrl: string;
-  } | null>(null);
-  const [isPreparing, setIsPreparing] = useState(false);
+  // The picked photos: each is resized and uploaded as soon as it is picked.
+  const photos = useMessagePhotos(
+    uploadPhoto ??
+      (() => {
+        throw new Error(PHOTO_ERRORS.GENERIC);
+      }),
+  );
+  const hasPhotos = photos.items.length > 0;
   // The command picked or typed ("/imlang ") lives outside the text as a chip
   // (Messenger style); it is put back in front of the text on send. Not in
   // edit mode, where the chip is hidden and ignored.
@@ -107,8 +105,7 @@ export const Composer = ({
   const suggestions =
     editing || activeChip ? [] : matchCommandSuggestions(value);
   const active = Math.min(highlight, Math.max(suggestions.length - 1, 0));
-  const canSend =
-    !isPreparing && (value.trim().length > 0 || (photo !== null && !editing));
+  const canSend = value.trim().length > 0 || (hasPhotos && !editing);
   const editId = editing?.id ?? null;
   // Sticker suggestions while typing: the text they were hidden for ("Ẩn" or
   // Escape), and the per-device switches.
@@ -121,7 +118,7 @@ export const Composer = ({
     suggestStickers &&
     !editing &&
     !activeChip &&
-    photo === null &&
+    !hasPhotos &&
     trimmed !== "" &&
     !trimmed.startsWith("/") &&
     dismissedFor !== trimmed;
@@ -160,58 +157,6 @@ export const Composer = ({
     return () => cancelAnimationFrame(frame);
   }, [editId, replyId]);
 
-  const clearPhoto = () => {
-    setPhoto((current) => {
-      if (current) {
-        URL.revokeObjectURL(current.previewUrl);
-      }
-      return null;
-    });
-  };
-
-  // Leaving the screen frees the preview.
-  const photoRef = useRef(photo);
-
-  useEffect(() => {
-    photoRef.current = photo;
-  });
-  useEffect(
-    () => () => {
-      if (photoRef.current) {
-        URL.revokeObjectURL(photoRef.current.previewUrl);
-      }
-    },
-    [],
-  );
-
-  const handlePickPhoto = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-
-    // Picking the same file again must fire a change.
-    event.target.value = "";
-    if (!file) {
-      return;
-    }
-    setIsPreparing(true);
-    try {
-      const prepared = await encodePhoto(file);
-
-      clearPhoto();
-      setPhoto({ prepared, previewUrl: URL.createObjectURL(prepared.blob) });
-      inputRef.current?.focus();
-    } catch (error) {
-      toast.error(
-        localize(
-          error instanceof PhotoImageError
-            ? error.message
-            : PHOTO_ERRORS.DECODE_FAILED,
-        ),
-      );
-    } finally {
-      setIsPreparing(false);
-    }
-  };
-
   const submit = () => {
     if (!canSend) {
       return;
@@ -221,11 +166,17 @@ export const Composer = ({
       onSaveEdit(value);
       return;
     }
+    if (photos.isBlocked) {
+      toast.error(tTray("pending"));
+      return;
+    }
+    const sent = photos.ready();
+
     onSend(
       activeChip ? composeCommandMessage(activeChip, value) : value,
-      photo?.prepared,
+      sent.length > 0 ? sent : undefined,
     );
-    clearPhoto();
+    photos.reset();
     setValue("");
     setChip(null);
     // The textarea shrinks after React clears it.
@@ -284,39 +235,12 @@ export const Composer = ({
     }
   };
 
-  const showPhotoButton = canAttachPhoto && !editing;
+  const showPhotoButton = canAttachPhoto && Boolean(uploadPhoto) && !editing;
 
   return (
     <div>
-      {(photo || isPreparing) && !editing && (
-        <div className="mx-4 mb-2 flex items-center gap-2">
-          {photo ? (
-            <div className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element -- a local blob URL, nothing for next/image to optimise */}
-              <img
-                src={photo.previewUrl}
-                alt={t("photoPreviewAlt")}
-                className="size-16 rounded-xl border border-line object-cover"
-              />
-              <button
-                type="button"
-                aria-label={t("removePhoto")}
-                onClick={clearPhoto}
-                className="absolute -top-2 -right-2 inline-flex size-6 items-center justify-center rounded-full bg-fg text-bg shadow active:scale-90"
-              >
-                <X className="size-4" aria-hidden />
-              </button>
-            </div>
-          ) : (
-            <span
-              role="status"
-              className="inline-flex items-center gap-2 text-sm text-muted"
-            >
-              <Spinner size="sm" />
-              {t("processingPhoto")}
-            </span>
-          )}
-        </div>
+      {!editing && (
+        <PhotoTray photos={photos} onAdd={() => fileRef.current?.click()} />
       )}
       {suggestions.length > 0 && (
         <ul
@@ -380,23 +304,27 @@ export const Composer = ({
               ref={fileRef}
               type="file"
               accept="image/*"
+              multiple
               hidden
               data-testid="chat-photo-input"
-              onChange={(event) => void handlePickPhoto(event)}
+              onChange={(event) => {
+                photos.pick(event.target.files);
+                // Picking the same file again must fire a change.
+                event.target.value = "";
+                inputRef.current?.focus();
+              }}
             />
             <button
               type="button"
               aria-label={t("attachPhoto")}
-              disabled={isPreparing}
-              aria-busy={isPreparing}
-              onClick={() => fileRef.current?.click()}
+              onClick={() =>
+                photos.isFull
+                  ? toast.error(tTray("slotsFull", { max: MAX_MESSAGE_PHOTOS }))
+                  : fileRef.current?.click()
+              }
               className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted transition active:scale-90 active:bg-line disabled:opacity-50"
             >
-              {isPreparing ? (
-                <Spinner size="lg" />
-              ) : (
-                <ImagePlus className="size-6" aria-hidden />
-              )}
+              <ImagePlus className="size-6" aria-hidden />
             </button>
           </>
         )}

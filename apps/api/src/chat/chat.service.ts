@@ -6,13 +6,14 @@ import {
   type ChatMessageView,
   chatParseCommand,
   type ChatSendMessageRequest,
+  photoIdsOf,
   stickerToStored,
 } from "@pt/contracts";
 import { DataSource, EntityManager } from "typeorm";
 
 import type { AuthActor } from "../auth/actor.js";
+import { attachPendingPhotos } from "../common/attach-photos.js";
 import { Clock } from "../common/clock.js";
-import { returnedRows } from "../common/sql.js";
 import {
   CustomStickersService,
   stickerOwnerOf,
@@ -80,7 +81,8 @@ export class ChatService {
     ) {
       throw chatErrors.invalidInput();
     }
-    const resolved = this.resolveContent(input);
+    const photoIds = photoIdsOf(input);
+    const resolved = this.resolveContent(input, photoIds.length > 0);
     const conversation =
       context.conversation ??
       (await this.queries.getOrCreateConversation(trainee.traineeId));
@@ -93,12 +95,7 @@ export class ChatService {
     const uploaderKey = photoUploaderKey(actor);
 
     if (
-      input.photoId !== undefined &&
-      !(await this.photos.isAttachable(
-        input.photoId,
-        conversation.id,
-        uploaderKey,
-      ))
+      !(await this.photos.areAttachable(photoIds, conversation.id, uploaderKey))
     ) {
       throw chatErrors.invalidInput();
     }
@@ -158,22 +155,25 @@ export class ChatService {
       }
       const id = inserted[0].id;
 
-      if (input.photoId !== undefined) {
-        const attached = returnedRows<{ id: number }>(
-          await manager.query(
-            `UPDATE chat_photos SET message_id = $1
-             WHERE id = $2 AND message_id IS NULL RETURNING id`,
-            [id, input.photoId],
-          ),
-        );
-
-        // Lost the photo to a parallel send: nothing is stored.
-        if (attached.length === 0) {
-          throw chatErrors.invalidInput();
-        }
+      // The array order is the display order (position = index); the first
+      // photo is the cover, also the message's photo_id. Lost a photo to a
+      // parallel send: nothing is stored.
+      if (
+        !(await attachPendingPhotos(manager, {
+          table: "chat_photos",
+          ownerColumn: "message_id",
+          ownerId: id,
+          photoIds,
+          guard: "conversation_id = $2 AND uploader_key = $3",
+          guardParams: [conversation.id, uploaderKey],
+        }))
+      ) {
+        throw chatErrors.invalidInput();
+      }
+      if (photoIds.length > 0) {
         await manager.query(
           `UPDATE chat_messages SET photo_id = $1 WHERE id = $2`,
-          [input.photoId, id],
+          [photoIds[0], id],
         );
       }
       // Two parallel sends must not move the pointer back to the older one.
@@ -209,7 +209,8 @@ export class ChatService {
       silent: resolved.silent,
       body: resolved.content.body,
       hasSticker: input.sticker !== undefined,
-      hasPhoto: input.photoId !== undefined,
+      hasPhoto: photoIds.length > 0,
+      photoCount: photoIds.length,
       replyToMessageId: input.replyToMessageId ?? null,
     } satisfies ChatMessageSentEvent);
     return { message, created: true };
@@ -219,7 +220,7 @@ export class ChatService {
   // commands (KAN-167) only apply to text and photo captions: the stored body
   // is the text without the command; a text-only message left empty is
   // rejected. Stickers carry no text, so they are never silent.
-  private resolveContent(input: ChatSendMessageRequest) {
+  private resolveContent(input: ChatSendMessageRequest, hasPhotos: boolean) {
     if (input.sticker) {
       return {
         content: {
@@ -231,7 +232,7 @@ export class ChatService {
     }
     const { body, effects } = chatParseCommand(input.body ?? "");
 
-    if (!body && input.photoId === undefined) {
+    if (!body && !hasPhotos) {
       throw chatErrors.invalidInput();
     }
     return {

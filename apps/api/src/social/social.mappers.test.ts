@@ -30,7 +30,10 @@ describe("mappers", () => {
       authorVerified: false,
       caption: "hi",
       privacy: "friends",
-      photo: { id: 5, width: 100, height: 80 },
+      photos: [
+        { id: 5, width: 100, height: 80 },
+        { id: 6, width: 90, height: 90 },
+      ],
       createdAt,
       edited: false,
       canEdit: true,
@@ -51,6 +54,10 @@ describe("mappers", () => {
       caption: "hi",
       privacy: "friends",
       photo: { id: 5, url: "/v1/social/photos/5", width: 100, height: 80 },
+      photos: [
+        { id: 5, url: "/v1/social/photos/5", width: 100, height: 80 },
+        { id: 6, url: "/v1/social/photos/6", width: 90, height: 90 },
+      ],
       createdAt: "2026-11-12T10:00:00.000Z",
       edited: false,
       canEdit: true,

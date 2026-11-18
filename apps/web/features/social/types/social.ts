@@ -75,7 +75,8 @@ export interface PostView {
   authorVerified: boolean;
   caption: string;
   privacy: PostPrivacy;
-  photo: PostPhotoView | null;
+  // In display order; the first is the cover.
+  photos: PostPhotoView[];
   createdAt: number;
   edited: boolean;
   canEdit: boolean;

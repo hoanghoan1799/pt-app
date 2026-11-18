@@ -158,6 +158,7 @@
     "NOT_FOUND": "Post not found.",
     "NOT_ALLOWED": "You do not have permission to do this.",
     "PHOTO_NOT_FOUND": "Photo not found. Choose the photo again.",
+    "TOO_MANY_PHOTOS": "A post can have at most {max} photos.",
     "PHOTO_TOO_LARGE": "The photo is too large. Choose another one.",
     "COMMENT_EMPTY": "Write a comment.",
     "COMMENT_TOO_LONG": "Comments can have at most {max} characters.",
