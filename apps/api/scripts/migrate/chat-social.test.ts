@@ -30,9 +30,7 @@ describe("withoutLegacy", () => {
     expect(names).not.toContain("attachment_url");
     expect(names).not.toContain("attachment_meta");
     expect(names).toContain("sticker_url");
-    expect(names).toHaveLength(
-      full.tables.chat_messages.columns.length - 2,
-    );
+    expect(names).toHaveLength(full.tables.chat_messages.columns.length - 2);
   });
 });
 
@@ -67,8 +65,16 @@ describe("findChatSocialViolations", () => {
     expect(
       findChatSocialViolations({
         chat_messages: [
-          row("1", { conversation_id: 1, reply_to_message_id: null, photo_id: 7 }),
-          row("2", { conversation_id: 1, reply_to_message_id: 1, photo_id: null }),
+          row("1", {
+            conversation_id: 1,
+            reply_to_message_id: null,
+            photo_id: 7,
+          }),
+          row("2", {
+            conversation_id: 1,
+            reply_to_message_id: 1,
+            photo_id: null,
+          }),
         ],
         chat_photos: [row("7", { message_id: 1, size: 3, data_length: 3 })],
         chat_conversations: [row("1", { last_message_id: 2 })],
@@ -82,7 +88,11 @@ describe("findChatSocialViolations", () => {
   it("flags a photo that names a message pointing at another photo, from both sides", () => {
     const found = findChatSocialViolations({
       chat_messages: [
-        row("1", { conversation_id: 1, reply_to_message_id: null, photo_id: 8 }),
+        row("1", {
+          conversation_id: 1,
+          reply_to_message_id: null,
+          photo_id: 8,
+        }),
       ],
       chat_photos: [
         row("7", { message_id: 1, size: 3, data_length: 3 }),
@@ -97,15 +107,85 @@ describe("findChatSocialViolations", () => {
   });
 
   it("keeps the first open report and flags the later duplicates", () => {
-    const open = { status: "open", resolution: null, resolved_at: null, resolved_by: null };
+    const open = {
+      status: "open",
+      resolution: null,
+      resolved_at: null,
+      resolved_by: null,
+    };
     const found = findChatSocialViolations({
       social_reports: [
-        row("10", { ...open, reporter_key: "user:1", target_kind: "post", target_id: 4 }),
-        row("9", { ...open, reporter_key: "user:1", target_kind: "post", target_id: 4 }),
-        row("11", { ...open, reporter_key: "user:1", target_kind: "comment", target_id: 4 }),
+        row("10", {
+          ...open,
+          reporter_key: "user:1",
+          target_kind: "post",
+          target_id: 4,
+        }),
+        row("9", {
+          ...open,
+          reporter_key: "user:1",
+          target_kind: "post",
+          target_id: 4,
+        }),
+        row("11", {
+          ...open,
+          reporter_key: "user:1",
+          target_kind: "comment",
+          target_id: 4,
+        }),
       ],
     });
 
     expect(found.map((v) => v.key)).toEqual(["10"]);
+  });
+
+  it("flags DM rows whose user is not one of the conversation's two people", () => {
+    const found = findChatSocialViolations({
+      dm_conversations: [
+        row("1", { user_low: 1, user_high: 2, last_message_id: null }),
+      ],
+      dm_messages: [
+        row("10", { conversation_id: 1, sender_id: 2, photo_id: null }),
+        row("11", { conversation_id: 1, sender_id: 3, photo_id: null }),
+      ],
+      dm_photos: [
+        row("20", {
+          conversation_id: 1,
+          uploader_id: 1,
+          message_id: null,
+          size: 3,
+          data_length: 3,
+        }),
+        row("21", {
+          conversation_id: 1,
+          uploader_id: 9,
+          message_id: null,
+          size: 3,
+          data_length: 3,
+        }),
+      ],
+      dm_reads: [
+        row("1:1", { conversation_id: 1, user_id: 1 }),
+        row("1:4", { conversation_id: 1, user_id: 4 }),
+      ],
+    });
+
+    expect(
+      found.map((v) => `${v.table}:${v.column}:${v.key}:${v.reason}`).sort(),
+    ).toEqual([
+      "dm_messages:sender_id:11:not_conversation_member",
+      "dm_photos:uploader_id:21:not_conversation_member",
+      "dm_reads:user_id:1:4:not_conversation_member",
+    ]);
+  });
+
+  it("leaves a DM row with a missing conversation to the foreign key report", () => {
+    expect(
+      findChatSocialViolations({
+        dm_messages: [
+          row("10", { conversation_id: 5, sender_id: 2, photo_id: null }),
+        ],
+      }),
+    ).toEqual([]);
   });
 });
