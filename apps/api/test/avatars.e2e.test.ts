@@ -12,7 +12,6 @@ import { createTestApp } from "./support/app.js";
 import {
   FakeClock,
   seedAdmin,
-  seedConversation,
   seedUser,
   tokenOf,
 } from "./support/auth.js";
@@ -344,7 +343,7 @@ describe("GET /v1/avatars/:kind/:id", () => {
     expect(probe.body.code).toBe("AVATAR_NOT_FOUND");
   });
 
-  it("shows the PT team's photo only to a trainee with a conversation", async () => {
+  it("shows the PT team's photo to any trainee, with or without a conversation", async () => {
     const me = await trainee();
     const pt = await admin();
 
@@ -354,8 +353,7 @@ describe("GET /v1/avatars/:kind/:id", () => {
 
     expect(
       (await call(app, "get", `/v1/avatars/admin/${pt.id}`, me.token)).status,
-    ).toBe(404);
-    await seedConversation(ds, me.id);
+    ).toBe(200);
     expect(
       (await call(app, "get", `/v1/avatars/admin/${pt.id}`, me.token)).status,
     ).toBe(200);

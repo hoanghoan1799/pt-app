@@ -2,7 +2,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AdminAvatar } from "../src/database/entities/admin-avatar.entity.js";
 import { UserAvatar } from "../src/database/entities/user-avatar.entity.js";
-import { seedConversation } from "./support/auth.js";
 import { call, PNG_BASE64 } from "./support/http.js";
 import {
   befriend,
@@ -163,9 +162,7 @@ describe("GET /v1/avatars/user/:id visibility", () => {
     });
   });
 
-  it("keeps admin photos readable by a trainee who has a conversation", async () => {
-    await expectMissing(fetchAvatar("admin", w.ids.ptA, w.tokens.dan));
-    await seedConversation(w.ds, w.ids.dan);
+  it("keeps admin photos readable by a trainee with no conversation", async () => {
     await expectBytes(fetchAvatar("admin", w.ids.ptA, w.tokens.dan));
   });
 });

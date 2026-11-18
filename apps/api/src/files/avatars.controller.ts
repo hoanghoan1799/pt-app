@@ -39,7 +39,7 @@ export class AvatarsController {
   // by ETag. Access depends on the viewer, so every response is `private`.
   // A trainee's photo: the trainee, a super admin, the PT of their workspace,
   // and trainees who can see them socially (AvatarAccess). The PT team's
-  // photos: any admin, and a trainee once they have a conversation. Anything
+  // photos: any signed-in actor. Anything
   // else answers like a missing photo so ids cannot be probed.
   @Get(":kind/:id")
   @Roles("super_admin", "pt", "trainee")
@@ -93,6 +93,7 @@ export class AvatarsController {
     if (target.kind === "user") {
       return this.access.canViewUserAvatar(actor, target.id);
     }
-    return actor.kind === "admin" || this.avatars.hasConversation(actor.id);
+    // Admin photos decorate names everyone sees (GET /v1/chat/team).
+    return true;
   }
 }
