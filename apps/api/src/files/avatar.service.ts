@@ -19,9 +19,7 @@ const refOf = (kind: AvatarKind, id: number): FileRef => ({
 // goes through FileStorage.
 @Injectable()
 export class AvatarService {
-  constructor(
-    @Inject(FILE_STORAGE) private readonly storage: FileStorage,
-  ) {}
+  constructor(@Inject(FILE_STORAGE) private readonly storage: FileStorage) {}
 
   // Validates the data URL (size, shape, magic bytes), stores it and returns
   // the versioned URL.

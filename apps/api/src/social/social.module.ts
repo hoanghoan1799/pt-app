@@ -3,7 +3,6 @@ import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module.js";
 import { FilesModule } from "../files/files.module.js";
 import { AccountDirectoryModule } from "../users/account-directory.module.js";
-import { AvatarAccess } from "./avatar-access.service.js";
 import { CommentPolicy } from "./domain/comment.policy.js";
 import { PostPolicy } from "./domain/post.policy.js";
 import { EngagementController } from "./engagement.controller.js";
@@ -48,7 +47,6 @@ import { SocialTermsGuard } from "./terms.guard.js";
     CommentPolicy,
     RelationshipQueries,
     PostAccess,
-    AvatarAccess,
     PostQueries,
     PostsService,
     EngagementService,
@@ -63,6 +61,6 @@ import { SocialTermsGuard } from "./terms.guard.js";
     SocialCleanupService,
     SocialPostQuotes,
   ],
-  exports: [SocialCleanupService, SocialPostQuotes, AvatarAccess],
+  exports: [SocialCleanupService, SocialPostQuotes],
 })
 export class SocialModule {}

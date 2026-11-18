@@ -15,10 +15,9 @@ const json = (error: string, status: number) =>
   );
 
 // The profile photo (KAN-157). Payloads carry `?v=<version>` URLs, not the
-// image, so polling stays small. The API decides who may see which photo (a
-// trainee's: themself, a super admin, their PT, trainees who can see them
-// socially; the PT team's: any admin, a trainee once they have a
-// conversation), answers 404 for everything else, and sets the ETag and the
+// image, so polling stays small. The API signs every photo URL it hands out
+// (`t`); a valid token (or the viewer's own photo) is all it checks, and it
+// answers 404 for everything else, and sets the ETag and the
 // year-long cache for a matching `v`; this route only picks whose session to
 // send and relays the bytes.
 export const GET = async (
@@ -38,8 +37,17 @@ export const GET = async (
   if (!actor) {
     return json("unauthorized", 401);
   }
-  const version = request.nextUrl.searchParams.get("v");
-  const query = version ? `?v=${encodeURIComponent(version)}` : "";
+  // `v` picks the cache, `t` is the signed capability the API checks.
+  const forwarded = new URLSearchParams();
+
+  for (const name of ["v", "t"]) {
+    const value = request.nextUrl.searchParams.get(name);
+
+    if (value) {
+      forwarded.set(name, value);
+    }
+  }
+  const query = forwarded.size > 0 ? `?${forwarded}` : "";
 
   try {
     return await proxyApiFile(actor, `/v1/avatars/${kind}/${id.data}${query}`, {

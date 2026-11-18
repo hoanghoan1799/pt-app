@@ -2,11 +2,13 @@ import { AVATAR_MAX_BYTES } from "@pt/contracts";
 import { describe, expect, it } from "vitest";
 
 import {
+  avatarToken,
   avatarUrl,
   avatarVersion,
   decodeAvatarDataUrl,
   detectImageMime,
   encodeDataUrl,
+  isValidAvatarToken,
 } from "./image-rules.js";
 
 const PNG_BASE64 =
@@ -114,10 +116,27 @@ describe("avatar urls", () => {
     const at = new Date(1_700_000_000_999);
 
     expect(avatarVersion(at)).toBe("1700000000");
-    expect(avatarUrl("user", 5, at)).toBe("/v1/avatars/user/5?v=1700000000");
-    expect(avatarUrl("admin", 2, at)).toBe("/v1/avatars/admin/2?v=1700000000");
+    expect(avatarUrl("user", 5, at)).toBe(
+      `/v1/avatars/user/5?v=1700000000&t=${avatarToken("user", 5, "1700000000")}`,
+    );
+    expect(avatarUrl("admin", 2, at)).toBe(
+      `/v1/avatars/admin/2?v=1700000000&t=${avatarToken("admin", 2, "1700000000")}`,
+    );
     expect(avatarUrl("user", 5, null)).toBeNull();
     expect(avatarUrl("user", 5, undefined)).toBeNull();
+  });
+
+  it("signs kind, id and version: only the exact triple verifies", () => {
+    const token = avatarToken("user", 5, "1700000000");
+
+    expect(isValidAvatarToken("user", 5, "1700000000", token)).toBe(true);
+    expect(isValidAvatarToken("user", 6, "1700000000", token)).toBe(false);
+    expect(isValidAvatarToken("admin", 5, "1700000000", token)).toBe(false);
+    expect(isValidAvatarToken("user", 5, "1700000001", token)).toBe(false);
+    expect(isValidAvatarToken("user", 5, "1700000000", `${token}x`)).toBe(
+      false,
+    );
+    expect(isValidAvatarToken("user", 5, "1700000000", undefined)).toBe(false);
   });
 
   it("round-trips through encodeDataUrl", () => {

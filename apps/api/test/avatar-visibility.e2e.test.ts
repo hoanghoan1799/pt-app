@@ -2,167 +2,187 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AdminAvatar } from "../src/database/entities/admin-avatar.entity.js";
 import { UserAvatar } from "../src/database/entities/user-avatar.entity.js";
+import { avatarToken } from "../src/files/image-rules.js";
 import { call, PNG_BASE64 } from "./support/http.js";
 import {
-  befriend,
   createSocialWorld,
   destroySocialWorld,
-  hide,
-  revealHidden,
+  social,
   type SocialWorld,
 } from "./support/social.js";
 
-// Who may fetch a trainee's photo (KAN-157 follow-up): the trainee, a super
-// admin, the PT of the workspace (hidden trainees only once revealed) and a
-// trainee who can see them socially. Everyone else gets the missing-photo 404.
+// Avatar URLs are signed (HMAC over kind, id and version): a valid token is the
+// capability, so every URL the API hands out loads for the signed-in actor it
+// was handed to. Anything else answers like a missing photo.
 let w: SocialWorld;
+let api: ReturnType<typeof social>;
 
 beforeAll(async () => {
   w = await createSocialWorld();
+  api = social(w.app);
   const png = Buffer.from(PNG_BASE64, "base64");
 
-  for (const id of [w.ids.ann, w.ids.ben, w.ids.cat, w.ids.dan, w.ids.pat]) {
+  for (const id of [w.ids.ann, w.ids.ben, w.ids.cat, w.ids.dan]) {
     await w.ds.getRepository(UserAvatar).insert({
       userId: id,
       mime: "image/png",
       data: png,
       size: png.length,
-      updatedAt: new Date(),
+      updatedAt: new Date(1_700_000_000_000),
     });
   }
+  await w.ds.query(
+    `UPDATE users SET avatar_updated_at = $1 WHERE id = ANY($2::int[])`,
+    [new Date(1_700_000_000_000), [w.ids.ann, w.ids.ben, w.ids.cat, w.ids.dan]],
+  );
+  await w.ds.query(`UPDATE admins SET avatar_updated_at = $1 WHERE id = $2`, [
+    new Date(1_700_000_000_000),
+    w.ids.ptA,
+  ]);
   await w.ds.getRepository(AdminAvatar).insert({
     adminId: w.ids.ptA,
     mime: "image/png",
     data: png,
     size: png.length,
-    updatedAt: new Date(),
+    updatedAt: new Date(1_700_000_000_000),
   });
 });
 
 afterAll(() => destroySocialWorld(w));
 
-const fetchAvatar = (kind: "user" | "admin", id: number, token: string) =>
-  call(w.app, "get", `/v1/avatars/${kind}/${id}`, token);
+const get = (path: string, token?: string) => call(w.app, "get", path, token);
 
-const expectBytes = async (res: ReturnType<typeof fetchAvatar>) => {
-  const response = await res;
+const expectBytes = async (path: string, token: string) => {
+  const response = await get(path, token);
 
   expect(response.status).toBe(200);
   expect(response.headers["cache-control"]).toMatch(/^private/);
   expect(Buffer.from(response.body).toString("base64")).toBe(PNG_BASE64);
 };
 
-const expectMissing = async (res: ReturnType<typeof fetchAvatar>) => {
-  const response = await res;
+const expectMissing = async (path: string, token: string) => {
+  const response = await get(path, token);
+  const missing = await get("/v1/avatars/user/2000000", token);
 
   expect(response.status).toBe(404);
   expect(response.body).toMatchObject({
     code: "AVATAR_NOT_FOUND",
     message: "not_found",
   });
+  expect(response.body).toMatchObject({
+    code: missing.body.code,
+    message: missing.body.message,
+  });
 };
 
-describe("GET /v1/avatars/user/:id visibility", () => {
-  it("shows a trainee their own photo", async () => {
-    await expectBytes(fetchAvatar("user", w.ids.ann, w.tokens.ann));
+const signed = (kind: "user" | "admin", id: number, version = "1700000000") =>
+  `/v1/avatars/${kind}/${id}?v=${version}&t=${avatarToken(kind, id, version)}`;
+
+describe("GET /v1/avatars/:kind/:id with signed URLs", () => {
+  it("serves a valid token to any signed-in actor, trainee or admin", async () => {
+    await expectBytes(signed("user", w.ids.ann), w.tokens.dan);
+    await expectBytes(signed("user", w.ids.ann), w.tokens.ptB);
+    await expectBytes(signed("user", w.ids.ann), w.tokens.superAdmin);
+    await expectBytes(signed("admin", w.ids.ptA), w.tokens.dan);
   });
 
-  it("shows any trainee to a super admin", async () => {
-    await expectBytes(fetchAvatar("user", w.ids.dan, w.tokens.superAdmin));
+  it("serves a trainee's own photo without a token", async () => {
+    await expectBytes(`/v1/avatars/user/${w.ids.ann}`, w.tokens.ann);
   });
 
-  it("shows a PT the trainees of their workspace only", async () => {
-    await expectBytes(fetchAvatar("user", w.ids.ann, w.tokens.ptA));
-    await expectMissing(fetchAvatar("user", w.ids.dan, w.tokens.ptA));
+  it("answers like a missing photo without a token (probing by id) or with a bad one", async () => {
+    const ok = signed("user", w.ids.ann);
+    const token = avatarToken("user", w.ids.ann, "1700000000");
+    const other = avatarToken("user", w.ids.ben, "1700000000");
+    const bad = [
+      `/v1/avatars/user/${w.ids.ann}`,
+      `/v1/avatars/user/${w.ids.ann}?v=1700000000`,
+      `/v1/avatars/user/${w.ids.ann}?v=1700000000&t=`,
+      `${ok.slice(0, -1)}${ok.endsWith("A") ? "B" : "A"}`,
+      `/v1/avatars/user/${w.ids.ann}?v=1700000000&t=${other}`,
+      `/v1/avatars/admin/${w.ids.ptA}?v=1700000000&t=${token}`,
+      // A token for an older version of the photo.
+      signed("user", w.ids.ann, "1600000000"),
+    ];
+
+    for (const path of bad) {
+      await expectMissing(path, w.tokens.dan);
+    }
+    // Staff do not get a free pass either.
+    await expectMissing(`/v1/avatars/user/${w.ids.ann}`, w.tokens.ptA);
+    await expectMissing(`/v1/avatars/user/${w.ids.ann}`, w.tokens.superAdmin);
   });
 
-  it("hides a trainee the PT hid until they reveal hidden trainees", async () => {
-    await hide(w.ds, w.ids.ptP, w.ids.pat);
-    const unlocked = await call(
-      w.app,
-      "post",
-      "/v1/admins/me/passcode/verify",
-      w.tokens.ptP,
-      { passcode: "4321" },
+  it("stops serving a URL once the photo is replaced", async () => {
+    const url = signed("user", w.ids.cat);
+
+    await expectBytes(url, w.tokens.dan);
+    await w.ds
+      .getRepository(UserAvatar)
+      .update(
+        { userId: w.ids.cat },
+        { updatedAt: new Date(1_700_000_100_000) },
+      );
+    await expectMissing(url, w.tokens.dan);
+    // Restore the version the later payload checks use.
+    await w.ds
+      .getRepository(UserAvatar)
+      .update(
+        { userId: w.ids.cat },
+        { updatedAt: new Date(1_700_000_000_000) },
+      );
+  });
+
+  it("loads the URLs the social payloads hand out", async () => {
+    const email = (
+      await w.ds.query(`SELECT email FROM users WHERE id = $1`, [w.ids.ben])
+    )[0].email as string;
+
+    // People search by exact email.
+    const found = await api.get(
+      `/people?email=${encodeURIComponent(email)}`,
+      w.tokens.dan,
     );
 
-    expect(unlocked.status).toBeLessThan(300);
-    await expectMissing(fetchAvatar("user", w.ids.pat, w.tokens.ptP));
-    await revealHidden(w.app, w.tokens.ptP, "4321");
-    await expectBytes(fetchAvatar("user", w.ids.pat, w.tokens.ptP));
+    expect(found.body.result.avatarUrl).toMatch(/&t=/);
+    await expectBytes(found.body.result.avatarUrl, w.tokens.dan);
+
+    // Friend requests, incoming and outgoing.
+    await api.post("/friends/requests", w.tokens.dan, { userId: w.ids.ben });
+    const asBen = await api.get("/friends/requests", w.tokens.ben);
+    const asDan = await api.get("/friends/requests", w.tokens.dan);
+
+    await expectBytes(asBen.body.received[0].avatarUrl, w.tokens.ben);
+    await expectBytes(asDan.body.sent[0].avatarUrl, w.tokens.dan);
+
+    // The viewer's own blocks list.
+    await api.put(`/blocks/${w.ids.cat}`, w.tokens.dan);
+    const blocks = await api.get("/blocks", w.tokens.dan);
+
+    expect(blocks.body.items[0].id).toBe(w.ids.cat);
+    await expectBytes(blocks.body.items[0].avatarUrl, w.tokens.dan);
   });
 
-  it("shows a trainee a friend, and denies once either side blocks", async () => {
-    await expectMissing(fetchAvatar("user", w.ids.ben, w.tokens.ann));
-    await befriend(w.ds, w.ids.ann, w.ids.ben);
-    await expectBytes(fetchAvatar("user", w.ids.ben, w.tokens.ann));
-    await expectBytes(fetchAvatar("user", w.ids.ann, w.tokens.ben));
-    await w.ds.query(
-      `INSERT INTO social_blocks (blocker_id, blocked_id, created_at) VALUES ($1, $2, now())`,
-      [w.ids.ben, w.ids.ann],
-    );
-    await expectMissing(fetchAvatar("user", w.ids.ben, w.tokens.ann));
-    await expectMissing(fetchAvatar("user", w.ids.ann, w.tokens.ben));
-  });
-
-  it("shows a trainee a direct-message partner unless blocked", async () => {
-    await w.ds.query(
-      `INSERT INTO dm_conversations (user_low, user_high, created_at) VALUES ($1, $2, now())`,
-      [Math.min(w.ids.cat, w.ids.dan), Math.max(w.ids.cat, w.ids.dan)],
-    );
-    await expectBytes(fetchAvatar("user", w.ids.dan, w.tokens.cat));
-    await w.ds.query(
-      `INSERT INTO social_blocks (blocker_id, blocked_id, created_at) VALUES ($1, $2, now())`,
-      [w.ids.cat, w.ids.dan],
-    );
-    await expectMissing(fetchAvatar("user", w.ids.dan, w.tokens.cat));
-  });
-
-  it("shows the author of a post the viewer can see, by the post's privacy", async () => {
-    const author = w.ids.pat;
-    const viewer = w.tokens.ben;
-
-    await expectMissing(fetchAvatar("user", author, viewer));
-    await w.ds.query(
-      `INSERT INTO social_posts (author_kind, author_id, privacy, created_at, updated_at)
-       VALUES ('user', $1, 'only_me', now(), now()),
-              ('user', $1, 'friends', now(), now())`,
-      [author],
-    );
-    await expectMissing(fetchAvatar("user", author, viewer));
-    await w.ds.query(
-      `INSERT INTO social_posts (author_kind, author_id, privacy, created_at, updated_at)
-       VALUES ('user', $1, 'everyone', now(), now())`,
-      [author],
-    );
-    await expectBytes(fetchAvatar("user", author, viewer));
-  });
-
-  it("ignores a deleted post", async () => {
-    const author = w.ids.dan;
-    const viewer = w.tokens.ben;
-
-    await w.ds.query(
-      `INSERT INTO social_posts (author_kind, author_id, privacy, created_at, updated_at, deleted_at)
-       VALUES ('user', $1, 'everyone', now(), now(), now())`,
-      [author],
-    );
-    await expectMissing(fetchAvatar("user", author, viewer));
-  });
-
-  it("denies an unrelated trainee, with the same answer as a missing photo", async () => {
-    await expectMissing(fetchAvatar("user", w.ids.cat, w.tokens.ann));
-    const missing = await fetchAvatar("user", 2_000_000, w.tokens.dan);
-    const denied = await fetchAvatar("user", w.ids.ann, w.tokens.dan);
-
-    expect(denied.status).toBe(missing.status);
-    expect(denied.body).toMatchObject({
-      code: missing.body.code,
-      message: missing.body.message,
+  it("lets a PT load the URL of an out-of-scope trainee who commented on their post", async () => {
+    const post = await api.post("/posts", w.tokens.ptA, {
+      caption: "hello",
+      privacy: "everyone",
     });
-  });
+    const postId = post.body.post.id as number;
 
-  it("keeps admin photos readable by a trainee with no conversation", async () => {
-    await expectBytes(fetchAvatar("admin", w.ids.ptA, w.tokens.dan));
+    expect(
+      (
+        await api.post(`/posts/${postId}/comments`, w.tokens.dan, {
+          body: "hi coach",
+        })
+      ).status,
+    ).toBe(201);
+    const comments = await api.get(`/posts/${postId}/comments`, w.tokens.ptA);
+    const fromDan = comments.body.items.find(
+      (item: { authorId: number }) => item.authorId === w.ids.dan,
+    );
+
+    expect(fromDan.authorAvatarUrl).toMatch(/&t=/);
+    await expectBytes(fromDan.authorAvatarUrl, w.tokens.ptA);
   });
 });

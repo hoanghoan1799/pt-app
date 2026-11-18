@@ -9,6 +9,7 @@ import type {
 
 import type { Exercise } from "../database/entities/exercise.entity.js";
 import type { WorkoutDay } from "../database/entities/workout-day.entity.js";
+import { avatarUrl } from "../files/image-rules.js";
 import { isTimedReps } from "./domain/exercise-rules.js";
 import type {
   ActivityItem,
@@ -93,6 +94,7 @@ export const toDashboardSummaryResponse = (
     avatarUpdatedAt: member.avatarUpdatedAt
       ? iso(member.avatarUpdatedAt)
       : null,
+    avatarUrl: avatarUrl("user", member.id, member.avatarUpdatedAt),
     ptAdminId: member.ptAdminId,
     ptName: member.ptName,
     assigned: member.assigned,

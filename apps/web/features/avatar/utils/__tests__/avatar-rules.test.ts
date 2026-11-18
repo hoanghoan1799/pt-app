@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   avatarKey,
-  avatarUrl,
   isAvatarKind,
   toWebAvatarUrl,
 } from "@/features/avatar/utils/avatar-rules";
@@ -13,14 +12,6 @@ import { squareCrop } from "@/features/avatar/utils/resize-avatar";
 // apps/api/test/avatars.e2e.test.ts.
 
 describe("avatar urls and keys", () => {
-  it("builds a versioned URL from whole seconds, or null without a photo", () => {
-    expect(avatarUrl("user", 7, new Date(1_793_953_327_000))).toBe(
-      "/api/avatar/user/7?v=1793953327",
-    );
-    expect(avatarUrl("admin", 2, null)).toBeNull();
-    expect(avatarUrl("admin", 2, undefined)).toBeNull();
-  });
-
   it("keys the thread map like nicknames", () => {
     expect(avatarKey("user", 3)).toBe("user");
     expect(avatarKey("admin", 3)).toBe("admin:3");
@@ -35,8 +26,8 @@ describe("avatar urls and keys", () => {
 
 describe("toWebAvatarUrl", () => {
   it("points the API's photo URL at this app's avatar route", () => {
-    expect(toWebAvatarUrl("/v1/avatars/user/7?v=1793953327")).toBe(
-      "/api/avatar/user/7?v=1793953327",
+    expect(toWebAvatarUrl("/v1/avatars/user/7?v=1793953327&t=abc_-")).toBe(
+      "/api/avatar/user/7?v=1793953327&t=abc_-",
     );
   });
 

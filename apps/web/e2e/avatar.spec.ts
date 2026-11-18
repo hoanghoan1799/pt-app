@@ -117,7 +117,7 @@ const uploadAvatar = async (page: Page) => {
   await field.getByRole("button", { name: "Lưu ảnh" }).click();
   await expect(field.locator("[data-avatar-image]")).toHaveAttribute(
     "src",
-    /^\/api\/avatar\/(user|admin)\/\d+\?v=\d+$/,
+    /^\/api\/avatar\/(user|admin)\/\d+\?v=\d+&t=[A-Za-z0-9_-]+$/,
   );
   await expect(field.getByRole("button", { name: "Xoá ảnh" })).toBeVisible();
   await page.keyboard.press("Escape");
@@ -152,7 +152,7 @@ test.describe("avatars", () => {
       await expect(image).toHaveCount(1);
       await expect(image).toHaveAttribute(
         "src",
-        new RegExp(`^/api/avatar/user/${userId}\\?v=\\d+$`),
+        new RegExp(`^/api/avatar/user/${userId}\\?v=\\d+&t=[A-Za-z0-9_-]+$`),
       );
       // The route really serves a decodable square image.
       await expect
@@ -226,7 +226,7 @@ test.describe("avatars", () => {
       await expect(t.getByText("Chào em")).toBeVisible();
       await expect(t.locator("header [data-avatar-image]")).toHaveAttribute(
         "src",
-        /^\/api\/avatar\/admin\/\d+\?v=\d+$/,
+        /^\/api\/avatar\/admin\/\d+\?v=\d+&t=[A-Za-z0-9_-]+$/,
       );
       // The same photo sits beside the PT's bubble.
       await expect(

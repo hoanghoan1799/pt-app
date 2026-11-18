@@ -8,13 +8,9 @@ import { Admin } from "../src/database/entities/admin.entity.js";
 import { AdminAvatar } from "../src/database/entities/admin-avatar.entity.js";
 import { User } from "../src/database/entities/user.entity.js";
 import { UserAvatar } from "../src/database/entities/user-avatar.entity.js";
+import { avatarUrl } from "../src/files/image-rules.js";
 import { createTestApp } from "./support/app.js";
-import {
-  FakeClock,
-  seedAdmin,
-  seedUser,
-  tokenOf,
-} from "./support/auth.js";
+import { FakeClock, seedAdmin, seedUser, tokenOf } from "./support/auth.js";
 import { createTestDatabase, type TestDatabase } from "./support/database.js";
 import { call, PNG_BASE64, PNG_URL } from "./support/http.js";
 
@@ -74,9 +70,7 @@ describe("PUT /v1/users/me/avatar", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(response.body.avatarUrl).toBe(
-      `/v1/avatars/user/${me.id}?v=${Math.floor(clock.now().getTime() / 1000)}`,
-    );
+    expect(response.body.avatarUrl).toBe(avatarUrl("user", me.id, clock.now()));
     const row = await ds.getRepository(User).findOneOrFail({
       where: { id: me.id },
       select: { id: true, avatarUpdatedAt: true },
@@ -179,7 +173,7 @@ describe("PUT /v1/admins/me/avatar and removal", () => {
 
     expect(set.status).toBe(200);
     expect(set.body.avatarUrl).toMatch(
-      new RegExp(`^/v1/avatars/admin/${pt.id}\\?v=\\d+$`),
+      new RegExp(`^/v1/avatars/admin/${pt.id}\\?v=\\d+&t=[A-Za-z0-9_-]+$`),
     );
     const stored = await storedAdmin(pt.id);
 
@@ -343,23 +337,22 @@ describe("GET /v1/avatars/:kind/:id", () => {
     expect(probe.body.code).toBe("AVATAR_NOT_FOUND");
   });
 
-  it("shows the PT team's photo to any trainee, with or without a conversation", async () => {
+  it("shows the PT team's photo to any trainee through its signed URL, never by bare id", async () => {
     const me = await trainee();
     const pt = await admin();
-
-    await call(app, "put", "/v1/admins/me/avatar", pt.token, {
+    const set = await call(app, "put", "/v1/admins/me/avatar", pt.token, {
       dataUrl: PNG_URL,
     });
 
+    expect((await call(app, "get", set.body.avatarUrl, me.token)).status).toBe(
+      200,
+    );
     expect(
       (await call(app, "get", `/v1/avatars/admin/${pt.id}`, me.token)).status,
-    ).toBe(200);
-    expect(
-      (await call(app, "get", `/v1/avatars/admin/${pt.id}`, me.token)).status,
-    ).toBe(200);
+    ).toBe(404);
   });
 
-  it("lets an admin see the photo of a trainee in their scope, and 404s for missing photos, bad kinds and bad ids", async () => {
+  it("answers staff by bare id like anyone else, and 404s for missing photos, bad kinds and bad ids", async () => {
     const pt = await admin();
     const seeded = await seedUser(ds, { ptAdminId: pt.id });
     const me = {
@@ -367,14 +360,16 @@ describe("GET /v1/avatars/:kind/:id", () => {
       token: await tokenOf(app, { kind: "user", ...seeded }),
     };
     const bare = await seedUser(ds, { ptAdminId: pt.id });
-
-    await call(app, "put", "/v1/users/me/avatar", me.token, {
+    const set = await call(app, "put", "/v1/users/me/avatar", me.token, {
       dataUrl: PNG_URL,
     });
 
     expect(
       (await call(app, "get", `/v1/avatars/user/${me.id}`, pt.token)).status,
-    ).toBe(200);
+    ).toBe(404);
+    expect((await call(app, "get", set.body.avatarUrl, pt.token)).status).toBe(
+      200,
+    );
     for (const path of [
       `/v1/avatars/user/${bare.id}`,
       "/v1/avatars/root/1",
@@ -389,20 +384,22 @@ describe("GET /v1/avatars/:kind/:id", () => {
   it("does not serve a stored value that is not an image", async () => {
     const me = await trainee();
     const pt = await admin();
+    const updatedAt = new Date();
 
     await ds
       .getRepository(User)
-      .update({ id: me.id }, { avatarUpdatedAt: new Date() });
+      .update({ id: me.id }, { avatarUpdatedAt: updatedAt });
     await ds.getRepository(UserAvatar).insert({
       userId: me.id,
       mime: "image/png",
       data: Buffer.from("<script>"),
       size: 8,
-      updatedAt: new Date(),
+      updatedAt,
     });
 
     expect(
-      (await call(app, "get", `/v1/avatars/user/${me.id}`, pt.token)).status,
+      (await call(app, "get", avatarUrl("user", me.id, updatedAt)!, pt.token))
+        .status,
     ).toBe(404);
   });
 });

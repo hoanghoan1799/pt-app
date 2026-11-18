@@ -3,7 +3,7 @@ import type {
   DashboardSummaryResponse,
 } from "@pt/contracts";
 
-import { avatarUrl } from "@/features/avatar/utils/avatar-rules";
+import { toWebAvatarUrl } from "@/features/avatar/utils/avatar-rules";
 import type {
   ActivityItem,
   MemberProgress,
@@ -11,7 +11,7 @@ import type {
 
 const toEpochMs = (iso: string | null) => (iso ? Date.parse(iso) : null);
 
-// API member row -> the dashboard's row (versioned avatar URL, epoch ms).
+// API member row -> the dashboard's row (the API's signed avatar URL, epoch ms).
 // `percent` and `status` are recomputed by toMemberRows, as before.
 export const toMemberProgress = (
   member: DashboardSummaryResponse["members"][number],
@@ -19,11 +19,7 @@ export const toMemberProgress = (
   id: member.id,
   name: member.name,
   displayName: member.displayName,
-  avatarUrl: avatarUrl(
-    "user",
-    member.id,
-    member.avatarUpdatedAt ? new Date(member.avatarUpdatedAt) : null,
-  ),
+  avatarUrl: toWebAvatarUrl(member.avatarUrl),
   ptAdminId: member.ptAdminId,
   ptName: member.ptName,
   assigned: member.assigned,

@@ -19,9 +19,8 @@ import type { Response } from "express";
 import type { AuthActor } from "../auth/actor.js";
 import { Actor, Roles } from "../auth/decorators/index.js";
 import { ApiErrors } from "../common/openapi/api-errors.js";
-import { AvatarAccess } from "../social/avatar-access.service.js";
 import { AvatarService } from "./avatar.service.js";
-import { avatarVersion } from "./image-rules.js";
+import { avatarVersion, isValidAvatarToken } from "./image-rules.js";
 
 const notFound = () =>
   new NotFoundException({ code: "AVATAR_NOT_FOUND", message: "not_found" });
@@ -29,18 +28,15 @@ const notFound = () =>
 @ApiTags("avatars")
 @Controller("avatars")
 export class AvatarsController {
-  constructor(
-    private readonly avatars: AvatarService,
-    private readonly access: AvatarAccess,
-  ) {}
+  constructor(private readonly avatars: AvatarService) {}
 
-  // Payloads carry `?v=<version>` URLs, not the image. With a matching `v` the
-  // bytes never change and cache for a year; without it the browser revalidates
-  // by ETag. Access depends on the viewer, so every response is `private`.
-  // A trainee's photo: the trainee, a super admin, the PT of their workspace,
-  // and trainees who can see them socially (AvatarAccess). The PT team's
-  // photos: any signed-in actor. Anything
-  // else answers like a missing photo so ids cannot be probed.
+  // Payloads carry signed `?v=<version>&t=<token>` URLs, not the image. The
+  // token (HMAC over kind, id and the stored version) is the capability: a
+  // valid one serves the photo to any signed-in actor, and the actor's own
+  // photo needs none. A missing, wrong or stale token answers like a missing
+  // photo so ids cannot be probed. With a matching `v` the bytes never change
+  // and cache for a year; without it the browser revalidates by ETag. Always
+  // `private`.
   @Get(":kind/:id")
   @Roles("super_admin", "pt", "trainee")
   @ApiProduces("image/webp", "image/jpeg", "image/png")
@@ -52,20 +48,28 @@ export class AvatarsController {
     @Param("kind") rawKind: string,
     @Param("id") rawId: string,
     @Query("v") queryVersion: string | undefined,
+    @Query("t") token: string | undefined,
     @Headers("if-none-match") ifNoneMatch: string | undefined,
     @Res() res: Response,
   ) {
     const params = avatarParamsSchema.safeParse({ kind: rawKind, id: rawId });
 
-    if (!params.success || !(await this.canView(actor, params.data))) {
+    if (!params.success) {
       throw notFound();
     }
-    const file = await this.avatars.fileOf(params.data.kind, params.data.id);
+    const { kind, id } = params.data;
+    const file = await this.avatars.fileOf(kind, id);
 
     if (!file) {
       throw notFound();
     }
     const version = avatarVersion(file.version);
+    const own =
+      actor.kind === (kind === "admin" ? "admin" : "user") && actor.id === id;
+
+    if (!own && !isValidAvatarToken(kind, id, version, token)) {
+      throw notFound();
+    }
     const etag = `"${version}"`;
     const headers = {
       ETag: etag,
@@ -84,16 +88,5 @@ export class AvatarsController {
       .status(200)
       .set({ ...headers, "Content-Type": file.mime })
       .send(file.bytes);
-  }
-
-  private async canView(
-    actor: AuthActor,
-    target: { kind: "user" | "admin"; id: number },
-  ) {
-    if (target.kind === "user") {
-      return this.access.canViewUserAvatar(actor, target.id);
-    }
-    // Admin photos decorate names everyone sees (GET /v1/chat/team).
-    return true;
   }
 }

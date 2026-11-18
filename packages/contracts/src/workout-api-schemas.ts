@@ -269,6 +269,8 @@ export const memberProgressResponseSchema = z.object({
   name: z.string(),
   displayName: z.string(),
   avatarUpdatedAt: isoDateTime.nullable(),
+  // The signed photo URL (the API hands it out; never build it by hand).
+  avatarUrl: z.string().nullable(),
   ptAdminId: z.number().int().nullable(),
   ptName: z.string().nullable(),
   assigned: z.number().int(),
