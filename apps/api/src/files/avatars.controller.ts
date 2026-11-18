@@ -19,8 +19,8 @@ import type { Response } from "express";
 import type { AuthActor } from "../auth/actor.js";
 import { Actor, Roles } from "../auth/decorators/index.js";
 import { ApiErrors } from "../common/openapi/api-errors.js";
-import { AvatarService } from "./avatar.service.js";
 import { AvatarAccess } from "../social/avatar-access.service.js";
+import { AvatarService } from "./avatar.service.js";
 import { avatarVersion } from "./image-rules.js";
 
 const notFound = () =>
