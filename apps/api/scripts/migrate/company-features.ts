@@ -1,5 +1,5 @@
 import { ACCENT_COLOR_PATTERN } from "../../src/database/entities/accent-color.js";
-import { byKey } from "./chat-social.js";
+import { byKey, findPositionViolations } from "./chat-social.js";
 import type { RowRef, RowViolation } from "./plan.js";
 
 // The tables and columns production gained after the API branched
@@ -94,8 +94,6 @@ export const COMPANY_REASONS = {
   replyOtherGroup: "reply_in_other_group",
   photoNotOfMessage: "photo_not_attached_to_message",
   photoOtherGroup: "photo_message_in_other_group",
-  negativePosition: "position_negative",
-  duplicatePosition: "duplicate_position_in_message",
 } as const;
 
 // Same pattern as the AccentTheme migration.
@@ -264,14 +262,9 @@ export const findCompanyViolations = (rows: Rows): RowViolation[] => {
     }
   }
 
-  // Photos: same group as their message, one photo per position of a message
-  // (the later row, by id, is the one reported).
-  const positions = new Set<string>();
-  const sortedPhotos = [...(rows.chat_group_photos ?? [])].sort(
-    (a, b) => Number(a.key) - Number(b.key),
-  );
-
-  for (const row of sortedPhotos) {
+  // Photos: same group as their message; positions as for the other photo
+  // tables (chat-social.ts).
+  for (const row of rows.chat_group_photos ?? []) {
     const v = row.values;
     const message = messages.get(String(v.message_id));
 
@@ -287,30 +280,15 @@ export const findCompanyViolations = (rows: Rows): RowViolation[] => {
         COMPANY_REASONS.photoOtherGroup,
       );
     }
-
-    if (typeof v.position === "number" && v.position < 0) {
-      add(
-        "chat_group_photos",
-        "position",
-        row.key,
-        COMPANY_REASONS.negativePosition,
-      );
-    }
-
-    if (isSet(v.message_id) && isSet(v.position)) {
-      const slot = `${String(v.message_id)}|${String(v.position)}`;
-
-      if (positions.has(slot)) {
-        add(
-          "chat_group_photos",
-          "position",
-          row.key,
-          COMPANY_REASONS.duplicatePosition,
-        );
-      }
-      positions.add(slot);
-    }
   }
+
+  found.push(
+    ...findPositionViolations(
+      "chat_group_photos",
+      "message_id",
+      rows.chat_group_photos,
+    ),
+  );
 
   return found;
 };

@@ -685,7 +685,7 @@ describe("data migration from a Turso/SQLite copy", () => {
           "last_message_in_other_conversation",
         ),
       ).toEqual(["3"]);
-      expect(keys("chat_photos", "message_id", "photo_link_mismatch")).toEqual([
+      expect(keys("chat_photos", "position", "position_negative")).toEqual([
         "92",
       ]);
       expect(
@@ -918,7 +918,7 @@ describe("data migration from a Turso/SQLite copy", () => {
         ["90"],
       );
       expect(
-        keys("chat_group_photos", "position", "duplicate_position_in_message"),
+        keys("chat_group_photos", "position", "duplicate_position"),
       ).toEqual(["90"]);
       expect(await count(db, "users")).toBe(0);
     });

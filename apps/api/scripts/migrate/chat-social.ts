@@ -121,13 +121,19 @@ export const derivedValues = (
 export const SCAN_COLUMNS: Record<string, string[]> = {
   chat_messages: ["conversation_id", "reply_to_message_id", "photo_id"],
   chat_conversations: ["last_message_id"],
-  chat_photos: ["message_id", "size"],
+  chat_photos: ["message_id", "size", "position"],
   dm_messages: ["conversation_id", "photo_id", "sender_id"],
   dm_conversations: ["last_message_id", "user_low", "user_high"],
-  dm_photos: ["message_id", "size", "conversation_id", "uploader_id"],
+  dm_photos: [
+    "message_id",
+    "size",
+    "position",
+    "conversation_id",
+    "uploader_id",
+  ],
   dm_reads: ["conversation_id", "user_id"],
   social_posts: ["photo_id"],
-  social_post_photos: ["post_id", "size"],
+  social_post_photos: ["post_id", "size", "position"],
   chat_custom_stickers: ["size"],
   social_friendships: ["user_low", "user_high", "requested_by"],
   social_reports: [
@@ -145,6 +151,8 @@ export const REASONS = {
   replyOtherConversation: "reply_in_other_conversation",
   lastMessageOtherConversation: "last_message_in_other_conversation",
   photoLinkMismatch: "photo_link_mismatch",
+  negativePosition: "position_negative",
+  duplicatePosition: "duplicate_position",
   sizeMismatch: "size_not_byte_length",
   pairNotOrdered: "pair_not_ordered",
   requesterNotMember: "requester_not_in_pair",
@@ -174,6 +182,50 @@ const PHOTO_LINKS = [
   ["dm_messages", "dm_photos", "message_id"],
   ["social_posts", "social_post_photos", "post_id"],
 ] as const;
+
+// position >= 0 and one photo per position of an owner (a NULL owner or
+// position is free). The later row, by id, is the one reported.
+export const findPositionViolations = (
+  table: string,
+  ownerColumn: string,
+  rows: RowRef[] | undefined,
+): RowViolation[] => {
+  const found: RowViolation[] = [];
+  const taken = new Set<string>();
+  const sorted = [...(rows ?? [])].sort(
+    (a, b) => Number(a.key) - Number(b.key),
+  );
+
+  for (const row of sorted) {
+    const owner = row.values[ownerColumn];
+    const position = row.values.position;
+
+    if (typeof position === "number" && position < 0) {
+      found.push({
+        table,
+        column: "position",
+        key: row.key,
+        reason: REASONS.negativePosition,
+      });
+    }
+
+    if (owner != null && position != null) {
+      const slot = `${String(owner)}|${String(position)}`;
+
+      if (taken.has(slot)) {
+        found.push({
+          table,
+          column: "position",
+          key: row.key,
+          reason: REASONS.duplicatePosition,
+        });
+      }
+      taken.add(slot);
+    }
+  }
+
+  return found;
+};
 
 export const findChatSocialViolations = (rows: Rows): RowViolation[] => {
   const found: RowViolation[] = [];
@@ -225,9 +277,10 @@ export const findChatSocialViolations = (rows: Rows): RowViolation[] => {
     }
   }
 
-  // Both directions of every photo link name each other.
+  // The cover (the owner's photo_id) is a photo attached to that very owner.
+  // An owner may have more photos than its cover (PhotoPosition), so a photo
+  // is not required to be the cover.
   for (const [ownerTable, photoTable, photoColumn] of PHOTO_LINKS) {
-    const owners = byKey(rows[ownerTable]);
     const photos = byKey(rows[photoTable]);
 
     for (const owner of rows[ownerTable] ?? []) {
@@ -242,17 +295,7 @@ export const findChatSocialViolations = (rows: Rows): RowViolation[] => {
       }
     }
 
-    for (const photo of rows[photoTable] ?? []) {
-      const owner = owners.get(String(photo.values[photoColumn]));
-
-      if (
-        photo.values[photoColumn] != null &&
-        owner &&
-        String(owner.values.photo_id) !== photo.key
-      ) {
-        add(photoTable, photoColumn, photo.key, REASONS.photoLinkMismatch);
-      }
-    }
+    found.push(...findPositionViolations(photoTable, photoColumn, rows[photoTable]));
   }
 
   // size = octet_length(data).

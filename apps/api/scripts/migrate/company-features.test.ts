@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { REASONS } from "./chat-social.js";
 import {
   COMPANY_REASONS,
   companyScanValues,
@@ -238,8 +239,8 @@ describe("findCompanyViolations", () => {
       }),
     ).toEqual([
       `chat_group_photos:message_id:12:${COMPANY_REASONS.photoOtherGroup}`,
-      `chat_group_photos:position:11:${COMPANY_REASONS.duplicatePosition}`,
-      `chat_group_photos:position:13:${COMPANY_REASONS.negativePosition}`,
+      `chat_group_photos:position:11:${REASONS.duplicatePosition}`,
+      `chat_group_photos:position:13:${REASONS.negativePosition}`,
     ]);
   });
 });

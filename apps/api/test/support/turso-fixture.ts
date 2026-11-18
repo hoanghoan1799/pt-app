@@ -1083,6 +1083,7 @@ const chatSocialDirty = (): Entry[] => [
       id: 92,
       conversation_id: 1,
       message_id: 1,
+      position: -1,
       uploader_key: "user",
       mime: "image/png",
       width: 1,
