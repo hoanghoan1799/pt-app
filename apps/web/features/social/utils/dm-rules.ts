@@ -93,17 +93,20 @@ export const buildDmPushPayload = ({
   conversationId,
   body,
   photo,
+  photoCount = 1,
   locale = DEFAULT_LOCALE,
 }: {
   senderName: string;
   conversationId: number;
   body?: string | null;
   photo: boolean;
+  // Photos in the message (the preview names the count when several).
+  photoCount?: number;
   // The recipient's language.
   locale?: Locale;
 }): ChatPushPayload => ({
   title: senderName.trim() === "" ? PUSH_TITLE : senderName,
-  body: buildPushPreview({ body, photo, locale }),
+  body: buildPushPreview({ body, photo, photoCount, locale }),
   url: dmPath(conversationId),
   tag: `dm-${conversationId}`,
 });
@@ -116,12 +119,13 @@ export const dmPreview = (
     deleted: boolean;
   },
   locale: Locale = DEFAULT_LOCALE,
+  photoCount = 1,
 ) => {
   if (message.deleted) {
     return localizeMessageFor(locale, DM_MESSAGES.UNSENT);
   }
   if (message.photoId !== null) {
-    const label = photoPreview("", locale);
+    const label = photoPreview("", locale, photoCount);
 
     return message.body ? `${label} ${message.body}` : label;
   }
