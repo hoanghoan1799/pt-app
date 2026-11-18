@@ -172,7 +172,8 @@
     "RATE_LIMITED": "Bạn đã gửi quá nhiều lời mời hôm nay. Hãy thử lại vào ngày mai.",
     "REQUEST_NOT_FOUND": "Không tìm thấy lời mời kết bạn.",
     "REASON_TOO_LONG": "Lý do tối đa {max} ký tự.",
-    "REPORT_NOT_FOUND": "Không tìm thấy báo cáo."
+    "REPORT_NOT_FOUND": "Không tìm thấy báo cáo.",
+    "REASON_REQUIRED": "Hãy chọn lý do báo cáo."
   },
   "workouts": {
     "INVALID_INPUT": "Vui lòng kiểm tra lại thông tin",

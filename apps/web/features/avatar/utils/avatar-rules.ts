@@ -16,18 +16,7 @@ export type AvatarKind = "user" | "admin";
 export const isAvatarKind = (value: unknown): value is AvatarKind =>
   value === "user" || value === "admin";
 
-// The versioned URL payloads carry instead of the image itself. Null when
-// there is no photo.
-export const avatarUrl = (
-  kind: AvatarKind,
-  id: number,
-  updatedAt: Date | null | undefined,
-): string | null =>
-  updatedAt
-    ? `/api/avatar/${kind}/${id}?v=${Math.floor(updatedAt.getTime() / 1000)}`
-    : null;
-
-// The API names its photos /v1/avatars/<kind>/<id>?v=<version>; the browser
+// The API names its photos /v1/avatars/<kind>/<id>?v=<version>&t=<token> (signed); the browser
 // reaches them through this app (app/api/avatar), which proxies to the API.
 export const toWebAvatarUrl = (url: string | null | undefined) =>
   url ? url.replace(/^\/v1\/avatars\//, "/api/avatar/") : null;

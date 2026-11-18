@@ -172,7 +172,8 @@
     "RATE_LIMITED": "You have sent too many requests today. Try again tomorrow.",
     "REQUEST_NOT_FOUND": "Friend request not found.",
     "REASON_TOO_LONG": "The reason can have at most {max} characters.",
-    "REPORT_NOT_FOUND": "Report not found."
+    "REPORT_NOT_FOUND": "Report not found.",
+    "REASON_REQUIRED": "Choose a reason for the report."
   },
   "workouts": {
     "INVALID_INPUT": "Please check the information again",

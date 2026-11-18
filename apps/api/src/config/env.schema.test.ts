@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { loadEnv } from "./env.schema.js";
 
 const DATABASE_URL = "postgres://pt:pw@db:5432/ptapp";
+const AVATAR_URL_SECRET = "x".repeat(32);
 
 const DEFAULTS = {
   NODE_ENV: "production",
@@ -13,17 +14,19 @@ const DEFAULTS = {
   REALTIME_RECHECK_SECONDS: 300,
   PURGE_INTERVAL_MINUTES: 60,
   LOG_LEVEL: undefined,
+  AVATAR_URL_SECRET,
 };
 
 describe("loadEnv", () => {
   it("applies the defaults", () => {
-    expect(loadEnv({ DATABASE_URL })).toEqual(DEFAULTS);
+    expect(loadEnv({ DATABASE_URL, AVATAR_URL_SECRET })).toEqual(DEFAULTS);
   });
 
   it("treats empty optional values as unset", () => {
     expect(
       loadEnv({
         DATABASE_URL,
+        AVATAR_URL_SECRET,
         NODE_ENV: "",
         PORT: "",
         WEB_ORIGIN: "",
@@ -52,6 +55,7 @@ describe("loadEnv", () => {
         REALTIME_RECHECK_SECONDS: "60",
         PURGE_INTERVAL_MINUTES: "0",
         LOG_LEVEL: "debug",
+        AVATAR_URL_SECRET,
       }),
     ).toEqual({
       NODE_ENV: "production",
@@ -65,7 +69,23 @@ describe("loadEnv", () => {
       REALTIME_RECHECK_SECONDS: 60,
       PURGE_INTERVAL_MINUTES: 0,
       LOG_LEVEL: "debug",
+      AVATAR_URL_SECRET,
     });
+  });
+
+  it("requires AVATAR_URL_SECRET (32+ chars) in production only", () => {
+    expect(() => loadEnv({ DATABASE_URL })).toThrow(
+      /missing: AVATAR_URL_SECRET/,
+    );
+    expect(() =>
+      loadEnv({ DATABASE_URL, AVATAR_URL_SECRET: "too-short" }),
+    ).toThrow(/invalid.*AVATAR_URL_SECRET/);
+    expect(
+      loadEnv({ DATABASE_URL, NODE_ENV: "development" }).AVATAR_URL_SECRET,
+    ).toBeUndefined();
+    expect(
+      loadEnv({ DATABASE_URL, NODE_ENV: "test" }).AVATAR_URL_SECRET,
+    ).toBeUndefined();
   });
 
   it("requires DATABASE_URL and says so by name", () => {

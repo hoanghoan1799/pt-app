@@ -136,7 +136,8 @@
     "reply": "Reply",
     "copy": "Copy",
     "edit": "Edit",
-    "unsend": "Unsend"
+    "unsend": "Unsend",
+    "report": "Report"
   },
   "messageBubble": {
     "viewReply": "View the message being replied to",

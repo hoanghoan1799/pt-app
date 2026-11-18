@@ -1,11 +1,8 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { InjectDataSource } from "@nestjs/typeorm";
 import { AVATAR_MESSAGES, type AvatarKind } from "@pt/contracts";
-import { DataSource } from "typeorm";
 
 import { badRequest } from "../auth/auth.errors.js";
 import { payloadTooLargeError } from "../common/errors.js";
-import { ChatConversation } from "../database/entities/chat-conversation.entity.js";
 import {
   FILE_STORAGE,
   type FileRef,
@@ -22,10 +19,7 @@ const refOf = (kind: AvatarKind, id: number): FileRef => ({
 // goes through FileStorage.
 @Injectable()
 export class AvatarService {
-  constructor(
-    @Inject(FILE_STORAGE) private readonly storage: FileStorage,
-    @InjectDataSource() private readonly dataSource: DataSource,
-  ) {}
+  constructor(@Inject(FILE_STORAGE) private readonly storage: FileStorage) {}
 
   // Validates the data URL (size, shape, magic bytes), stores it and returns
   // the versioned URL.
@@ -52,13 +46,5 @@ export class AvatarService {
 
   fileOf(kind: AvatarKind, id: number) {
     return this.storage.get(refOf(kind, id));
-  }
-
-  // A trainee sees the PT team's photos once they have a conversation (the
-  // shared inbox: every PT talks to them).
-  hasConversation(userId: number) {
-    return this.dataSource
-      .getRepository(ChatConversation)
-      .exists({ where: { userId } });
   }
 }

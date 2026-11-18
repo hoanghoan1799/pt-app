@@ -1,3 +1,5 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
+
 import {
   AVATAR_MAX_BYTES,
   AVATAR_MAX_DATA_URL_LENGTH,
@@ -68,9 +70,50 @@ export const encodeDataUrl = (mime: string, bytes: Uint8Array) =>
 export const avatarVersion = (updatedAt: Date) =>
   String(Math.floor(updatedAt.getTime() / 1000));
 
+// Signed URLs (HMAC-SHA256 over "<kind>:<id>:<version>"): the URL itself is the
+// capability, so whoever the API hands a URL to may load that photo. Set once
+// at boot from AVATAR_URL_SECRET (config/app-config.module.ts); unit tests that
+// never boot the app use the fixed development secret.
+const DEV_AVATAR_URL_SECRET = "dev-only-avatar-url-secret-not-for-production";
+let avatarSecret = DEV_AVATAR_URL_SECRET;
+
+export const setAvatarUrlSecret = (secret: string) => {
+  avatarSecret = secret;
+};
+
+export const avatarToken = (
+  kind: "user" | "admin",
+  id: number,
+  version: string,
+) =>
+  createHmac("sha256", avatarSecret)
+    .update(`${kind}:${id}:${version}`)
+    .digest("base64url");
+
+export const isValidAvatarToken = (
+  kind: "user" | "admin",
+  id: number,
+  version: string,
+  token: unknown,
+) => {
+  if (typeof token !== "string") {
+    return false;
+  }
+  const expected = Buffer.from(avatarToken(kind, id, version));
+  const given = Buffer.from(token);
+
+  return given.length === expected.length && timingSafeEqual(given, expected);
+};
+
 export const avatarUrl = (
   kind: "user" | "admin",
   id: number,
   updatedAt: Date | null | undefined,
-): string | null =>
-  updatedAt ? `/v1/avatars/${kind}/${id}?v=${avatarVersion(updatedAt)}` : null;
+): string | null => {
+  if (!updatedAt) {
+    return null;
+  }
+  const version = avatarVersion(updatedAt);
+
+  return `/v1/avatars/${kind}/${id}?v=${version}&t=${avatarToken(kind, id, version)}`;
+};

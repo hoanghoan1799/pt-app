@@ -2,6 +2,8 @@ import {
   parseSocialActorKey,
   SOCIAL_FRIEND_MESSAGES,
   SOCIAL_MESSAGES,
+  SOCIAL_REPORT_REASON_CODES,
+  SOCIAL_REPORT_TARGET_KINDS,
   socialPairOf,
 } from "../social.js";
 import {
@@ -15,6 +17,7 @@ import {
   socialProfilePathSchema,
   socialReactionRequestSchema,
   socialReportRequestSchema,
+  socialReportResponseSchema,
   socialResolveReportRequestSchema,
 } from "../social-api-schemas.js";
 import { describe, expect, it } from "vitest";
@@ -89,6 +92,64 @@ describe("reports and friends", () => {
     expect(socialResolveReportRequestSchema.safeParse({ resolution: "ignored" }).success).toBe(false);
     expect(socialFriendRequestSchema.safeParse({ userId: 0 }).success).toBe(false);
     expect(socialFriendRequestSchema.safeParse({ userId: 7 }).success).toBe(true);
+  });
+
+  it("takes an optional reason code for a post, comment or user", () => {
+    expect(
+      socialReportRequestSchema.parse({ targetKind: "comment", targetId: 3, reasonCode: "spam" }),
+    ).toEqual({ targetKind: "comment", targetId: 3, reasonCode: "spam", reason: "" });
+    expect(
+      socialReportRequestSchema.safeParse({ targetKind: "user", targetId: 3, reasonCode: "rude" }).success,
+    ).toBe(false);
+  });
+
+  it("requires a reason code for a chat message", () => {
+    const missing = socialReportRequestSchema.safeParse({ targetKind: "message", targetId: 9 });
+
+    expect(missing.success).toBe(false);
+    expect(missing.error?.issues[0]).toMatchObject({
+      path: ["reasonCode"],
+      message: SOCIAL_FRIEND_MESSAGES.REASON_REQUIRED,
+    });
+    for (const reasonCode of SOCIAL_REPORT_REASON_CODES) {
+      expect(
+        socialReportRequestSchema.parse({ targetKind: "message", targetId: 9, reasonCode, reason: " note " }),
+      ).toEqual({ targetKind: "message", targetId: 9, reasonCode, reason: "note" });
+    }
+  });
+
+  it("accepts group_message for forward compatibility, with a reason code", () => {
+    expect(SOCIAL_REPORT_TARGET_KINDS).toContain("group_message");
+    expect(
+      socialReportRequestSchema.safeParse({ targetKind: "group_message", targetId: 1, reasonCode: "scam" }).success,
+    ).toBe(true);
+    expect(socialReportRequestSchema.safeParse({ targetKind: "group_message", targetId: 1 }).success).toBe(false);
+  });
+
+  it("resolves a report as kept, deleted or hidden", () => {
+    expect(socialResolveReportRequestSchema.parse({ resolution: "hidden" })).toEqual({ resolution: "hidden" });
+  });
+
+  it("describes a message report in the queue", () => {
+    const report = {
+      id: 1,
+      targetKind: "message",
+      targetId: 9,
+      reporterName: "An",
+      reason: "",
+      reasonCode: "harassment",
+      createdAt: "2026-11-18T08:00:00.000Z",
+      preview: "hi",
+      targetName: "Binh",
+      postId: null,
+      message: { senderRole: "user", senderName: "Binh", traineeId: 4, traineeName: "Binh", kind: "text" },
+    };
+
+    expect(socialReportResponseSchema.parse(report)).toEqual(report);
+    expect(
+      socialReportResponseSchema.parse({ ...report, targetKind: "post", reasonCode: null, message: null }).reasonCode,
+    ).toBeNull();
+    expect(socialReportResponseSchema.safeParse({ ...report, reasonCode: "rude" }).success).toBe(false);
   });
 });
 

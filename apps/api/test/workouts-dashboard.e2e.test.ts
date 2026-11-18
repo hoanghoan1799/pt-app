@@ -158,6 +158,7 @@ describe("GET /v1/dashboard/summary", () => {
       name: "An",
       displayName: "An",
       avatarUpdatedAt: null,
+      avatarUrl: null,
       ptAdminId: w.ids.ptA,
       ptName: expect.any(String),
       assigned: 1,

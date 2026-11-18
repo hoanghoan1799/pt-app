@@ -31,7 +31,11 @@ export const SOCIAL_PHOTO_PENDING_TTL_MS = 24 * 60 * 60 * 1000;
 export const SOCIAL_FRIEND_REQUESTS_PER_DAY = 20;
 export const SOCIAL_FRIEND_REQUEST_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-export const SOCIAL_POST_PRIVACIES = ["everyone", "friends", "only_me"] as const;
+export const SOCIAL_POST_PRIVACIES = [
+  "everyone",
+  "friends",
+  "only_me",
+] as const;
 export type SocialPostPrivacy = (typeof SOCIAL_POST_PRIVACIES)[number];
 export const SOCIAL_DEFAULT_POST_PRIVACY: SocialPostPrivacy = "friends";
 
@@ -60,8 +64,42 @@ export const SOCIAL_NOTIFICATION_KINDS = [
 ] as const;
 export type SocialNotificationKind = (typeof SOCIAL_NOTIFICATION_KINDS)[number];
 
-export const SOCIAL_REPORT_TARGET_KINDS = ["post", "comment", "user"] as const;
-export type SocialReportTargetKind = (typeof SOCIAL_REPORT_TARGET_KINDS)[number];
+// "group_message" is accepted for forward compatibility only: no endpoint
+// reports a group message yet.
+export const SOCIAL_REPORT_TARGET_KINDS = [
+  "post",
+  "comment",
+  "user",
+  "message",
+  "group_message",
+] as const;
+export type SocialReportTargetKind =
+  (typeof SOCIAL_REPORT_TARGET_KINDS)[number];
+
+// Fixed reason list of a report; the label of each code is a web translation.
+export const SOCIAL_REPORT_REASON_CODES = [
+  "spam",
+  "harassment",
+  "inappropriate",
+  "scam",
+  "other",
+] as const;
+export type SocialReportReasonCode =
+  (typeof SOCIAL_REPORT_REASON_CODES)[number];
+
+// What an admin may do with a report; "hidden" is for a chat message only and
+// "deleted" is for a post or comment only.
+export const SOCIAL_REPORT_RESOLUTIONS = ["kept", "deleted", "hidden"] as const;
+export type SocialReportResolution = (typeof SOCIAL_REPORT_RESOLUTIONS)[number];
+
+// What a chat message report shows in the admin queue.
+export const SOCIAL_REPORTED_MESSAGE_KINDS = [
+  "text",
+  "sticker",
+  "photo",
+] as const;
+export type SocialReportedMessageKind =
+  (typeof SOCIAL_REPORTED_MESSAGE_KINDS)[number];
 
 export const SOCIAL_RELATIONSHIPS = [
   "none",
@@ -99,6 +137,7 @@ export const SOCIAL_FRIEND_MESSAGES = {
   REQUEST_NOT_FOUND: "Không tìm thấy lời mời kết bạn.",
   REASON_TOO_LONG: `Lý do tối đa ${SOCIAL_REPORT_REASON_MAX_LENGTH} ký tự.`,
   REPORT_NOT_FOUND: "Không tìm thấy báo cáo.",
+  REASON_REQUIRED: "Hãy chọn lý do báo cáo.",
 } as const;
 
 // Stable `code` of every social error body.
