@@ -63,6 +63,12 @@ export const envSchema = z
     ),
     // Unset means "info" in development and "warn" in production.
     LOG_LEVEL: z.preprocess(emptyToUndefined, z.enum(LOG_LEVELS).optional()),
+    // Minutes between purges of expired login_attempts and rate_limits rows. 0
+    // switches the purge off. Never runs when NODE_ENV is "test". Unset means 60.
+    PURGE_INTERVAL_MINUTES: z.preprocess(
+      emptyToUndefined,
+      z.coerce.number().int().min(0).max(10080).default(60),
+    ),
     // Signs the avatar URLs the API hands out (min 32 characters). Required in
     // production; development and test fall back to a fixed local value.
     AVATAR_URL_SECRET: z.preprocess(

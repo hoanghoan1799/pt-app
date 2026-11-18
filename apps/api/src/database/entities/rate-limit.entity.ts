@@ -1,6 +1,8 @@
-import { Column, Entity, PrimaryColumn } from "typeorm";
+import { Column, Entity, Index, PrimaryColumn } from "typeorm";
 
 @Entity("rate_limits")
+// The purge (ExpiredRowsPurge) deletes rows whose window is over.
+@Index("rate_limits_window_expiry", ["windowStartedAt"])
 export class RateLimit {
   @PrimaryColumn({ type: "text" })
   key!: string;
