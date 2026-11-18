@@ -616,20 +616,49 @@ describe("data migration from a Turso/SQLite copy", () => {
       expect(exitCode).toBe(1);
       expect(report.status).toBe("aborted");
       expect(
-        keys("chat_messages", "reply_to_message_id", "reply_in_other_conversation"),
+        keys(
+          "chat_messages",
+          "reply_to_message_id",
+          "reply_in_other_conversation",
+        ),
       ).toEqual(["92"]);
       expect(
-        keys("chat_conversations", "last_message_id", "last_message_in_other_conversation"),
+        keys(
+          "chat_conversations",
+          "last_message_id",
+          "last_message_in_other_conversation",
+        ),
       ).toEqual(["3"]);
-      expect(keys("chat_photos", "message_id", "photo_link_mismatch")).toEqual(["92"]);
-      expect(keys("chat_custom_stickers", "size", "size_not_byte_length")).toEqual(["92"]);
-      expect(keys("social_friendships", "user_low", "pair_not_ordered")).toEqual(["5:2"]);
-      expect(keys("dm_conversations", "user_low", "pair_not_ordered")).toEqual(["92"]);
+      expect(keys("chat_photos", "message_id", "photo_link_mismatch")).toEqual([
+        "92",
+      ]);
+      expect(
+        keys("chat_custom_stickers", "size", "size_not_byte_length"),
+      ).toEqual(["92"]);
+      expect(
+        keys("social_friendships", "user_low", "pair_not_ordered"),
+      ).toEqual(["5:2"]);
+      expect(keys("dm_conversations", "user_low", "pair_not_ordered")).toEqual([
+        "92",
+      ]);
       expect(
         keys("social_friendships", "requested_by", "requester_not_in_pair"),
       ).toEqual(["2:5"]);
-      expect(keys("social_reports", "reporter_key", "duplicate_open_report")).toEqual(["93"]);
-      expect(keys("social_reports", "status", "status_resolution_mismatch")).toEqual(["94"]);
+      expect(
+        keys("social_reports", "reporter_key", "duplicate_open_report"),
+      ).toEqual(["93"]);
+      expect(
+        keys("dm_messages", "sender_id", "not_conversation_member"),
+      ).toEqual(["92"]);
+      expect(
+        keys("dm_photos", "uploader_id", "not_conversation_member"),
+      ).toEqual(["92"]);
+      expect(keys("dm_reads", "user_id", "not_conversation_member")).toEqual([
+        "1:5",
+      ]);
+      expect(
+        keys("social_reports", "status", "status_resolution_mismatch"),
+      ).toEqual(["94"]);
       expect(await count(db, "users")).toBe(0);
     });
 
@@ -662,6 +691,9 @@ describe("data migration from a Turso/SQLite copy", () => {
             keys: expect.arrayContaining(["5:2", "2:5"]),
           },
           { table: "dm_conversations", keys: ["92"] },
+          { table: "dm_messages", keys: ["92"] },
+          { table: "dm_photos", keys: ["92"] },
+          { table: "dm_reads", keys: ["1:5"] },
           {
             table: "social_reports",
             keys: expect.arrayContaining(["93", "94"]),

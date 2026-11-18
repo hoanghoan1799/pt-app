@@ -11,6 +11,7 @@ const DEFAULTS = {
   DATABASE_URL,
   LOGIN_THROTTLE_LIMIT: 20,
   REALTIME_RECHECK_SECONDS: 300,
+  PURGE_INTERVAL_MINUTES: 60,
   LOG_LEVEL: undefined,
 };
 
@@ -31,6 +32,7 @@ describe("loadEnv", () => {
         VAPID_PRIVATE_KEY: "",
         VAPID_SUBJECT: "",
         REALTIME_RECHECK_SECONDS: "",
+        PURGE_INTERVAL_MINUTES: "",
         LOG_LEVEL: "",
       }),
     ).toEqual(DEFAULTS);
@@ -48,6 +50,7 @@ describe("loadEnv", () => {
         VAPID_PRIVATE_KEY: "priv",
         VAPID_SUBJECT: "mailto:coach@example.com",
         REALTIME_RECHECK_SECONDS: "60",
+        PURGE_INTERVAL_MINUTES: "0",
         LOG_LEVEL: "debug",
       }),
     ).toEqual({
@@ -60,6 +63,7 @@ describe("loadEnv", () => {
       VAPID_PRIVATE_KEY: "priv",
       VAPID_SUBJECT: "mailto:coach@example.com",
       REALTIME_RECHECK_SECONDS: 60,
+      PURGE_INTERVAL_MINUTES: 0,
       LOG_LEVEL: "debug",
     });
   });

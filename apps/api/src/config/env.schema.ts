@@ -60,6 +60,12 @@ export const envSchema = z.object({
     emptyToUndefined,
     z.coerce.number().int().min(1).max(3600).default(300),
   ),
+  // Minutes between purges of expired login_attempts and rate_limits rows. 0
+  // switches the purge off. Never runs when NODE_ENV is "test". Unset means 60.
+  PURGE_INTERVAL_MINUTES: z.preprocess(
+    emptyToUndefined,
+    z.coerce.number().int().min(0).max(10080).default(60),
+  ),
   // Unset means "info" in development and "warn" in production.
   LOG_LEVEL: z.preprocess(emptyToUndefined, z.enum(LOG_LEVELS).optional()),
 });
