@@ -54,7 +54,6 @@ const migrate = async (
       reset: false,
       allowRemote: false,
       dropLegacyAttachments: true,
-      dropLegacyNicknames: true,
       batchSize: 2,
       ...extra,
     },
@@ -96,14 +95,13 @@ describe("data migration from a Turso/SQLite copy", () => {
     expect(exitCode, output).toBe(0);
     expect(report.status).toBe("ok");
     expect(report.committed).toBe(true);
-    // 44 source tables minus chat_nicknames (dropped, see DbChatSocial).
-    expect(report.tables).toHaveLength(43);
+    // All 44 source tables, chat_nicknames included.
+    expect(report.tables).toHaveLength(44);
     expect(report.droppedLegacy).toEqual([
       {
         item: "chat_messages.attachment_url / attachment_meta (messages)",
         count: 1,
       },
-      { item: "chat_nicknames (rows)", count: 1 },
     ]);
 
     for (const row of report.tables) {
@@ -322,7 +320,6 @@ describe("data migration from a Turso/SQLite copy", () => {
         reset: false,
         allowRemote: false,
         dropLegacyAttachments: true,
-        dropLegacyNicknames: true,
         batchSize: 10,
       },
       (line) => lines.push(line),
@@ -421,7 +418,6 @@ describe("data migration from a Turso/SQLite copy", () => {
           reset: false,
           allowRemote: false,
           dropLegacyAttachments: true,
-          dropLegacyNicknames: true,
           batchSize: 5,
         },
         () => undefined,
@@ -557,7 +553,7 @@ describe("data migration from a Turso/SQLite copy", () => {
       reset: false,
     } as const;
 
-    it("aborts when the source still has legacy attachments or nicknames, and says which flag accepts the loss", async () => {
+    it("aborts when the source still has legacy attachments, and says which flag accepts the loss", async () => {
       const { fixture, db } = await setup();
       const result = await run(
         {
@@ -576,27 +572,8 @@ describe("data migration from a Turso/SQLite copy", () => {
       expect(errors).toMatch(
         /1 chat message\(s\) have attachment_url or attachment_meta.*--drop-legacy-attachments/s,
       );
-      expect(errors).toMatch(
-        /chat_nicknames has 1 row\(s\).*--drop-legacy-nicknames/s,
-      );
-
-      // One flag is not enough.
-      const partial = await run(
-        {
-          ...base,
-          mode: "dry-run",
-          source: fixture.url,
-          target: db.url,
-          orphans: "report",
-          dropLegacyAttachments: true,
-        },
-        () => undefined,
-      );
-      const partialErrors = partial.report.errors.join("\n");
-
-      expect(partial.exitCode).toBe(1);
-      expect(partialErrors).not.toMatch(/--drop-legacy-attachments/);
-      expect(partialErrors).toMatch(/--drop-legacy-nicknames/);
+      // The nicknames table is copied, so it never blocks the run.
+      expect(errors).not.toMatch(/nickname/);
       expect(await count(db, "users")).toBe(0);
     });
 
@@ -683,7 +660,7 @@ describe("data migration from a Turso/SQLite copy", () => {
 
     it("recomputes last_message_id / last_message_at after the load and warns about a difference", async () => {
       const { fixture, db } = await setup();
-      const flags = { dropLegacyAttachments: true, dropLegacyNicknames: true };
+      const flags = { dropLegacyAttachments: true };
       const first = await migrate(fixture, db, flags);
 
       expect(first.exitCode, first.output).toBe(0);
@@ -798,7 +775,6 @@ describe("data migration from a Turso/SQLite copy", () => {
         reset: false,
         allowRemote: false,
         dropLegacyAttachments: true,
-        dropLegacyNicknames: true,
         batchSize: 3,
       },
       (line) => lines.push(line),
@@ -820,7 +796,6 @@ describe("data migration from a Turso/SQLite copy", () => {
         reset: false,
         allowRemote: false,
         dropLegacyAttachments: true,
-        dropLegacyNicknames: true,
         batchSize: 3,
       },
       () => undefined,
@@ -965,7 +940,6 @@ describe("data migration from a Turso/SQLite copy", () => {
           reset: false,
           allowRemote: false,
           dropLegacyAttachments: true,
-          dropLegacyNicknames: true,
           batchSize: 5,
         },
         () => undefined,
@@ -987,7 +961,6 @@ describe("data migration from a Turso/SQLite copy", () => {
           reset: false,
           allowRemote: false,
           dropLegacyAttachments: true,
-          dropLegacyNicknames: true,
           batchSize: 3,
         },
         (line) => lines.push(line),
