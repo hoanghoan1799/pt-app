@@ -21,8 +21,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 const ID = "[1-9][0-9]{0,8}";
 const TARGET_ADMIN_EXPRESSION = `CASE WHEN "target_key" ~ '^admin:${ID}$' THEN substring("target_key" from 7)::integer END`;
 
-export class ChatNicknamesRestore1795300000000 implements MigrationInterface {
-  name = "ChatNicknamesRestore1795300000000";
+export class ChatNicknamesRestore1795400000000 implements MigrationInterface {
+  name = "ChatNicknamesRestore1795400000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`

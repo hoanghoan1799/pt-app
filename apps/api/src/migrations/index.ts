@@ -5,7 +5,7 @@ import { DbIntegrity1794900000000 } from "./1794900000000-DbIntegrity.js";
 import { AvatarTables1795000000000 } from "./1795000000000-AvatarTables.js";
 import { DbConstraints1795100000000 } from "./1795100000000-DbConstraints.js";
 import { DbChatSocial1795200000000 } from "./1795200000000-DbChatSocial.js";
-import { ChatNicknamesRestore1795300000000 } from "./1795300000000-ChatNicknamesRestore.js";
+import { ChatNicknamesRestore1795400000000 } from "./1795400000000-ChatNicknamesRestore.js";
 
 // Every migration, oldest first. Add new ones here; a test fails if a file in
 // this folder is missing from the list.
@@ -17,5 +17,5 @@ export const migrations = [
   AvatarTables1795000000000,
   DbConstraints1795100000000,
   DbChatSocial1795200000000,
-  ChatNicknamesRestore1795300000000,
+  ChatNicknamesRestore1795400000000,
 ];
