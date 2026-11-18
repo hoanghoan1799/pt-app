@@ -10,6 +10,8 @@ import {
 } from "@pt/contracts";
 import { DataSource } from "typeorm";
 
+import { liveMessageSql } from "./message-visibility.js";
+
 export type SearchResultRow = {
   messageId: number;
   senderRole: "user" | "admin";
@@ -73,7 +75,7 @@ export class ChatSearchService {
                 m.created_at AS "createdAt"
          FROM chat_messages m LEFT JOIN admins a ON a.id = m.sender_admin_id
          WHERE m.conversation_id = $1
-           AND m.deleted_at IS NULL AND m.sticker_ref IS NULL AND m.body <> ''
+           AND ${liveMessageSql("m")} AND m.sticker_ref IS NULL AND m.body <> ''
            AND immutable_unaccent(lower(m.body)) LIKE $2
            ${cursor === undefined ? "" : "AND m.id < $4"}
          ORDER BY m.id DESC

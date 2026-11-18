@@ -116,7 +116,7 @@ export const unblockUserAction = friendAction("unblockUser", (api, userId) =>
   }),
 );
 
-// Trainees and admins report a post, comment or trainee.
+// Trainees and admins report a post, comment, trainee or chat message.
 export const reportAction = withResultErrorHandling(
   "createReport",
   async (who: Who, input: unknown) => {
@@ -126,11 +126,16 @@ export const reportAction = withResultErrorHandling(
     if (!parsed.success) {
       return fail(parsed.error.issues[0]?.message ?? FRIEND_MESSAGES.NOT_FOUND);
     }
-    const { targetKind, targetId, reason } = parsed.data;
+    const { targetKind, targetId, reasonCode, reason } = parsed.data;
 
     await callApi(actor, (api) =>
       api.POST("/v1/social/reports", {
-        body: { targetKind, targetId, ...(reason ? { reason } : {}) },
+        body: {
+          targetKind,
+          targetId,
+          reasonCode,
+          ...(reason ? { reason } : {}),
+        },
       }),
     );
     revalidatePath(ROUTES.ADMIN_REPORTS);
@@ -138,7 +143,8 @@ export const reportAction = withResultErrorHandling(
   },
 );
 
-// Super admin only: keep or delete the reported content (spec A14).
+// Super admin only: keep, delete (post, comment) or hide (chat message) the
+// reported content (spec A14).
 export const resolveReportAction = withResultErrorHandling(
   "resolveReport",
   async (input: unknown) => {
@@ -158,5 +164,6 @@ export const resolveReportAction = withResultErrorHandling(
     revalidatePath(ROUTES.ADMIN);
     revalidatePath("/feed");
     revalidatePath("/admin/social", "layout");
+    revalidatePath(ROUTES.ADMIN_MESSAGES);
   },
 );

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildThreadItems,
+  canReportMessage,
   dayLabel,
   firstStoredId,
   formatSentAt,
@@ -26,6 +27,7 @@ import {
   type ThreadMessage,
   toReplyTo,
   toThreadMessage,
+  USER_VIEWER,
   withMyReaction,
 } from "@/features/chat/utils/chat-thread-rules";
 
@@ -676,5 +678,47 @@ describe("reply and time helpers", () => {
   it("formats the exact send time as HH:mm, dd/MM in the app time zone", () => {
     // 03:42 UTC = 10:42 in Asia/Ho_Chi_Minh (UTC+7).
     expect(formatSentAt("2026-11-06T03:42:00.000Z")).toBe("10:42, 06/11");
+  });
+});
+
+describe("canReportMessage", () => {
+  const fromPt = toThreadMessage(msg(1));
+  const fromTrainee = toThreadMessage(
+    msg(2, { senderRole: "user", senderAdminId: null, senderAdminName: null }),
+  );
+  const pt = {
+    role: "admin",
+    adminId: 1,
+    adminName: "Hoan",
+    peerName: "An",
+  } as const;
+
+  it("lets a trainee report their PT's message and a PT their trainee's", () => {
+    expect(canReportMessage(fromPt, USER_VIEWER)).toBe(true);
+    expect(canReportMessage(fromTrainee, pt)).toBe(true);
+    expect(canReportMessage(fromTrainee, { ...pt, isSuperAdmin: false })).toBe(
+      true,
+    );
+  });
+
+  it("never offers your own side's message", () => {
+    expect(canReportMessage(fromTrainee, USER_VIEWER)).toBe(false);
+    expect(canReportMessage(fromPt, pt)).toBe(false);
+  });
+
+  it("never offers it to a super admin", () => {
+    expect(canReportMessage(fromTrainee, { ...pt, isSuperAdmin: true })).toBe(
+      false,
+    );
+  });
+
+  it("never offers an unsent, a pending or a failed message", () => {
+    expect(canReportMessage({ ...fromPt, deleted: true }, USER_VIEWER)).toBe(
+      false,
+    );
+    expect(canReportMessage(pendingMsg("p1"), pt)).toBe(false);
+    expect(canReportMessage({ ...fromTrainee, delivery: "failed" }, pt)).toBe(
+      false,
+    );
   });
 });

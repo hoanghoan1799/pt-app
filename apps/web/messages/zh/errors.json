@@ -172,7 +172,8 @@
     "RATE_LIMITED": "你今天发送的请求过多，请明天再试。",
     "REQUEST_NOT_FOUND": "未找到好友请求。",
     "REASON_TOO_LONG": "原因最多 {max} 个字符。",
-    "REPORT_NOT_FOUND": "未找到举报。"
+    "REPORT_NOT_FOUND": "未找到举报。",
+    "REASON_REQUIRED": "请选择举报原因。"
   },
   "workouts": {
     "INVALID_INPUT": "请重新检查填写的信息",

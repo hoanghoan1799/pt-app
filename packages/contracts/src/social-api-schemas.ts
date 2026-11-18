@@ -16,8 +16,11 @@ import {
   SOCIAL_POST_PRIVACIES,
   SOCIAL_REACTION_EMOJIS,
   SOCIAL_RELATIONSHIPS,
+  SOCIAL_REPORT_REASON_CODES,
   SOCIAL_REPORT_REASON_MAX_LENGTH,
+  SOCIAL_REPORT_RESOLUTIONS,
   SOCIAL_REPORT_TARGET_KINDS,
+  SOCIAL_REPORTED_MESSAGE_KINDS,
 } from "./social.js";
 import { z } from "zod";
 
@@ -94,20 +97,34 @@ export type SocialCommentRequest = z.infer<typeof socialCommentRequestSchema>;
 export const socialFriendRequestSchema = z.object({ userId: idSchema });
 export type SocialFriendRequest = z.infer<typeof socialFriendRequestSchema>;
 
-export const socialReportRequestSchema = z.object({
-  targetKind: z.enum(SOCIAL_REPORT_TARGET_KINDS),
-  targetId: idSchema,
-  reason: z
-    .string()
-    .trim()
-    .max(SOCIAL_REPORT_REASON_MAX_LENGTH, SOCIAL_FRIEND_MESSAGES.REASON_TOO_LONG)
-    .optional()
-    .default(""),
-});
+// The reason code is optional for a post, comment or user (older clients send
+// none) and required for a chat message; `reason` is the optional free note.
+export const socialReportRequestSchema = z
+  .object({
+    targetKind: z.enum(SOCIAL_REPORT_TARGET_KINDS),
+    targetId: idSchema,
+    reasonCode: z.enum(SOCIAL_REPORT_REASON_CODES).optional(),
+    reason: z
+      .string()
+      .trim()
+      .max(
+        SOCIAL_REPORT_REASON_MAX_LENGTH,
+        SOCIAL_FRIEND_MESSAGES.REASON_TOO_LONG,
+      )
+      .optional()
+      .default(""),
+  })
+  .refine(
+    (report) =>
+      report.reasonCode !== undefined ||
+      (report.targetKind !== "message" &&
+        report.targetKind !== "group_message"),
+    { path: ["reasonCode"], message: SOCIAL_FRIEND_MESSAGES.REASON_REQUIRED },
+  );
 export type SocialReportRequest = z.infer<typeof socialReportRequestSchema>;
 
 export const socialResolveReportRequestSchema = z.object({
-  resolution: z.enum(["kept", "deleted"]),
+  resolution: z.enum(SOCIAL_REPORT_RESOLUTIONS),
 });
 export type SocialResolveReportRequest = z.infer<
   typeof socialResolveReportRequestSchema
@@ -302,13 +319,29 @@ export const socialReportResponseSchema = z.object({
   targetKind: z.enum(SOCIAL_REPORT_TARGET_KINDS),
   targetId: z.number().int(),
   reporterName: z.string(),
+  // The optional note.
   reason: z.string(),
+  // Null on a report filed before the reason list existed.
+  reasonCode: z.enum(SOCIAL_REPORT_REASON_CODES).nullable(),
   createdAt: iso,
   // Short text of the reported content; null when it no longer exists.
   preview: z.string().nullable(),
   targetName: z.string().nullable(),
   // The post to look at (post and comment reports); null otherwise.
   postId: z.number().int().nullable(),
+  // Set for a live chat message report only; `preview` is then its text, or a
+  // label for a sticker or a photo (in the viewer's language). Null when the
+  // message was unsent, hidden or removed.
+  message: z
+    .object({
+      senderRole: z.enum(["user", "admin"]),
+      senderName: z.string(),
+      // The conversation's trainee (the sender when senderRole is "user").
+      traineeId: z.number().int(),
+      traineeName: z.string(),
+      kind: z.enum(SOCIAL_REPORTED_MESSAGE_KINDS),
+    })
+    .nullable(),
 });
 export const socialCreatedResponseSchema = z.object({ id: z.number().int() });
 

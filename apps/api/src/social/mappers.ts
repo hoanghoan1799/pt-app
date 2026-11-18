@@ -114,8 +114,10 @@ export const toReportResponse = (report: ReportView) => ({
   targetId: report.targetId,
   reporterName: report.reporterName,
   reason: report.reason,
+  reasonCode: report.reasonCode,
   createdAt: report.createdAt.toISOString(),
   preview: report.preview,
   targetName: report.targetName,
   postId: report.postId,
+  message: report.message,
 });

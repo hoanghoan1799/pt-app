@@ -40,6 +40,20 @@ export class PushRecipients {
     }));
   }
 
+  // Every super admin (a new report goes to all of them, hidden trainees or
+  // not: the push never names a person).
+  async superAdmins(): Promise<AdminRecipient[]> {
+    const rows: { id: number; locale: string | null }[] =
+      await this.dataSource.query(
+        `SELECT id, locale FROM admins WHERE role = 'super_admin' ORDER BY id`,
+      );
+
+    return rows.map((row) => ({
+      adminId: row.id,
+      locale: toLocale(row.locale),
+    }));
+  }
+
   // One admin, with the same scope and hidden rules (reaction push).
   async adminForTrainee(
     adminId: number,

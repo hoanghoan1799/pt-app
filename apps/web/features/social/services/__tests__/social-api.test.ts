@@ -444,25 +444,71 @@ describe("friends and reports", () => {
     });
   });
 
-  it("reports with an optional reason as trainee or admin", async () => {
+  it("reports with a reason code and an optional note as trainee or admin", async () => {
     await friends.reportAction("user", {
       targetKind: "post",
       targetId: 3,
-      reason: "spam",
+      reasonCode: "spam",
+      reason: "quảng cáo",
     });
     expect(lastCall().options).toMatchObject({
-      body: { targetKind: "post", targetId: 3, reason: "spam" },
+      body: {
+        targetKind: "post",
+        targetId: 3,
+        reasonCode: "spam",
+        reason: "quảng cáo",
+      },
     });
 
     state.role = "admin";
-    await friends.reportAction("admin", { targetKind: "user", targetId: 3 });
+    await friends.reportAction("admin", {
+      targetKind: "user",
+      targetId: 3,
+      reasonCode: "scam",
+    });
     expect(lastCall()).toMatchObject({ actor: "admin" });
     expect((lastCall().options as { body: object }).body).not.toHaveProperty(
       "reason",
     );
   });
 
-  it("lets only a super admin resolve; the API says keep or delete", async () => {
+  it("reports a chat message as a trainee or a PT, and refuses a missing reason code", async () => {
+    await friends.reportAction("user", {
+      targetKind: "message",
+      targetId: 41,
+      reasonCode: "harassment",
+    });
+    expect(lastCall()).toMatchObject({
+      actor: "user",
+      method: "POST",
+      path: "/v1/social/reports",
+    });
+    expect(lastCall().options).toMatchObject({
+      body: { targetKind: "message", targetId: 41, reasonCode: "harassment" },
+    });
+
+    state.role = "admin";
+    await friends.reportAction("admin", {
+      targetKind: "message",
+      targetId: 42,
+      reasonCode: "other",
+    });
+    expect(lastCall()).toMatchObject({ actor: "admin" });
+
+    state.calls.length = 0;
+    state.role = "user";
+    expect(
+      (
+        await friends.reportAction("user", {
+          targetKind: "message",
+          targetId: 41,
+        })
+      ).status,
+    ).toBe("error");
+    expect(state.calls).toHaveLength(0);
+  });
+
+  it("lets only a super admin resolve; the API says keep, delete or hide", async () => {
     state.role = "admin";
     await friends.resolveReportAction({ reportId: 4, resolution: "deleted" });
     expect(lastCall()).toMatchObject({
@@ -472,6 +518,11 @@ describe("friends and reports", () => {
     });
     expect(lastCall().options).toMatchObject({
       body: { resolution: "deleted" },
+    });
+
+    await friends.resolveReportAction({ reportId: 5, resolution: "hidden" });
+    expect(lastCall().options).toMatchObject({
+      body: { resolution: "hidden" },
     });
 
     state.calls.length = 0;
@@ -607,7 +658,7 @@ describe("page reads", () => {
   it("builds report links for the super admin", async () => {
     state.role = "admin";
     answer("GET", "/v1/social/reports", 200, {
-      openCount: 3,
+      openCount: 5,
       items: [
         {
           id: 1,
@@ -619,6 +670,8 @@ describe("page reads", () => {
           preview: "rude",
           targetName: "Minh",
           postId: 7,
+          reasonCode: "harassment",
+          message: null,
         },
         {
           id: 2,
@@ -630,6 +683,8 @@ describe("page reads", () => {
           preview: null,
           targetName: null,
           postId: null,
+          reasonCode: null,
+          message: null,
         },
         {
           id: 3,
@@ -641,17 +696,59 @@ describe("page reads", () => {
           preview: null,
           targetName: "Ann",
           postId: null,
+          reasonCode: "scam",
+          message: null,
+        },
+        {
+          id: 4,
+          targetKind: "message",
+          targetId: 41,
+          reporterName: "PT Hoan",
+          reason: "chửi bậy",
+          createdAt: "2026-11-01T10:00:00.000Z",
+          preview: "nội dung",
+          targetName: "Ann",
+          postId: null,
+          reasonCode: "inappropriate",
+          message: {
+            senderRole: "user",
+            senderName: "Ann",
+            traineeId: 5,
+            traineeName: "Ann",
+            kind: "text",
+          },
+        },
+        {
+          id: 5,
+          targetKind: "message",
+          targetId: 42,
+          reporterName: "Ben",
+          reason: "",
+          createdAt: "2026-11-01T10:00:00.000Z",
+          preview: null,
+          targetName: null,
+          postId: null,
+          reasonCode: "spam",
+          message: null,
         },
       ],
     });
 
     const { reports, openCount } = await queries.listOpenReports();
 
-    expect(openCount).toBe(3);
+    expect(openCount).toBe(5);
     expect(reports.map((report) => report.href)).toEqual([
       "/admin/social/post/7",
       null,
       "/admin/social/profile/user/5",
+      "/admin/users/5/messages?m=41",
+      null,
     ]);
+    expect(reports[3]).toMatchObject({
+      reasonCode: "inappropriate",
+      reason: "chửi bậy",
+      message: { senderRole: "user", traineeId: 5, kind: "text" },
+    });
+    expect(reports[1].reasonCode).toBeNull();
   });
 });

@@ -1,5 +1,6 @@
 "use client";
 
+import clsx from "clsx";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
@@ -11,10 +12,16 @@ import {
   LABEL,
   TEXTAREA,
 } from "@/constants/styles";
-import { REPORT_REASON_MAX_LENGTH } from "@/features/social/constants/social";
+import {
+  REPORT_REASON_CODES,
+  REPORT_REASON_MAX_LENGTH,
+} from "@/features/social/constants/social";
 import { useSocialAction } from "@/features/social/hooks/use-social-action";
 import { reportAction } from "@/features/social/services/friend-actions";
-import type { ReportTargetKind } from "@/features/social/utils/friend-rules";
+import type {
+  ReportReasonCode,
+  ReportTargetKind,
+} from "@/features/social/utils/friend-rules";
 
 interface ReportSheetProps {
   isOpen: boolean;
@@ -24,7 +31,11 @@ interface ReportSheetProps {
   targetId: number;
 }
 
-// "Báo cáo": an optional reason, then it lands on the admin reports page.
+const OPTION =
+  "flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 text-sm font-medium text-fg transition";
+
+// "Báo cáo": a reason from the fixed list plus an optional note, then it lands
+// on the admin reports page. Used for posts, comments, users and chat messages.
 export const ReportSheet = ({
   isOpen,
   onOpenChange,
@@ -33,17 +44,25 @@ export const ReportSheet = ({
   targetId,
 }: ReportSheetProps) => {
   const t = useTranslations("social.reportSheet");
+  const [reasonCode, setReasonCode] = useState<ReportReasonCode | null>(null);
   const [reason, setReason] = useState("");
   const { isPending, run } = useSocialAction();
 
   const handleSend = () => {
-    run(() => reportAction(mode, { targetKind, targetId, reason }), {
-      successMessage: t("sent"),
-      onSuccess: () => {
-        setReason("");
-        onOpenChange(false);
+    if (!reasonCode) {
+      return;
+    }
+    run(
+      () => reportAction(mode, { targetKind, targetId, reasonCode, reason }),
+      {
+        successMessage: t("sent"),
+        onSuccess: () => {
+          setReasonCode(null);
+          setReason("");
+          onOpenChange(false);
+        },
       },
-    });
+    );
   };
 
   return (
@@ -54,6 +73,32 @@ export const ReportSheet = ({
       description={t("description")}
     >
       <div className="space-y-3 pb-2">
+        <fieldset>
+          <legend className={LABEL}>{t("reasonPrompt")}</legend>
+          <div className="space-y-1.5">
+            {REPORT_REASON_CODES.map((code) => (
+              <label
+                key={code}
+                className={clsx(
+                  OPTION,
+                  reasonCode === code
+                    ? "border-accent bg-accent/10"
+                    : "border-line bg-surface",
+                )}
+              >
+                <input
+                  type="radio"
+                  name={`report-reason-${targetKind}-${targetId}`}
+                  value={code}
+                  checked={reasonCode === code}
+                  onChange={() => setReasonCode(code)}
+                  className="size-4 accent-[var(--accent)]"
+                />
+                {t(`reasons.${code}`)}
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <div>
           <label htmlFor={`report-${targetKind}-${targetId}`} className={LABEL}>
             {t("reasonLabel")}
@@ -78,7 +123,7 @@ export const ReportSheet = ({
           <button
             type="button"
             onClick={handleSend}
-            disabled={isPending}
+            disabled={isPending || !reasonCode}
             aria-busy={isPending}
             className={BUTTON_PRIMARY}
           >
