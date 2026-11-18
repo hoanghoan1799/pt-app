@@ -28,6 +28,11 @@ import {
   withoutLegacy,
 } from "./chat-social.js";
 import {
+  COMPANY_SCAN_COLUMNS,
+  companyScanValues,
+  findCompanyViolations,
+} from "./company-features.js";
+import {
   backfills,
   DERIVED_COLUMNS,
   derivedValues,
@@ -182,6 +187,7 @@ const analyse = async (
     const needed = new Set<string>([
       ...(VIOLATION_COLUMNS[table] ?? []),
       ...(SCAN_COLUMNS[table] ?? []),
+      ...(COMPANY_SCAN_COLUMNS[table] ?? []),
     ]);
     const derived: string[] = [];
 
@@ -303,7 +309,11 @@ const analyse = async (
           values[column] = deriveId(table, column, row);
         }
 
-        Object.assign(values, scanValues(table, row));
+        Object.assign(
+          values,
+          scanValues(table, row),
+          companyScanValues(table, row),
+        );
 
         rows[table].push({ key, values });
       }
@@ -1020,6 +1030,9 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
       [
         ...findViolations(analysis.rows),
         ...findChatSocialViolations(
+          withoutSkipped(analysis.rows, violations.skipped),
+        ),
+        ...findCompanyViolations(
           withoutSkipped(analysis.rows, violations.skipped),
         ),
       ],
