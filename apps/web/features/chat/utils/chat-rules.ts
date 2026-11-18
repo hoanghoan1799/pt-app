@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { CHAT_COLOR_KEYS } from "@/features/chat/utils/chat-palette";
-import { photoIdSchema } from "@/features/chat/utils/photo-rules";
+import { messagePhotoIdsSchema } from "@/features/chat/utils/photo-rules";
 import { stickerInputSchema } from "@/features/chat/utils/sticker-rules";
 import {
   ALIAS_MAX_LENGTH,
@@ -31,13 +31,13 @@ export const CHANGES_PAGE_SIZE = 200;
 const bodySchema = z.string().trim().min(1).max(CHAT_BODY_MAX_LENGTH);
 const messageIdSchema = z.number().int().positive();
 
-// Text and/or one photo (KAN-160), or a sticker (KAN-144) alone: never a
+// Text and/or up to 10 photos (KAN-160), or a sticker (KAN-144) alone: never a
 // sticker with text or a photo, never nothing. Exported as a plain object too,
 // because Zod cannot extend a refined schema.
 export const sendMessageShape = z.object({
   body: bodySchema.optional(),
   sticker: stickerInputSchema.optional(),
-  photoId: photoIdSchema.optional(),
+  photoIds: messagePhotoIdsSchema.optional(),
   clientId: z.uuid(),
   replyToMessageId: messageIdSchema.optional(),
   // A social post this message replies to (needs a text; checked on send).
@@ -47,11 +47,14 @@ export const sendMessageShape = z.object({
 export const hasBodyOrSticker = (value: {
   body?: string;
   sticker?: unknown;
-  photoId?: number;
-}) =>
-  value.sticker === undefined
-    ? value.body !== undefined || value.photoId !== undefined
-    : value.body === undefined && value.photoId === undefined;
+  photoIds?: number[];
+}) => {
+  const hasPhotos = (value.photoIds?.length ?? 0) > 0;
+
+  return value.sticker === undefined
+    ? value.body !== undefined || hasPhotos
+    : value.body === undefined && !hasPhotos;
+};
 
 export const sendMessageSchema = sendMessageShape.refine(hasBodyOrSticker);
 

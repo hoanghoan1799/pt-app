@@ -16,9 +16,14 @@ import {
 const HAPTIC_MS = 10;
 
 // Controls inside a bubble (retry, quote, chips, "edited") keep their own
-// taps; they never start a gesture.
-const isInteractiveTarget = (target: EventTarget) =>
-  target instanceof Element && target.closest("button, a") !== null;
+// taps; they never start a gesture. The tiles of a photo grid opt out
+// (data-gesture-through): double-tap and long-press work on the photos too.
+const isInteractiveTarget = (target: EventTarget) => {
+  const control =
+    target instanceof Element ? target.closest("button, a") : null;
+
+  return control !== null && control.closest("[data-gesture-through]") === null;
+};
 
 // Pointer handlers for one bubble: double-tap, long-press, and the keyboard /
 // context-menu route to the same actions sheet. `isEnabled` false = inert.

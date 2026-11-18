@@ -87,17 +87,22 @@ export const buildPushPreview = ({
   body,
   sticker = false,
   photo = false,
+  photoCount = 1,
   locale = DEFAULT_LOCALE,
 }: {
   body?: string | null;
   sticker?: boolean;
   photo?: boolean;
+  // Photos in the message; more than one is worded as a count.
+  photoCount?: number;
   locale?: Locale;
 }): string => {
   const t = getPushTranslator(locale);
 
   if (photo) {
-    return t("preview.photo");
+    return photoCount > 1
+      ? t("preview.photos", { count: photoCount })
+      : t("preview.photo");
   }
   if (sticker) {
     return t("preview.sticker");
@@ -141,6 +146,7 @@ export const buildChatPushPayload = ({
   body,
   sticker = false,
   photo = false,
+  photoCount = 1,
   locale = DEFAULT_LOCALE,
 }: {
   recipientRole: PushRecipientRole;
@@ -150,11 +156,12 @@ export const buildChatPushPayload = ({
   body?: string | null;
   sticker?: boolean;
   photo?: boolean;
+  photoCount?: number;
   // The recipient's language.
   locale?: Locale;
 }): ChatPushPayload => ({
   title: senderName.trim() === "" ? PUSH_TITLE : senderName,
-  body: buildPushPreview({ body, sticker, photo, locale }),
+  body: buildPushPreview({ body, sticker, photo, photoCount, locale }),
   url:
     recipientRole === "user"
       ? ROUTES.MESSAGES_COACH
