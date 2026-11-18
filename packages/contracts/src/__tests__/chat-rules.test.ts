@@ -1,5 +1,6 @@
 import {
   CHAT_PHOTO_MAX_BYTES,
+  chatAdminLabel,
   chatBuildSnippet,
   chatCheckPhoto,
   chatExtractUrls,
@@ -188,6 +189,18 @@ describe("nicknames", () => {
     expect(chatNicknameOr({ user: "  " }, "user", "An")).toBe("An");
     expect(chatNicknameOr({}, "pt", "PT")).toBe("PT");
     expect(chatNicknameOr(undefined, "pt", "PT")).toBe("PT");
+  });
+
+  it("labels a PT: their nickname, then (trainee view) the PT side's, then the real name", () => {
+    const nicknames = { "admin:7": "Coach", pt: "Thầy" };
+
+    expect(chatAdminLabel(nicknames, 7, "hoan", true)).toBe("Coach");
+    expect(chatAdminLabel(nicknames, 8, "pt8", true)).toBe("Thầy");
+    expect(chatAdminLabel(nicknames, null, "PT", true)).toBe("Thầy");
+    // An admin viewing the thread never falls back to the PT-side nickname.
+    expect(chatAdminLabel(nicknames, 8, "pt8", false)).toBe("pt8");
+    expect(chatAdminLabel({ "admin:7": "  " }, 7, "hoan", true)).toBe("hoan");
+    expect(chatAdminLabel({}, 7, "hoan", true)).toBe("hoan");
   });
 
   describe("request", () => {

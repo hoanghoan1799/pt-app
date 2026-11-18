@@ -306,3 +306,18 @@ export const chatNicknameOr = (
   target: string,
   realName: string,
 ) => nicknames?.[target]?.trim() || realName;
+
+// The label of a PT: the conversation's nickname for that admin, else (when
+// `ptFallback`, the trainee's view) the nickname of the PT side as a whole,
+// else the real name.
+export const chatAdminLabel = (
+  nicknames: Readonly<Record<string, string>> | null | undefined,
+  adminId: number | null,
+  realName: string,
+  ptFallback: boolean,
+) =>
+  (adminId === null
+    ? ""
+    : (nicknames?.[chatNicknameAdminTarget(adminId)]?.trim() ?? "")) ||
+  (ptFallback ? (nicknames?.[PT_ALIAS_TARGET]?.trim() ?? "") : "") ||
+  realName;
