@@ -2,6 +2,7 @@ import type {
   SocialAuthorKind,
   SocialNotificationKind,
   SocialPostPrivacy,
+  SocialReportTargetKind,
 } from "@pt/contracts";
 
 // Domain events of the social network, published after the database commit.
@@ -21,6 +22,8 @@ export const SOCIAL_EVENTS = {
   POST_COMMENTED: "social.post.commented",
   // A notification row was created or refreshed: the hook for push.
   NOTIFICATION_CREATED: "social.notification.created",
+  // A new report was filed (not a duplicate): the hook for the super admin push.
+  REPORT_FILED: "social.report.filed",
 } as const;
 
 export type FriendRequestedEvent = { requesterId: number; targetId: number };
@@ -69,4 +72,9 @@ export type NotificationCreatedEvent = {
   // Only a comment push carries text; it is never stored on the notification.
   commentBody?: string;
   at: Date;
+};
+// Carries the kind only, never the reported content.
+export type ReportFiledEvent = {
+  reportId: number;
+  targetKind: SocialReportTargetKind;
 };

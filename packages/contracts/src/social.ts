@@ -138,7 +138,6 @@ export const SOCIAL_FRIEND_MESSAGES = {
   REASON_TOO_LONG: `Lý do tối đa ${SOCIAL_REPORT_REASON_MAX_LENGTH} ký tự.`,
   REPORT_NOT_FOUND: "Không tìm thấy báo cáo.",
   REASON_REQUIRED: "Hãy chọn lý do báo cáo.",
-  RESOLUTION_NOT_ALLOWED: "Không thể xử lý báo cáo này theo cách đó.",
 } as const;
 
 // Stable `code` of every social error body.

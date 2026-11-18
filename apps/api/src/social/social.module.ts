@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/auth.module.js";
+import { ChatModerationModule } from "../chat/chat-moderation.module.js";
 import { FilesModule } from "../files/files.module.js";
 import { AccountDirectoryModule } from "../users/account-directory.module.js";
 import { CommentPolicy } from "./domain/comment.policy.js";
@@ -33,7 +34,12 @@ import { SocialTermsGuard } from "./terms.guard.js";
 // NotificationsListener writes the rows and announces `social.notification.created`
 // for push and chat. Guards (session, roles, PT scope) are global, from AuthModule.
 @Module({
-  imports: [AuthModule, FilesModule, AccountDirectoryModule],
+  imports: [
+    AuthModule,
+    FilesModule,
+    AccountDirectoryModule,
+    ChatModerationModule,
+  ],
   controllers: [
     PostsController,
     EngagementController,

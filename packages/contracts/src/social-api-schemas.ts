@@ -329,8 +329,9 @@ export const socialReportResponseSchema = z.object({
   targetName: z.string().nullable(),
   // The post to look at (post and comment reports); null otherwise.
   postId: z.number().int().nullable(),
-  // Set for a live chat message report only (preview is its text, or null for
-  // a sticker or photo, which the web labels from `kind`).
+  // Set for a live chat message report only; `preview` is then its text, or a
+  // label for a sticker or a photo (in the viewer's language). Null when the
+  // message was unsent, hidden or removed.
   message: z
     .object({
       senderRole: z.enum(["user", "admin"]),
