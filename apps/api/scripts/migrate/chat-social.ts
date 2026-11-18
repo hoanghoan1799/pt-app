@@ -121,9 +121,10 @@ export const SCAN_COLUMNS: Record<string, string[]> = {
   chat_messages: ["conversation_id", "reply_to_message_id", "photo_id"],
   chat_conversations: ["last_message_id"],
   chat_photos: ["message_id", "size"],
-  dm_messages: ["conversation_id", "photo_id"],
+  dm_messages: ["conversation_id", "photo_id", "sender_id"],
   dm_conversations: ["last_message_id", "user_low", "user_high"],
-  dm_photos: ["message_id", "size"],
+  dm_photos: ["message_id", "size", "conversation_id", "uploader_id"],
+  dm_reads: ["conversation_id", "user_id"],
   social_posts: ["photo_id"],
   social_post_photos: ["post_id", "size"],
   chat_custom_stickers: ["size"],
@@ -148,7 +149,16 @@ export const REASONS = {
   requesterNotMember: "requester_not_in_pair",
   statusResolution: "status_resolution_mismatch",
   duplicateOpenReport: "duplicate_open_report",
+  notConversationMember: "not_conversation_member",
 } as const;
+
+// DbHousekeeping: the user column of each DM table must be one of the two
+// people of the row's conversation (a trigger enforces it in PostgreSQL).
+const DM_MEMBER_COLUMNS = [
+  ["dm_messages", "sender_id"],
+  ["dm_photos", "uploader_id"],
+  ["dm_reads", "user_id"],
+] as const;
 
 type Rows = Record<string, RowRef[]>;
 
@@ -166,12 +176,8 @@ const PHOTO_LINKS = [
 
 export const findChatSocialViolations = (rows: Rows): RowViolation[] => {
   const found: RowViolation[] = [];
-  const add = (
-    table: string,
-    column: string,
-    key: string,
-    reason: string,
-  ) => found.push({ table, column, key, reason });
+  const add = (table: string, column: string, key: string, reason: string) =>
+    found.push({ table, column, key, reason });
 
   // A reply stays in its conversation (a missing target is a plain orphan).
   const messages = byKey(rows.chat_messages);
@@ -281,6 +287,28 @@ export const findChatSocialViolations = (rows: Rows): RowViolation[] => {
     }
   }
 
+  // A DM row belongs to one of the two people of its conversation (a missing
+  // conversation or a NULL user is left to the foreign key report).
+  const dmConversations = byKey(rows.dm_conversations);
+
+  for (const [table, column] of DM_MEMBER_COLUMNS) {
+    for (const row of rows[table] ?? []) {
+      const conversation = dmConversations.get(
+        String(row.values.conversation_id),
+      );
+      const user = row.values[column];
+
+      if (
+        conversation &&
+        user != null &&
+        user !== conversation.values.user_low &&
+        user !== conversation.values.user_high
+      ) {
+        add(table, column, row.key, REASONS.notConversationMember);
+      }
+    }
+  }
+
   // Reports: status and resolution agree; one open report per reporter+target
   // (the first by id stays, the later ones are the violations).
   const seen = new Set<string>();
@@ -296,7 +324,9 @@ export const findChatSocialViolations = (rows: Rows): RowViolation[] => {
       v.resolved_at === null &&
       v.resolved_by === null;
     const resolved =
-      v.status === "resolved" && v.resolution !== null && v.resolved_at !== null;
+      v.status === "resolved" &&
+      v.resolution !== null &&
+      v.resolved_at !== null;
 
     if (!open && !resolved) {
       add("social_reports", "status", row.key, REASONS.statusResolution);
