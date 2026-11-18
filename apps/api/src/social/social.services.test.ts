@@ -56,11 +56,91 @@ describe("PostsService", () => {
     await expect(
       service.create(
         ann,
-        { caption: "  ", privacy: "friends", photoId: null },
+        { caption: "  ", privacy: "friends", photoId: null, photoIds: [] },
         null,
       ),
     ).rejects.toMatchObject({ response: { code: "EMPTY_POST" } });
     expect(query).not.toHaveBeenCalled();
+  });
+
+  it("attaches the photos in the given order and points the post at the first", async () => {
+    const { service, query } = build();
+
+    query.mockResolvedValueOnce([{ id: 31 }]);
+    query.mockResolvedValue([{ id: 1 }]);
+    await expect(
+      service.create(
+        ann,
+        { caption: "", privacy: "friends", photoId: null, photoIds: [8, 3, 5] },
+        null,
+      ),
+    ).resolves.toEqual({ postId: 31, replayed: false });
+
+    const attach = query.mock.calls
+      .map((call) => call as unknown as [string, unknown[]])
+      .filter(([sql]) => sql.includes("UPDATE social_post_photos"));
+
+    expect(attach.map(([, params]) => params)).toEqual([
+      [31, 8, "user:1", 0],
+      [31, 3, "user:1", 1],
+      [31, 5, "user:1", 2],
+    ]);
+    expect(
+      query.mock.calls
+        .map((call) => call as unknown as [string, unknown[]])
+        .find(([sql]) => sql.includes("SET photo_id"))?.[1],
+    ).toEqual([8, 31]);
+  });
+
+  it("takes the single photoId of an older client as a one-photo post", async () => {
+    const { service, query } = build();
+
+    query.mockResolvedValueOnce([{ id: 32 }]);
+    query.mockResolvedValue([{ id: 1 }]);
+    await service.create(
+      ann,
+      { caption: "hi", privacy: "friends", photoId: 4, photoIds: [] },
+      null,
+    );
+
+    expect(
+      query.mock.calls
+        .map((call) => call as unknown as [string, unknown[]])
+        .find(([sql]) => sql.includes("UPDATE social_post_photos"))?.[1],
+    ).toEqual([32, 4, "user:1", 0]);
+  });
+
+  it("refuses an 11th photo and a repeated photo before touching the database", async () => {
+    const { service, query } = build();
+    const base = { caption: "hi", privacy: "friends" as const, photoId: null };
+
+    await expect(
+      service.create(
+        ann,
+        { ...base, photoIds: Array.from({ length: 11 }, (_, i) => i + 1) },
+        null,
+      ),
+    ).rejects.toMatchObject({ response: { code: "TOO_MANY_PHOTOS" } });
+    await expect(
+      service.create(ann, { ...base, photoIds: [2, 2] }, null),
+    ).rejects.toMatchObject({ response: { code: "PHOTO_NOT_FOUND" } });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("stores nothing when one of the photos cannot be attached", async () => {
+    const { service, query, publish } = build();
+
+    query.mockResolvedValueOnce([{ id: 33 }]);
+    query.mockResolvedValueOnce([{ id: 1 }]);
+    query.mockResolvedValueOnce([]);
+    await expect(
+      service.create(
+        ann,
+        { caption: "hi", privacy: "friends", photoId: null, photoIds: [1, 2] },
+        null,
+      ),
+    ).rejects.toMatchObject({ response: { code: "PHOTO_NOT_FOUND" } });
+    expect(publish).not.toHaveBeenCalled();
   });
 
   it("returns the first post for a repeated Idempotency-Key and publishes nothing", async () => {
@@ -70,7 +150,7 @@ describe("PostsService", () => {
     await expect(
       service.create(
         ann,
-        { caption: "hi", privacy: "friends", photoId: null },
+        { caption: "hi", privacy: "friends", photoId: null, photoIds: [] },
         "k1",
       ),
     ).resolves.toEqual({ postId: 55, replayed: true });
@@ -89,7 +169,7 @@ describe("PostsService", () => {
     await expect(
       service.create(
         ann,
-        { caption: "hi", privacy: "friends", photoId: null },
+        { caption: "hi", privacy: "friends", photoId: null, photoIds: [] },
         "k2",
       ),
     ).resolves.toEqual({ postId: 77, replayed: true });
@@ -102,7 +182,7 @@ describe("PostsService", () => {
     await expect(
       service.create(
         { kind: "admin", id: 9, role: "pt", revealed: true },
-        { caption: "hi", privacy: "everyone", photoId: null },
+        { caption: "hi", privacy: "everyone", photoId: null, photoIds: [] },
         null,
       ),
     ).resolves.toEqual({ postId: 12, replayed: false });

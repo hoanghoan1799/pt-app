@@ -30,6 +30,12 @@ export const photoNotFound = () =>
     CODES.PHOTO_NOT_FOUND,
     MESSAGES.PHOTO_NOT_FOUND,
   );
+export const tooManyPhotos = () =>
+  failure(
+    HttpStatus.BAD_REQUEST,
+    CODES.TOO_MANY_PHOTOS,
+    MESSAGES.TOO_MANY_PHOTOS,
+  );
 export const photoTooLarge = () =>
   failure(
     HttpStatus.PAYLOAD_TOO_LARGE,

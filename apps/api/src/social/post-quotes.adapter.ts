@@ -9,6 +9,7 @@ import type {
 } from "../chat/post-quote.port.js";
 import { AccountDirectory } from "../users/account-directory.service.js";
 import { socialPhotoUrl } from "./mappers.js";
+import { loadPostPhotos } from "./photos/post-photos.queries.js";
 import { PostAccess } from "./post-access.service.js";
 import { keyOf, toSocialActor } from "./social-actor.js";
 
@@ -50,27 +51,22 @@ export class SocialPostQuotes implements ChatPostQuoteReader {
     const authorKeys = posts.flatMap((post) =>
       post ? [keyOf({ kind: post.authorKind, id: post.authorId })] : [],
     );
-    const photoIds = posts.flatMap((post) =>
-      post?.photoId == null ? [] : [post.photoId],
-    );
-    const [authors, photoRows] = await Promise.all([
+    const [authors, photos] = await Promise.all([
       this.accounts.loadAccounts(authorKeys, keyOf(social)),
-      photoIds.length === 0
-        ? []
-        : (this.dataSource.query(
-            `SELECT id, width, height FROM social_post_photos WHERE id = ANY($1::int[])`,
-            [photoIds],
-          ) as Promise<{ id: number; width: number; height: number }[]>),
+      // The quote shows the cover and counts the rest.
+      loadPostPhotos(
+        this.dataSource,
+        posts.flatMap((post) => (post?.photoId == null ? [] : [post.id])),
+      ),
     ]);
-    const photos = new Map(photoRows.map((row) => [row.id, row]));
 
     ids.forEach((id, index) => {
       const post = posts[index];
       const author = post
         ? authors.get(keyOf({ kind: post.authorKind, id: post.authorId }))
         : undefined;
-      const photo =
-        post?.photoId == null ? undefined : photos.get(post.photoId);
+      const list = post ? (photos.get(post.id) ?? []) : [];
+      const cover = list[0];
 
       result.set(
         id,
@@ -81,14 +77,14 @@ export class SocialPostQuotes implements ChatPostQuoteReader {
               authorName: author.name,
               authorAvatarUrl: author.avatarUrl,
               caption: post.caption ?? "",
-              photo:
-                post.photoId !== null && photo
-                  ? {
-                      url: socialPhotoUrl(post.photoId),
-                      width: photo.width,
-                      height: photo.height,
-                    }
-                  : null,
+              photo: cover
+                ? {
+                    url: socialPhotoUrl(cover.id),
+                    width: cover.width,
+                    height: cover.height,
+                  }
+                : null,
+              photoCount: list.length,
             }
           : { id, available: false },
       );
