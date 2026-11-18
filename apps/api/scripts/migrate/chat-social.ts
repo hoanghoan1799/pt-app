@@ -8,9 +8,8 @@ import type { RowRef, RowViolation } from "./plan.js";
 // module carries everything the data script needs for it:
 //
 //  1. legacy data PostgreSQL no longer has (chat_messages.attachment_url and
-//     attachment_meta): counted in the source, the run aborts unless the
-//     operator accepts losing them. (chat_nicknames used to be here; the table
-//     is back, ChatNicknamesRestore, and is copied like any other.)
+//     attachment_meta, the chat_nicknames table): counted in the source, the
+//     run aborts unless the operator accepts losing them;
 //  2. source values that are repaired on the way in (silent NULL -> false);
 //  3. a scan for rows the new constraints would reject (reported like any
 //     other orphan; --orphans=skip drops them and their dependents);
@@ -20,28 +19,31 @@ import type { RowRef, RowViolation } from "./plan.js";
 
 // ---- 1. legacy data -------------------------------------------------------
 
+export const LEGACY_TABLES = ["chat_nicknames"];
 export const LEGACY_COLUMNS: Record<string, string[]> = {
   chat_messages: ["attachment_url", "attachment_meta"],
 };
 
-// The mapping the target side works with: without the columns PostgreSQL
-// dropped. The source schema check still uses the full mapping.
+// The mapping the target side works with: without the table and the columns
+// PostgreSQL dropped. The source schema check still uses the full mapping.
 export const withoutLegacy = (mapping: TursoColumns): TursoColumns => ({
   ...mapping,
   tables: Object.fromEntries(
-    Object.entries(mapping.tables).map(([table, spec]) => [
-      table,
-      {
-        ...spec,
-        columns: spec.columns.filter(
-          (column) => !LEGACY_COLUMNS[table]?.includes(column.name),
-        ),
-      },
-    ]),
+    Object.entries(mapping.tables)
+      .filter(([table]) => !LEGACY_TABLES.includes(table))
+      .map(([table, spec]) => [
+        table,
+        {
+          ...spec,
+          columns: spec.columns.filter(
+            (column) => !LEGACY_COLUMNS[table]?.includes(column.name),
+          ),
+        },
+      ]),
   ),
 });
 
-export type LegacyCounts = { attachments: number };
+export type LegacyCounts = { attachments: number; nicknames: number };
 
 export const countLegacy = async (
   source: LibsqlClient,
@@ -49,20 +51,32 @@ export const countLegacy = async (
   const attachments = await source.execute(
     "SELECT count(*) AS n FROM chat_messages WHERE attachment_url IS NOT NULL OR attachment_meta IS NOT NULL",
   );
+  const nicknames = await source.execute(
+    "SELECT count(*) AS n FROM chat_nicknames",
+  );
 
-  return { attachments: Number(attachments.rows[0].n) };
+  return {
+    attachments: Number(attachments.rows[0].n),
+    nicknames: Number(nicknames.rows[0].n),
+  };
 };
 
 // Messages for the abort; empty when nothing blocks the run.
 export const legacyProblems = (
   counts: LegacyCounts,
-  accept: { attachments?: boolean },
+  accept: { attachments?: boolean; nicknames?: boolean },
 ) => {
   const problems: string[] = [];
 
   if (counts.attachments > 0 && !accept.attachments) {
     problems.push(
       `${counts.attachments} chat message(s) have attachment_url or attachment_meta; PostgreSQL no longer has those columns (photos live in chat_photos). Check them, then pass --drop-legacy-attachments to drop the values.`,
+    );
+  }
+
+  if (counts.nicknames > 0 && !accept.nicknames) {
+    problems.push(
+      `chat_nicknames has ${counts.nicknames} row(s); PostgreSQL no longer has that table (private contact_aliases replaced it). Pass --drop-legacy-nicknames to drop them.`,
     );
   }
 

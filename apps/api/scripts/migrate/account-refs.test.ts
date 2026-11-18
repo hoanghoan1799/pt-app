@@ -98,60 +98,8 @@ describe("malformed keys", () => {
     expect(
       bad("contact_aliases", { owner_key: "pt", target_key: "pt" }),
     ).toEqual(["malformed_key"]);
-    expect(
-      bad("chat_nicknames", {
-        target_key: "user",
-        set_by_key: "admin:2",
-        nickname: "x",
-      }),
-    ).toEqual([]);
-    for (const target of ["pt", "admin:3"]) {
-      expect(
-        bad("chat_nicknames", {
-          target_key: target,
-          set_by_key: "user",
-          nickname: "x",
-        }),
-        target,
-      ).toEqual([]);
-    }
-    for (const [target, setBy] of [
-      ["user:1", "user"],
-      ["admin", "user"],
-      ["user", "pt"],
-      ["user", "user:1"],
-    ]) {
-      expect(
-        bad("chat_nicknames", {
-          target_key: target,
-          set_by_key: setBy,
-          nickname: "x",
-        }),
-        `${target}/${setBy}`,
-      ).toEqual(["malformed_key"]);
-    }
     expect(bad("social_posts", { author_id: 0 })).toEqual(["malformed_key"]);
     expect(bad("social_posts", { author_id: 4 })).toEqual([]);
-  });
-});
-
-describe("nickname length", () => {
-  const nickname = (value: string | null) =>
-    findViolations({
-      chat_nicknames: [
-        {
-          key: "1:user",
-          values: { target_key: "user", set_by_key: "user", nickname: value },
-        },
-      ],
-    }).map((v) => v.reason);
-
-  it("accepts 1 to 30 characters (counted by code point) and flags the rest", () => {
-    expect(nickname("a")).toEqual([]);
-    expect(nickname("👍".repeat(30))).toEqual([]);
-    expect(nickname("a".repeat(31))).toEqual(["nickname_length"]);
-    expect(nickname("")).toEqual(["nickname_length"]);
-    expect(nickname(null)).toEqual(["nickname_length"]);
   });
 });
 

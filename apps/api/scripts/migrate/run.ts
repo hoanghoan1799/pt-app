@@ -93,6 +93,7 @@ export type RunOptions = {
   allowRemote: boolean;
   // Accept losing legacy source data PostgreSQL no longer has (chat-social.ts).
   dropLegacyAttachments?: boolean;
+  dropLegacyNicknames?: boolean;
   batchSize: number;
   reportPath?: string;
 };
@@ -939,6 +940,7 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
     const legacy = await countLegacy(source);
     const blocked = legacyProblems(legacy, {
       attachments: options.dropLegacyAttachments,
+      nicknames: options.dropLegacyNicknames,
     });
 
     if (blocked.length > 0) {
@@ -949,6 +951,7 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
 
     for (const [item, count] of [
       ["chat_messages.attachment_url / attachment_meta (messages)", legacy.attachments],
+      ["chat_nicknames (rows)", legacy.nicknames],
     ] as const) {
       if (count > 0) {
         report.droppedLegacy.push({ item, count });

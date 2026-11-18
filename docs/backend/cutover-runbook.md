@@ -2,7 +2,7 @@
 
 Hoan runs every step of this by hand, in this order. Claude never runs the data script against Turso or any remote database; every rehearsal uses a local SQLite file.
 
-The data script is `apps/api/scripts/migrate-from-turso.ts`. It copies the 44 source tables into an empty PostgreSQL that already has the migrations, then proves the copy is complete. Its SQLite column description (`turso-columns.json`) and DDL (`turso-schema.sql`, frozen, from the retired Drizzle schema) stay in the repo until the cutover is over; the script, both files and the Turso/libSQL dev dependency are deleted afterwards (see "After the cutover").
+The data script is `apps/api/scripts/migrate-from-turso.ts`. It copies the 44 source tables (43 in PostgreSQL: `chat_nicknames` is gone, see below) into an empty PostgreSQL that already has the migrations, then proves the copy is complete. Its SQLite column description (`turso-columns.json`) and DDL (`turso-schema.sql`, frozen, from the retired Drizzle schema) stay in the repo until the cutover is over; the script, both files and the Turso/libSQL dev dependency are deleted afterwards (see "After the cutover").
 
 ## What the script does
 
@@ -100,11 +100,10 @@ Photo links are two foreign keys, both `DEFERRABLE INITIALLY DEFERRED`, so the l
 
 Repaired while reading, not reported: `chat_messages.silent` NULL (the source allowed it, the app meant "not silent") is copied as false.
 
-`chat_nicknames` is not legacy: the shared per-conversation nicknames are live again (migration `ChatNicknamesRestore`), so the table is copied like any other. Rows must fit its CHECKs (target `user`, `pt` or `admin:<id>`; setter `user` or `admin:<id>`; 1 to 30 characters); the orphan scan reports a row that does not (`malformed_key`, `nickname_length`), and `--orphans=skip` drops it. Private `contact_aliases` are copied as before and used outside chat only.
-
 Legacy data PostgreSQL no longer has (the source schema and `turso-columns.json` stay as they are):
 
 - `chat_messages.attachment_url` / `attachment_meta`: nothing reads or writes them (photos have their own table). If any message has a value, the run aborts in every mode (dry run, migrate, verify) with the count and "pass `--drop-legacy-attachments`". With the flag the values are dropped and the count is in the report (`droppedLegacy`) and a warning.
+- `chat_nicknames`: the table is gone (private `contact_aliases` replaced the shared nicknames). A non-empty source table aborts the same way unless `--drop-legacy-nicknames` is passed. In production these rows were already moved to aliases by the old setup script, so the expected count is 0.
 - Pass the same flags to `data:verify`.
 
 After the load (and in `data:verify`) the script recomputes `last_message_id` (the newest message id of the conversation) and `last_message_at` (that message's `created_at`) for `chat_conversations` and `dm_conversations` and compares them with the stored values. These fields are kept by the app, so a difference is a warning (`derivedChecks` in the report, conversation ids only), never an error and never rewritten. Look at the list before lifting the freeze.
