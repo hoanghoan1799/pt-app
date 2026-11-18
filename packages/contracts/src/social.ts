@@ -27,6 +27,11 @@ export const SOCIAL_PHOTO_MAX_SIDE = 1600;
 // An upload that never became a post is dropped after this long.
 export const SOCIAL_PHOTO_PENDING_TTL_MS = 24 * 60 * 60 * 1000;
 
+// Photos in one post (the first is the cover, also social_posts.photo_id); the
+// composer uploads this many at a time.
+export const SOCIAL_POST_MAX_PHOTOS = 10;
+export const SOCIAL_POST_PHOTO_UPLOAD_CONCURRENCY = 3;
+
 // Friend requests a trainee may send per day.
 export const SOCIAL_FRIEND_REQUESTS_PER_DAY = 20;
 export const SOCIAL_FRIEND_REQUEST_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -80,6 +85,7 @@ export const SOCIAL_MESSAGES = {
   NOT_FOUND: "Không tìm thấy bài viết.",
   NOT_ALLOWED: "Bạn không có quyền thực hiện thao tác này.",
   PHOTO_NOT_FOUND: "Không tìm thấy ảnh. Hãy chọn lại ảnh.",
+  TOO_MANY_PHOTOS: `Mỗi bài viết tối đa ${SOCIAL_POST_MAX_PHOTOS} ảnh.`,
   PHOTO_TOO_LARGE: "Ảnh quá lớn. Hãy chọn ảnh khác.",
   PHOTO_BAD_IMAGE: "Chỉ gửi được ảnh JPEG, PNG hoặc WebP. Hãy chọn lại ảnh.",
   COMMENT_EMPTY: "Hãy viết nội dung bình luận.",

@@ -13,6 +13,7 @@ import {
   SOCIAL_MESSAGES,
   SOCIAL_NOTIFICATION_KINDS,
   SOCIAL_PAGE_LIMITS,
+  SOCIAL_POST_MAX_PHOTOS,
   SOCIAL_POST_PRIVACIES,
   SOCIAL_REACTION_EMOJIS,
   SOCIAL_RELATIONSHIPS,
@@ -62,11 +63,28 @@ const captionSchema = z
   .trim()
   .max(SOCIAL_CAPTION_MAX_LENGTH, SOCIAL_MESSAGES.CAPTION_TOO_LONG);
 
-export const socialCreatePostRequestSchema = z.object({
-  caption: captionSchema,
-  privacy: socialPrivacySchema,
-  photoId: idSchema.nullable().default(null),
-});
+// Ids of the uploaded photos of a post in display order (the first is the
+// cover): at most SOCIAL_POST_MAX_PHOTOS, each id once.
+export const socialPhotoIdsSchema = z
+  .array(idSchema)
+  .max(SOCIAL_POST_MAX_PHOTOS, SOCIAL_MESSAGES.TOO_MANY_PHOTOS)
+  .refine(
+    (ids) => new Set(ids).size === ids.length,
+    SOCIAL_MESSAGES.PHOTO_NOT_FOUND,
+  );
+
+// `photoIds` is the list; `photoId` is the single photo an older client sends
+// (the two never come together).
+export const socialCreatePostRequestSchema = z
+  .object({
+    caption: captionSchema,
+    privacy: socialPrivacySchema,
+    photoId: idSchema.nullable().default(null),
+    photoIds: socialPhotoIdsSchema.default([]),
+  })
+  .refine((value) => value.photoId === null || value.photoIds.length === 0, {
+    message: SOCIAL_MESSAGES.PHOTO_NOT_FOUND,
+  });
 export type SocialCreatePostRequest = z.infer<
   typeof socialCreatePostRequestSchema
 >;
@@ -162,6 +180,13 @@ export const socialReactionSummarySchema = z.object({
   mine: z.string().nullable(),
 });
 
+const socialPostPhotoSchema = z.object({
+  id: z.number().int(),
+  url: z.string(),
+  width: z.number().int(),
+  height: z.number().int(),
+});
+
 export const socialPostResponseSchema = z.object({
   id: z.number().int(),
   authorKind,
@@ -171,14 +196,10 @@ export const socialPostResponseSchema = z.object({
   authorVerified: z.boolean(),
   caption: z.string(),
   privacy: socialPrivacySchema,
-  photo: z
-    .object({
-      id: z.number().int(),
-      url: z.string(),
-      width: z.number().int(),
-      height: z.number().int(),
-    })
-    .nullable(),
+  // The cover (the first of `photos`), for clients from before several photos.
+  photo: socialPostPhotoSchema.nullable(),
+  // Every photo in display order.
+  photos: z.array(socialPostPhotoSchema),
   createdAt: iso,
   edited: z.boolean(),
   canEdit: z.boolean(),

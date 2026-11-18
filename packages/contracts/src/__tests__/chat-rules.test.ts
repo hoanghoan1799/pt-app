@@ -1,4 +1,6 @@
 import {
+  CHAT_MESSAGE_MAX_PHOTOS,
+  CHAT_PHOTO_ERRORS,
   CHAT_PHOTO_MAX_BYTES,
   chatAliasesToNicknames,
   chatBuildSnippet,
@@ -9,11 +11,14 @@ import {
   chatIsSearchableQuery,
   chatNextReadCursor,
   chatParseCommand,
+  chatPhotoIdsOf,
+  chatPhotoSlots,
   chatSearchQuerySchema,
   chatSearchWords,
   chatSendMessageRequestSchema,
   chatThreadQuerySchema,
   findBundledSticker,
+  groupPhotosByOwner,
   stickerCheckImage,
   stickerInputSchema,
   stickerMapGiphyResponse,
@@ -361,6 +366,35 @@ describe("request schemas", () => {
     expect(parse({ body: "hi", clientId: "nope" })).toBe(false);
   });
 
+  it("takes up to 10 distinct photo ids, or one photoId from an older client", () => {
+    const parse = (value: object) =>
+      chatSendMessageRequestSchema.safeParse(value);
+    const ids = (count: number) =>
+      Array.from({ length: count }, (_, index) => index + 1);
+
+    expect(parse({ photoIds: ids(1) }).success).toBe(true);
+    expect(parse({ photoIds: ids(CHAT_MESSAGE_MAX_PHOTOS) }).success).toBe(
+      true,
+    );
+    expect(
+      parse({ body: "caption", photoIds: [5, 2, 9] }).data?.photoIds,
+    ).toEqual([5, 2, 9]);
+    expect(
+      parse({ photoIds: ids(CHAT_MESSAGE_MAX_PHOTOS + 1) }).error?.issues[0]
+        .message,
+    ).toBe(CHAT_PHOTO_ERRORS.TOO_MANY);
+    expect(parse({ photoIds: [1, 2, 1] }).success).toBe(false);
+    expect(parse({ photoIds: [0] }).success).toBe(false);
+    // An empty list is no photo: a text is still needed.
+    expect(parse({ photoIds: [] }).success).toBe(false);
+    expect(parse({ body: "hi", photoIds: [] }).success).toBe(true);
+    // Never the old and the new field together, never a sticker with photos.
+    expect(parse({ photoId: 1, photoIds: [2] }).success).toBe(false);
+    expect(parse({ photoIds: [1], sticker: { customId: 1 } }).success).toBe(
+      false,
+    );
+  });
+
   it("allows one of after, before, around and coerces the polling flags", () => {
     expect(
       chatThreadQuerySchema.safeParse({
@@ -387,5 +421,45 @@ describe("request schemas", () => {
     expect(chatThreadQuerySchema.safeParse({ before: "0" }).success).toBe(
       false,
     );
+  });
+});
+
+describe("photos of a message", () => {
+  it("fits picked photos next to the current ones", () => {
+    expect(chatPhotoSlots(0, 4)).toEqual({ accepted: 4, dropped: 0 });
+    expect(chatPhotoSlots(8, 4)).toEqual({ accepted: 2, dropped: 2 });
+    expect(chatPhotoSlots(10, 3)).toEqual({ accepted: 0, dropped: 3 });
+    expect(chatPhotoSlots(12, 3)).toEqual({ accepted: 0, dropped: 3 });
+    expect(chatPhotoSlots(2, -5)).toEqual({ accepted: 0, dropped: 0 });
+    expect(chatPhotoSlots(3, 9, 5)).toEqual({ accepted: 2, dropped: 7 });
+  });
+
+  it("reads the photo ids of a request, the list first", () => {
+    expect(chatPhotoIdsOf({ photoIds: [3, 1] })).toEqual([3, 1]);
+    expect(chatPhotoIdsOf({ photoId: 7 })).toEqual([7]);
+    expect(chatPhotoIdsOf({ photoId: null })).toEqual([]);
+    expect(chatPhotoIdsOf({ photoId: 7, photoIds: [] })).toEqual([7]);
+    expect(chatPhotoIdsOf({})).toEqual([]);
+  });
+
+  it("groups rows by owner by position (null counts as 0), then id", () => {
+    const rows = [
+      { id: 5, ownerId: 1, position: 2 },
+      { id: 3, ownerId: 1, position: null },
+      { id: 4, ownerId: 1, position: 1 },
+      { id: 9, ownerId: 2, position: 0 },
+      { id: 8, ownerId: 2, position: null },
+      { id: 7, ownerId: null, position: 0 },
+      { id: 6, ownerId: 3, position: 0 },
+      { id: 5, ownerId: 1, position: 2 },
+    ];
+    const grouped = groupPhotosByOwner(rows, [1, 2]);
+
+    expect(grouped.get(1)?.map((row) => row.id)).toEqual([3, 4, 5]);
+    // Same position: the lower id first.
+    expect(grouped.get(2)?.map((row) => row.id)).toEqual([8, 9]);
+    // Pending rows and owners nobody asked for are dropped.
+    expect(grouped.has(3)).toBe(false);
+    expect([...grouped.keys()]).toEqual([1, 2]);
   });
 });

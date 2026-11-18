@@ -2,6 +2,7 @@ import {
   parseSocialActorKey,
   SOCIAL_FRIEND_MESSAGES,
   SOCIAL_MESSAGES,
+  SOCIAL_POST_MAX_PHOTOS,
   socialPairOf,
 } from "../social.js";
 import {
@@ -23,7 +24,7 @@ describe("post requests", () => {
   it("trims the caption, defaults the photo and bounds the length", () => {
     expect(
       socialCreatePostRequestSchema.parse({ caption: "  hi  ", privacy: "friends" }),
-    ).toEqual({ caption: "hi", privacy: "friends", photoId: null });
+    ).toEqual({ caption: "hi", privacy: "friends", photoId: null, photoIds: [] });
     expect(
       socialCreatePostRequestSchema.parse({ caption: "a".repeat(2000), privacy: "only_me", photoId: 4 })
         .photoId,
@@ -44,6 +45,42 @@ describe("post requests", () => {
         socialCreatePostRequestSchema.safeParse({ caption: "x", privacy: "friends", photoId }).success,
       ).toBe(false);
     }
+  });
+});
+
+describe("post requests with several photos", () => {
+  const parse = (extra: object) =>
+    socialCreatePostRequestSchema.safeParse({
+      caption: "x",
+      privacy: "friends",
+      ...extra,
+    });
+
+  it("takes up to 10 distinct photo ids in order", () => {
+    const ids = Array.from({ length: SOCIAL_POST_MAX_PHOTOS }, (_, i) => i + 1);
+
+    expect(parse({ photoIds: [] }).success).toBe(true);
+    expect(parse({ photoIds: [9, 3, 5] }).data?.photoIds).toEqual([9, 3, 5]);
+    expect(parse({ photoIds: ids }).success).toBe(true);
+  });
+
+  it("refuses an 11th photo with its own message", () => {
+    const tooMany = parse({
+      photoIds: Array.from({ length: SOCIAL_POST_MAX_PHOTOS + 1 }, (_, i) => i + 1),
+    });
+
+    expect(tooMany.success).toBe(false);
+    expect(tooMany.error?.issues[0].message).toBe(SOCIAL_MESSAGES.TOO_MANY_PHOTOS);
+  });
+
+  it("refuses a repeated id, a bad id, and photoId together with photoIds", () => {
+    expect(parse({ photoIds: [1, 2, 1] }).success).toBe(false);
+    for (const bad of [0, -1, 1.5, "3", 2147483648]) {
+      expect(parse({ photoIds: [bad] }).success).toBe(false);
+    }
+    expect(parse({ photoId: 4, photoIds: [5] }).success).toBe(false);
+    expect(parse({ photoId: 4, photoIds: [] }).success).toBe(true);
+    expect(parse({ photoId: 4 }).data?.photoId).toBe(4);
   });
 });
 

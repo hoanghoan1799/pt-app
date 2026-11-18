@@ -45,8 +45,15 @@ export const CHAT_PHOTO_MAX_SIDE = 1600;
 // A pending photo (uploaded, never sent) is dropped after this long.
 export const CHAT_PHOTO_PENDING_TTL_MS = 24 * 60 * 60 * 1000;
 
+// Photos in one message: coach chat, trainee chats and DMs (the first photo is
+// the cover, also the message's photo_id). A composer uploads this many at a
+// time.
+export const CHAT_MESSAGE_MAX_PHOTOS = 10;
+export const CHAT_PHOTO_UPLOAD_CONCURRENCY = 3;
+
 export const CHAT_PHOTO_ERRORS = {
   TOO_LARGE: "Ảnh quá lớn. Hãy chọn ảnh khác.",
+  TOO_MANY: `Mỗi tin nhắn tối đa ${CHAT_MESSAGE_MAX_PHOTOS} ảnh.`,
   BAD_IMAGE: "Chỉ gửi được ảnh JPEG, PNG hoặc WebP. Hãy chọn lại ảnh.",
   NOT_FOUND: "Không tìm thấy ảnh. Hãy chọn lại ảnh.",
   GENERIC: "Không gửi được ảnh. Thử lại nhé.",
