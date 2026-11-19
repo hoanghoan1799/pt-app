@@ -4,6 +4,7 @@ import {
   CHAT_CHANGES_PAGE_SIZE,
   CHAT_JUMP_MAX_NEWER,
   CHAT_PAGE_SIZE,
+  CHAT_USER_READER_KEY,
   chatNextReadCursor,
   groupPhotosByOwner,
 } from "@pt/contracts";
@@ -626,11 +627,12 @@ export class ChatQueries {
     return rows.filter((row) => row.nickname.trim() !== "");
   }
 
-  // The nickname of each trainee in their own conversation (target "user"),
-  // by user id; trainees without one are absent.
+  // The nickname of each trainee in their own conversation, by user id, as a
+  // nickname record with the "user" target only (what `chatNicknameOr` reads);
+  // trainees without one are absent.
   async traineeNicknames(
     userIds: readonly number[],
-  ): Promise<Map<number, string>> {
+  ): Promise<Map<number, Record<string, string>>> {
     if (userIds.length === 0) {
       return new Map();
     }
@@ -645,7 +647,7 @@ export class ChatQueries {
     return new Map(
       rows
         .filter((row) => row.nickname.trim() !== "")
-        .map((row) => [row.userId, row.nickname]),
+        .map((row) => [row.userId, { [CHAT_USER_READER_KEY]: row.nickname }]),
     );
   }
 

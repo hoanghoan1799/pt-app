@@ -1,3 +1,5 @@
+import { chatNicknameOr } from "@pt/contracts";
+
 import { TIME_ZONE } from "@/constants/time";
 import {
   adminReaderKey,
@@ -6,7 +8,6 @@ import {
   USER_READER_KEY,
 } from "@/features/chat/utils/chat-rules";
 import { adminLabel } from "@/features/chat/utils/chat-settings";
-import { displayNameFor } from "@/features/chat/utils/display-name";
 import type { ChatPhoto } from "@/features/chat/utils/photo-rules";
 import type { ChatSticker } from "@/features/chat/utils/sticker-rules";
 import type { DmReplyPostView } from "@/features/social/types/dm";
@@ -467,7 +468,7 @@ export const buildThreadItems = (
         viewer.role === "admin"
           ? viewer.peerName === null
             ? null
-            : displayNameFor(nicknames, "user", viewer.peerName)
+            : chatNicknameOr(nicknames, "user", viewer.peerName)
           : message.senderAdminName === null
             ? null
             : adminLabel(
@@ -726,7 +727,7 @@ export const senderLabel = (
         );
   }
   return viewer.role === "admin"
-    ? displayNameFor(nicknames, "user", viewer.peerName ?? t("thread.trainee"))
+    ? chatNicknameOr(nicknames, "user", viewer.peerName ?? t("thread.trainee"))
     : t("thread.youLower");
 };
 
@@ -744,6 +745,6 @@ export const quoteLabel = (
     return viewer.role === "admin" ? t("thread.pt") : t("thread.you");
   }
   return viewer.role === "admin"
-    ? displayNameFor(nicknames, "user", viewer.peerName ?? t("thread.trainee"))
-    : displayNameFor(nicknames, "pt", t("thread.pt"));
+    ? chatNicknameOr(nicknames, "user", viewer.peerName ?? t("thread.trainee"))
+    : chatNicknameOr(nicknames, "pt", t("thread.pt"));
 };

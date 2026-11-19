@@ -1,5 +1,6 @@
 "use client";
 
+import { chatNicknameOr } from "@pt/contracts";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
@@ -11,7 +12,6 @@ import {
 } from "@/features/chat/components/ChatThread";
 import { NeutralColorsSwitch } from "@/features/chat/components/NeutralColorsSwitch";
 import { chatPaths } from "@/features/chat/utils/chat-links";
-import { displayNameFor } from "@/features/chat/utils/display-name";
 import { bubbleKeyFor } from "@/features/chat-bubbles/utils/bubble-links";
 
 interface AdminChatThreadProps extends Pick<
@@ -53,7 +53,7 @@ export const AdminChatThread = ({
         presence,
         { profile, infoHref, peerAvatar },
       ) => {
-        const name = displayNameFor(profile.nicknames, "user", userName);
+        const name = chatNicknameOr(profile.nicknames, "user", userName);
 
         return (
           <>

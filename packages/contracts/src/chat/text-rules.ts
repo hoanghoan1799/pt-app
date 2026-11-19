@@ -315,9 +315,12 @@ export const chatAdminLabel = (
   adminId: number | null,
   realName: string,
   ptFallback: boolean,
-) =>
-  (adminId === null
-    ? ""
-    : (nicknames?.[chatNicknameAdminTarget(adminId)]?.trim() ?? "")) ||
-  (ptFallback ? (nicknames?.[PT_ALIAS_TARGET]?.trim() ?? "") : "") ||
-  realName;
+) => {
+  const fallback = ptFallback
+    ? chatNicknameOr(nicknames, PT_ALIAS_TARGET, realName)
+    : realName;
+
+  return adminId === null
+    ? fallback
+    : chatNicknameOr(nicknames, chatNicknameAdminTarget(adminId), fallback);
+};

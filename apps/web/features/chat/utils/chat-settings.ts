@@ -1,3 +1,5 @@
+import { chatNicknameOr } from "@pt/contracts";
+
 import {
   type ChatColorKey,
   DEFAULT_CHAT_COLOR,
@@ -5,7 +7,6 @@ import {
 } from "@/features/chat/utils/chat-palette";
 import { parseAdminTarget } from "@/features/chat/utils/chat-rules";
 import type { ThreadViewer } from "@/features/chat/utils/chat-thread-rules";
-import { displayNameFor } from "@/features/chat/utils/display-name";
 
 // Pure rules behind the conversation settings sheet and the coloured bubbles
 // (KAN-142, spec D1, D2, D4). Keys are "user", "pt" and "admin:<id>".
@@ -86,15 +87,13 @@ export const adminLabel = (
   realName: string,
   fallbackKey?: string,
 ) => {
-  const own =
-    adminId === null ? undefined : nicknames[adminKey(adminId)]?.trim();
-
-  if (own) {
-    return own;
-  }
-  return fallbackKey
-    ? displayNameFor(nicknames, fallbackKey, realName)
+  const fallback = fallbackKey
+    ? chatNicknameOr(nicknames, fallbackKey, realName)
     : realName;
+
+  return adminId === null
+    ? fallback
+    : chatNicknameOr(nicknames, adminKey(adminId), fallback);
 };
 
 // Name of a reactor in the reactors sheet: their shared nickname (for an
@@ -108,7 +107,7 @@ export const reactorLabel = (
   const adminId = parseAdminTarget(reactorKey);
 
   if (adminId === null) {
-    return displayNameFor(nicknames, reactorKey, realName);
+    return chatNicknameOr(nicknames, reactorKey, realName);
   }
   return adminLabel(
     nicknames,
