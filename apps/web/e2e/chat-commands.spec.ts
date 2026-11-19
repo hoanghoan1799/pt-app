@@ -2,6 +2,7 @@ import { type Browser, expect, type Page, test } from "@playwright/test";
 
 import { getStoredBodies, getUserId, resetChat } from "./api-seed-chat";
 import { fillTraineeLogin } from "./auth";
+import { clickChatSwitch, getChatSwitch } from "./chat-switch";
 import { E2E_ADMIN, E2E_CHAT_NAME } from "./config";
 
 // Chat slash commands (KAN-167): `/imlang` turns into a chip in the composer
@@ -68,11 +69,10 @@ test("/imlang becomes a chip, sends silently without the command text, and still
     // Enable the chat for the trainee as the PT.
     await logInAsAdmin(admin);
     await admin.goto(`/admin/users/${userId}/messages`);
-    const lock = admin.getByRole("switch", { name: "Cho phép nhắn tin" });
+    const lock = getChatSwitch(admin);
 
     await expect(lock).toHaveAttribute("aria-checked", "false");
-    await lock.click();
-    await expect(lock).toHaveAttribute("aria-checked", "true");
+    await clickChatSwitch(lock, true);
     // Leave the thread: an open thread keeps polling and would mark the
     // trainee's message read, racing the unread check below.
     await admin.goto("/admin");
