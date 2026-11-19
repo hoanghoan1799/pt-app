@@ -663,6 +663,30 @@ export class ChatQueries {
     return rows[0] ?? null;
   }
 
+  // The trainee's PT, the row locked (FOR SHARE) until the caller's
+  // transaction ends; null once the trainee is gone.
+  async lockTraineeForNickname(manager: EntityManager, userId: number) {
+    const rows = await this.run<{ ptAdminId: number | null }[]>(
+      `SELECT pt_admin_id AS "ptAdminId" FROM users WHERE id = $1 FOR SHARE`,
+      [userId],
+      manager,
+    );
+
+    return rows[0] ?? null;
+  }
+
+  // Holds the conversation row for a write that bumps it anyway; false once
+  // it is gone.
+  async lockConversation(manager: EntityManager, conversationId: number) {
+    const rows = await this.run<{ id: number }[]>(
+      `SELECT id FROM chat_conversations WHERE id = $1 FOR NO KEY UPDATE`,
+      [conversationId],
+      manager,
+    );
+
+    return rows.length > 0;
+  }
+
   async findNickname(
     manager: EntityManager,
     conversationId: number,

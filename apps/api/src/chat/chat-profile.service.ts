@@ -96,22 +96,33 @@ export class ChatProfileService {
     const setByKey =
       actor.kind === "admin" ? adminActorKey(actor.id) : CHAT_USER_READER_KEY;
     const changedAt = await this.dataSource.transaction(async (manager) => {
-      // The admin target is checked in the write's transaction, its row locked
-      // (FOR SHARE) until COMMIT: an admin removed or moved to another
-      // workspace meanwhile is either seen as such here or waits for this
-      // write, never a nickname for somebody who no longer belongs.
+      // Every check runs on rows this transaction holds until COMMIT, taken
+      // in the order a deletion takes them (admin, trainee, conversation), so
+      // a concurrent removal, demotion, change of PT or deletion of the
+      // conversation either committed first and is seen here, or waits for
+      // this write. Never a nickname for somebody who no longer belongs.
       if (adminId !== null) {
         const admin = await this.queries.findAdminForNickname(manager, adminId);
+        const facts = await this.queries.lockTraineeForNickname(
+          manager,
+          trainee.traineeId,
+        );
 
+        if (!facts) {
+          throw chatErrors.conversationNotFound();
+        }
         if (
           !admin ||
           !this.policy.isConversationAdmin(
             { id: admin.id, role: toAdminRole(admin.role) },
-            trainee,
+            facts,
           )
         ) {
           throw chatErrors.adminNotFound();
         }
+      }
+      if (!(await this.queries.lockConversation(manager, conversation.id))) {
+        throw chatErrors.conversationNotFound();
       }
       const stored = await this.queries.findNickname(
         manager,

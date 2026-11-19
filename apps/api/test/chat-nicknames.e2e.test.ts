@@ -441,33 +441,78 @@ describe("who may set which nickname", () => {
   // target check runs inside the write's transaction, so the request waits
   // for that change and then refuses the target instead of writing a nickname
   // for an admin who no longer belongs to the conversation.
-  it.each([
-    ["demoted", `UPDATE admins SET role = 'pt' WHERE id = $1`],
-    ["removed", `DELETE FROM admins WHERE id = $1`],
+  type Race = {
+    owner: Pt;
+    boss: Pt;
+    stranger: Pt;
+    me: Trainee;
+    conversationId: number;
+  };
+
+  it.each<
+    [
+      string,
+      (race: Race) => [string, unknown[]],
+      (race: Race) => string,
+      string,
+    ]
+  >([
+    [
+      "the super admin target is demoted to a PT of no workspace",
+      ({ boss }) => [`UPDATE admins SET role = 'pt' WHERE id = $1`, [boss.id]],
+      ({ boss }) => `admin:${boss.id}`,
+      "ADMIN_NOT_FOUND",
+    ],
+    [
+      "the admin target is removed",
+      ({ boss }) => [`DELETE FROM admins WHERE id = $1`, [boss.id]],
+      ({ boss }) => `admin:${boss.id}`,
+      "ADMIN_NOT_FOUND",
+    ],
+    [
+      "the trainee moves to another PT's workspace",
+      ({ me, stranger }) => [
+        `UPDATE users SET pt_admin_id = $2 WHERE id = $1`,
+        [me.id, stranger.id],
+      ],
+      ({ owner }) => `admin:${owner.id}`,
+      "ADMIN_NOT_FOUND",
+    ],
+    [
+      "the conversation is deleted",
+      ({ conversationId }) => [
+        `DELETE FROM chat_conversations WHERE id = $1`,
+        [conversationId],
+      ],
+      () => "user",
+      "CONVERSATION_NOT_FOUND",
+    ],
   ])(
-    "refuses an admin target %s while the nickname is being written",
-    async (_label, change) => {
+    "answers not found when %s while the nickname is being written",
+    async (_label, change, target, code) => {
       const owner = await admin("pt");
       const boss = await admin("super_admin");
+      const stranger = await admin("pt");
       const { me, conversationId } = await pair(owner);
+      const race = { owner, boss, stranger, me, conversationId };
       const other = ds.createQueryRunner();
 
       await other.connect();
       try {
         await other.startTransaction();
-        await other.query(change, [boss.id]);
+        await other.query(...change(race));
 
         const settled = { done: false };
         const request = (async () => {
           try {
-            return await meNickname(me, `admin:${boss.id}`, "Sếp");
+            return await meNickname(me, target(race), "Tên");
           } finally {
             settled.done = true;
           }
         })();
 
-        // Commit only once the request waits on the locked admin row (or has
-        // already answered, which would mean it never looked inside the
+        // Commit only once the request waits on a row the change holds (or
+        // has already answered, which would mean it never checked inside its
         // transaction).
         await expect
           .poll(
@@ -490,7 +535,7 @@ describe("who may set which nickname", () => {
         const response = await request;
 
         expect(response.status).toBe(404);
-        expect(response.body.code).toBe("ADMIN_NOT_FOUND");
+        expect(response.body.code).toBe(code);
         expect(await stored(conversationId)).toEqual([]);
       } finally {
         if (other.isTransactionActive) {
