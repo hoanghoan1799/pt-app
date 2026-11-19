@@ -74,6 +74,11 @@ export const DERIVED_IDS: Record<string, Derive> = {
   "chat_reactions.reactor_admin_id": adminKey("reactor_key"),
   "chat_reads.reader_admin_id": adminKey("reader_key"),
   "chat_nicknames.target_admin_id": adminKey("target_key"),
+  // ChatGroups migration: members and reactions go with the account.
+  "chat_group_members.member_user_id": userKey("member_key"),
+  "chat_group_members.member_admin_id": adminKey("member_key"),
+  "chat_group_reactions.reactor_user_id": userKey("reactor_key"),
+  "chat_group_reactions.reactor_admin_id": adminKey("reactor_key"),
 };
 
 export const isDerived = (table: string, column: string) =>
@@ -105,7 +110,27 @@ const FORMAT_RULES: Record<string, Record<string, RegExp | "positive">> = {
   chat_reactions: { reactor_key: CHAT },
   chat_reads: { reader_key: CHAT },
   chat_nicknames: { target_key: NICKNAME_TARGET, set_by_key: CHAT },
+  // ChatGroups migration (social form). The keys without a generated id
+  // (sender, uploader, creator, adder, remover, hider) may name a deleted
+  // account, so only their shape is checked.
+  chat_groups: { created_by_key: SOCIAL },
+  chat_group_members: {
+    member_key: SOCIAL,
+    added_by_key: SOCIAL,
+    removed_by_key: SOCIAL,
+  },
+  chat_group_messages: { sender_key: SOCIAL, hidden_by_key: SOCIAL },
+  chat_group_photos: { uploader_key: SOCIAL },
+  chat_group_reactions: { reactor_key: SOCIAL },
 };
+
+// Nullable key columns: NULL passes their CHECK (a system line has no sender,
+// a member who left on their own no remover, a visible message no hider).
+const NULLABLE_KEYS = new Set([
+  "chat_group_members.removed_by_key",
+  "chat_group_messages.sender_key",
+  "chat_group_messages.hidden_by_key",
+]);
 
 // Source columns the constraint scan reads (kept on the RowRef values).
 export const VIOLATION_COLUMNS: Record<string, string[]> = (() => {
@@ -161,6 +186,14 @@ export const findViolations = (
     for (const row of rows[table] ?? []) {
       for (const [column, rule] of Object.entries(rules)) {
         const value = row.values[column];
+
+        if (
+          (value === null || value === undefined) &&
+          NULLABLE_KEYS.has(`${table}.${column}`)
+        ) {
+          continue;
+        }
+
         const ok =
           rule === "positive"
             ? typeof value === "number" && value > 0

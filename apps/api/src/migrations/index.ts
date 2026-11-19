@@ -9,6 +9,9 @@ import { DbHousekeeping1795300000000 } from "./1795300000000-DbHousekeeping.js";
 import { ChatNicknamesRestore1795400000000 } from "./1795400000000-ChatNicknamesRestore.js";
 import { PhotoPosition1795500000000 } from "./1795500000000-PhotoPosition.js";
 import { ReportMessages1795600000000 } from "./1795600000000-ReportMessages.js";
+import { UserRestrictions1795700000000 } from "./1795700000000-UserRestrictions.js";
+import { AccentTheme1795800000000 } from "./1795800000000-AccentTheme.js";
+import { ChatGroups1795900000000 } from "./1795900000000-ChatGroups.js";
 
 // Every migration, oldest first. Add new ones here; a test fails if a file in
 // this folder is missing from the list.
@@ -24,4 +27,7 @@ export const migrations = [
   ChatNicknamesRestore1795400000000,
   PhotoPosition1795500000000,
   ReportMessages1795600000000,
+  UserRestrictions1795700000000,
+  AccentTheme1795800000000,
+  ChatGroups1795900000000,
 ];

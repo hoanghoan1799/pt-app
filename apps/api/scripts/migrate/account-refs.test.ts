@@ -133,6 +133,37 @@ describe("malformed keys", () => {
     expect(bad("social_posts", { author_id: 0 })).toEqual(["malformed_key"]);
     expect(bad("social_posts", { author_id: 4 })).toEqual([]);
   });
+
+  it("checks the group keys in the social form and lets the nullable ones be NULL", () => {
+    const member = {
+      member_key: "user:1",
+      added_by_key: "admin:2",
+      removed_by_key: null,
+    };
+
+    expect(bad("chat_group_members", member)).toEqual([]);
+    expect(
+      bad("chat_group_members", { ...member, member_key: "user" }),
+    ).toEqual(["malformed_key"]);
+    // added_by_key is NOT NULL: a NULL is refused like any malformed key.
+    expect(
+      bad("chat_group_members", { ...member, added_by_key: null }),
+    ).toEqual(["malformed_key"]);
+    expect(
+      bad("chat_group_messages", { sender_key: null, hidden_by_key: null }),
+    ).toEqual([]);
+    expect(
+      bad("chat_group_messages", {
+        sender_key: "pt",
+        hidden_by_key: "admin:1",
+      }),
+    ).toEqual(["malformed_key"]);
+    expect(bad("chat_group_photos", { uploader_key: "admin:3" })).toEqual([]);
+    expect(bad("chat_group_reactions", { reactor_key: "user:0" })).toEqual([
+      "malformed_key",
+    ]);
+    expect(bad("chat_groups", { created_by_key: "admin:9" })).toEqual([]);
+  });
 });
 
 describe("nickname length", () => {

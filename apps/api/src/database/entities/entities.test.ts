@@ -25,10 +25,10 @@ const buildMetadata = async () => {
 };
 
 describe("entities", () => {
-  it("registers every *.entity.ts file exactly once (44 tables, sessions and the two avatar tables)", () => {
-    expect(entityFiles).toHaveLength(47);
-    expect(entities).toHaveLength(47);
-    expect(new Set(entities).size).toBe(47);
+  it("registers every *.entity.ts file exactly once (53 tables, sessions and the two avatar tables)", () => {
+    expect(entityFiles).toHaveLength(56);
+    expect(entities).toHaveLength(56);
+    expect(new Set(entities).size).toBe(56);
   });
 
   it("has valid metadata: unique table names, real FKs with explicit ON DELETE", async () => {
@@ -36,11 +36,13 @@ describe("entities", () => {
     const tables = metadata.map((entity) => entity.tableName);
     const foreignKeys = metadata.flatMap((entity) => entity.foreignKeys);
 
-    expect(new Set(tables).size).toBe(47);
+    expect(new Set(tables).size).toBe(56);
     // 24 declared + 43 formerly logical + 2 on sessions + 2 on the avatar tables
     // + 26 account ids (DbIntegrity) - 1 (chat_nicknames dropped by
-    // DbChatSocial) + 2 (chat_nicknames restored: conversation, target admin).
-    expect(foreignKeys).toHaveLength(98);
+    // DbChatSocial) + 2 (chat_nicknames restored: conversation, target admin)
+    // + 3 user_restrictions + 2 theme + 14 group chat (10 declared, 4 account
+    // ids).
+    expect(foreignKeys).toHaveLength(117);
     expect(foreignKeys.every((fk) => fk.onDelete !== undefined)).toBe(true);
   });
 

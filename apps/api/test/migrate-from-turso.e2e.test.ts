@@ -73,7 +73,7 @@ const checksums = (report: {
 }) => Object.fromEntries(report.tables.map((t) => [t.table, t.targetChecksum]));
 
 describe("data migration from a Turso/SQLite copy", () => {
-  it("has fixture rows in every one of the 44 tables", async () => {
+  it("has fixture rows in every one of the 53 tables", async () => {
     const { fixture } = await setup();
 
     for (const table of tables) {
@@ -95,8 +95,8 @@ describe("data migration from a Turso/SQLite copy", () => {
     expect(exitCode, output).toBe(0);
     expect(report.status).toBe("ok");
     expect(report.committed).toBe(true);
-    // All 44 source tables, chat_nicknames included.
-    expect(report.tables).toHaveLength(44);
+    // All 53 source tables, chat_nicknames included.
+    expect(report.tables).toHaveLength(53);
     expect(report.droppedLegacy).toEqual([
       {
         item: "chat_messages.attachment_url / attachment_meta (messages)",
@@ -220,16 +220,16 @@ describe("data migration from a Turso/SQLite copy", () => {
       ["user_avatars", 1, true],
     ]);
 
-    // Blob sizes are reported.
-    expect(report.blobs.total.rows).toBe(4);
+    // Blob sizes are reported (the group chat adds a WebP and a PNG photo).
+    expect(report.blobs.total.rows).toBe(6);
     expect(report.blobs.total.bytes).toBe(
-      WEBP_BYTES.length + PNG_BYTES.length * 3,
+      WEBP_BYTES.length * 2 + PNG_BYTES.length * 4,
     );
 
     // The JSON report is machine readable and holds no connection string.
     const written = readFileSync(reportPath, "utf8");
 
-    expect(JSON.parse(written).tables).toHaveLength(44);
+    expect(JSON.parse(written).tables).toHaveLength(53);
     expect(written).not.toContain(db.url);
   });
 
@@ -243,7 +243,9 @@ describe("data migration from a Turso/SQLite copy", () => {
         WHERE table_schema = 'public' AND is_identity = 'YES' AND table_name <> 'sessions'`,
     );
 
-    expect(identities).toHaveLength(31);
+    // + user_restrictions, chat_groups, chat_group_messages,
+    // chat_group_photos, chat_group_message_edits.
+    expect(identities).toHaveLength(36);
 
     for (const { table_name: table } of identities) {
       const [{ max }] = await db.dataSource.query(
@@ -255,6 +257,55 @@ describe("data migration from a Turso/SQLite copy", () => {
 
       expect(Number(next), table).toBe(Number(max) + 1);
     }
+  });
+
+  it("never reuses an id SQLite handed out to a row deleted before the cutover (sqlite_sequence)", async () => {
+    const { fixture, db } = await setup();
+
+    // The newest user and group were deleted: their ids live on only in
+    // sqlite_sequence (and in text keys such as "user:50" on other rows).
+    await fixture.client.execute(
+      "INSERT INTO users (id, name, name_key, created_at) VALUES (50, 'Đã xoá', 'da xoa', 1700000000)",
+    );
+    await fixture.client.execute("DELETE FROM users WHERE id = 50");
+    await fixture.client.execute(
+      "INSERT INTO chat_groups (id, name, created_by_key, created_at) VALUES (60, 'Đã giải tán', 'admin:1', 1700000000000)",
+    );
+    await fixture.client.execute("DELETE FROM chat_groups WHERE id = 60");
+
+    const { exitCode, report, output } = await migrate(fixture, db);
+
+    expect(exitCode, output).toBe(0);
+    expect(
+      report.sequences.find((sequence) => sequence.table === "users"),
+    ).toMatchObject({ maxId: 5, sourceSequence: 50, next: 51, ok: true });
+
+    // verify reads the same high-water mark and agrees (before any nextval).
+    const verify = await run(
+      {
+        allowRemote: false,
+        batchSize: 5,
+        reset: false,
+        dropLegacyAttachments: true,
+        mode: "verify",
+        source: fixture.url,
+        target: db.url,
+        orphans: "report",
+      },
+      () => undefined,
+    );
+
+    expect(verify.exitCode).toBe(0);
+
+    const [{ user }] = await db.dataSource.query(
+      `SELECT nextval(pg_get_serial_sequence('"users"', 'id')) AS "user"`,
+    );
+    const [{ group }] = await db.dataSource.query(
+      `SELECT nextval(pg_get_serial_sequence('"chat_groups"', 'id')) AS "group"`,
+    );
+
+    expect(Number(user)).toBe(51);
+    expect(Number(group)).toBe(61);
   });
 
   it("starts empty identity tables at 1", async () => {
@@ -272,7 +323,13 @@ describe("data migration from a Turso/SQLite copy", () => {
     // users has ids 1, 2 and 5: the next one is 6.
     expect(
       report.sequences.find((sequence) => sequence.table === "users"),
-    ).toEqual({ table: "users", maxId: 5, next: 6, ok: true });
+    ).toEqual({
+      table: "users",
+      maxId: 5,
+      sourceSequence: 5,
+      next: 6,
+      ok: true,
+    });
   });
 
   it("refuses a target that has rows unless --reset, and a second --reset run gives the same checksums", async () => {
@@ -604,9 +661,13 @@ describe("data migration from a Turso/SQLite copy", () => {
           "last_message_in_other_conversation",
         ),
       ).toEqual(["3"]);
-      expect(keys("chat_photos", "message_id", "photo_link_mismatch")).toEqual([
+      expect(keys("chat_photos", "position", "position_negative")).toEqual([
         "92",
       ]);
+      // Message 92's cover is photo 92, which is attached to message 1.
+      expect(keys("chat_messages", "photo_id", "photo_link_mismatch")).toEqual(
+        ["92"],
+      );
       expect(
         keys("chat_custom_stickers", "size", "size_not_byte_length"),
       ).toEqual(["92"]);
@@ -697,7 +758,7 @@ describe("data migration from a Turso/SQLite copy", () => {
 
       expect(first.exitCode, first.output).toBe(0);
       expect(first.report.derivedChecks.map((check) => check.count)).toEqual([
-        0, 0,
+        0, 0, 0,
       ]);
 
       await db.dataSource.query(
@@ -723,6 +784,199 @@ describe("data migration from a Turso/SQLite copy", () => {
       expect(verify.report.warnings.join("\n")).toMatch(
         /chat_conversations: 1 conversation/,
       );
+    });
+  });
+
+  describe("group chat, accent color and user restrictions (company/main tables)", () => {
+    it("copies them with the generated account ids, the photo cycle and NULL booleans as false", async () => {
+      const { fixture, db } = await setup();
+      const { exitCode, output } = await migrate(fixture, db);
+
+      expect(exitCode, output).toBe(0);
+
+      const [group] = await db.dataSource.query(
+        `SELECT managers_only, last_message_id FROM chat_groups WHERE id = 1`,
+      );
+      const messages: {
+        id: number;
+        silent: boolean;
+        photo_id: number | null;
+      }[] = await db.dataSource.query(
+        `SELECT id, silent, photo_id FROM chat_group_messages ORDER BY id`,
+      );
+      const members: {
+        member_key: string;
+        member_user_id: number | null;
+        member_admin_id: number | null;
+      }[] = await db.dataSource.query(
+        `SELECT member_key, member_user_id, member_admin_id FROM chat_group_members ORDER BY member_key`,
+      );
+      const [colors] = await db.dataSource.query(
+        `SELECT (SELECT accent_color FROM users WHERE id = 1) AS "user", (SELECT accent_color FROM admins WHERE id = 1) AS "admin"`,
+      );
+
+      expect(group).toEqual({ managers_only: false, last_message_id: 2 });
+      expect(messages).toEqual([
+        { id: 1, silent: false, photo_id: null },
+        { id: 2, silent: false, photo_id: 1 },
+      ]);
+      expect(members).toEqual([
+        { member_key: "admin:3", member_user_id: null, member_admin_id: 3 },
+        { member_key: "user:1", member_user_id: 1, member_admin_id: null },
+      ]);
+      expect(colors).toEqual({ user: "#3366cc", admin: "#ff8800" });
+    });
+
+    it("reports every new rule with table, column, rule and primary keys, never content", async () => {
+      const { fixture, db } = await setup("company-dirty");
+      const { exitCode, report } = await migrate(fixture, db);
+      const keys = (table: string, column: string, reason: string) =>
+        report.orphans.find(
+          (item) =>
+            item.table === table &&
+            item.column === column &&
+            item.reason === reason,
+        )?.sampleKeys;
+
+      expect(exitCode).toBe(1);
+      expect(report.status).toBe("aborted");
+      expect(keys("users", "accent_color", "accent_not_rrggbb")).toEqual([
+        "90",
+      ]);
+      expect(keys("theme_settings", "accent", "accent_not_rrggbb")).toEqual([
+        "pt",
+      ]);
+      expect(
+        keys(
+          "user_restrictions",
+          "lifted_by_admin_id",
+          "lifted_by_without_lifted_at",
+        ),
+      ).toEqual(["90"]);
+      expect(
+        keys("user_restrictions", "created_by_admin_id", "missing_parent"),
+      ).toEqual(["91"]);
+      expect(keys("chat_groups", "name", "group_name_length")).toEqual(["90"]);
+      expect(
+        keys("chat_groups", "last_message_id", "last_message_in_other_group"),
+      ).toEqual(["91"]);
+      expect(
+        keys(
+          "chat_group_members",
+          "removed_by_key",
+          "removed_by_without_left_at",
+        ),
+      ).toEqual(["1:user:2"]);
+      expect(keys("chat_group_members", "member_key", "malformed_key")).toEqual(
+        ["1:user"],
+      );
+      expect(
+        keys("chat_group_messages", "sender_key", "sender_does_not_match_kind"),
+      ).toEqual(["90"]);
+      expect(
+        keys(
+          "chat_group_messages",
+          "reply_to_message_id",
+          "reply_in_other_group",
+        ),
+      ).toEqual(["91"]);
+      expect(
+        keys(
+          "chat_group_messages",
+          "photo_id",
+          "photo_link_mismatch",
+        ),
+      ).toEqual(["92"]);
+      expect(
+        keys(
+          "chat_group_messages",
+          "hidden_by_key",
+          "hidden_by_and_hidden_at_disagree",
+        ),
+      ).toEqual(["92"]);
+      expect(keys("chat_group_photos", "size", "size_not_byte_length")).toEqual(
+        ["90"],
+      );
+      expect(
+        keys("chat_group_photos", "position", "duplicate_position"),
+      ).toEqual(["90"]);
+      expect(await count(db, "users")).toBe(0);
+    });
+
+    it("--orphans=skip drops exactly those rows (and what hangs on them) and verifies", async () => {
+      const { fixture, db } = await setup("company-dirty");
+      const { exitCode, report, output } = await migrate(fixture, db, {
+        orphans: "skip",
+      });
+
+      expect(exitCode, output).toBe(0);
+      expect(report.skippedRows).toEqual(
+        expect.arrayContaining([
+          { table: "theme_settings", keys: ["pt"] },
+          { table: "chat_groups", keys: expect.arrayContaining(["90", "91"]) },
+          {
+            table: "chat_group_members",
+            keys: expect.arrayContaining(["1:user:2", "1:user"]),
+          },
+          {
+            table: "chat_group_messages",
+            keys: expect.arrayContaining(["90", "91", "92"]),
+          },
+          { table: "chat_group_photos", keys: ["90"] },
+        ]),
+      );
+      expect(report.tables.every((row) => row.match)).toBe(true);
+      expect(await count(db, "chat_groups")).toBe(1);
+      expect(await count(db, "chat_group_messages")).toBe(2);
+      expect(await count(db, "chat_group_photos")).toBe(2);
+    });
+
+    it("--orphans=skip never drops a user restriction or an account over a clearable value: it clears it", async () => {
+      const { fixture, db } = await setup("company-dirty");
+      const { exitCode, report, output } = await migrate(fixture, db, {
+        orphans: "skip",
+      });
+
+      expect(exitCode, output).toBe(0);
+
+      const skippedTables = report.skippedRows.map((row) => row.table);
+
+      expect(skippedTables).not.toContain("user_restrictions");
+      expect(skippedTables).not.toContain("users");
+      expect(report.nulledValues).toEqual(
+        expect.arrayContaining([
+          { table: "users", column: "accent_color", keys: ["90"] },
+          {
+            table: "user_restrictions",
+            column: "lifted_by_admin_id",
+            keys: ["90"],
+          },
+          {
+            table: "user_restrictions",
+            column: "created_by_admin_id",
+            keys: ["91"],
+          },
+        ]),
+      );
+
+      const restrictions: {
+        id: number;
+        lifted_at: Date | null;
+        lifted_by_admin_id: number | null;
+        created_by_admin_id: number | null;
+      }[] = await db.dataSource.query(
+        `SELECT id, lifted_at, lifted_by_admin_id, created_by_admin_id FROM user_restrictions WHERE id IN (90, 91) ORDER BY id`,
+      );
+      const [user] = await db.dataSource.query(
+        `SELECT accent_color FROM users WHERE id = 90`,
+      );
+
+      // Both blocks are still active (never lifted).
+      expect(restrictions).toEqual([
+        { id: 90, lifted_at: null, lifted_by_admin_id: null, created_by_admin_id: 1 },
+        { id: 91, lifted_at: null, lifted_by_admin_id: null, created_by_admin_id: null },
+      ]);
+      expect(user.accent_color).toBeNull();
     });
   });
 

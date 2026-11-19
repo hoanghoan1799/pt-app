@@ -17,6 +17,7 @@ export type TableReport = {
 export type SequenceReport = {
   table: string;
   maxId: number | null;
+  sourceSequence: number | null;
   next: number;
   ok: boolean;
 };

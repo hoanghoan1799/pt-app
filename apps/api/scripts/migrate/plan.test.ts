@@ -121,7 +121,53 @@ describe("resolveOrphans", () => {
     const data = rows();
     const before = JSON.stringify(data);
 
-    resolveOrphans(fks, data, "skip");
+    resolveOrphans(fks, data, "skip", [], new Set(["child.other_id"]));
     expect(JSON.stringify(data)).toBe(before);
+  });
+
+  it("skip clears a listed nullable foreign key instead of dropping the row, so its children stay", () => {
+    const keep = new Set(["child.other_id"]);
+    const result = resolveOrphans(fks, rows(), "skip", [], keep);
+
+    // child 10 only had a dangling other_id: kept, other_id cleared.
+    expect(result.nulled).toEqual({ child: { other_id: ["10"] } });
+    // child 11 has a dangling NOT NULL parent_id: still dropped, with its child.
+    expect(result.skipped).toEqual({ child: ["11"], grandchild: ["20"] });
+    expect(
+      result.groups.find((group) => group.column === "other_id"),
+    ).toEqual(expect.objectContaining({ count: 1, sampleKeys: ["10"] }));
+  });
+
+  it("clears a nullable rule violation under null and skip, and only lists it under report", () => {
+    const violation = {
+      table: "child",
+      column: "other_id",
+      key: "10",
+      reason: "some_rule",
+      nullable: true,
+    };
+    const plain = { ...violation, key: "11", column: "parent_id", nullable: false };
+    const data = (): Record<string, RowRef[]> => ({
+      parent: rows().parent,
+      child: [
+        { key: "10", values: { id: 10, parent_id: 1, other_id: 1 } },
+        { key: "11", values: { id: 11, parent_id: 2, other_id: null } },
+      ],
+    });
+
+    const skip = resolveOrphans(fks, data(), "skip", [violation, plain]);
+    const nulled = resolveOrphans(fks, data(), "null", [violation, plain]);
+    const report = resolveOrphans(fks, data(), "report", [violation]);
+
+    expect(skip.nulled).toEqual({ child: { other_id: ["10"] } });
+    expect(skip.skipped).toEqual({ child: ["11"] });
+    expect(nulled.nulled).toEqual({ child: { other_id: ["10"] } });
+    expect(nulled.unnullable).toEqual([
+      expect.objectContaining({ column: "parent_id", reason: "some_rule" }),
+    ]);
+    expect(report.nulled).toEqual({});
+    expect(report.groups).toEqual([
+      expect.objectContaining({ column: "other_id", reason: "some_rule" }),
+    ]);
   });
 });

@@ -4,6 +4,7 @@ import { loadTursoColumns } from "../turso-columns.js";
 import {
   findChatSocialViolations,
   legacyProblems,
+  REASONS,
   repairSourceRow,
   withoutLegacy,
 } from "./chat-social.js";
@@ -79,7 +80,7 @@ describe("findChatSocialViolations", () => {
     ).toEqual([]);
   });
 
-  it("flags a photo that names a message pointing at another photo, from both sides", () => {
+  it("flags a cover attached to another message, and accepts more photos than the cover", () => {
     const found = findChatSocialViolations({
       chat_messages: [
         row("1", {
@@ -87,17 +88,76 @@ describe("findChatSocialViolations", () => {
           reply_to_message_id: null,
           photo_id: 8,
         }),
+        row("2", {
+          conversation_id: 1,
+          reply_to_message_id: null,
+          photo_id: 9,
+        }),
       ],
       chat_photos: [
-        row("7", { message_id: 1, size: 3, data_length: 3 }),
-        row("8", { message_id: 2, size: 3, data_length: 3 }),
+        row("7", { message_id: 1, size: 3, data_length: 3, position: 1 }),
+        row("8", { message_id: 2, size: 3, data_length: 3, position: 1 }),
+        row("9", { message_id: 2, size: 3, data_length: 3, position: 0 }),
       ],
     });
 
     expect(found.map((v) => `${v.table}:${v.column}:${v.key}`).sort()).toEqual([
       "chat_messages:photo_id:1",
-      "chat_photos:message_id:7",
     ]);
+  });
+
+  it("flags negative and repeated positions per owner (the later id), never a NULL owner or position", () => {
+    const photo = (
+      key: string,
+      owner: number | null,
+      position: number | null,
+    ) => row(key, { post_id: owner, size: 3, data_length: 3, position });
+    const found = findChatSocialViolations({
+      social_post_photos: [
+        photo("11", 1, 0),
+        photo("10", 1, 0),
+        photo("12", 1, null),
+        photo("13", 1, null),
+        photo("14", null, 0),
+        photo("15", null, 0),
+        photo("16", 2, -1),
+        photo("17", 2, 0),
+      ],
+    });
+
+    expect(
+      found.map((v) => `${v.table}:${v.column}:${v.key}:${v.reason}`).sort(),
+    ).toEqual([
+      `social_post_photos:position:11:${REASONS.duplicatePosition}`,
+      `social_post_photos:position:16:${REASONS.negativePosition}`,
+    ]);
+  });
+
+  it("reports the other photo of a repeated position when the later id is the cover", () => {
+    const found = findChatSocialViolations({
+      chat_group_messages: [row("1", { photo_id: 11 })],
+      chat_group_photos: [
+        row("10", { message_id: 1, size: 3, data_length: 3, position: 0 }),
+        row("11", { message_id: 1, size: 3, data_length: 3, position: 0 }),
+      ],
+    });
+
+    expect(
+      found.map((v) => `${v.table}:${v.column}:${v.key}:${v.reason}`),
+    ).toEqual([`chat_group_photos:position:10:${REASONS.duplicatePosition}`]);
+  });
+
+  it("checks the group cover like the other photo links", () => {
+    const found = findChatSocialViolations({
+      chat_group_messages: [row("1", { photo_id: 8 })],
+      chat_group_photos: [
+        row("8", { message_id: 2, size: 3, data_length: 3, position: 0 }),
+      ],
+    });
+
+    expect(
+      found.map((v) => `${v.table}:${v.column}:${v.key}:${v.reason}`),
+    ).toEqual([`chat_group_messages:photo_id:1:${REASONS.photoLinkMismatch}`]);
   });
 
   it("keeps the first open report and flags the later duplicates", () => {

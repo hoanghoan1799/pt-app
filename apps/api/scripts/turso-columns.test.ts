@@ -19,9 +19,7 @@ const PG_ONLY_COLUMNS: Record<string, string[]> = {
   meal_plan_meals: ["user_id"],
   push_subscriptions: ["kind", "owner_user_id", "owner_admin_id"],
   social_posts: ["idempotency_key", "author_user_id", "author_admin_id"],
-  // position: order of the photos inside a post or message (company 2026-11,
-  // not in the frozen Turso DDL; null counts as 0).
-  chat_photos: ["client_id", "uploader_admin_id", "position"],
+  chat_photos: ["client_id", "uploader_admin_id"],
   social_comments: ["author_user_id", "author_admin_id"],
   social_reactions: ["reactor_user_id", "reactor_admin_id"],
   social_notifications: [
@@ -30,15 +28,8 @@ const PG_ONLY_COLUMNS: Record<string, string[]> = {
     "actor_user_id",
     "actor_admin_id",
   ],
-  // reason_code: the reason list of message reports (company 2026-11, not in
-  // the frozen Turso DDL; old reports load with null).
-  social_reports: [
-    "reporter_user_id",
-    "reporter_admin_id",
-    "target_user_id",
-    "reason_code",
-  ],
-  social_post_photos: ["uploader_user_id", "uploader_admin_id", "position"],
+  social_reports: ["reporter_user_id", "reporter_admin_id", "target_user_id"],
+  social_post_photos: ["uploader_user_id", "uploader_admin_id"],
   chat_custom_stickers: ["owner_user_id", "owner_admin_id"],
   contact_aliases: [
     "owner_user_id",
@@ -46,10 +37,11 @@ const PG_ONLY_COLUMNS: Record<string, string[]> = {
     "target_user_id",
     "target_admin_id",
   ],
-  dm_photos: ["position"],
   chat_reactions: ["reactor_admin_id"],
   chat_reads: ["reader_admin_id"],
   chat_nicknames: ["target_admin_id"],
+  chat_group_members: ["member_user_id", "member_admin_id"],
+  chat_group_reactions: ["reactor_user_id", "reactor_admin_id"],
 };
 // Columns SQLite has and PostgreSQL moved to another table: the avatar data
 // URLs became rows of user_avatars / admin_avatars (scripts/migrate/avatars.ts
@@ -131,17 +123,17 @@ describe("turso-columns.json against the frozen SQLite DDL", () => {
 describe("turso-columns.json against the PostgreSQL entities", () => {
   const mapping = loadTursoColumns();
 
-  it("covers 44 tables with the expected storage kinds", () => {
+  it("covers 53 tables with the expected storage kinds", () => {
     const columns = Object.values(mapping.tables).flatMap((t) => t.columns);
     const count = (kind: string) =>
       columns.filter((column) => column.kind === kind).length;
 
-    expect(Object.keys(mapping.tables)).toHaveLength(44);
-    expect(count("timestamp_s") + count("timestamp_ms")).toBe(70);
-    expect(count("boolean")).toBe(4);
-    expect(count("blob")).toBe(4);
-    expect(columns.filter((column) => column.enumValues).length).toBe(23);
-    expect(columns.filter((column) => column.autoIncrement).length).toBe(31);
+    expect(Object.keys(mapping.tables)).toHaveLength(53);
+    expect(count("timestamp_s") + count("timestamp_ms")).toBe(91);
+    expect(count("boolean")).toBe(7);
+    expect(count("blob")).toBe(5);
+    expect(columns.filter((column) => column.enumValues).length).toBe(30);
+    expect(columns.filter((column) => column.autoIncrement).length).toBe(36);
   });
 
   it("has the same table names as the entities (plus sessions)", async () => {

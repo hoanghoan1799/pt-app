@@ -86,6 +86,7 @@ export const repairSourceRow = (
 
 // Tables whose size column must equal the byte length of data.
 const IMAGE_TABLES = [
+  "chat_group_photos",
   "chat_photos",
   "dm_photos",
   "social_post_photos",
@@ -106,13 +107,19 @@ export const derivedValues = (
 export const SCAN_COLUMNS: Record<string, string[]> = {
   chat_messages: ["conversation_id", "reply_to_message_id", "photo_id"],
   chat_conversations: ["last_message_id"],
-  chat_photos: ["message_id", "size"],
+  chat_photos: ["message_id", "size", "position"],
   dm_messages: ["conversation_id", "photo_id", "sender_id"],
   dm_conversations: ["last_message_id", "user_low", "user_high"],
-  dm_photos: ["message_id", "size", "conversation_id", "uploader_id"],
+  dm_photos: [
+    "message_id",
+    "size",
+    "position",
+    "conversation_id",
+    "uploader_id",
+  ],
   dm_reads: ["conversation_id", "user_id"],
   social_posts: ["photo_id"],
-  social_post_photos: ["post_id", "size"],
+  social_post_photos: ["post_id", "size", "position"],
   chat_custom_stickers: ["size"],
   social_friendships: ["user_low", "user_high", "requested_by"],
   social_reports: [
@@ -130,6 +137,8 @@ export const REASONS = {
   replyOtherConversation: "reply_in_other_conversation",
   lastMessageOtherConversation: "last_message_in_other_conversation",
   photoLinkMismatch: "photo_link_mismatch",
+  negativePosition: "position_negative",
+  duplicatePosition: "duplicate_position",
   sizeMismatch: "size_not_byte_length",
   pairNotOrdered: "pair_not_ordered",
   requesterNotMember: "requester_not_in_pair",
@@ -148,7 +157,7 @@ const DM_MEMBER_COLUMNS = [
 
 type Rows = Record<string, RowRef[]>;
 
-const byKey = (rows: RowRef[] | undefined) =>
+export const byKey = (rows: RowRef[] | undefined) =>
   new Map((rows ?? []).map((row) => [row.key, row]));
 
 const numeric = (value: unknown) => (typeof value === "number" ? value : null);
@@ -158,7 +167,57 @@ const PHOTO_LINKS = [
   ["chat_messages", "chat_photos", "message_id"],
   ["dm_messages", "dm_photos", "message_id"],
   ["social_posts", "social_post_photos", "post_id"],
+  ["chat_group_messages", "chat_group_photos", "message_id"],
 ] as const;
+
+// position >= 0 and one photo per position of an owner (a NULL owner or
+// position is free). Of two photos in one slot the later id is reported,
+// unless it is the owner's cover: skipping a cover would drop the whole
+// message or post under --orphans=skip, so the other photo goes instead.
+const findPositionViolations = (
+  table: string,
+  ownerColumn: string,
+  rows: RowRef[] | undefined,
+  covers: ReadonlySet<string>,
+): RowViolation[] => {
+  const found: RowViolation[] = [];
+  const taken = new Set<string>();
+  const sorted = [...(rows ?? [])].sort(
+    (a, b) =>
+      Number(covers.has(b.key)) - Number(covers.has(a.key)) ||
+      Number(a.key) - Number(b.key),
+  );
+
+  for (const row of sorted) {
+    const owner = row.values[ownerColumn];
+    const position = row.values.position;
+
+    if (typeof position === "number" && position < 0) {
+      found.push({
+        table,
+        column: "position",
+        key: row.key,
+        reason: REASONS.negativePosition,
+      });
+    }
+
+    if (owner != null && position != null) {
+      const slot = `${String(owner)}|${String(position)}`;
+
+      if (taken.has(slot)) {
+        found.push({
+          table,
+          column: "position",
+          key: row.key,
+          reason: REASONS.duplicatePosition,
+        });
+      }
+      taken.add(slot);
+    }
+  }
+
+  return found;
+};
 
 export const findChatSocialViolations = (rows: Rows): RowViolation[] => {
   const found: RowViolation[] = [];
@@ -210,9 +269,10 @@ export const findChatSocialViolations = (rows: Rows): RowViolation[] => {
     }
   }
 
-  // Both directions of every photo link name each other.
+  // The cover (the owner's photo_id) is a photo attached to that very owner.
+  // An owner may have more photos than its cover (PhotoPosition), so a photo
+  // is not required to be the cover.
   for (const [ownerTable, photoTable, photoColumn] of PHOTO_LINKS) {
-    const owners = byKey(rows[ownerTable]);
     const photos = byKey(rows[photoTable]);
 
     for (const owner of rows[ownerTable] ?? []) {
@@ -227,17 +287,18 @@ export const findChatSocialViolations = (rows: Rows): RowViolation[] => {
       }
     }
 
-    for (const photo of rows[photoTable] ?? []) {
-      const owner = owners.get(String(photo.values[photoColumn]));
+    const covers = new Set(
+      (rows[ownerTable] ?? []).map((owner) => String(owner.values.photo_id)),
+    );
 
-      if (
-        photo.values[photoColumn] != null &&
-        owner &&
-        String(owner.values.photo_id) !== photo.key
-      ) {
-        add(photoTable, photoColumn, photo.key, REASONS.photoLinkMismatch);
-      }
-    }
+    found.push(
+      ...findPositionViolations(
+        photoTable,
+        photoColumn,
+        rows[photoTable],
+        covers,
+      ),
+    );
   }
 
   // size = octet_length(data).
@@ -348,22 +409,26 @@ export type DerivedCheck = {
 // ChatService.send keeps last_message_id at the highest message id of the
 // conversation and last_message_at at that message's created_at. Recomputed
 // from the loaded messages and compared; a difference is reported, never fixed
-// (the fields are app-maintained).
+// (the fields are app-maintained). Groups (company/main group-core.ts and
+// group-system-lines.ts) skip the super-admin-only PT-change alert.
+const LAST_MESSAGE_OWNERS = [
+  ["chat_conversations", "chat_messages", "conversation_id", "true"],
+  ["dm_conversations", "dm_messages", "conversation_id", "true"],
+  ["chat_groups", "chat_group_messages", "group_id", "m.audience IS NULL"],
+] as const;
+
 export const checkLastMessages = async (
   target: Client,
 ): Promise<DerivedCheck[]> => {
   const checks: DerivedCheck[] = [];
 
-  for (const [conversations, messages] of [
-    ["chat_conversations", "chat_messages"],
-    ["dm_conversations", "dm_messages"],
-  ]) {
+  for (const [conversations, messages, owner, visible] of LAST_MESSAGE_OWNERS) {
     const result = await target.query<{ id: number }>(
       `SELECT c.id
          FROM ${conversations} c
          LEFT JOIN LATERAL (
            SELECT m.id, m.created_at FROM ${messages} m
-            WHERE m.conversation_id = c.id ORDER BY m.id DESC LIMIT 1
+            WHERE m.${owner} = c.id AND ${visible} ORDER BY m.id DESC LIMIT 1
          ) latest ON true
         WHERE c.last_message_id IS DISTINCT FROM latest.id
            OR c.last_message_at IS DISTINCT FROM latest.created_at

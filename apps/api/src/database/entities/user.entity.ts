@@ -9,12 +9,14 @@ import {
   type Relation,
 } from "typeorm";
 
+import { accentColorCheck } from "./accent-color.js";
 import { Admin } from "./admin.entity.js";
 
 @Entity("users")
 @Index("users_pt_admin", ["ptAdminId"])
 @Check(`"post_privacy_default" IN ('everyone', 'friends', 'only_me')`)
 @Index("users_chat_enabled_by_admin_id_idx", ["chatEnabledByAdminId"])
+@Check("users_accent_color_format", accentColorCheck("accent_color"))
 export class User {
   @PrimaryGeneratedColumn("identity", { generatedIdentity: "ALWAYS" })
   id!: number;
@@ -24,6 +26,11 @@ export class User {
 
   @Column({ type: "text", nullable: true })
   locale!: string | null;
+
+  // The trainee's own app primary color, normalized "#rrggbb"; NULL = none.
+  // Kept while the trainee lock (theme_locks) is on.
+  @Column({ type: "text", nullable: true })
+  accentColor!: string | null;
 
   @Column({ type: "text", unique: true })
   nameKey!: string;

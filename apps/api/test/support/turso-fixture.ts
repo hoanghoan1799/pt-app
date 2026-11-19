@@ -71,6 +71,7 @@ const baseRows = (): Entry[] => [
       verified_at: S + 12,
       bio: "Huấn luyện viên",
       locale: "vi",
+      accent_color: "#ff8800",
       created_at: S,
     },
   ],
@@ -92,6 +93,7 @@ const baseRows = (): Entry[] => [
       id: 1,
       name: "Nguyễn Văn Đạt",
       locale: "vi",
+      accent_color: "#3366cc",
       name_key: "nguyen van dat",
       preferred_meal_count: 4,
       food_note: "Không ăn hải sản, thích gà",
@@ -637,7 +639,164 @@ const baseRows = (): Entry[] => [
     },
   ],
   ["dm_reads", { conversation_id: 1, user_id: 1, last_read_message_id: 1 }],
+  ...companyRows(),
 ];
+
+// The tables production gained after the API branched (company/main 8f0e085):
+// group chat, accent color, user restrictions. A group with a system line, a
+// message with two photos (cover = position 0), a reply, an edit, a reaction,
+// a current and a removed member.
+function companyRows(): Entry[] {
+  return [
+    [
+      "chat_groups",
+      {
+        id: 1,
+        name: "Nhóm giảm cân",
+        avatar: null,
+        created_by_key: "admin:1",
+        managers_only: null,
+        last_message_id: 2,
+        last_message_at: MS + 7010,
+        last_change_at: MS + 7020,
+        created_at: MS + 7000,
+      },
+    ],
+    [
+      "chat_group_members",
+      {
+        group_id: 1,
+        member_key: "user:1",
+        added_by_key: "admin:1",
+        joined_at: MS + 7000,
+        muted_at: MS + 7005,
+        last_read_message_id: 2,
+      },
+    ],
+    [
+      "chat_group_members",
+      {
+        group_id: 1,
+        member_key: "admin:3",
+        added_by_key: "admin:1",
+        joined_at: MS + 7000,
+        left_at: MS + 7030,
+        removed_by_key: "admin:1",
+      },
+    ],
+    [
+      "chat_group_messages",
+      {
+        id: 1,
+        group_id: 1,
+        kind: "system",
+        body: "",
+        system_event: '{"type":"created"}',
+        created_at: MS + 7000,
+      },
+    ],
+    [
+      "chat_group_messages",
+      {
+        id: 2,
+        group_id: 1,
+        kind: "message",
+        sender_key: "user:1",
+        body: "Chào cả nhóm",
+        client_id: "70707070-7070-4070-8070-707070707070",
+        reply_to_message_id: 1,
+        photo_id: 1,
+        silent: null,
+        hidden_by_key: "admin:1",
+        hidden_at: MS + 7040,
+        edited_at: MS + 7015,
+        created_at: MS + 7010,
+      },
+    ],
+    [
+      "chat_group_photos",
+      {
+        id: 1,
+        group_id: 1,
+        message_id: 2,
+        uploader_key: "user:1",
+        position: 0,
+        mime: "image/webp",
+        width: 640,
+        height: 480,
+        data: WEBP_BYTES,
+        size: WEBP_BYTES.length,
+        created_at: MS + 7008,
+      },
+    ],
+    [
+      "chat_group_photos",
+      {
+        id: 2,
+        group_id: 1,
+        message_id: 2,
+        uploader_key: "user:1",
+        position: 1,
+        mime: "image/png",
+        width: 1,
+        height: 1,
+        data: PNG_BYTES,
+        size: PNG_BYTES.length,
+        created_at: MS + 7009,
+      },
+    ],
+    [
+      "chat_group_reactions",
+      {
+        message_id: 2,
+        reactor_key: "admin:1",
+        emoji: "❤️",
+        created_at: MS + 7012,
+      },
+    ],
+    [
+      "chat_group_message_edits",
+      {
+        id: 1,
+        message_id: 2,
+        previous_body: "Chào",
+        edited_at: MS + 7015,
+      },
+    ],
+    [
+      "theme_settings",
+      {
+        scope: "all",
+        accent: "#ff8800",
+        updated_at: S + 700,
+        updated_by_admin_id: 1,
+      },
+    ],
+    [
+      "theme_locks",
+      {
+        scope: "trainee",
+        locked: 1,
+        updated_at: S + 701,
+        updated_by_admin_id: 1,
+      },
+    ],
+    [
+      "user_restrictions",
+      {
+        id: 1,
+        user_id: 1,
+        level: "restricted",
+        until: MS + 9000,
+        reason: "spam",
+        created_by_admin_id: 1,
+        created_at: MS + 7100,
+        lifted_at: MS + 7200,
+        lifted_by_admin_id: 1,
+      },
+    ],
+  ];
+}
 
 // Rows whose FK parent does not exist (SQLite never enforced FKs).
 const requiredOrphans = (): Entry[] => [
@@ -903,6 +1062,7 @@ const chatSocialDirty = (): Entry[] => [
       body: "Trả lời tin của cuộc trò chuyện khác",
       client_id: "92929292-9292-4292-8292-929292929292",
       reply_to_message_id: 1,
+      photo_id: 92,
       created_at: MS + 6010,
     },
   ],
@@ -924,6 +1084,7 @@ const chatSocialDirty = (): Entry[] => [
       id: 92,
       conversation_id: 1,
       message_id: 1,
+      position: -1,
       uploader_key: "user",
       mime: "image/png",
       width: 1,
@@ -1030,6 +1191,128 @@ const chatSocialDirty = (): Entry[] => [
   ],
 ];
 
+// One row per company-features rule (scripts/migrate/company-features.ts),
+// on top of the base rows. Ids 90+ so the base rows stay untouched.
+const companyDirty = (): Entry[] => [
+  [
+    "users",
+    {
+      id: 90,
+      name: "Màu sai",
+      name_key: "mau sai",
+      accent_color: "#FF8800",
+      created_at: S + 800,
+    },
+  ],
+  ["theme_settings", { scope: "pt", accent: "cam", updated_at: S + 801 }],
+  [
+    "user_restrictions",
+    {
+      id: 90,
+      user_id: 1,
+      level: "suspended",
+      created_by_admin_id: 1,
+      created_at: MS + 8000,
+      lifted_by_admin_id: 1,
+    },
+  ],
+  // An active block whose admin was deleted in SQLite (no FKs there).
+  [
+    "user_restrictions",
+    {
+      id: 91,
+      user_id: 1,
+      level: "restricted",
+      created_by_admin_id: 99,
+      created_at: MS + 8001,
+    },
+  ],
+  [
+    "chat_groups",
+    { id: 90, name: "", created_by_key: "admin:1", created_at: MS + 8010 },
+  ],
+  [
+    "chat_groups",
+    {
+      id: 91,
+      name: "Nhóm khác",
+      created_by_key: "admin:1",
+      last_message_id: 2,
+      created_at: MS + 8011,
+    },
+  ],
+  [
+    "chat_group_members",
+    {
+      group_id: 1,
+      member_key: "user:2",
+      added_by_key: "admin:1",
+      joined_at: MS + 8020,
+      removed_by_key: "admin:1",
+    },
+  ],
+  [
+    "chat_group_members",
+    {
+      group_id: 1,
+      member_key: "user",
+      added_by_key: "admin:1",
+      joined_at: MS + 8021,
+    },
+  ],
+  [
+    "chat_group_messages",
+    {
+      id: 90,
+      group_id: 1,
+      kind: "system",
+      sender_key: "user:1",
+      created_at: MS + 8030,
+    },
+  ],
+  [
+    "chat_group_messages",
+    {
+      id: 91,
+      group_id: 91,
+      kind: "message",
+      sender_key: "user:1",
+      client_id: "91919191-9191-4191-8191-919191919191",
+      reply_to_message_id: 2,
+      created_at: MS + 8031,
+    },
+  ],
+  [
+    "chat_group_messages",
+    {
+      id: 92,
+      group_id: 1,
+      kind: "message",
+      sender_key: "user:1",
+      client_id: "92929292-9292-4292-8292-929292929292",
+      photo_id: 2,
+      hidden_by_key: "admin:1",
+      created_at: MS + 8032,
+    },
+  ],
+  [
+    "chat_group_photos",
+    {
+      id: 90,
+      group_id: 1,
+      message_id: 2,
+      uploader_key: "user:1",
+      position: 1,
+      mime: "image/png",
+      width: 1,
+      height: 1,
+      data: PNG_BYTES,
+      size: 1,
+      created_at: MS + 8040,
+    },
+  ],
+];
+
 export type FixtureVariant =
   | "base"
   | "required-orphans"
@@ -1039,6 +1322,7 @@ export type FixtureVariant =
   | "constraint-violations"
   | "dirty-keys"
   | "chat-social-dirty"
+  | "company-dirty"
   | "bad-avatars";
 
 export type TursoFixture = {
@@ -1090,6 +1374,12 @@ export const createTursoFixture = async (
 
   if (variant === "chat-social-dirty") {
     for (const entry of chatSocialDirty()) {
+      await insert(client, entry);
+    }
+  }
+
+  if (variant === "company-dirty") {
+    for (const entry of companyDirty()) {
       await insert(client, entry);
     }
   }

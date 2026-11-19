@@ -325,12 +325,19 @@ export const buildInsert = (
   } VALUES ${placeholders}`;
 };
 
-// Identity sequences continue after the highest id; an empty table starts at 1.
-export const resetSequences = async (client: Client, tables: string[]) => {
+// Identity sequences continue after the highest id loaded or the source's
+// AUTOINCREMENT high-water mark (sqlite_sequence), whichever is larger, so no
+// id SQLite ever handed out is reused; an empty table that never had a row
+// starts at 1.
+export const resetSequences = async (
+  client: Client,
+  tables: string[],
+  sourceSequences: Record<string, number> = {},
+) => {
   for (const table of tables) {
     await client.query(
-      `SELECT setval(pg_get_serial_sequence($1, 'id'), COALESCE(max(id), 1), max(id) IS NOT NULL) FROM ${quote(table)}`,
-      [quote(table)],
+      `SELECT setval(pg_get_serial_sequence($1, 'id'), GREATEST(COALESCE(max(id), 0), $2::integer, 1), GREATEST(COALESCE(max(id), 0), $2::integer) > 0) FROM ${quote(table)}`,
+      [quote(table), sourceSequences[table] ?? 0],
     );
   }
 };
@@ -338,12 +345,18 @@ export const resetSequences = async (client: Client, tables: string[]) => {
 export type SequenceCheck = {
   table: string;
   maxId: number | null;
+  // sqlite_sequence of the source table (null: none, never had a row).
+  sourceSequence: number | null;
   // The value nextval() would return, read without consuming it.
   next: number;
   ok: boolean;
 };
 
-export const checkSequences = async (client: Client, tables: string[]) => {
+export const checkSequences = async (
+  client: Client,
+  tables: string[],
+  sourceSequences: Record<string, number> = {},
+) => {
   const checks: SequenceCheck[] = [];
 
   for (const table of tables) {
@@ -360,12 +373,14 @@ export const checkSequences = async (client: Client, tables: string[]) => {
     const maxId = max.rows[0].max;
     const last = sequence.rows[0]?.last_value;
     const next = last === null || last === undefined ? 1 : Number(last) + 1;
+    const sourceSequence = sourceSequences[table] ?? null;
 
     checks.push({
       table,
       maxId,
+      sourceSequence,
       next,
-      ok: next === (maxId ?? 0) + 1,
+      ok: next === Math.max(maxId ?? 0, sourceSequence ?? 0) + 1,
     });
   }
 
