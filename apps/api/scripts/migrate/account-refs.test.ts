@@ -1,3 +1,4 @@
+import { aliasValueSchema } from "@pt/contracts";
 import { DataSource } from "typeorm";
 import { describe, expect, it } from "vitest";
 
@@ -166,7 +167,7 @@ describe("malformed keys", () => {
   });
 });
 
-describe("nickname length", () => {
+describe("nickname value", () => {
   const nickname = (value: string | null) =>
     findViolations({
       chat_nicknames: [
@@ -180,9 +181,32 @@ describe("nickname length", () => {
   it("accepts 1 to 30 characters (counted by code point) and flags the rest", () => {
     expect(nickname("a")).toEqual([]);
     expect(nickname("👍".repeat(30))).toEqual([]);
-    expect(nickname("a".repeat(31))).toEqual(["nickname_length"]);
-    expect(nickname("")).toEqual(["nickname_length"]);
-    expect(nickname(null)).toEqual(["nickname_length"]);
+    expect(nickname("a".repeat(31))).toEqual(["nickname_value"]);
+    expect(nickname("")).toEqual(["nickname_value"]);
+    expect(nickname(null)).toEqual(["nickname_value"]);
+  });
+
+  it("flags what the API's schema would never store, like the CHECK", () => {
+    for (const value of ["Bé Na", "Thầy Hoan", "a b c"]) {
+      expect(nickname(value), value).toEqual([]);
+      expect(aliasValueSchema.parse(value), value).toBe(value);
+    }
+    for (const value of [
+      "   ",
+      " Na",
+      "Na ",
+      "Bé  Na",
+      "Bé\tNa",
+      "Bé\nNa",
+      "Bé\u00a0Na",
+      "\u3000",
+      "Na\u0001",
+      "Na\u007f",
+    ]) {
+      expect(nickname(value), JSON.stringify(value)).toEqual([
+        "nickname_value",
+      ]);
+    }
   });
 });
 

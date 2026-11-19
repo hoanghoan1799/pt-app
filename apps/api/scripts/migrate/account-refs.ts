@@ -1,3 +1,4 @@
+import { NICKNAME_PATTERN } from "../../src/migrations/1796000000000-ChatNicknameValue.js";
 import type { RowRef, RowViolation } from "./plan.js";
 
 // The DbIntegrity migration added STORED generated account ids (PostgreSQL
@@ -136,7 +137,7 @@ const NULLABLE_KEYS = new Set([
 export const VIOLATION_COLUMNS: Record<string, string[]> = (() => {
   const columns: Record<string, string[]> = {
     chat_messages: ["sender_role", "sender_admin_id"],
-    // Read for the length CHECK (not a key format).
+    // Read for the value CHECK (not a key format).
     chat_nicknames: ["nickname"],
   };
 
@@ -147,20 +148,30 @@ export const VIOLATION_COLUMNS: Record<string, string[]> = (() => {
   return columns;
 })();
 
-// 1 to 30 characters, counted by code point like char_length().
+// The chat_nicknames_nickname_value CHECK: 1 to 30 characters, counted by
+// code point like char_length(), words joined by single spaces, no control
+// characters (the migration's own pattern, so the two cannot drift).
 const NICKNAME_LENGTH = /^.{1,30}$/su;
+const NICKNAME_SHAPE = new RegExp(NICKNAME_PATTERN, "u");
+
+const isStoredNickname = (value: unknown) =>
+  typeof value === "string" &&
+  NICKNAME_LENGTH.test(value) &&
+  NICKNAME_SHAPE.test(value);
 
 export const VIOLATION_REASONS = {
   userMessageWithAdmin: "user_message_with_admin",
   malformedKey: "malformed_key",
-  nicknameLength: "nickname_length",
+  nicknameValue: "nickname_value",
 } as const;
 
 // Rows PostgreSQL would reject for a reason other than a missing parent:
 //  - chat_messages_user_has_no_admin: a user message with sender_admin_id set;
 //  - a malformed text key, or a kind + id pair with id <= 0 (format CHECKs);
-//  - a chat_nicknames.nickname that is not 1 to 30 characters (the source
-//    never enforced it; a blank row meant "cleared" and is skipped by the app).
+//  - a chat_nicknames.nickname the value CHECK refuses: not 1 to 30
+//    characters, blank or padded, a whitespace run other than one space, or a
+//    control character (the source never enforced it; a blank row meant
+//    "cleared" and is skipped by the app).
 //
 // The sender-scoped unique indexes need no scan: the frozen SQLite schema
 // already has UNIQUE (conversation_id, client_id) on chat_messages and
@@ -214,12 +225,12 @@ export const findViolations = (
   for (const row of rows.chat_nicknames ?? []) {
     const value = row.values.nickname;
 
-    if (typeof value !== "string" || !NICKNAME_LENGTH.test(value)) {
+    if (!isStoredNickname(value)) {
       found.push({
         table: "chat_nicknames",
         column: "nickname",
         key: row.key,
-        reason: VIOLATION_REASONS.nicknameLength,
+        reason: VIOLATION_REASONS.nicknameValue,
       });
     }
   }
