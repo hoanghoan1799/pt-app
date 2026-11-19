@@ -50,12 +50,17 @@
 
 ## Chạy local
 
+Cần cài trước:
+
+- Node 24 (`nvm install` đọc `.nvmrc`, hoặc `brew install node@24`).
+- Docker đang chạy (Docker Desktop hoặc OrbStack trên Mac). `docker compose` chạy PostgreSQL và API, còn `pnpm verify` dùng Testcontainers nên cũng cần Docker.
+
 ```bash
 corepack enable              # một lần, để dùng đúng pnpm trong packageManager
-pnpm install
+pnpm install --frozen-lockfile                 # cảnh báo "Ignored build scripts" là bình thường
 cp apps/web/.env.example apps/web/.env.local
-cp apps/api/.env.example apps/api/.env         # DATABASE_URL, SUPER_ADMIN_USERNAME, SUPER_ADMIN_PASSWORD
-docker compose up -d --build db api            # PostgreSQL 17 + API (:4000), tự chạy migration
+cp apps/api/.env.example apps/api/.env         # rồi bỏ comment và điền SUPER_ADMIN_USERNAME, SUPER_ADMIN_PASSWORD (>= 8 ký tự)
+docker compose up -d --build db api            # PostgreSQL 17 + API (:4000), tự chạy migration (hoặc `pnpm dev:db`)
 pnpm admin:create            # tạo tài khoản admin từ SUPER_ADMIN_USERNAME / SUPER_ADMIN_PASSWORD
 pnpm dev                     # build @pt/contracts rồi chạy web (hoặc `pnpm dev:all` làm cả hai bước)
 ```
@@ -65,6 +70,8 @@ Repo là monorepo pnpm: `apps/web` (Next.js, đóng vai BFF, không có database
 Mở http://localhost:3000 (user) và http://localhost:3000/admin/login (admin). Trang user không có link sang admin.
 
 Admin mới (user thường) được tạo trong giao diện admin; `pnpm admin:create` chỉ tạo super admin đầu tiên và không ghi đè admin đã có.
+
+Nếu cổng 5432 hoặc 4000 đã bị chiếm (ví dụ máy đã có PostgreSQL từ Homebrew), đổi cổng phía host: `DB_PORT=55432 API_PORT=4400 docker compose up -d --build db api`. Khi đó cập nhật cổng trong `DATABASE_URL` (apps/api/.env) và `API_URL` (apps/web/.env.local) cho khớp.
 
 Để mở trên iPhone cùng mạng Wi-Fi, dùng địa chỉ `Network` mà `next dev` in ra.
 
