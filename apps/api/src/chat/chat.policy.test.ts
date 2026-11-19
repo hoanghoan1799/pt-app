@@ -156,3 +156,29 @@ describe("passcode-locked admin", () => {
     expect(policy.canRead(boss, facts({ ptAdminId: 2 }))).toBe(false);
   });
 });
+
+describe("conversation admins (who may be named in a conversation)", () => {
+  it("are the trainee's own PT and every super admin, whoever asks", () => {
+    expect(
+      policy.isConversationAdmin({ id: 1, role: "pt" }, { ptAdminId: 1 }),
+    ).toBe(true);
+    expect(
+      policy.isConversationAdmin({ id: 2, role: "pt" }, { ptAdminId: 1 }),
+    ).toBe(false);
+    expect(
+      policy.isConversationAdmin({ id: 2, role: "pt" }, { ptAdminId: null }),
+    ).toBe(false);
+    expect(
+      policy.isConversationAdmin(
+        { id: 9, role: "super_admin" },
+        { ptAdminId: 1 },
+      ),
+    ).toBe(true);
+    expect(
+      policy.isConversationAdmin(
+        { id: 9, role: "super_admin" },
+        { ptAdminId: null },
+      ),
+    ).toBe(true);
+  });
+});

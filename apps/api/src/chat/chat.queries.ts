@@ -612,6 +612,102 @@ export class ChatQueries {
     return rows[0]?.lastSeenAt ?? null;
   }
 
+  // --- Shared nicknames ------------------------------------------------------
+
+  // Keys "user" | "pt" | "admin:<id>" of one conversation; blank ones left out.
+  async nicknameRows(conversationId: number, manager?: EntityManager) {
+    const rows = await this.run<{ targetKey: string; nickname: string }[]>(
+      `SELECT target_key AS "targetKey", nickname FROM chat_nicknames
+       WHERE conversation_id = $1`,
+      [conversationId],
+      manager,
+    );
+
+    return rows.filter((row) => row.nickname.trim() !== "");
+  }
+
+  // The nickname of each trainee in their own conversation (target "user"),
+  // by user id; trainees without one are absent.
+  async traineeNicknames(
+    userIds: readonly number[],
+  ): Promise<Map<number, string>> {
+    if (userIds.length === 0) {
+      return new Map();
+    }
+    const rows = await this.run<{ userId: number; nickname: string }[]>(
+      `SELECT c.user_id AS "userId", n.nickname
+       FROM chat_nicknames n
+       JOIN chat_conversations c ON c.id = n.conversation_id
+       WHERE n.target_key = 'user' AND c.user_id = ANY($1::int[])`,
+      [[...userIds]],
+    );
+
+    return new Map(
+      rows
+        .filter((row) => row.nickname.trim() !== "")
+        .map((row) => [row.userId, row.nickname]),
+    );
+  }
+
+  async findAdminForNickname(adminId: number, manager?: EntityManager) {
+    const rows = await this.run<{ id: number; role: string }[]>(
+      `SELECT id, role FROM admins WHERE id = $1`,
+      [adminId],
+      manager,
+    );
+
+    return rows[0] ?? null;
+  }
+
+  async findNickname(
+    manager: EntityManager,
+    conversationId: number,
+    targetKey: string,
+  ) {
+    const rows = await this.run<{ nickname: string }[]>(
+      `SELECT nickname FROM chat_nicknames
+       WHERE conversation_id = $1 AND target_key = $2`,
+      [conversationId, targetKey],
+      manager,
+    );
+
+    return rows[0]?.nickname ?? null;
+  }
+
+  async saveNickname(
+    manager: EntityManager,
+    row: {
+      conversationId: number;
+      targetKey: string;
+      nickname: string;
+      setByKey: string;
+      now: Date;
+    },
+  ) {
+    await this.run(
+      `INSERT INTO chat_nicknames
+         (conversation_id, target_key, nickname, set_by_key, updated_at)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (conversation_id, target_key) DO UPDATE
+         SET nickname = EXCLUDED.nickname, set_by_key = EXCLUDED.set_by_key,
+             updated_at = EXCLUDED.updated_at`,
+      [row.conversationId, row.targetKey, row.nickname, row.setByKey, row.now],
+      manager,
+    );
+  }
+
+  async clearNickname(
+    manager: EntityManager,
+    conversationId: number,
+    targetKey: string,
+  ) {
+    await this.run(
+      `DELETE FROM chat_nicknames WHERE conversation_id = $1 AND target_key = $2`,
+      [conversationId, targetKey],
+      manager,
+    );
+  }
+
   // Colours: the trainee's, every admin's account colour, and this
   // conversation's per-admin overrides.
   async colorRows(conversationId: number) {

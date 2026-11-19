@@ -50,6 +50,7 @@ const AdminMessagesInfoPage = async ({
       userId={header.userId}
       conversationId={conversationId}
       peerName={header.userName}
+      selfName={admin.username}
       initialProfile={header.profile}
       chatEnabled={header.chatEnabled}
       peerAvatarUrl={header.avatarUrl}

@@ -6,6 +6,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { verifyPassword } from "../src/auth/password-hash.js";
 import { Admin } from "../src/database/entities/admin.entity.js";
 import { AdminHiddenUser } from "../src/database/entities/admin-hidden-user.entity.js";
+import { ChatConversation } from "../src/database/entities/chat-conversation.entity.js";
+import { ChatNickname } from "../src/database/entities/chat-nickname.entity.js";
 import { ContactAlias } from "../src/database/entities/contact-alias.entity.js";
 import { createTestApp } from "./support/app.js";
 import {
@@ -519,7 +521,7 @@ describe("hidden trainees", () => {
     ).toBe(204);
   });
 
-  it("lists hidden trainees only to the hiding admin in a revealed session, with their own nicknames", async () => {
+  it("lists hidden trainees only to the hiding admin in a revealed session, with the conversation's shared nicknames", async () => {
     const pt = await adminToken("pt", "5555");
     const intruder = await adminToken("super_admin", "6666");
     const zed = await seedUser(ds, { name: "Zed", ptAdminId: pt.id });
@@ -528,10 +530,21 @@ describe("hidden trainees", () => {
 
     await hideTrainee(ds, pt.id, zed.id);
     await hideTrainee(ds, pt.id, amy.id);
+    const conversationId = await insertRow(ds, ChatConversation, {
+      userId: amy.id,
+    });
+
+    await insertRow(ds, ChatNickname, {
+      conversationId,
+      targetKey: "user",
+      nickname: "Champ",
+      setByKey: "user",
+    });
+    // A private alias is not used in chat, so not in this list either.
     await insertRow(ds, ContactAlias, {
       ownerKey: `admin:${pt.id}`,
-      targetKey: `user:${amy.id}`,
-      alias: "Champ",
+      targetKey: `user:${zed.id}`,
+      alias: "Riêng",
     });
     await hideTrainee(ds, intruder.id, shown.id);
 

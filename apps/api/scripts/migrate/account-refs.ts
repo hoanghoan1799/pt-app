@@ -73,6 +73,7 @@ export const DERIVED_IDS: Record<string, Derive> = {
   "chat_photos.uploader_admin_id": adminKey("uploader_key"),
   "chat_reactions.reactor_admin_id": adminKey("reactor_key"),
   "chat_reads.reader_admin_id": adminKey("reader_key"),
+  "chat_nicknames.target_admin_id": adminKey("target_key"),
   // ChatGroups migration: members and reactions go with the account.
   "chat_group_members.member_user_id": userKey("member_key"),
   "chat_group_members.member_admin_id": adminKey("member_key"),
@@ -92,6 +93,8 @@ export const deriveId = (table: string, column: string, row: Row) =>
 const SOCIAL = new RegExp(`^(user|admin):${ID}$`);
 const CHAT = new RegExp(`^(user|admin:${ID})$`);
 const ALIAS_TARGET = new RegExp(`^((user|admin):${ID}|pt)$`);
+// chat_nicknames targets: "user", "pt" or "admin:<id>".
+const NICKNAME_TARGET = new RegExp(`^(user|pt|admin:${ID})$`);
 
 const FORMAT_RULES: Record<string, Record<string, RegExp | "positive">> = {
   social_comments: { author_key: SOCIAL },
@@ -106,6 +109,7 @@ const FORMAT_RULES: Record<string, Record<string, RegExp | "positive">> = {
   chat_photos: { uploader_key: CHAT },
   chat_reactions: { reactor_key: CHAT },
   chat_reads: { reader_key: CHAT },
+  chat_nicknames: { target_key: NICKNAME_TARGET, set_by_key: CHAT },
   // ChatGroups migration (social form). The keys without a generated id
   // (sender, uploader, creator, adder, remover, hider) may name a deleted
   // account, so only their shape is checked.
@@ -132,6 +136,8 @@ const NULLABLE_KEYS = new Set([
 export const VIOLATION_COLUMNS: Record<string, string[]> = (() => {
   const columns: Record<string, string[]> = {
     chat_messages: ["sender_role", "sender_admin_id"],
+    // Read for the length CHECK (not a key format).
+    chat_nicknames: ["nickname"],
   };
 
   for (const [table, rules] of Object.entries(FORMAT_RULES)) {
@@ -141,14 +147,20 @@ export const VIOLATION_COLUMNS: Record<string, string[]> = (() => {
   return columns;
 })();
 
+// 1 to 30 characters, counted by code point like char_length().
+const NICKNAME_LENGTH = /^.{1,30}$/su;
+
 export const VIOLATION_REASONS = {
   userMessageWithAdmin: "user_message_with_admin",
   malformedKey: "malformed_key",
+  nicknameLength: "nickname_length",
 } as const;
 
 // Rows PostgreSQL would reject for a reason other than a missing parent:
 //  - chat_messages_user_has_no_admin: a user message with sender_admin_id set;
-//  - a malformed text key, or a kind + id pair with id <= 0 (format CHECKs).
+//  - a malformed text key, or a kind + id pair with id <= 0 (format CHECKs);
+//  - a chat_nicknames.nickname that is not 1 to 30 characters (the source
+//    never enforced it; a blank row meant "cleared" and is skipped by the app).
 //
 // The sender-scoped unique indexes need no scan: the frozen SQLite schema
 // already has UNIQUE (conversation_id, client_id) on chat_messages and
@@ -196,6 +208,19 @@ export const findViolations = (
           });
         }
       }
+    }
+  }
+
+  for (const row of rows.chat_nicknames ?? []) {
+    const value = row.values.nickname;
+
+    if (typeof value !== "string" || !NICKNAME_LENGTH.test(value)) {
+      found.push({
+        table: "chat_nicknames",
+        column: "nickname",
+        key: row.key,
+        reason: VIOLATION_REASONS.nicknameLength,
+      });
     }
   }
 

@@ -2,7 +2,7 @@
 
 Hoan runs every step of this by hand, in this order. Claude never runs the data script against Turso or any remote database; every rehearsal uses a local SQLite file.
 
-The data script is `apps/api/scripts/migrate-from-turso.ts`. It copies the 53 source tables (52 in PostgreSQL: `chat_nicknames` is gone, see below) into an empty PostgreSQL that already has the migrations, then proves the copy is complete. Its SQLite column description (`turso-columns.json`) and DDL (`turso-schema.sql`, frozen) stay in the repo until the cutover is over; the script, both files and the Turso/libSQL dev dependency are deleted afterwards (see "After the cutover").
+The data script is `apps/api/scripts/migrate-from-turso.ts`. It copies the 53 source tables into an empty PostgreSQL that already has the migrations, then proves the copy is complete. Its SQLite column description (`turso-columns.json`) and DDL (`turso-schema.sql`, frozen) stay in the repo until the cutover is over; the script, both files and the Turso/libSQL dev dependency are deleted afterwards (see "After the cutover").
 
 The freeze matches production at `company/main` 8f0e085 (2026-11-18: group chat, accent color, user restrictions, report reasons, photo positions). A source table or column missing from `turso-columns.json` aborts every mode before any read of the rows. If production gains schema again before the cutover, regenerate both files the same way (drizzle-kit's SQLite `generate` on that commit's `db/schema.ts` against nothing, then the columns generator from 8f48cb5^ `generate-turso-columns.ts`; never against a remote URL), compare the DDL with a local copy's `sqlite_master`, and add the PostgreSQL side.
 
@@ -104,10 +104,11 @@ Photo links are two foreign keys, both `DEFERRABLE INITIALLY DEFERRED`, so the l
 
 Repaired while reading, not reported: `chat_messages.silent` NULL (the source allowed it, the app meant "not silent") is copied as false.
 
+`chat_nicknames` is not legacy: the shared per-conversation nicknames are live again (migration `ChatNicknamesRestore`), so the table is copied like any other. Rows must fit its CHECKs (target `user`, `pt` or `admin:<id>`; setter `user` or `admin:<id>`; 1 to 30 characters); the orphan scan reports a row that does not (`malformed_key`, `nickname_length`), and `--orphans=skip` drops it. Private `contact_aliases` are copied as before and used outside chat only.
+
 Legacy data PostgreSQL no longer has (the source schema and `turso-columns.json` stay as they are):
 
 - `chat_messages.attachment_url` / `attachment_meta`: nothing reads or writes them (photos have their own table). If any message has a value, the run aborts in every mode (dry run, migrate, verify) with the count and "pass `--drop-legacy-attachments`". With the flag the values are dropped and the count is in the report (`droppedLegacy`) and a warning.
-- `chat_nicknames`: the table is gone (private `contact_aliases` replaced the shared nicknames). A non-empty source table aborts the same way unless `--drop-legacy-nicknames` is passed. In production these rows were already moved to aliases by the old setup script, so the expected count is 0.
 - Pass the same flags to `data:verify`.
 
 The `UserRestrictions`, `AccentTheme` and `ChatGroups` migrations (company/main features) add rules SQLite never had, reported the same way (`scripts/migrate/company-features.ts`, account keys in `account-refs.ts`):

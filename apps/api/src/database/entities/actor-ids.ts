@@ -44,3 +44,7 @@ export const chatKeyCheck = (column: string) =>
 // Alias targets also allow the PT side as a whole ("pt").
 export const aliasTargetCheck = (column: string) =>
   `"${column}" ~ '^((user|admin):${ID}|pt)$'`;
+
+// Chat nickname targets: the chat scheme plus the PT side as a whole ("pt").
+export const chatNicknameTargetCheck = (column: string) =>
+  `"${column}" ~ '^(user|pt|admin:${ID})$'`;

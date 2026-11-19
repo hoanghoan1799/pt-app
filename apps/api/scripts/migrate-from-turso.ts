@@ -22,7 +22,6 @@ const USAGE = `Usage: data:migrate -- --source <url> --target <postgres url> [op
   --dry-run             read, validate and scan orphans, write nothing
   --report <path>       write a machine-readable JSON report
   --drop-legacy-attachments  accept losing chat_messages.attachment_url/attachment_meta values (PostgreSQL dropped them)
-  --drop-legacy-nicknames    accept losing chat_nicknames rows (PostgreSQL dropped the table)
   --batch-size <n>      rows per read/insert batch (default 500)
   --allow-remote        allow a libsql:// or https:// source (token from TURSO_AUTH_TOKEN)
 `;
@@ -43,7 +42,6 @@ const main = async () => {
       "batch-size": { type: "string", default: "500" },
       "allow-remote": { type: "boolean", default: false },
       "drop-legacy-attachments": { type: "boolean", default: false },
-      "drop-legacy-nicknames": { type: "boolean", default: false },
       help: { type: "boolean", default: false },
     },
   });
@@ -80,7 +78,6 @@ const main = async () => {
     reset: values.reset,
     allowRemote: values["allow-remote"],
     dropLegacyAttachments: values["drop-legacy-attachments"],
-    dropLegacyNicknames: values["drop-legacy-nicknames"],
     batchSize,
     reportPath: values.report,
   };

@@ -89,7 +89,7 @@ export class ChatThreadService {
       await Promise.all([
         this.views.many(page.rows, actor),
         this.views.many(changed.rows, actor),
-        this.profiles.load(conversation.id, actor, trainee.traineeId),
+        this.profiles.load(conversation.id),
         isTrainee ? this.queries.adminTeamLastSeen() : trainee.lastSeenAt,
         this.queries.latestAdminSender(conversation.id),
       ]);

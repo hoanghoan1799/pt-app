@@ -33,6 +33,8 @@ export const CHAT_MESSAGES = {
   MESSAGE_NOT_FOUND: "Không tìm thấy tin nhắn",
   NOT_YOUR_MESSAGE: "Bạn chỉ thao tác được trên tin nhắn của mình",
   COLOR_INVALID: "Màu không hợp lệ",
+  NICKNAME_INVALID: "Biệt danh không hợp lệ (tối đa 30 ký tự)",
+  ADMIN_NOT_FOUND: "Không tìm thấy PT này",
   STICKER_NOT_EDITABLE: "Không sửa được sticker",
   MESSAGE_UNSENT: "Tin nhắn đã bị thu hồi",
   POST_NOT_FOUND: "Không thể trả lời bài viết này.",

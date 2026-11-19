@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
-import type { AuthActor } from "../auth/actor.js";
+import type { AdminActor, AuthActor } from "../auth/actor.js";
 import { PtScopePolicy } from "../auth/policies/pt-scope.policy.js";
 
 // What the policy needs to know about the trainee a conversation belongs to.
@@ -26,6 +26,18 @@ export type ConversationFacts = {
 @Injectable()
 export class ChatPolicy {
   constructor(private readonly scope: PtScopePolicy) {}
+
+  // May this admin be named in the trainee's conversation: a member of it,
+  // that is a super admin or the trainee's own PT. Independent of who asks.
+  isConversationAdmin(
+    admin: Pick<AdminActor, "id" | "role">,
+    facts: Pick<ConversationFacts, "ptAdminId">,
+  ) {
+    return this.scope.isInWorkspace(admin, {
+      ptAdminId: facts.ptAdminId,
+      hidden: false,
+    });
+  }
 
   canRead(actor: AuthActor, facts: ConversationFacts) {
     if (actor.kind === "user") {

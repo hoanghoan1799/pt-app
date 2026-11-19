@@ -1,12 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
-import { HIDDEN_USERS_MESSAGES, resolveDisplayName } from "@pt/contracts";
+import { HIDDEN_USERS_MESSAGES } from "@pt/contracts";
 import { DataSource, In } from "typeorm";
 
 import type { AdminActor } from "../auth/actor.js";
 import { badRequest } from "../auth/auth.errors.js";
 import { PtScopePolicy } from "../auth/policies/pt-scope.policy.js";
-import { ContactAliasesService } from "../contact-aliases/contact-aliases.service.js";
+import { ChatQueries } from "../chat/chat.queries.js";
 import { AdminHiddenUser } from "../database/entities/admin-hidden-user.entity.js";
 import { User } from "../database/entities/user.entity.js";
 import { avatarUrl } from "../files/image-rules.js";
@@ -18,7 +18,7 @@ export class HiddenUsersService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly policy: PtScopePolicy,
-    private readonly aliases: ContactAliasesService,
+    private readonly chat: ChatQueries,
   ) {}
 
   private get hiddenRows() {
@@ -93,15 +93,15 @@ export class HiddenUsersService {
         hidden: true,
       }),
     );
-    const nicknames = await this.aliases.loadTraineeAliases(
-      admin.id,
+    // Named like the inbox does: the conversation's shared nickname.
+    const nicknames = await this.chat.traineeNicknames(
       visible.map((row) => row.userId),
     );
 
     return visible.map((row) => ({
       userId: row.userId,
       userName: row.userName,
-      displayName: resolveDisplayName(nicknames.get(row.userId), row.userName),
+      displayName: nicknames.get(row.userId)?.trim() || row.userName,
       avatarUrl: avatarUrl("user", row.userId, row.avatarUpdatedAt),
     }));
   }

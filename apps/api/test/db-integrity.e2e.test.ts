@@ -231,6 +231,17 @@ describe("account references have real foreign keys", () => {
         ],
       },
     ],
+    chat_nicknames: [
+      {
+        column: "target_key",
+        kinds: ["admin"],
+        insert: (who) => [
+          `INSERT INTO chat_nicknames (conversation_id, target_key, nickname, set_by_key, updated_at)
+           VALUES ($1, $2, 'Coach', 'user', now())`,
+          [ctx.conversation, keyOf(who)],
+        ],
+      },
+    ],
     chat_reads: [
       {
         column: "reader_key",
