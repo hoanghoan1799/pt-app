@@ -651,9 +651,11 @@ export class ChatQueries {
     );
   }
 
-  async findAdminForNickname(adminId: number, manager?: EntityManager) {
+  // Locks the admin row (FOR SHARE) until the caller's transaction ends, so the
+  // account cannot be deleted or change role before the nickname is written.
+  async findAdminForNickname(manager: EntityManager, adminId: number) {
     const rows = await this.run<{ id: number; role: string }[]>(
-      `SELECT id, role FROM admins WHERE id = $1`,
+      `SELECT id, role FROM admins WHERE id = $1 FOR SHARE`,
       [adminId],
       manager,
     );

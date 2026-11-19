@@ -93,64 +93,56 @@ export class ChatProfileService {
       throw chatErrors.conversationNotFound();
     }
     const adminId = chatParseAdminTarget(request.target);
-
-    if (adminId !== null) {
-      const admin = await this.queries.findAdminForNickname(adminId);
-
-      if (
-        !admin ||
-        !this.policy.isConversationAdmin(
-          { id: admin.id, role: toAdminRole(admin.role) },
-          trainee,
-        )
-      ) {
-        throw chatErrors.adminNotFound();
-      }
-    }
     const setByKey =
       actor.kind === "admin" ? adminActorKey(actor.id) : CHAT_USER_READER_KEY;
-    const changedAt = await this.dataSource
-      .transaction(async (manager) => {
-        const stored = await this.queries.findNickname(
+    const changedAt = await this.dataSource.transaction(async (manager) => {
+      // The admin target is checked in the write's transaction, its row locked
+      // (FOR SHARE) until COMMIT: an admin removed or moved to another
+      // workspace meanwhile is either seen as such here or waits for this
+      // write, never a nickname for somebody who no longer belongs.
+      if (adminId !== null) {
+        const admin = await this.queries.findAdminForNickname(manager, adminId);
+
+        if (
+          !admin ||
+          !this.policy.isConversationAdmin(
+            { id: admin.id, role: toAdminRole(admin.role) },
+            trainee,
+          )
+        ) {
+          throw chatErrors.adminNotFound();
+        }
+      }
+      const stored = await this.queries.findNickname(
+        manager,
+        conversation.id,
+        request.target,
+      );
+
+      if ((stored ?? "") === request.nickname) {
+        return null;
+      }
+      if (request.nickname === "") {
+        await this.queries.clearNickname(
           manager,
           conversation.id,
           request.target,
         );
-
-        if ((stored ?? "") === request.nickname) {
-          return null;
-        }
-        if (request.nickname === "") {
-          await this.queries.clearNickname(
-            manager,
-            conversation.id,
-            request.target,
-          );
-        } else {
-          await this.queries.saveNickname(manager, {
-            conversationId: conversation.id,
-            targetKey: request.target,
-            nickname: request.nickname,
-            setByKey,
-            now: this.clock.now(),
-          });
-        }
-        return this.queries.bumpConversationChange(
-          manager,
-          conversation.id,
-          this.clock.now(),
-        );
-      })
-      .catch((error: unknown) => {
-        // The admin was removed between the check and the write.
-        if (
-          (error as { driverError?: { code?: string } }).driverError?.code ===
-          "23503"
-        ) {
-          throw chatErrors.adminNotFound();
-        }
-        throw error;
-      });
+      } else {
+        await this.queries.saveNickname(manager, {
+          conversationId: conversation.id,
+          targetKey: request.target,
+          nickname: request.nickname,
+          setByKey,
+          now: this.clock.now(),
+        });
+      }
+      return this.queries.bumpConversationChange(
+        manager,
+        conversation.id,
+        this.clock.now(),
+      );
+    });
 
     if (changedAt) {
       this.events.publish(CHAT_EVENTS.profileChanged, {

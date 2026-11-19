@@ -304,10 +304,9 @@ describe("setting a nickname", () => {
     await ptNickname(pt, conversationId, "user", "Bé Na");
 
     expect(
-      await ds.query(
-        `SELECT 1 FROM chat_messages WHERE conversation_id = $1`,
-        [conversationId],
-      ),
+      await ds.query(`SELECT 1 FROM chat_messages WHERE conversation_id = $1`, [
+        conversationId,
+      ]),
     ).toEqual([]);
     expect(events.all.map((event) => event.name)).toEqual([
       "chat.profile.changed",
@@ -375,9 +374,15 @@ describe("who may set which nickname", () => {
     // An admin has no "my conversation".
     expect(
       (
-        await callWith(app, "put", "/v1/chat/conversations/me/nickname", pt.token, {
-          body,
-        })
+        await callWith(
+          app,
+          "put",
+          "/v1/chat/conversations/me/nickname",
+          pt.token,
+          {
+            body,
+          },
+        )
       ).status,
     ).toBe(403);
     expect(await stored(conversationId)).toEqual([]);
@@ -430,6 +435,71 @@ describe("who may set which nickname", () => {
       [`admin:${owner.id}`, `admin:${boss.id}`].sort(),
     );
   });
+
+  // A super admin target is demoted to a PT of no workspace, or removed, by a
+  // transaction that commits while the nickname request is in flight. The
+  // target check runs inside the write's transaction, so the request waits
+  // for that change and then refuses the target instead of writing a nickname
+  // for an admin who no longer belongs to the conversation.
+  it.each([
+    ["demoted", `UPDATE admins SET role = 'pt' WHERE id = $1`],
+    ["removed", `DELETE FROM admins WHERE id = $1`],
+  ])(
+    "refuses an admin target %s while the nickname is being written",
+    async (_label, change) => {
+      const owner = await admin("pt");
+      const boss = await admin("super_admin");
+      const { me, conversationId } = await pair(owner);
+      const other = ds.createQueryRunner();
+
+      await other.connect();
+      try {
+        await other.startTransaction();
+        await other.query(change, [boss.id]);
+
+        const settled = { done: false };
+        const request = (async () => {
+          try {
+            return await meNickname(me, `admin:${boss.id}`, "Sếp");
+          } finally {
+            settled.done = true;
+          }
+        })();
+
+        // Commit only once the request waits on the locked admin row (or has
+        // already answered, which would mean it never looked inside the
+        // transaction).
+        await expect
+          .poll(
+            async () =>
+              settled.done ||
+              Number(
+                (
+                  await ds.query(
+                    `SELECT count(*) AS n FROM pg_stat_activity
+                     WHERE datname = current_database()
+                       AND wait_event_type = 'Lock'`,
+                  )
+                )[0].n,
+              ) > 0,
+            { timeout: 10_000 },
+          )
+          .toBe(true);
+        await other.commitTransaction();
+
+        const response = await request;
+
+        expect(response.status).toBe(404);
+        expect(response.body.code).toBe("ADMIN_NOT_FOUND");
+        expect(await stored(conversationId)).toEqual([]);
+      } finally {
+        if (other.isTransactionActive) {
+          await other.rollbackTransaction();
+        }
+        await other.release();
+      }
+    },
+  );
 
   it("is read-only while the chat is locked, like sending", async () => {
     const pt = await admin("pt");
@@ -517,10 +587,16 @@ describe("what the nicknames show", () => {
     const pt = await admin("pt");
     const { me, conversationId } = await pair(pt);
 
-    await callWith(app, "post", `/v1/chat/trainees/${me.id}/messages`, pt.token, {
-      body: { body: "chào" },
-      headers: { "Idempotency-Key": newKey() },
-    });
+    await callWith(
+      app,
+      "post",
+      `/v1/chat/trainees/${me.id}/messages`,
+      pt.token,
+      {
+        body: { body: "chào" },
+        headers: { "Idempotency-Key": newKey() },
+      },
+    );
     await ptNickname(pt, conversationId, "user", "Bé Na");
 
     const adminBubbles = await callWith(
@@ -535,8 +611,8 @@ describe("what the nicknames show", () => {
     // The trainee's bubble names the PT: their nickname, else the PT side's,
     // else the real name.
     const bubble = async () =>
-      (await callWith(app, "get", "/v1/chat/bubbles", me.token)).body
-        .bubbles[0].name;
+      (await callWith(app, "get", "/v1/chat/bubbles", me.token)).body.bubbles[0]
+        .name;
 
     expect(await bubble()).toBe(pt.username);
     await meNickname(me, "pt", "Thầy");
