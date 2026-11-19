@@ -14,9 +14,10 @@ interface ChatLockSwitchProps {
 
 // "Cho phép nhắn tin" switch for one trainee (S1). Optimistic: flips at once,
 // stays busy (disabled, aria-busy) until the server action answers, and rolls
-// back with an error text if it fails. The action revalidates the page, so
-// its response already carries the refreshed page; no router.refresh() on top
-// (it only rendered the whole page a second time).
+// back with an error text if it fails. The action refreshes the page itself
+// (refresh() from next/cache), so the re-rendered page comes in its response;
+// no router.refresh() on top (that only rendered the whole page a second
+// time, after the pending state had already ended).
 export const ChatLockSwitch = ({ userId, enabled }: ChatLockSwitchProps) => {
   const t = useTranslations("chat.chatLockSwitch");
   const [checked, setChecked] = useState(enabled);

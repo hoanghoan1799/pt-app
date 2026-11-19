@@ -1,4 +1,4 @@
-import { chatNicknameOr } from "@pt/contracts";
+import { chatAdminLabel, chatNicknameOr, PT_ALIAS_TARGET } from "@pt/contracts";
 
 import {
   type ChatColorKey,
@@ -80,21 +80,15 @@ export const bubbleColorFor = (
 };
 
 // Name of a PT sender label: the conversation's nickname for that admin, else
-// for the trainee the shared PT one, else the real name.
+// (with fallbackKey "pt", the trainee's view) the shared PT one, else the real
+// name. The rule itself is chatAdminLabel in @pt/contracts.
 export const adminLabel = (
   nicknames: Readonly<Record<string, string>>,
   adminId: number | null,
   realName: string,
-  fallbackKey?: string,
-) => {
-  const fallback = fallbackKey
-    ? chatNicknameOr(nicknames, fallbackKey, realName)
-    : realName;
-
-  return adminId === null
-    ? fallback
-    : chatNicknameOr(nicknames, adminKey(adminId), fallback);
-};
+  fallbackKey?: typeof PT_ALIAS_TARGET,
+) =>
+  chatAdminLabel(nicknames, adminId, realName, fallbackKey === PT_ALIAS_TARGET);
 
 // Name of a reactor in the reactors sheet: their shared nickname (for an
 // admin, else for the trainee the shared PT one), else the real name.
