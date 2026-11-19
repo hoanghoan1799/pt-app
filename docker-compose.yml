@@ -9,7 +9,9 @@ services:
       POSTGRES_USER: pt
       POSTGRES_PASSWORD: pt_local_only
       POSTGRES_DB: ptapp
-    ports: ["5432:5432"]
+    # DB_PORT / API_PORT move the host ports when 5432 or 4000 is taken (e.g. a
+    # Homebrew PostgreSQL). Update DATABASE_URL and API_URL to match.
+    ports: ["${DB_PORT:-5432}:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U pt -d ptapp"]
@@ -31,7 +33,7 @@ services:
     # the API starts. Nothing to run by hand.
     command: ["sh", "-c", "node dist/migrate.js && node dist/main.js"]
     depends_on: { db: { condition: service_healthy } }
-    ports: ["4000:4000"]
+    ports: ["${API_PORT:-4000}:4000"]
   adminer: # optional: docker compose --profile tools up
     image: adminer
     profiles: ["tools"]
