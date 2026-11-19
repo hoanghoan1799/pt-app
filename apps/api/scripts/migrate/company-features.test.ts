@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { REASONS } from "./chat-social.js";
 import {
   COMPANY_REASONS,
   companyScanValues,
@@ -63,9 +62,9 @@ describe("companyScanValues", () => {
     expect(companyScanValues("chat_groups", { name: "😀😀" })).toEqual({
       name_length: 2,
     });
-    expect(companyScanValues("chat_group_photos", { data: Buffer.from("a") })).toEqual(
-      {},
-    );
+    expect(
+      companyScanValues("chat_group_photos", { data: Buffer.from("a") }),
+    ).toEqual({});
   });
 });
 
@@ -205,7 +204,7 @@ describe("findCompanyViolations", () => {
     ]);
   });
 
-  it("flags sender / kind, hidden pairs, cross-group replies and a cover of another message", () => {
+  it("flags sender / kind, hidden pairs and cross-group replies", () => {
     expect(
       found({
         chat_group_messages: [
@@ -219,17 +218,16 @@ describe("findCompanyViolations", () => {
       }),
     ).toEqual([
       `chat_group_messages:hidden_by_key:3:${COMPANY_REASONS.hiddenPair}`,
-      `chat_group_messages:photo_id:5:${COMPANY_REASONS.photoNotOfMessage}`,
       `chat_group_messages:reply_to_message_id:4:${COMPANY_REASONS.replyOtherGroup}`,
       `chat_group_messages:sender_key:1:${COMPANY_REASONS.senderKind}`,
       `chat_group_messages:sender_key:2:${COMPANY_REASONS.senderKind}`,
     ]);
   });
 
-  it("flags photos of another group, negative and repeated positions (the later id)", () => {
+  it("flags a photo whose message is in another group (the cover and positions: chat-social.ts)", () => {
     expect(
       found({
-        chat_group_messages: [row("1", message({}))],
+        chat_group_messages: [row("1", message({ photo_id: 13 }))],
         chat_group_photos: [
           row("11", photo({ message_id: 1, position: 0 })),
           row("10", photo({ message_id: 1, position: 0 })),
@@ -239,8 +237,6 @@ describe("findCompanyViolations", () => {
       }),
     ).toEqual([
       `chat_group_photos:message_id:12:${COMPANY_REASONS.photoOtherGroup}`,
-      `chat_group_photos:position:11:${REASONS.duplicatePosition}`,
-      `chat_group_photos:position:13:${REASONS.negativePosition}`,
     ]);
   });
 });

@@ -664,6 +664,10 @@ describe("data migration from a Turso/SQLite copy", () => {
       expect(keys("chat_photos", "position", "position_negative")).toEqual([
         "92",
       ]);
+      // Message 92's cover is photo 92, which is attached to message 1.
+      expect(keys("chat_messages", "photo_id", "photo_link_mismatch")).toEqual(
+        ["92"],
+      );
       expect(
         keys("chat_custom_stickers", "size", "size_not_byte_length"),
       ).toEqual(["92"]);
@@ -880,7 +884,7 @@ describe("data migration from a Turso/SQLite copy", () => {
         keys(
           "chat_group_messages",
           "photo_id",
-          "photo_not_attached_to_message",
+          "photo_link_mismatch",
         ),
       ).toEqual(["92"]);
       expect(

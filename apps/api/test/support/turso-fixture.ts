@@ -1062,6 +1062,7 @@ const chatSocialDirty = (): Entry[] => [
       body: "Trả lời tin của cuộc trò chuyện khác",
       client_id: "92929292-9292-4292-8292-929292929292",
       reply_to_message_id: 1,
+      photo_id: 92,
       created_at: MS + 6010,
     },
   ],

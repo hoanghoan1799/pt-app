@@ -167,19 +167,25 @@ const PHOTO_LINKS = [
   ["chat_messages", "chat_photos", "message_id"],
   ["dm_messages", "dm_photos", "message_id"],
   ["social_posts", "social_post_photos", "post_id"],
+  ["chat_group_messages", "chat_group_photos", "message_id"],
 ] as const;
 
 // position >= 0 and one photo per position of an owner (a NULL owner or
-// position is free). The later row, by id, is the one reported.
-export const findPositionViolations = (
+// position is free). Of two photos in one slot the later id is reported,
+// unless it is the owner's cover: skipping a cover would drop the whole
+// message or post under --orphans=skip, so the other photo goes instead.
+const findPositionViolations = (
   table: string,
   ownerColumn: string,
   rows: RowRef[] | undefined,
+  covers: ReadonlySet<string>,
 ): RowViolation[] => {
   const found: RowViolation[] = [];
   const taken = new Set<string>();
   const sorted = [...(rows ?? [])].sort(
-    (a, b) => Number(a.key) - Number(b.key),
+    (a, b) =>
+      Number(covers.has(b.key)) - Number(covers.has(a.key)) ||
+      Number(a.key) - Number(b.key),
   );
 
   for (const row of sorted) {
@@ -281,7 +287,18 @@ export const findChatSocialViolations = (rows: Rows): RowViolation[] => {
       }
     }
 
-    found.push(...findPositionViolations(photoTable, photoColumn, rows[photoTable]));
+    const covers = new Set(
+      (rows[ownerTable] ?? []).map((owner) => String(owner.values.photo_id)),
+    );
+
+    found.push(
+      ...findPositionViolations(
+        photoTable,
+        photoColumn,
+        rows[photoTable],
+        covers,
+      ),
+    );
   }
 
   // size = octet_length(data).

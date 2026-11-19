@@ -1,5 +1,5 @@
 import { ACCENT_COLOR_PATTERN } from "../../src/database/entities/accent-color.js";
-import { byKey, findPositionViolations } from "./chat-social.js";
+import { byKey } from "./chat-social.js";
 import type { RowRef, RowViolation } from "./plan.js";
 
 // The tables and columns production gained after the API branched
@@ -92,7 +92,6 @@ export const COMPANY_REASONS = {
   senderKind: "sender_does_not_match_kind",
   hiddenPair: "hidden_by_and_hidden_at_disagree",
   replyOtherGroup: "reply_in_other_group",
-  photoNotOfMessage: "photo_not_attached_to_message",
   photoOtherGroup: "photo_message_in_other_group",
 } as const;
 
@@ -113,7 +112,13 @@ export const findCompanyViolations = (rows: Rows): RowViolation[] => {
     reason: string,
     nullable = false,
   ) =>
-    found.push({ table, column, key, reason, ...(nullable ? { nullable } : {}) });
+    found.push({
+      table,
+      column,
+      key,
+      reason,
+      ...(nullable ? { nullable } : {}),
+    });
 
   // Colors: NULL or normalized "#rrggbb".
   for (const [table, column] of [
@@ -169,7 +174,6 @@ export const findCompanyViolations = (rows: Rows): RowViolation[] => {
   }
 
   const messages = byKey(rows.chat_group_messages);
-  const photos = byKey(rows.chat_group_photos);
 
   for (const row of rows.chat_groups ?? []) {
     const length = row.values.name_length;
@@ -245,25 +249,10 @@ export const findCompanyViolations = (rows: Rows): RowViolation[] => {
       );
     }
 
-    // photo_id (the cover) is a photo attached to this very message.
-    const photo = photos.get(String(v.photo_id));
-
-    if (
-      isSet(v.photo_id) &&
-      photo &&
-      String(photo.values.message_id) !== row.key
-    ) {
-      add(
-        "chat_group_messages",
-        "photo_id",
-        row.key,
-        COMPANY_REASONS.photoNotOfMessage,
-      );
-    }
+    // The cover and the photo positions: PHOTO_LINKS in chat-social.ts.
   }
 
-  // Photos: same group as their message; positions as for the other photo
-  // tables (chat-social.ts).
+  // Photos: same group as their message.
   for (const row of rows.chat_group_photos ?? []) {
     const v = row.values;
     const message = messages.get(String(v.message_id));
@@ -281,14 +270,6 @@ export const findCompanyViolations = (rows: Rows): RowViolation[] => {
       );
     }
   }
-
-  found.push(
-    ...findPositionViolations(
-      "chat_group_photos",
-      "message_id",
-      rows.chat_group_photos,
-    ),
-  );
 
   return found;
 };
