@@ -11,13 +11,17 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 // and String.prototype.trim() treat as whitespace once the controls are left
 // out. A value is words of other characters joined by single spaces.
 //
-// Existing rows are brought into that shape first, the same way the schema
-// would have stored them; a row left empty was a cleared nickname, which has
-// no row, so it is deleted. Only stricter: every value the API writes already
+// Existing rows are brought into that shape first: every run of whitespace
+// or control characters becomes one space (the schema would have refused a
+// control character outright; a repaired value keeps the visible text), the
+// ends are trimmed, and a row left empty was a cleared nickname, which has no
+// row, so it is deleted. Done by the migration, so no profile event is sent;
+// open screens pick the value up on their next load. Only stricter: every value the API writes already
 // passes, so the previous API version keeps working.
 //
 // Frozen copy: the data script (scripts/migrate/account-refs.ts) scans the
-// source with the same rule; a test checks the two agree.
+// source with this pattern, and the entity keeps its own copy of the CHECK;
+// chat-nickname-value.test.ts checks that the copies agree.
 
 export const NICKNAME_CONTROL = "\\u0000-\\u001f\\u007f-\\u009f";
 export const NICKNAME_SPACE =
@@ -27,7 +31,7 @@ const WORD = `[^${NICKNAME_CONTROL}${NICKNAME_SPACE}]+`;
 export const NICKNAME_PATTERN = `^${WORD}( ${WORD})*$`;
 
 const OLD_CHECK = `char_length("nickname") BETWEEN 1 AND 30`;
-const NEW_CHECK = `char_length("nickname") BETWEEN 1 AND 30 AND "nickname" ~ '${NICKNAME_PATTERN}'`;
+export const NICKNAME_VALUE_CHECK = `char_length("nickname") BETWEEN 1 AND 30 AND "nickname" ~ '${NICKNAME_PATTERN}'`;
 
 export class ChatNicknameValue1796000000000 implements MigrationInterface {
   name = "ChatNicknameValue1796000000000";
@@ -49,7 +53,7 @@ export class ChatNicknameValue1796000000000 implements MigrationInterface {
       `DELETE FROM "chat_nicknames" WHERE "nickname" = ''`,
     );
     await queryRunner.query(
-      `ALTER TABLE "chat_nicknames" ADD CONSTRAINT "chat_nicknames_nickname_value" CHECK (${NEW_CHECK})`,
+      `ALTER TABLE "chat_nicknames" ADD CONSTRAINT "chat_nicknames_nickname_value" CHECK (${NICKNAME_VALUE_CHECK})`,
     );
   }
 
