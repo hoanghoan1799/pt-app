@@ -8,6 +8,7 @@ import {
   resetChat as resetChatRows,
 } from "./api-seed-chat";
 import { fillTraineeLogin } from "./auth";
+import { ensureChatSwitch } from "./chat-switch";
 import { E2E_ADMIN, E2E_CHAT_NAME } from "./config";
 import { answerConfirm } from "./confirm";
 
@@ -48,18 +49,6 @@ const newSession = async (browser: Browser) => {
   });
 
   return { context, page: await context.newPage() };
-};
-
-const lockSwitch = (page: Page) =>
-  page.getByRole("switch", { name: "Cho phép nhắn tin" });
-
-const setChat = async (admin: Page, userId: number, isOn: boolean) => {
-  await admin.goto(`/admin/users/${userId}/messages`);
-  if ((await lockSwitch(admin).getAttribute("aria-checked")) !== String(isOn)) {
-    await lockSwitch(admin).click();
-  }
-  await expect(lockSwitch(admin)).toHaveAttribute("aria-checked", String(isOn));
-  await admin.reload();
 };
 
 const sheet = (page: Page) => page.getByRole("dialog");
@@ -131,7 +120,7 @@ const withScene = async (
     await admin.getByLabel("Mật khẩu").fill(E2E_ADMIN.password);
     await admin.getByRole("button", { name: "Đăng nhập" }).click();
     await expect(admin).toHaveURL(/\/admin(\?.*)?$/);
-    await setChat(admin, userId, true);
+    await ensureChatSwitch(admin, userId, true);
 
     await trainee.goto("/");
     await fillTraineeLogin(trainee, E2E_CHAT_NAME);
@@ -142,7 +131,7 @@ const withScene = async (
       // A sticker first, so the locked thread has one to long-press.
       await sendSticker(trainee, FIRE.alt);
       await expect(sticker(admin, FIRE.alt)).toBeVisible(SYNC);
-      await setChat(admin, userId, false);
+      await ensureChatSwitch(admin, userId, false);
       await admin.goto(`/admin/users/${userId}/messages`);
       await trainee.reload();
     }

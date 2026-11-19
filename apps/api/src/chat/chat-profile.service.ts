@@ -93,64 +93,67 @@ export class ChatProfileService {
       throw chatErrors.conversationNotFound();
     }
     const adminId = chatParseAdminTarget(request.target);
-
-    if (adminId !== null) {
-      const admin = await this.queries.findAdminForNickname(adminId);
-
-      if (
-        !admin ||
-        !this.policy.isConversationAdmin(
-          { id: admin.id, role: toAdminRole(admin.role) },
-          trainee,
-        )
-      ) {
-        throw chatErrors.adminNotFound();
-      }
-    }
     const setByKey =
       actor.kind === "admin" ? adminActorKey(actor.id) : CHAT_USER_READER_KEY;
-    const changedAt = await this.dataSource
-      .transaction(async (manager) => {
-        const stored = await this.queries.findNickname(
+    const changedAt = await this.dataSource.transaction(async (manager) => {
+      // Every check runs on rows this transaction holds until COMMIT, taken
+      // in the order a deletion takes them (admin, trainee, conversation), so
+      // a concurrent removal, demotion, change of PT or deletion of the
+      // conversation either committed first and is seen here, or waits for
+      // this write. Never a nickname for somebody who no longer belongs.
+      if (adminId !== null) {
+        const admin = await this.queries.findAdminForNickname(manager, adminId);
+        const facts = await this.queries.lockTraineeForNickname(
+          manager,
+          trainee.traineeId,
+        );
+
+        if (!facts) {
+          throw chatErrors.conversationNotFound();
+        }
+        if (
+          !admin ||
+          !this.policy.isConversationAdmin(
+            { id: admin.id, role: toAdminRole(admin.role) },
+            facts,
+          )
+        ) {
+          throw chatErrors.adminNotFound();
+        }
+      }
+      if (!(await this.queries.lockConversation(manager, conversation.id))) {
+        throw chatErrors.conversationNotFound();
+      }
+      const stored = await this.queries.findNickname(
+        manager,
+        conversation.id,
+        request.target,
+      );
+
+      if ((stored ?? "") === request.nickname) {
+        return null;
+      }
+      if (request.nickname === "") {
+        await this.queries.clearNickname(
           manager,
           conversation.id,
           request.target,
         );
-
-        if ((stored ?? "") === request.nickname) {
-          return null;
-        }
-        if (request.nickname === "") {
-          await this.queries.clearNickname(
-            manager,
-            conversation.id,
-            request.target,
-          );
-        } else {
-          await this.queries.saveNickname(manager, {
-            conversationId: conversation.id,
-            targetKey: request.target,
-            nickname: request.nickname,
-            setByKey,
-            now: this.clock.now(),
-          });
-        }
-        return this.queries.bumpConversationChange(
-          manager,
-          conversation.id,
-          this.clock.now(),
-        );
-      })
-      .catch((error: unknown) => {
-        // The admin was removed between the check and the write.
-        if (
-          (error as { driverError?: { code?: string } }).driverError?.code ===
-          "23503"
-        ) {
-          throw chatErrors.adminNotFound();
-        }
-        throw error;
-      });
+      } else {
+        await this.queries.saveNickname(manager, {
+          conversationId: conversation.id,
+          targetKey: request.target,
+          nickname: request.nickname,
+          setByKey,
+          now: this.clock.now(),
+        });
+      }
+      return this.queries.bumpConversationChange(
+        manager,
+        conversation.id,
+        this.clock.now(),
+      );
+    });
 
     if (changedAt) {
       this.events.publish(CHAT_EVENTS.profileChanged, {

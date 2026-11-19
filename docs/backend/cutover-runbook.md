@@ -104,7 +104,7 @@ Photo links are two foreign keys, both `DEFERRABLE INITIALLY DEFERRED`, so the l
 
 Repaired while reading, not reported: `chat_messages.silent` NULL (the source allowed it, the app meant "not silent") is copied as false.
 
-`chat_nicknames` is not legacy: the shared per-conversation nicknames are live again (migration `ChatNicknamesRestore`), so the table is copied like any other. Rows must fit its CHECKs (target `user`, `pt` or `admin:<id>`; setter `user` or `admin:<id>`; 1 to 30 characters); the orphan scan reports a row that does not (`malformed_key`, `nickname_length`), and `--orphans=skip` drops it. Private `contact_aliases` are copied as before and used outside chat only.
+`chat_nicknames` is not legacy: the shared per-conversation nicknames are live again (migration `ChatNicknamesRestore`), so the table is copied like any other. Rows must fit its CHECKs (target `user`, `pt` or `admin:<id>`; setter `user` or `admin:<id>`; a nickname of 1 to 30 characters, trimmed, single spaces, no control characters, migration `ChatNicknameValue`); the orphan scan reports a row that does not (`malformed_key`, `nickname_value`), and `--orphans=skip` drops it. Private `contact_aliases` are copied as before and used outside chat only.
 
 Legacy data PostgreSQL no longer has (the source schema and `turso-columns.json` stay as they are):
 

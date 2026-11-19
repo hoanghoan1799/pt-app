@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { ROUTES } from "@/constants/routes";
@@ -44,6 +44,9 @@ export const setChatEnabledAction = withResultErrorHandling(
       };
     }
     revalidatePath(`${ROUTES.ADMIN_USERS}/${input.userId}`);
+    // The open page (the thread, with this switch) comes back re-rendered in
+    // this action's response, so the switch's pending state covers it.
+    refresh();
   },
 );
 

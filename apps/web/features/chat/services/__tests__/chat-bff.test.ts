@@ -11,6 +11,11 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("server-only", () => ({}));
+vi.mock("next/cache", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/cache")>()),
+  refresh: vi.fn(),
+  revalidatePath: vi.fn(),
+}));
 vi.mock("@/services/session", () => ({ readSessionToken: vi.fn() }));
 vi.mock("@/services/api/client", () => {
   const answer = (method: string) => async (path: string, init: unknown) => {
@@ -305,6 +310,46 @@ describe("sendMessageAction", () => {
       await actions.sendMessageAction({ body: "", clientId: "nope" }),
     ).toMatchObject({ status: "error" });
     expect(state.calls).toHaveLength(0);
+  });
+});
+
+describe("admin chat lock action", () => {
+  it("saves the switch, then refreshes the open page from the action itself", async () => {
+    const admin = await import("@/features/chat/services/chat-admin-actions");
+    const cache = await import("next/cache");
+
+    vi.mocked(cache.refresh).mockClear();
+    vi.mocked(cache.revalidatePath).mockClear();
+    state.next = { status: 200, body: { enabled: false } };
+
+    expect(await admin.setChatEnabledAction(8, false)).toBeUndefined();
+    expect(state.calls.map((call) => [call.method, call.path])).toEqual([
+      ["PUT", "/v1/chat/trainees/{userId}/enabled"],
+    ]);
+    expect(state.calls[0]?.init).toMatchObject({
+      params: { path: { userId: 8 } },
+      body: { enabled: false },
+    });
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/users/8");
+    expect(cache.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("neither revalidates nor refreshes when the API refuses", async () => {
+    const admin = await import("@/features/chat/services/chat-admin-actions");
+    const cache = await import("next/cache");
+
+    vi.mocked(cache.refresh).mockClear();
+    vi.mocked(cache.revalidatePath).mockClear();
+    state.next = {
+      status: 404,
+      body: { code: "USER_NOT_FOUND", message: "not found" },
+    };
+
+    expect(await admin.setChatEnabledAction(8, true)).toMatchObject({
+      status: "error",
+    });
+    expect(cache.revalidatePath).not.toHaveBeenCalled();
+    expect(cache.refresh).not.toHaveBeenCalled();
   });
 });
 

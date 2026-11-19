@@ -1,5 +1,6 @@
 "use client";
 
+import { chatNicknameOr } from "@pt/contracts";
 import clsx from "clsx";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
@@ -57,7 +58,6 @@ import {
   USER_VIEWER,
 } from "@/features/chat/utils/chat-thread-rules";
 import { chatNotificationTags } from "@/features/chat/utils/clear-notifications";
-import { displayNameFor } from "@/features/chat/utils/display-name";
 import type { PresenceView } from "@/features/chat/utils/presence-status";
 import { useIsEmbedded } from "@/features/chat-bubbles/hooks/use-is-embedded";
 import type { DmReplyPostView } from "@/features/social/types/dm";
@@ -676,7 +676,7 @@ export const ChatThread = ({
       : (latestPeerName ?? fallbackPeerName);
   const typingName =
     viewer.role === "admin"
-      ? displayNameFor(profile.nicknames, "user", peerRealName)
+      ? chatNicknameOr(profile.nicknames, "user", peerRealName)
       : adminLabel(profile.nicknames, null, peerRealName, "pt");
 
   return (

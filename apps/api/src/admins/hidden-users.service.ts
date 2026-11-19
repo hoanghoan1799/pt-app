@@ -1,6 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
-import { HIDDEN_USERS_MESSAGES } from "@pt/contracts";
+import {
+  CHAT_USER_READER_KEY,
+  chatNicknameOr,
+  HIDDEN_USERS_MESSAGES,
+} from "@pt/contracts";
 import { DataSource, In } from "typeorm";
 
 import type { AdminActor } from "../auth/actor.js";
@@ -101,7 +105,11 @@ export class HiddenUsersService {
     return visible.map((row) => ({
       userId: row.userId,
       userName: row.userName,
-      displayName: nicknames.get(row.userId)?.trim() || row.userName,
+      displayName: chatNicknameOr(
+        nicknames.get(row.userId),
+        CHAT_USER_READER_KEY,
+        row.userName,
+      ),
       avatarUrl: avatarUrl("user", row.userId, row.avatarUpdatedAt),
     }));
   }

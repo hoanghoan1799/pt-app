@@ -10,6 +10,7 @@ import {
   resetChat,
 } from "./api-seed-chat";
 import { fillTraineeLogin } from "./auth";
+import { clickChatSwitch, getChatSwitch } from "./chat-switch";
 import { E2E_ADMIN, E2E_CHAT_NAME, E2E_CHAT_OFF_NAME } from "./config";
 import { shot } from "./shots";
 
@@ -93,9 +94,6 @@ const logInAsTrainee = async (page: Page, name: string) => {
 const getTabBar = (page: Page) =>
   page.getByRole("navigation", { name: "Chuyển mục" });
 
-const getChatSwitch = (page: Page) =>
-  page.getByRole("switch", { name: "Cho phép nhắn tin" });
-
 const getComposer = (page: Page) => page.getByLabel("Nội dung tin nhắn");
 
 const sendFromComposer = async (page: Page, text: string) => {
@@ -115,9 +113,8 @@ const setChatSwitch = async (page: Page, userId: number, enabled: boolean) => {
   const lock = getChatSwitch(page);
 
   await expect(lock).toHaveAttribute("aria-checked", String(!enabled));
-  await lock.click();
-  await expect(lock).toHaveAttribute("aria-checked", String(enabled));
-  // The page refreshes after the action; the lock state survives a reload.
+  await clickChatSwitch(lock, enabled);
+  // The lock state survives a reload.
   await page.reload();
   await expect(getChatSwitch(page)).toHaveAttribute(
     "aria-checked",

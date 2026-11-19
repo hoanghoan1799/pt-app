@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
+import { resolveDisplayName } from "@pt/contracts";
 import { DataSource } from "typeorm";
 
 import {
@@ -139,7 +140,7 @@ export class InsightsQueries {
       return {
         id: member.id,
         name: member.name,
-        displayName: aliases.get(member.id)?.trim() || member.name,
+        displayName: resolveDisplayName(aliases.get(member.id), member.name),
         avatarUpdatedAt: member.avatarUpdatedAt,
         ptAdminId: member.ptAdminId,
         ptName: member.ptName,

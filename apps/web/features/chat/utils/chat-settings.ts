@@ -1,3 +1,5 @@
+import { chatAdminLabel, chatNicknameOr, PT_ALIAS_TARGET } from "@pt/contracts";
+
 import {
   type ChatColorKey,
   DEFAULT_CHAT_COLOR,
@@ -5,7 +7,6 @@ import {
 } from "@/features/chat/utils/chat-palette";
 import { parseAdminTarget } from "@/features/chat/utils/chat-rules";
 import type { ThreadViewer } from "@/features/chat/utils/chat-thread-rules";
-import { displayNameFor } from "@/features/chat/utils/display-name";
 
 // Pure rules behind the conversation settings sheet and the coloured bubbles
 // (KAN-142, spec D1, D2, D4). Keys are "user", "pt" and "admin:<id>".
@@ -79,23 +80,15 @@ export const bubbleColorFor = (
 };
 
 // Name of a PT sender label: the conversation's nickname for that admin, else
-// for the trainee the shared PT one, else the real name.
+// (with fallbackKey "pt", the trainee's view) the shared PT one, else the real
+// name. The rule itself is chatAdminLabel in @pt/contracts.
 export const adminLabel = (
   nicknames: Readonly<Record<string, string>>,
   adminId: number | null,
   realName: string,
-  fallbackKey?: string,
-) => {
-  const own =
-    adminId === null ? undefined : nicknames[adminKey(adminId)]?.trim();
-
-  if (own) {
-    return own;
-  }
-  return fallbackKey
-    ? displayNameFor(nicknames, fallbackKey, realName)
-    : realName;
-};
+  fallbackKey?: typeof PT_ALIAS_TARGET,
+) =>
+  chatAdminLabel(nicknames, adminId, realName, fallbackKey === PT_ALIAS_TARGET);
 
 // Name of a reactor in the reactors sheet: their shared nickname (for an
 // admin, else for the trainee the shared PT one), else the real name.
@@ -108,7 +101,7 @@ export const reactorLabel = (
   const adminId = parseAdminTarget(reactorKey);
 
   if (adminId === null) {
-    return displayNameFor(nicknames, reactorKey, realName);
+    return chatNicknameOr(nicknames, reactorKey, realName);
   }
   return adminLabel(
     nicknames,

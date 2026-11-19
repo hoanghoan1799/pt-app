@@ -1,6 +1,7 @@
+import { chatNicknameOr } from "@pt/contracts";
+
 import { TIME_ZONE } from "@/constants/time";
 import { adminLabel } from "@/features/chat/utils/chat-settings";
-import { displayNameFor } from "@/features/chat/utils/display-name";
 import { getFormatTranslator } from "@/i18n/format-translator";
 import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
 import { formatShortDateTime } from "@/utils/time";
@@ -181,7 +182,7 @@ export const searchSenderLabel = (
           ? t("thread.peerDeleted")
           : adminLabel(nicknames, result.senderAdminId, result.senderName);
     }
-    return displayNameFor(
+    return chatNicknameOr(
       nicknames,
       "user",
       viewer.peerName ?? t("thread.trainee"),

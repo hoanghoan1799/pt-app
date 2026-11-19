@@ -113,7 +113,11 @@ export class ChatInboxService {
         conversationId: row.conversationId,
         userId: row.userId,
         userName: row.userName,
-        displayName: nicknames.get(row.userId)?.trim() || row.userName,
+        displayName: chatNicknameOr(
+          nicknames.get(row.userId),
+          CHAT_USER_READER_KEY,
+          row.userName,
+        ),
         chatEnabled: row.chatEnabled === true,
         preview: inboxPreview(
           {
@@ -267,7 +271,11 @@ export class ChatInboxService {
       conversationId,
       userId: trainee.traineeId,
       userName: trainee.name,
-      displayName: chatNicknameOr(profile.nicknames, "user", trainee.name),
+      displayName: chatNicknameOr(
+        profile.nicknames,
+        CHAT_USER_READER_KEY,
+        trainee.name,
+      ),
       chatEnabled: trainee.chatEnabled,
       avatarUrl: avatarUrl("user", trainee.traineeId, trainee.avatarUpdatedAt),
       lastSeenAt: iso(trainee.lastSeenAt),
@@ -343,7 +351,11 @@ export class ChatInboxService {
         return {
           userId,
           conversationId: conversation.id,
-          name: nicknames.get(userId)?.trim() || trainee.name,
+          name: chatNicknameOr(
+            nicknames.get(userId),
+            CHAT_USER_READER_KEY,
+            trainee.name,
+          ),
           avatarUrl: avatarUrl("user", userId, trainee.avatarUpdatedAt),
           lastSeenAt: iso(trainee.lastSeenAt),
         };

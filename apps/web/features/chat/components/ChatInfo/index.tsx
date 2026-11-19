@@ -1,5 +1,6 @@
 "use client";
 
+import { chatNicknameOr } from "@pt/contracts";
 import clsx from "clsx";
 import { ChevronRight, Search, SlidersHorizontal } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -21,7 +22,6 @@ import {
   type ChatProfileView,
 } from "@/features/chat/utils/chat-settings";
 import type { ThreadViewer } from "@/features/chat/utils/chat-thread-rules";
-import { displayNameFor } from "@/features/chat/utils/display-name";
 import {
   type GalleryPhoto,
   photoLabel,
@@ -93,7 +93,7 @@ export const ChatInfo = ({
     fromThread: undefined,
   });
   const shownName = isAdmin
-    ? displayNameFor(profile.nicknames, "user", peerName)
+    ? chatNicknameOr(profile.nicknames, "user", peerName)
     : adminLabel(profile.nicknames, null, peerName, "pt");
 
   return (

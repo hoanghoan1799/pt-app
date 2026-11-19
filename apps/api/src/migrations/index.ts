@@ -12,6 +12,7 @@ import { ReportMessages1795600000000 } from "./1795600000000-ReportMessages.js";
 import { UserRestrictions1795700000000 } from "./1795700000000-UserRestrictions.js";
 import { AccentTheme1795800000000 } from "./1795800000000-AccentTheme.js";
 import { ChatGroups1795900000000 } from "./1795900000000-ChatGroups.js";
+import { ChatNicknameValue1796000000000 } from "./1796000000000-ChatNicknameValue.js";
 
 // Every migration, oldest first. Add new ones here; a test fails if a file in
 // this folder is missing from the list.
@@ -30,4 +31,5 @@ export const migrations = [
   UserRestrictions1795700000000,
   AccentTheme1795800000000,
   ChatGroups1795900000000,
+  ChatNicknameValue1796000000000,
 ];
