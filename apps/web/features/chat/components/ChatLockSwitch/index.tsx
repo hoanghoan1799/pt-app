@@ -1,7 +1,6 @@
 "use client";
 
 import clsx from "clsx";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 
@@ -14,10 +13,12 @@ interface ChatLockSwitchProps {
 }
 
 // "Cho phép nhắn tin" switch for one trainee (S1). Optimistic: flips at once,
-// rolls back with an error text if the action fails.
+// stays busy (disabled, aria-busy) until the server action answers, and rolls
+// back with an error text if it fails. The action revalidates the page, so
+// its response already carries the refreshed page; no router.refresh() on top
+// (it only rendered the whole page a second time).
 export const ChatLockSwitch = ({ userId, enabled }: ChatLockSwitchProps) => {
   const t = useTranslations("chat.chatLockSwitch");
-  const router = useRouter();
   const [checked, setChecked] = useState(enabled);
   const [knownEnabled, setKnownEnabled] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
@@ -41,9 +42,7 @@ export const ChatLockSwitch = ({ userId, enabled }: ChatLockSwitchProps) => {
         if (result.status === "error") {
           setChecked(!next);
           setError(result.message);
-          return;
         }
-        router.refresh();
       } catch {
         setChecked(!next);
         setError(t("failed"));

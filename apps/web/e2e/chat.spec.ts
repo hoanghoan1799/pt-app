@@ -116,8 +116,14 @@ const setChatSwitch = async (page: Page, userId: number, enabled: boolean) => {
 
   await expect(lock).toHaveAttribute("aria-checked", String(!enabled));
   await lock.click();
+  // The switch flips at once (optimistic) and stays busy until the server
+  // action answers. Reloading before that aborts the action's response
+  // ("The destination stream closed early") and can render the page before
+  // the API saved the change, so wait for the action to settle first.
+  await expect(lock).toHaveAttribute("aria-busy", "false");
+  await expect(lock).toBeEnabled();
   await expect(lock).toHaveAttribute("aria-checked", String(enabled));
-  // The page refreshes after the action; the lock state survives a reload.
+  // The lock state survives a reload.
   await page.reload();
   await expect(getChatSwitch(page)).toHaveAttribute(
     "aria-checked",
