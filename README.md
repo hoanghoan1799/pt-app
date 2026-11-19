@@ -71,7 +71,7 @@ Mở http://localhost:3000 (user) và http://localhost:3000/admin/login (admin).
 
 Admin mới (user thường) được tạo trong giao diện admin; `pnpm admin:create` chỉ tạo super admin đầu tiên và không ghi đè admin đã có.
 
-Nếu cổng 5432 hoặc 4000 đã bị chiếm (ví dụ máy đã có PostgreSQL từ Homebrew), đổi cổng phía host: `DB_PORT=55432 API_PORT=4400 docker compose up -d --build db api`. Khi đó cập nhật cổng trong `DATABASE_URL` (apps/api/.env) và `API_URL` (apps/web/.env.local) cho khớp.
+Nếu cổng 5432 hoặc 4000 đã bị chiếm (ví dụ máy đã có PostgreSQL từ Homebrew), đổi cổng phía host: `DB_PORT=55432 API_PORT=4400 docker compose up -d --build db api`. Khi đó cập nhật cổng trong `DATABASE_URL` (apps/api/.env), `API_URL` và `NEXT_PUBLIC_API_URL` (apps/web/.env.local) cho khớp.
 
 Để mở trên iPhone cùng mạng Wi-Fi, dùng địa chỉ `Network` mà `next dev` in ra.
 
