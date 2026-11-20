@@ -139,9 +139,8 @@ export const HeaderMenus = ({
   const [isHidden, setIsHidden] = useState(isPresenceHidden);
   const [theme, setTheme] = useState<Theme>("system");
   const [isPending, startTransition] = useTransition();
-  // Theme paints at once, so its save never blocks the other controls; the
-  // Giao diện group is only marked busy until the save has answered.
-  const [isThemeSaving, startThemeTransition] = useTransition();
+  // Theme paints at once, so its save never blocks the other controls.
+  const [, startThemeTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRefs = useRef<Record<MenuId, HTMLButtonElement | null>>({
@@ -214,16 +213,8 @@ export const HeaderMenus = ({
     // Paint now; the cookie makes the server render the same value next time.
     paintTheme(next);
     setTheme(next);
-    // Awaited so the transition lasts until the action has answered: setting
-    // the cookie re-renders the page (and its theme-color) into the action's
-    // response, which a reload or navigation before then would abort.
-    startThemeTransition(async () => {
-      try {
-        await setThemeAction(next);
-      } catch {
-        // The new theme is already painted; a failed save only means the
-        // next page load renders the old cookie. Nothing to show here.
-      }
+    startThemeTransition(() => {
+      void setThemeAction(next);
     });
   };
 
@@ -345,7 +336,6 @@ export const HeaderMenus = ({
               <div
                 role="group"
                 aria-label={t("appearance")}
-                aria-busy={isThemeSaving}
                 className="px-1.5 py-1"
               >
                 <p className={SECTION_HEADING}>

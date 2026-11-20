@@ -12,20 +12,23 @@ const gear = (page: Page) =>
 const avatar = (page: Page) =>
   header(page).getByRole("button", { name: "Tài khoản" });
 
-// Picks a theme in the open gear menu and waits until it is saved. The
-// Giao diện group stays busy while setThemeAction runs: the cookie it sets
-// re-renders the page into the action's response, and a reload, a navigation
-// or the end of the test before that aborts it ("The destination stream
-// closed early").
-const pickTheme = async (page: Page, name: string) => {
-  const option = page.getByRole("menuitemradio", { name });
+const THEME_VALUES = { Sáng: "light", Tối: "dark", "Hệ thống": "system" };
 
-  await option.click();
-  await expect(option).toHaveAttribute("aria-checked", "true");
-  await expect(page.getByRole("group", { name: "Giao diện" })).toHaveAttribute(
-    "aria-busy",
-    "false",
+// Picks a theme in the open gear menu and waits until its save has fully
+// answered. The page paints the theme at once, but setThemeAction sets a
+// cookie, so Next re-renders the whole page into the action's POST response;
+// reloading or ending the test while that still streams aborts it ("The
+// destination stream closed early").
+const pickTheme = async (page: Page, name: keyof typeof THEME_VALUES) => {
+  const saved = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      Boolean(response.request().headers()["next-action"]) &&
+      response.request().postData() === JSON.stringify([THEME_VALUES[name]]),
   );
+
+  await page.getByRole("menuitemradio", { name }).click();
+  await (await saved).finished();
 };
 
 const logInAsTrainee = async (page: Page) => {
@@ -113,6 +116,11 @@ test("Hệ thống follows the OS color scheme and a forced theme overrides it",
     "rgb(244, 244, 245)",
   );
   await pickTheme(page, "Hệ thống");
+  // Back on Hệ thống, the dark OS scheme wins again.
+  await expect(page.locator("body")).toHaveCSS(
+    "background-color",
+    "rgb(12, 12, 14)",
+  );
 });
 
 test("a tampered theme cookie falls back to system", async ({
