@@ -98,7 +98,8 @@
     "youLower": "bạn",
     "trainee": "Học viên",
     "pt": "PT",
-    "peerDeleted": "PT (đã xoá)"
+    "peerDeleted": "PT (đã xoá)",
+    "deletedMember": "Thành viên đã xoá"
   },
   "fallback": {
     "deletedAccount": "Đã xóa",

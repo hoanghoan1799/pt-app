@@ -6,7 +6,7 @@ import {
   isChatColorKey,
 } from "@/features/chat/utils/chat-palette";
 import { parseAdminTarget } from "@/features/chat/utils/chat-rules";
-import type { ThreadViewer } from "@/features/chat/utils/chat-thread-rules";
+import type { CoachViewer } from "@/features/chat/utils/chat-thread-rules";
 
 // Pure rules behind the conversation settings sheet and the coloured bubbles
 // (KAN-142, spec D1, D2, D4). Keys are "user", "pt" and "admin:<id>".
@@ -37,7 +37,7 @@ export interface NicknameTarget {
 // trainee ("user") and themselves ("admin:<id>"). `self` is also whose bubble
 // colour the sheet picks.
 export const settingsTargets = (
-  viewer: ThreadViewer,
+  viewer: CoachViewer,
   names: { peerName: string; selfName: string },
 ): { other: NicknameTarget; self: NicknameTarget } =>
   viewer.role === "admin"

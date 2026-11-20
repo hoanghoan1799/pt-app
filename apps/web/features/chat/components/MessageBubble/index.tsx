@@ -68,6 +68,8 @@ interface MessageBubbleProps {
   onOpenReactors: (message: ThreadMessage, emoji: string) => void;
   onOpenHistory: (message: ThreadMessage) => void;
   onJumpToReply: (messageId: number) => void;
+  // Group chat: opens "Seen by N" under my own newest bubble of a run.
+  onOpenSeenBy?: (message: ThreadMessage) => void;
   nicknames?: Readonly<Record<string, string>>;
   // The sender's photo (versioned URL) beside their bubbles; initials if null.
   avatarSrc?: string | null;
@@ -96,6 +98,7 @@ export const MessageBubble = ({
   onOpenReactors,
   onOpenHistory,
   onJumpToReply,
+  onOpenSeenBy,
   color: pickedColor = null,
   isNeutral = false,
   nicknames,
@@ -112,10 +115,14 @@ export const MessageBubble = ({
     showAvatar,
     avatarName,
     statusLine,
+    senderTag = null,
+    senderDeleted = false,
   } = item;
   const isFailed = message.delivery === "failed";
   const isSending = message.delivery === "sending";
   const isUnsent = message.deleted;
+  // A manager hid it (group chat): a placeholder, the text stays on the server.
+  const isHidden = message.hidden === true && !isUnsent;
   const { sticker } = message;
   // The photos of the message in order; one photo keeps the single image, more
   // than one is a grid.
@@ -130,6 +137,9 @@ export const MessageBubble = ({
   const isInteractive = message.id !== null && !isUnsent;
   const locale = useLocale();
   const t = useTranslations("chat.messageBubble");
+  const tGroup = useTranslations("chatGroups");
+  const shownName =
+    senderName ?? (senderDeleted ? tGroup("thread.deletedMember") : null);
   const [isViewerOpen, setViewerOpen] = useState(false);
   // The grid's viewer: which photo is on screen, and the tile the last pointer
   // tap landed on (the gesture opens the viewer after the double-tap window).
@@ -163,7 +173,7 @@ export const MessageBubble = ({
         isFirstInRun ? "mt-3" : "mt-0.5",
       )}
     >
-      {senderName && (
+      {shownName && (
         <p
           className={clsx(
             "mb-1 max-w-[75%] truncate text-xs font-medium text-muted",
@@ -171,7 +181,14 @@ export const MessageBubble = ({
             sideMargin,
           )}
         >
-          {senderName}
+          {shownName}
+          {senderTag && (
+            <span className="ml-1.5 rounded bg-accent/15 px-1.5 py-px align-middle text-[10px] font-semibold text-accent">
+              {tGroup(
+                senderTag === "manager" ? "thread.managerTag" : "thread.ptTag",
+              )}
+            </span>
+          )}
           {senderVerified && <VerifiedBadge className="ml-1" />}
         </p>
       )}
@@ -207,7 +224,7 @@ export const MessageBubble = ({
           }
           className={clsx(
             "flex max-w-[75%] touch-manipulation flex-col rounded-[1.25rem] text-[15px] leading-snug select-none [-webkit-touch-callout:none] focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:outline-none",
-            isUnsent
+            isUnsent || isHidden
               ? "border border-line px-3.5 py-2 text-muted italic"
               : isSticker
                 ? mine
@@ -264,7 +281,7 @@ export const MessageBubble = ({
           {message.post && !isUnsent && (
             <DmPostQuote
               post={message.post}
-              mode={viewer.role}
+              mode={viewer.role === "admin" ? "admin" : "user"}
               className="mb-1.5 w-64 max-w-full"
             />
           )}
@@ -296,7 +313,7 @@ export const MessageBubble = ({
               {photo && hasPhoto && !isGrid && (
                 <ChatPhotoImage photo={photo} isDimmed={mine && isSending} />
               )}
-              {(isUnsent || message.body !== "" || !hasPhoto) && (
+              {(isUnsent || isHidden || message.body !== "" || !hasPhoto) && (
                 <p
                   className={clsx(
                     "break-words whitespace-pre-wrap",
@@ -305,6 +322,8 @@ export const MessageBubble = ({
                 >
                   {isUnsent ? (
                     unsentText(locale)
+                  ) : isHidden ? (
+                    tGroup("thread.hiddenByManager")
                   ) : (
                     <LinkedText body={message.body} />
                   )}
@@ -391,6 +410,20 @@ export const MessageBubble = ({
           </button>
         </p>
       )}
+      {mine &&
+        onOpenSeenBy &&
+        isLastInRun &&
+        message.id !== null &&
+        !isUnsent &&
+        (message.seenCount ?? 0) > 0 && (
+          <button
+            type="button"
+            onClick={() => onOpenSeenBy(message)}
+            className="mt-1 mr-1 rounded px-0.5 text-xs text-muted underline-offset-2 active:underline"
+          >
+            {tGroup("thread.seenBy", { count: message.seenCount ?? 0 })}
+          </button>
+        )}
       {statusLine && isLastInRun && (
         <p className="mt-1 mr-1 text-xs text-muted">{statusLine}</p>
       )}

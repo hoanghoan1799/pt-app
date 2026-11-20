@@ -28,6 +28,9 @@ const call = async <Result = Json>(
   return (response.status === 204 ? {} : await response.json()) as Result;
 };
 
+// For the other seed files (groups) that call the API the same way.
+export const callE2eApi = call;
+
 export const loginAdminViaApi = async (
   username: string = E2E_ADMIN.username,
   password: string = E2E_ADMIN.password,

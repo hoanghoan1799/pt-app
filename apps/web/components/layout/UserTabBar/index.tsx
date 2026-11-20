@@ -51,11 +51,12 @@ const isUnder = (pathname: string, base: string) =>
 export const UserTabBar = () => {
   const t = useTranslations("layout.userTabs");
   const pathname = usePathname();
-  // The inbox keeps the bar; every thread (coach or friend) has its own
+  // The inbox keeps the bar; every thread (coach, friend or group) has its own
   // header and composer, which the bar would cover.
   const inChat =
     isUnder(pathname, ROUTES.MESSAGES_COACH) ||
-    isUnder(pathname, ROUTES.MESSAGES_DM);
+    isUnder(pathname, ROUTES.MESSAGES_DM) ||
+    isUnder(pathname, ROUTES.MESSAGES_GROUPS);
   const isEmbedded = useIsEmbedded();
   const unread = useChatUnread(inChat || isEmbedded);
 

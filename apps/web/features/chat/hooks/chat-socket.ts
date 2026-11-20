@@ -227,6 +227,16 @@ export const sendSocketTyping = (
   conversationId: number | null,
 ) => connectionFor(role).emitTyping(conversationId);
 
+// The group a `group:*` payload names, when it names one.
+export const groupIdOf = (data: unknown) => {
+  const value = (data as { groupId?: unknown } | null)?.groupId;
+
+  return typeof value === "number" ? value : null;
+};
+
+// Whether a socket event is about group chats (any group).
+export const isGroupEvent = (name: string) => name.startsWith("group:");
+
 // The conversation a payload names, when it names one.
 export const conversationIdOf = (data: unknown) => {
   const value = (data as { conversationId?: unknown } | null)?.conversationId;

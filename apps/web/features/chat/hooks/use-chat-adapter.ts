@@ -17,18 +17,19 @@ import {
   adminReactMessageAction,
   adminUnsendMessageAction,
 } from "@/features/chat/services/chat-admin-actions";
-import type { ThreadViewer } from "@/features/chat/utils/chat-thread-rules";
+import type { CoachViewer } from "@/features/chat/utils/chat-thread-rules";
 import { contentInput } from "@/features/chat/utils/content-input";
 import { PHOTO_ERRORS } from "@/features/chat/utils/photo-rules";
 
 const USER_MESSAGES_URL = "/api/chat/messages";
 
-// Raw bytes to /api/chat/photos; the server reads type and size from them.
-const uploadPhotoTo = async (blob: Blob, query: string) => {
+// Raw bytes to a photo upload route (the coach chat's /api/chat/photos, or a
+// group's); the server reads type and size from them. Returns the photo id.
+export const uploadChatPhoto = async (blob: Blob, url: string) => {
   let response: Response;
 
   try {
-    response = await fetch(`/api/chat/photos${query}`, {
+    response = await fetch(url, {
       method: "POST",
       body: blob,
     });
@@ -50,7 +51,7 @@ const uploadPhotoTo = async (blob: Blob, query: string) => {
 // actions cannot be passed down from a server page as plain props with extra
 // arguments, so the adapter is built here from serializable inputs.
 export const useChatAdapter = (
-  viewer: ThreadViewer,
+  viewer: CoachViewer,
   userId: number,
   conversationId: number | null,
 ): ChatAdapter => {
@@ -70,7 +71,7 @@ export const useChatAdapter = (
           `/api/admin/chat/${cid}/messages/${messageId}/edits`,
         viewer: { role, adminId, adminName, peerName, isSuperAdmin },
         uploadPhoto: (blob) =>
-          uploadPhotoTo(blob, `?as=admin&userId=${userId}`),
+          uploadChatPhoto(blob, `/api/chat/photos?as=admin&userId=${userId}`),
         sendMessage: (content, clientId, replyToMessageId, postId) =>
           adminSendMessageAction({
             userId,
@@ -96,7 +97,7 @@ export const useChatAdapter = (
       messagesUrl: USER_MESSAGES_URL,
       editsUrl: (messageId) => `${USER_MESSAGES_URL}/${messageId}/edits`,
       viewer: { role: "user" },
-      uploadPhoto: (blob) => uploadPhotoTo(blob, ""),
+      uploadPhoto: (blob) => uploadChatPhoto(blob, "/api/chat/photos"),
       sendMessage: (content, clientId, replyToMessageId, postId) =>
         sendMessageAction({
           ...contentInput(content),

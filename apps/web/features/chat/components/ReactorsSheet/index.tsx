@@ -49,7 +49,7 @@ export const ReactorsSheet = ({
                     nicknames,
                     reaction.reactorKey,
                     reaction.reactorName,
-                    viewer.role,
+                    viewer.role === "admin" ? "admin" : "user",
                   )}
             </span>
             <span className="text-2xl" aria-label={reaction.emoji}>

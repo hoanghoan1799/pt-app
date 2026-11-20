@@ -5,6 +5,8 @@
 const PREFIXES: readonly (readonly [string, string])[] = [
   ["/v1/chat/photos/", "/api/chat/photos/"],
   ["/v1/chat/stickers/custom/", "/api/chat/stickers/custom/"],
+  // Group message photos and the signed group photo.
+  ["/v1/chat/groups/", "/api/chat/groups/"],
   ["/v1/dm/photos/", "/api/dm/photos/"],
   ["/v1/social/photos/", "/api/social/photos/"],
   ["/v1/avatars/", "/api/avatar/"],

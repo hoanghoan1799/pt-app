@@ -285,5 +285,18 @@
     "REASON_REQUIRED": "请填写封禁原因",
     "REASON_TOO_LONG": "封禁原因最多 300 个字符",
     "NOT_RESTRICTED": "该学员目前没有被封禁"
+  },
+  "chatGroups": {
+    "GROUP_NOT_FOUND": "找不到该群聊",
+    "INVALID_INPUT": "群聊信息无效",
+    "NAME_INVALID": "群名称需为 1 到 60 个字符",
+    "MANAGERS_ONLY": "此群仅管理员可发言",
+    "GROUP_FULL": "群成员已满 50 人",
+    "NOT_MANAGER": "你无法管理此群",
+    "MANAGER_CANNOT_LEAVE": "超级管理员不能退出群聊",
+    "MEMBER_NOT_FOUND": "该成员不在群内",
+    "CANNOT_REMOVE_MANAGER": "无法将超级管理员移出群聊",
+    "ALERT_NOT_FOUND": "找不到该提醒",
+    "ALERT_HANDLED": "该提醒已被处理"
   }
 }

@@ -8,14 +8,17 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { ROUTES } from "@/constants/routes";
 import { CARD, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
+import { InboxLiveRefresh } from "@/features/chat/components/InboxLiveRefresh";
 import { loadUserUnread } from "@/features/chat/services/chat-queries";
 import { BubbleRowTrigger } from "@/features/chat-bubbles/components/BubbleRowTrigger";
 import { bubbleKeyFor } from "@/features/chat-bubbles/utils/bubble-links";
+import { GroupInboxSection } from "@/features/chat-groups/components/GroupInboxSection";
+import { listMyGroups } from "@/features/chat-groups/services/group-queries";
 import { DmInboxRefresh } from "@/features/social/components/DmInboxRefresh";
 import { listDmInbox } from "@/features/social/services/dm-api";
 import { dmPath } from "@/features/social/utils/dm-rules";
 import { requireUser } from "@/services/auth-guard";
-import { formatRelativeTime } from "@/utils/time";
+import { formatRelativeTime, getRequestTime } from "@/utils/time";
 
 export const generateMetadata = async (): Promise<Metadata> => {
   const t = await getTranslations("chat.pages");
@@ -34,18 +37,24 @@ const UnreadDot = ({ label }: { label: string }) => (
 );
 
 // The Messages tab: the coach chat first (unchanged, under /messages/coach),
-// then the old read-only chats with friends (shown only when any exist).
+// then the groups the trainee is in, then the old read-only chats with
+// friends (each shown only when any exist).
 const MessagesInboxPage = async () => {
   const t = await getTranslations("chat.pages");
   const dm = await getTranslations("social.dm");
   const locale = await getLocale();
   const user = await requireUser();
-  const [unread, chats] = await Promise.all([loadUserUnread(), listDmInbox()]);
+  const [unread, chats, groups] = await Promise.all([
+    loadUserUnread(),
+    listDmInbox(),
+    listMyGroups("user"),
+  ]);
 
   return (
     <>
       <AppHeader title={dm("inboxTitle")} />
       <DmInboxRefresh />
+      <InboxLiveRefresh role="user" />
       <main
         className={`${PAGE_CONTAINER} space-y-3 pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]`}
       >
@@ -72,6 +81,15 @@ const MessagesInboxPage = async () => {
             </BubbleRowTrigger>
           </li>
         </ul>
+        {groups.length > 0 && (
+          <GroupInboxSection
+            groups={groups}
+            role="user"
+            viewerKey={`user:${user.id}`}
+            nowMs={getRequestTime()}
+            showEmptyHint={false}
+          />
+        )}
         {chats.length > 0 && (
           <>
             <h2 className={SECTION_TITLE}>{t("friendsSection")}</h2>

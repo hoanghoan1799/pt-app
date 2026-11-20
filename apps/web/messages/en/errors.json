@@ -285,5 +285,18 @@
     "REASON_REQUIRED": "Enter the reason for the block",
     "REASON_TOO_LONG": "The reason can have at most 300 characters",
     "NOT_RESTRICTED": "This trainee is not blocked right now"
+  },
+  "chatGroups": {
+    "GROUP_NOT_FOUND": "This group chat was not found",
+    "INVALID_INPUT": "The group details are not valid",
+    "NAME_INVALID": "The group name must be 1 to 60 characters",
+    "MANAGERS_ONLY": "Only managers can send messages in this group",
+    "GROUP_FULL": "The group already has 50 members",
+    "NOT_MANAGER": "You cannot manage this group",
+    "MANAGER_CANNOT_LEAVE": "A super admin cannot leave the group",
+    "MEMBER_NOT_FOUND": "This member is not in the group",
+    "CANNOT_REMOVE_MANAGER": "A super admin cannot be removed from the group",
+    "ALERT_NOT_FOUND": "This alert was not found",
+    "ALERT_HANDLED": "This alert has already been handled"
   }
 }

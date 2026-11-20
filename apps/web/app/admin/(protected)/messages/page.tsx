@@ -9,6 +9,7 @@ import { AdminInbox } from "@/features/chat/components/AdminInbox";
 import { InboxLiveRefresh } from "@/features/chat/components/InboxLiveRefresh";
 import { PushOptInCard } from "@/features/chat/components/PushOptInCard";
 import { listAdminInbox } from "@/features/chat/services/chat-queries";
+import { listMyGroups } from "@/features/chat-groups/services/group-queries";
 import { requireAdmin } from "@/services/auth-guard";
 import { readSearchParam } from "@/utils/search-params";
 import { getRequestTime } from "@/utils/time";
@@ -36,7 +37,10 @@ const AdminMessagesInboxPage = async ({
   const admin = await requireAdmin();
   const query = await searchParams;
   const isUnreadOnly = readSearchParam(query.filter) === UNREAD_FILTER;
-  const { conversations, withoutConversation } = await listAdminInbox();
+  const [{ conversations, withoutConversation }, groups] = await Promise.all([
+    listAdminInbox(),
+    listMyGroups("admin"),
+  ]);
   const items = isUnreadOnly
     ? conversations.filter((item) => item.unread > 0)
     : conversations;
@@ -54,6 +58,7 @@ const AdminMessagesInboxPage = async ({
         nowMs={getRequestTime()}
         hasPasscode={admin.hasPasscode}
         isUnreadOnly={isUnreadOnly}
+        groups={groups}
         filters={
           <>
             <PushOptInCard role="admin" />
