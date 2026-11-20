@@ -40,12 +40,15 @@ const AdminReportsPage = async () => {
         <h2 className={SECTION_TITLE}>
           {t("pending", { count: reports.length })}
         </h2>
-        {reports.length === 0 ? (
-          <p className={`${CARD} p-6 text-center text-muted`}>
-            {t("emptyList")}
-          </p>
-        ) : (
-          <ReportBlockHost>
+        {/* Above the list, not inside it: "Ẩn + chặn" resolves the report
+            first, so the last one leaves an empty list behind while its
+            block sheet is still open. */}
+        <ReportBlockHost>
+          {reports.length === 0 ? (
+            <p className={`${CARD} p-6 text-center text-muted`}>
+              {t("emptyList")}
+            </p>
+          ) : (
             <ul className="space-y-3">
               {reports.map((report) => (
                 <li key={report.id} className={`${CARD} space-y-3 p-4`}>
@@ -125,8 +128,8 @@ const AdminReportsPage = async () => {
                 </li>
               ))}
             </ul>
-          </ReportBlockHost>
-        )}
+          )}
+        </ReportBlockHost>
       </main>
       <ScrollToTopButton />
     </>

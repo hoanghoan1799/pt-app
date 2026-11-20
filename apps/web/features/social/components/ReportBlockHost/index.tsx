@@ -19,6 +19,8 @@ export const ReportBlockHost = ({ children }: { children: ReactNode }) => {
       {children}
       {userId !== null && (
         <BlockUserSheet
+          // A fresh form per trainee: no reason or level carried over.
+          key={userId}
           userId={userId}
           isOpen
           onOpenChange={(isOpen) => {
