@@ -35,15 +35,20 @@ import { ChatGroupPhoto } from "./chat-group-photo.entity.js";
   "chat_group_messages_hidden_pair",
   `("hidden_by_key" IS NULL) = ("hidden_at" IS NULL)`,
 )
-// Unique so that a reply, last_message_id and a photo can reference the pair
-// (group_id, id): all must name a message of the same group.
+// Unique so that a reply, last_message_id, a photo and a member's read cursor
+// can reference the pair (group_id, id): all must name a message of the same
+// group.
 @Index("chat_group_messages_group_id", ["groupId", "id"], { unique: true })
 // Unique only so that chat_group_photos can be referenced by (id, photo_id).
 @Index("chat_group_messages_id_photo", ["id", "photoId"], { unique: true })
-// A retried send is a no-op; system lines have no client id (NULLs differ).
-@Index("chat_group_messages_group_client", ["groupId", "clientId"], {
-  unique: true,
-})
+// A retried send by the same sender is a no-op; another member may use the
+// same client id (as chat_messages / dm_messages since DbIntegrity). System
+// lines have no sender and no client id (NULLs differ).
+@Index(
+  "chat_group_messages_group_sender_client",
+  ["groupId", "senderKey", "clientId"],
+  { unique: true },
+)
 @ForeignKey(
   () => ChatGroupMessage,
   ["groupId", "replyToMessageId"],

@@ -665,9 +665,9 @@ describe("data migration from a Turso/SQLite copy", () => {
         "92",
       ]);
       // Message 92's cover is photo 92, which is attached to message 1.
-      expect(keys("chat_messages", "photo_id", "photo_link_mismatch")).toEqual(
-        ["92"],
-      );
+      expect(keys("chat_messages", "photo_id", "photo_link_mismatch")).toEqual([
+        "92",
+      ]);
       expect(
         keys("chat_custom_stickers", "size", "size_not_byte_length"),
       ).toEqual(["92"]);
@@ -808,8 +808,9 @@ describe("data migration from a Turso/SQLite copy", () => {
         member_key: string;
         member_user_id: number | null;
         member_admin_id: number | null;
+        last_read_message_id: number | null;
       }[] = await db.dataSource.query(
-        `SELECT member_key, member_user_id, member_admin_id FROM chat_group_members ORDER BY member_key`,
+        `SELECT member_key, member_user_id, member_admin_id, last_read_message_id FROM chat_group_members ORDER BY member_key`,
       );
       const [colors] = await db.dataSource.query(
         `SELECT (SELECT accent_color FROM users WHERE id = 1) AS "user", (SELECT accent_color FROM admins WHERE id = 1) AS "admin"`,
@@ -820,9 +821,20 @@ describe("data migration from a Turso/SQLite copy", () => {
         { id: 1, silent: false, photo_id: null },
         { id: 2, silent: false, photo_id: 1 },
       ]);
+      // admin:3 never read (SQLite 0, PostgreSQL NULL).
       expect(members).toEqual([
-        { member_key: "admin:3", member_user_id: null, member_admin_id: 3 },
-        { member_key: "user:1", member_user_id: 1, member_admin_id: null },
+        {
+          member_key: "admin:3",
+          member_user_id: null,
+          member_admin_id: 3,
+          last_read_message_id: null,
+        },
+        {
+          member_key: "user:1",
+          member_user_id: 1,
+          member_admin_id: null,
+          last_read_message_id: 2,
+        },
       ]);
       expect(colors).toEqual({ user: "#3366cc", admin: "#ff8800" });
     });
@@ -881,11 +893,7 @@ describe("data migration from a Turso/SQLite copy", () => {
         ),
       ).toEqual(["91"]);
       expect(
-        keys(
-          "chat_group_messages",
-          "photo_id",
-          "photo_link_mismatch",
-        ),
+        keys("chat_group_messages", "photo_id", "photo_link_mismatch"),
       ).toEqual(["92"]);
       expect(
         keys(
@@ -973,10 +981,92 @@ describe("data migration from a Turso/SQLite copy", () => {
 
       // Both blocks are still active (never lifted).
       expect(restrictions).toEqual([
-        { id: 90, lifted_at: null, lifted_by_admin_id: null, created_by_admin_id: 1 },
-        { id: 91, lifted_at: null, lifted_by_admin_id: null, created_by_admin_id: null },
+        {
+          id: 90,
+          lifted_at: null,
+          lifted_by_admin_id: null,
+          created_by_admin_id: 1,
+        },
+        {
+          id: 91,
+          lifted_at: null,
+          lifted_by_admin_id: null,
+          created_by_admin_id: null,
+        },
       ]);
       expect(user.accent_color).toBeNull();
+    });
+
+    it("resolves duplicate active restrictions and dangling read cursors as the GroupChatRestrictionKeys migration does, lists them and verifies", async () => {
+      const { fixture, db } = await setup("company-dirty");
+      const { exitCode, report, output } = await migrate(fixture, db, {
+        orphans: "skip",
+      });
+
+      expect(exitCode, output).toBe(0);
+      expect(report.tables.every((row) => row.match)).toBe(true);
+
+      const restrictions: {
+        id: number;
+        lifted_at: Date | null;
+        lifted_by_admin_id: number | null;
+      }[] = await db.dataSource.query(
+        `SELECT id, lifted_at, lifted_by_admin_id FROM user_restrictions WHERE id BETWEEN 90 AND 96 ORDER BY id`,
+      );
+      const active: { user_id: number; id: number }[] =
+        await db.dataSource.query(
+          `SELECT user_id, id FROM user_restrictions WHERE lifted_at IS NULL ORDER BY user_id`,
+        );
+      const members: {
+        member_key: string;
+        last_read_message_id: number | null;
+      }[] = await db.dataSource.query(
+        `SELECT member_key, last_read_message_id FROM chat_group_members WHERE group_id = 1 ORDER BY member_key`,
+      );
+
+      const lift = (
+        id: number,
+        at: number | null,
+        by: number | null = null,
+      ) => ({
+        id,
+        lifted_at: at === null ? null : new Date(1_700_000_000_000 + at),
+        lifted_by_admin_id: by,
+      });
+
+      expect(restrictions).toEqual([
+        // Trainee 5's only active block: lifted_by without a time is cleared.
+        lift(90, null),
+        lift(91, null),
+        // Ended at its own until, before 93 came.
+        lift(92, 8150),
+        // Replaced by 94.
+        lift(93, 8300),
+        lift(94, null),
+        // Was lifted before it was created.
+        lift(95, 8400),
+        // Replaced by 92; it now has a lift time, so its lifter stays.
+        lift(96, 8100, 1),
+      ]);
+      expect(active).toEqual([
+        { user_id: 1, id: 91 },
+        { user_id: 2, id: 94 },
+        { user_id: 5, id: 90 },
+      ]);
+      // 0 is NULL (nothing read); a missing message and another group's
+      // message are cleared; a real cursor stays.
+      expect(members).toEqual([
+        { member_key: "admin:1", last_read_message_id: null },
+        { member_key: "admin:3", last_read_message_id: null },
+        { member_key: "user:1", last_read_message_id: 2 },
+        { member_key: "user:5", last_read_message_id: null },
+      ]);
+      expect(report.warnings).toEqual(
+        expect.arrayContaining([
+          "user_restrictions: 3 older active restriction(s) of the same trainee lifted (the newest stays active): 93, 92, 96",
+          "chat_group_members: 2 read cursor(s) naming no message of their group cleared: 1:admin:1, 1:user:5",
+        ]),
+      );
     });
   });
 
