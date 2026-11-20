@@ -7,6 +7,7 @@ export const CLIENT_NAMESPACES = [
   "auth",
   "avatar",
   "chat",
+  "chatGroups",
   "common",
   "dashboard",
   "foods",

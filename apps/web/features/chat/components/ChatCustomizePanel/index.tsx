@@ -25,7 +25,7 @@ import {
   type ChatProfileView,
   settingsTargets,
 } from "@/features/chat/utils/chat-settings";
-import type { ThreadViewer } from "@/features/chat/utils/chat-thread-rules";
+import type { CoachViewer } from "@/features/chat/utils/chat-thread-rules";
 import { AliasField } from "@/features/contact-aliases/components/AliasField";
 import { cn } from "@/utils/cn";
 
@@ -36,7 +36,7 @@ interface ActionResult {
 }
 
 export interface ChatCustomizePanelProps {
-  viewer: ThreadViewer;
+  viewer: CoachViewer;
   conversationId: number | null;
   // Real names, shown when there is no nickname.
   peerName: string;

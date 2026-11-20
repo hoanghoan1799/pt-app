@@ -98,7 +98,8 @@
     "youLower": "你",
     "trainee": "学员",
     "pt": "教练",
-    "peerDeleted": "教练（已删除）"
+    "peerDeleted": "教练（已删除）",
+    "deletedMember": "已删除成员"
   },
   "fallback": {
     "deletedAccount": "已删除的账号",

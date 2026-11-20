@@ -1,4 +1,4 @@
-import { chatNicknameOr } from "@pt/contracts";
+import { chatNicknameOr, type GroupSystemEvent } from "@pt/contracts";
 
 import { TIME_ZONE } from "@/constants/time";
 import {
@@ -48,6 +48,24 @@ export interface SerializedChatMessage {
   deleted: boolean;
   updatedAt: string;
   reactions: SerializedReaction[];
+  // Group chat only (all optional, so the coach chat never sets them):
+  // the sender as "user:<id>" | "admin:<id>" and the name shown for them.
+  senderKey?: string | null;
+  senderName?: string | null;
+  // The sender's account is gone: the UI shows "Deleted member".
+  senderDeleted?: boolean;
+  senderTag?: "manager" | "pt" | null;
+  // A system line (grey, centred, no bubble) with the event it renders and
+  // the shown names of the members it names.
+  kind?: "message" | "system";
+  systemEvent?: GroupSystemEvent | null;
+  eventNames?: Record<string, string | null>;
+  // Only super admins ever receive an alert row.
+  audience?: "super_admin" | null;
+  // A manager hid the message: everyone sees a placeholder.
+  hidden?: boolean;
+  // Own messages: members (other than me) who read up to it.
+  seenCount?: number;
 }
 
 export interface SerializedReaction {
@@ -69,6 +87,9 @@ export interface SerializedReplyTo {
   photoCount?: number;
   senderRole: "user" | "admin";
   deleted: boolean;
+  // Group chat: who wrote the quoted message.
+  senderKey?: string | null;
+  senderName?: string | null;
 }
 
 // `sent` = stored on the server; `sending` / `failed` = optimistic own bubble
@@ -185,15 +206,21 @@ export type ThreadViewer =
       peerName: string | null;
       // Super admins read every chat and never report a message.
       isSuperAdmin?: boolean;
-    };
+    }
+  // A member of a group chat: sides and names follow the sender key, not a
+  // role (everyone is "other" except me).
+  | { role: "member"; key: string; name: string };
 
-export const USER_VIEWER: ThreadViewer = { role: "user" };
+// The viewers of the one to one coach chat (everything outside groups).
+export type CoachViewer = Exclude<ThreadViewer, { role: "member" }>;
+
+export const USER_VIEWER: CoachViewer = { role: "user" };
 
 // Newest message from the other side: what "read" is reported against. For a
 // trainee that is the PT, for an admin the trainee.
 export const newestPeerMessageId = (
   messages: ThreadMessage[],
-  viewerRole: ThreadViewer["role"] = "user",
+  viewerRole: CoachViewer["role"] = "user",
 ) => {
   const peerRole = viewerRole === "user" ? "admin" : "user";
   let newest = 0;
@@ -203,6 +230,31 @@ export const newestPeerMessageId = (
       message.senderRole === peerRole &&
       message.id !== null &&
       message.id > newest
+    ) {
+      newest = message.id;
+    }
+  }
+  return newest;
+};
+
+// What "read" is reported against for any viewer: the newest stored message
+// of the other side. In a group that is the newest real message from someone
+// else (system lines and PT-change alerts never count).
+export const newestIncomingId = (
+  messages: ThreadMessage[],
+  viewer: ThreadViewer,
+) => {
+  if (viewer.role !== "member") {
+    return newestPeerMessageId(messages, viewer.role);
+  }
+  let newest = 0;
+
+  for (const message of messages) {
+    if (
+      message.id !== null &&
+      message.id > newest &&
+      message.kind !== "system" &&
+      message.senderKey !== viewer.key
     ) {
       newest = message.id;
     }
@@ -342,15 +394,23 @@ export type ThreadItem =
       avatarName: string | null;
       // "Đã gửi" / "Đã xem", only under my newest stored message.
       statusLine: string | null;
-    };
+      // Group chat: the sender's tag and deleted account, on the first bubble
+      // of a run from someone else.
+      senderTag?: "manager" | "pt" | null;
+      senderDeleted?: boolean;
+    }
+  // Group chat: a grey centred line rendered from `message.systemEvent`.
+  | { kind: "system"; key: string; message: ThreadMessage };
 
 export const PEER_DELETED_NAME = "PT (đã xoá)";
 
 const peerDeletedName = (locale: Locale) =>
   getFormatTranslator(locale)("thread.peerDeleted");
 
-const senderKey = (message: ThreadMessage) =>
-  message.senderRole === "user" ? "user" : `admin:${message.senderAdminId}`;
+// Who a bubble run belongs to: the sender key in a group, else the side.
+const runKey = (message: ThreadMessage) =>
+  message.senderKey ??
+  (message.senderRole === "user" ? "user" : `admin:${message.senderAdminId}`);
 
 const senderNameFor = (
   message: ThreadMessage,
@@ -361,6 +421,12 @@ const senderNameFor = (
 ) => {
   if (continuesRun) {
     return null;
+  }
+  if (viewer.role === "member") {
+    // Others' names (alias already applied by the server); never my own run.
+    return message.senderKey === viewer.key
+      ? null
+      : (message.senderName ?? null);
   }
   if (viewer.role === "user") {
     return message.senderRole === "admin"
@@ -397,7 +463,10 @@ export const buildThreadItems = (
   const t = getFormatTranslator(locale);
   // "Mine" is the right-hand side: the trainee's own messages, or for an
   // admin every admin message (the PT inbox is shared, D4).
-  const isMine = (message: ThreadMessage) => message.senderRole === viewer.role;
+  const isMine = (message: ThreadMessage) =>
+    viewer.role === "member"
+      ? message.senderKey === viewer.key
+      : message.senderRole === viewer.role;
   const items: ThreadItem[] = [];
   // Index in `items` of the previous message, reset by any separator.
   let previousIndex = -1;
@@ -413,6 +482,23 @@ export const buildThreadItems = (
     const previous = index > 0 ? messages[index - 1] : null;
     const key = message.id === null ? message.clientId : String(message.id);
     let separated = false;
+
+    // A system line sits between bubbles and ends the run before it.
+    if (message.kind === "system") {
+      if (
+        !previous ||
+        dayKey(previous.createdAt) !== dayKey(message.createdAt)
+      ) {
+        items.push({
+          kind: "day",
+          key: `day-${key}`,
+          label: dayLabel(message.createdAt, nowMs, locale),
+        });
+      }
+      items.push({ kind: "system", key, message });
+      previousIndex = -1;
+      return;
+    }
 
     if (!previous || dayKey(previous.createdAt) !== dayKey(message.createdAt)) {
       items.push({
@@ -437,13 +523,12 @@ export const buildThreadItems = (
     }
     const mine = isMine(message);
     const continuesRun =
-      previousIndex >= 0 &&
-      previous &&
-      senderKey(previous) === senderKey(message);
+      previousIndex >= 0 && previous && runKey(previous) === runKey(message);
     const next = messages[index + 1];
     const nextContinues =
       next !== undefined &&
-      senderKey(next) === senderKey(message) &&
+      next.kind !== "system" &&
+      runKey(next) === runKey(message) &&
       dayKey(next.createdAt) === dayKey(message.createdAt) &&
       Date.parse(next.createdAt) - Date.parse(message.createdAt) <=
         GROUP_GAP_MS;
@@ -465,20 +550,32 @@ export const buildThreadItems = (
       ),
       showAvatar: !mine && isLastInRun,
       avatarName:
-        viewer.role === "admin"
-          ? viewer.peerName === null
-            ? null
-            : chatNicknameOr(nicknames, "user", viewer.peerName)
-          : message.senderAdminName === null
-            ? null
-            : adminLabel(
-                nicknames,
-                message.senderAdminId,
-                message.senderAdminName,
-                "pt",
-              ),
+        viewer.role === "member"
+          ? (message.senderName ?? null)
+          : viewer.role === "admin"
+            ? viewer.peerName === null
+              ? null
+              : chatNicknameOr(nicknames, "user", viewer.peerName)
+            : message.senderAdminName === null
+              ? null
+              : adminLabel(
+                  nicknames,
+                  message.senderAdminId,
+                  message.senderAdminName,
+                  "pt",
+                ),
+      ...(viewer.role === "member" && !mine && !continuesRun
+        ? {
+            senderTag: message.senderTag ?? null,
+            senderDeleted: message.senderDeleted === true,
+          }
+        : {}),
+      // Groups show "Seen by N" instead (a count, not one cursor).
       statusLine:
-        mine && message.id !== null && message.id === lastMineStoredId
+        viewer.role !== "member" &&
+        mine &&
+        message.id !== null &&
+        message.id === lastMineStoredId
           ? message.id <= peerReadUpTo
             ? t("thread.seen")
             : t("thread.sent")
@@ -523,14 +620,21 @@ export const serializeMessage = (
 
 // "user" or "admin:<id>": how reactions identify me.
 export const viewerReactorKey = (viewer: ThreadViewer) =>
-  viewer.role === "admin" ? adminReaderKey(viewer.adminId) : USER_READER_KEY;
+  viewer.role === "member"
+    ? viewer.key
+    : viewer.role === "admin"
+      ? adminReaderKey(viewer.adminId)
+      : USER_READER_KEY;
 
 // Edit and unsend: only my own messages. For an admin "mine" is narrower than
 // the right-hand side: only what this admin wrote.
 export const isOwnMessage = (message: ThreadMessage, viewer: ThreadViewer) =>
-  viewer.role === "admin"
-    ? message.senderRole === "admin" && message.senderAdminId === viewer.adminId
-    : message.senderRole === "user";
+  viewer.role === "member"
+    ? message.senderKey === viewer.key
+    : viewer.role === "admin"
+      ? message.senderRole === "admin" &&
+        message.senderAdminId === viewer.adminId
+      : message.senderRole === "user";
 
 export const canEditOrUnsend = (message: ThreadMessage, viewer: ThreadViewer) =>
   message.id !== null && !message.deleted && isOwnMessage(message, viewer);
@@ -542,12 +646,32 @@ export const canReportMessage = (
   message: ThreadMessage,
   viewer: ThreadViewer,
 ) =>
+  viewer.role !== "member" &&
   message.id !== null &&
   message.delivery === "sent" &&
   !message.deleted &&
   (viewer.role === "user"
     ? message.senderRole === "admin"
     : message.senderRole === "user" && viewer.isSuperAdmin !== true);
+
+// "Báo cáo" on a group message: any member reports another member's stored,
+// visible message. Never my own, never a system line, a hidden or an unsent
+// one, and a super admin reports nothing (they moderate). The API checks
+// membership again.
+export const canReportGroupMessage = (
+  message: ThreadMessage,
+  viewer: ThreadViewer,
+  isSuperAdmin: boolean,
+) =>
+  viewer.role === "member" &&
+  !isSuperAdmin &&
+  message.id !== null &&
+  message.delivery === "sent" &&
+  message.kind !== "system" &&
+  !message.deleted &&
+  !message.hidden &&
+  message.senderKey != null &&
+  message.senderKey !== viewer.key;
 
 // The emoji I reacted with, if any.
 export const myReactionOf = (
@@ -583,7 +707,9 @@ export const withMyReaction = (
       reactorName:
         viewer.role === "admin"
           ? viewer.adminName
-          : getFormatTranslator(locale)("thread.you"),
+          : viewer.role === "member"
+            ? viewer.name
+            : getFormatTranslator(locale)("thread.you"),
     },
   ];
 };
@@ -643,6 +769,9 @@ export const toReplyTo = (message: ThreadMessage): SerializedReplyTo | null =>
           : {}),
         senderRole: message.senderRole,
         deleted: message.deleted,
+        ...(message.senderKey === undefined
+          ? {}
+          : { senderKey: message.senderKey, senderName: message.senderName }),
       };
 
 // A reply keeps the snippet it was stored with, and an unsent original does
@@ -716,6 +845,9 @@ export const senderLabel = (
   if (isOwnMessage(message, viewer)) {
     return t("thread.yourself");
   }
+  if (viewer.role === "member") {
+    return message.senderName ?? t("thread.deletedMember");
+  }
   if (message.senderRole === "admin") {
     return message.senderAdminName === null
       ? peerDeletedName(locale)
@@ -741,6 +873,11 @@ export const quoteLabel = (
 ) => {
   const t = getFormatTranslator(locale);
 
+  if (viewer.role === "member") {
+    return replyTo.senderKey === viewer.key
+      ? t("thread.you")
+      : (replyTo.senderName ?? t("thread.deletedMember"));
+  }
   if (replyTo.senderRole === viewer.role) {
     return viewer.role === "admin" ? t("thread.pt") : t("thread.you");
   }

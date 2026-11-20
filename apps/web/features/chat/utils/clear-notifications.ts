@@ -3,6 +3,8 @@
 // closes every notification with its tags. Best effort: browsers without
 // service workers or getNotifications (and any error) just do nothing.
 
+import { groupPushTag } from "@pt/contracts";
+
 export const chatNotificationTags = (conversationId: number) => [
   `chat-${conversationId}`,
   `chat-react-${conversationId}`,
@@ -10,6 +12,10 @@ export const chatNotificationTags = (conversationId: number) => [
 
 export const dmNotificationTags = (conversationId: number) => [
   `dm-${conversationId}`,
+];
+
+export const groupNotificationTags = (groupId: number) => [
+  groupPushTag(groupId),
 ];
 
 interface ClosableNotification {

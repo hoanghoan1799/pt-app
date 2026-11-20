@@ -8,6 +8,10 @@ import {
   useUnreadPayload,
 } from "@/features/chat/hooks/unread-store";
 import { unreadPollMs } from "@/features/chat/utils/polling-rules";
+import {
+  adminBadgeCount,
+  userBadgeCount,
+} from "@/features/chat/utils/unread-payload";
 
 export const USER_UNREAD_URL = "/api/chat/unread";
 export const ADMIN_UNREAD_URL = "/api/chat/unread?as=admin";
@@ -32,11 +36,14 @@ export const useChatUnread = (
     !paused,
     pollMs,
   );
-  const count = useMemo(() => {
-    const value = (payload as { count?: unknown } | null)?.count;
-
-    return typeof value === "number" ? value : initialCount;
-  }, [payload, initialCount]);
+  // Both numbers cover group chats too.
+  const count = useMemo(
+    () =>
+      role === "admin"
+        ? adminBadgeCount(payload, initialCount)
+        : userBadgeCount(payload, initialCount),
+    [payload, initialCount, role],
+  );
 
   return paused ? 0 : count;
 };

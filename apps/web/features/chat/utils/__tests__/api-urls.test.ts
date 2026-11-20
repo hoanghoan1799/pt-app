@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { toWebUrl, webizeUrls } from "@/features/chat/utils/api-urls";
+import {
+  toWebUrl,
+  webizeUrlFields,
+  webizeUrls,
+} from "@/features/chat/utils/api-urls";
 
 describe("toWebUrl", () => {
   it("maps the API's file paths to this app's proxies", () => {
@@ -51,5 +55,45 @@ describe("webizeUrls", () => {
       ],
       avatarUrl: "/api/avatar/admin/2?v=1",
     });
+  });
+});
+
+describe("webizeUrlFields", () => {
+  it("maps the URL fields of a group payload and leaves user text alone", () => {
+    const input = {
+      group: { avatarUrl: "/v1/chat/groups/3/avatar?v=1&t=abc" },
+      messages: [
+        {
+          body: "/v1/chat/groups/3/photos/2",
+          senderName: "/v1/avatars/user/1",
+          photo: { url: "/v1/chat/groups/3/photos/2" },
+          photos: [{ url: "/v1/chat/groups/3/photos/2" }],
+          sticker: { url: "/v1/chat/stickers/custom/5" },
+          replyTo: { snippet: "/v1/chat/groups/3/photos/2" },
+        },
+      ],
+      lastMessage: { preview: "/v1/chat/groups/9/avatar" },
+    };
+
+    expect(webizeUrlFields(input)).toEqual({
+      group: { avatarUrl: "/api/chat/groups/3/avatar?v=1&t=abc" },
+      messages: [
+        {
+          body: "/v1/chat/groups/3/photos/2",
+          senderName: "/v1/avatars/user/1",
+          photo: { url: "/api/chat/groups/3/photos/2" },
+          photos: [{ url: "/api/chat/groups/3/photos/2" }],
+          sticker: { url: "/api/chat/stickers/custom/5" },
+          replyTo: { snippet: "/v1/chat/groups/3/photos/2" },
+        },
+      ],
+      lastMessage: { preview: "/v1/chat/groups/9/avatar" },
+    });
+  });
+
+  it("keeps the coach chat mapping free of the group prefix", () => {
+    expect(toWebUrl("/v1/chat/groups/3/photos/2")).toBe(
+      "/v1/chat/groups/3/photos/2",
+    );
   });
 });

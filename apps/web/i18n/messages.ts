@@ -2,6 +2,7 @@ import enAdminPages from "@/messages/en/adminPages.json";
 import enAuth from "@/messages/en/auth.json";
 import enAvatar from "@/messages/en/avatar.json";
 import enChat from "@/messages/en/chat.json";
+import enChatGroups from "@/messages/en/chatGroups.json";
 import enCommon from "@/messages/en/common.json";
 import enDashboard from "@/messages/en/dashboard.json";
 import enErrors from "@/messages/en/errors.json";
@@ -22,6 +23,7 @@ import viAdminPages from "@/messages/vi/adminPages.json";
 import viAuth from "@/messages/vi/auth.json";
 import viAvatar from "@/messages/vi/avatar.json";
 import viChat from "@/messages/vi/chat.json";
+import viChatGroups from "@/messages/vi/chatGroups.json";
 import viCommon from "@/messages/vi/common.json";
 import viDashboard from "@/messages/vi/dashboard.json";
 import viErrors from "@/messages/vi/errors.json";
@@ -42,6 +44,7 @@ import zhAdminPages from "@/messages/zh/adminPages.json";
 import zhAuth from "@/messages/zh/auth.json";
 import zhAvatar from "@/messages/zh/avatar.json";
 import zhChat from "@/messages/zh/chat.json";
+import zhChatGroups from "@/messages/zh/chatGroups.json";
 import zhCommon from "@/messages/zh/common.json";
 import zhDashboard from "@/messages/zh/dashboard.json";
 import zhErrors from "@/messages/zh/errors.json";
@@ -69,6 +72,7 @@ export const MESSAGES = {
     auth: viAuth,
     avatar: viAvatar,
     chat: viChat,
+    chatGroups: viChatGroups,
     common: viCommon,
     dashboard: viDashboard,
     errors: viErrors,
@@ -91,6 +95,7 @@ export const MESSAGES = {
     auth: enAuth,
     avatar: enAvatar,
     chat: enChat,
+    chatGroups: enChatGroups,
     common: enCommon,
     dashboard: enDashboard,
     errors: enErrors,
@@ -113,6 +118,7 @@ export const MESSAGES = {
     auth: zhAuth,
     avatar: zhAvatar,
     chat: zhChat,
+    chatGroups: zhChatGroups,
     common: zhCommon,
     dashboard: zhDashboard,
     errors: zhErrors,

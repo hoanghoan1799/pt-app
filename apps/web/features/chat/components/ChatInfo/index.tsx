@@ -21,7 +21,7 @@ import {
   adminLabel,
   type ChatProfileView,
 } from "@/features/chat/utils/chat-settings";
-import type { ThreadViewer } from "@/features/chat/utils/chat-thread-rules";
+import type { CoachViewer } from "@/features/chat/utils/chat-thread-rules";
 import {
   type GalleryPhoto,
   photoLabel,
@@ -45,7 +45,7 @@ const ChatCustomizePanel = dynamic(
 );
 
 export interface ChatInfoProps {
-  viewer: ThreadViewer;
+  viewer: CoachViewer;
   // The trainee's id: the presence line of either side is looked up with it.
   userId: number;
   conversationId: number | null;

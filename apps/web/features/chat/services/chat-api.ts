@@ -74,14 +74,20 @@ export const routeError = (error: ApiError) => {
 };
 
 // 200 with the (web-mapped) JSON, 204 as is.
-export const routeData = <Data>(asked: Asked<Data>, status?: number) => {
+// `map` turns the API's file paths into this app's (group payloads map only
+// their URL fields, see webizeUrlFields).
+export const routeData = <Data>(
+  asked: Asked<Data>,
+  status?: number,
+  map: <T>(value: T) => T = webizeUrls,
+) => {
   if (!asked.ok) {
     return routeError(asked.error);
   }
   if (asked.status === 204) {
     return new NextResponse(null, { status: 204, headers: NO_STORE });
   }
-  return NextResponse.json(webizeUrls(asked.data), {
+  return NextResponse.json(map(asked.data), {
     status: status ?? asked.status,
     headers: NO_STORE,
   });

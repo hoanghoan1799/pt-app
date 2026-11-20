@@ -98,7 +98,8 @@
     "youLower": "you",
     "trainee": "Trainee",
     "pt": "PT",
-    "peerDeleted": "PT (deleted)"
+    "peerDeleted": "PT (deleted)",
+    "deletedMember": "Deleted member"
   },
   "fallback": {
     "deletedAccount": "Deleted account",

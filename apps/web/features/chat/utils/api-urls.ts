@@ -19,6 +19,40 @@ export const toWebUrl = (value: string) => {
   return value;
 };
 
+// Group message photos and the signed group photo.
+const GROUP_PREFIX = ["/v1/chat/groups/", "/api/chat/groups/"] as const;
+
+// Keys whose string value is a file URL in the group payloads.
+const URL_KEYS: ReadonlySet<string> = new Set(["url", "avatarUrl"]);
+
+const toWebFileUrl = (value: string) =>
+  value.startsWith(GROUP_PREFIX[0])
+    ? GROUP_PREFIX[1] + value.slice(GROUP_PREFIX[0].length)
+    : toWebUrl(value);
+
+// Walks a group payload and maps only its URL fields (`url`, `avatarUrl`):
+// bodies, previews and names are user text and stay exactly as written, even
+// when they look like an API path.
+export const webizeUrlFields = <T>(value: T, key?: string): T => {
+  if (typeof value === "string") {
+    return (
+      key !== undefined && URL_KEYS.has(key) ? toWebFileUrl(value) : value
+    ) as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => webizeUrlFields(item)) as T;
+  }
+  if (typeof value === "object" && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value).map(([name, item]) => [
+        name,
+        webizeUrlFields(item, name),
+      ]),
+    ) as T;
+  }
+  return value;
+};
+
 // Walks a JSON value and maps every API file path in it.
 export const webizeUrls = <T>(value: T): T => {
   if (typeof value === "string") {

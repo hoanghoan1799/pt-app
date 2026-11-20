@@ -249,7 +249,9 @@ describe("GET /api/chat/unread", () => {
 
     expect(state.calls.map((call) => call.path)).toEqual([
       "/v1/chat/unread",
+      "/v1/chat/groups/unread",
       "/v1/chat/unread",
+      "/v1/chat/groups/unread",
     ]);
   });
 });

@@ -1,9 +1,11 @@
 "use client";
 
+import { REALTIME_EVENTS } from "@pt/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   conversationIdOf,
+  groupIdOf,
   sendSocketTyping,
   subscribeChatSocket,
 } from "@/features/chat/hooks/chat-socket";
@@ -22,11 +24,24 @@ interface UseChatTransportOptions {
   role: "user" | "admin";
   userId: number;
   conversationId: number | null;
+  // A group chat: its `group:*` events on the same socket, no typing. The API
+  // puts the socket in the rooms of its groups at the handshake (and moves it
+  // when members change), so nothing is subscribed here. The coach chat
+  // leaves it out.
+  groupId?: number | null;
   chatEnabled: boolean;
   // Asks the owner to fetch what is new. Called on every realtime event, on
   // every poll tick, on (re)connect and when the tab becomes visible.
   onSync: () => void;
 }
+
+// Group events (ids only): new message, change, read cursor, members/name.
+const GROUP_SYNC_EVENTS: ReadonlySet<string> = new Set([
+  REALTIME_EVENTS.groupMessage,
+  REALTIME_EVENTS.groupMessageUpdate,
+  REALTIME_EVENTS.groupRead,
+  REALTIME_EVENTS.groupMembers,
+]);
 
 // Events that mean "something in this conversation changed": fetch.
 const SYNC_EVENTS = new Set([
@@ -44,6 +59,7 @@ const SYNC_EVENTS = new Set([
 export const useChatTransport = ({
   role,
   conversationId,
+  groupId = null,
   chatEnabled,
   onSync,
 }: UseChatTransportOptions) => {
@@ -67,12 +83,43 @@ export const useChatTransport = ({
   });
 
   // A locked trainee polls only. An admin always connects: chat-status events
-  // tell them when the chat is unlocked.
+  // tell them when the chat is unlocked. A group member always connects (a
+  // trainee whose chat is off still reads the group live).
   const canConnect =
-    conversationId !== null && (role === "admin" || chatEnabled);
+    groupId !== null ||
+    (conversationId !== null && (role === "admin" || chatEnabled));
 
   useEffect(() => {
-    if (!canConnect || conversationId === null) {
+    if (!canConnect || groupId === null) {
+      return;
+    }
+    let cancelled = false;
+    const unsubscribe = subscribeChatSocket(role, {
+      onState: (next) => {
+        if (!cancelled) {
+          setState(next);
+        }
+      },
+      onConnect: () => syncRef.current(),
+      onEvent: (name, data) => {
+        if (
+          !cancelled &&
+          GROUP_SYNC_EVENTS.has(name) &&
+          groupIdOf(data) === groupId
+        ) {
+          syncRef.current();
+        }
+      },
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [canConnect, groupId, role]);
+
+  useEffect(() => {
+    if (!canConnect || conversationId === null || groupId !== null) {
       return;
     }
     let cancelled = false;
@@ -121,7 +168,7 @@ export const useChatTransport = ({
       unsubscribe();
       clearPeerTyping();
     };
-  }, [canConnect, conversationId, role, clearPeerTyping]);
+  }, [canConnect, conversationId, groupId, role, clearPeerTyping]);
 
   // Throttled, fire and forget, over the socket. Polling-only mode (no live
   // connection) sends nothing, so there is no request and no error to handle.
@@ -130,6 +177,7 @@ export const useChatTransport = ({
 
     if (
       state !== "connected" ||
+      groupId !== null ||
       conversationId === null ||
       !shouldSendTyping(lastTypingSentAt.current, now)
     ) {
@@ -137,7 +185,7 @@ export const useChatTransport = ({
     }
     lastTypingSentAt.current = now;
     sendSocketTyping(role, conversationId);
-  }, [conversationId, role, state]);
+  }, [conversationId, groupId, role, state]);
 
   // Pause while the tab is hidden; fetch once on return.
   useEffect(() => {

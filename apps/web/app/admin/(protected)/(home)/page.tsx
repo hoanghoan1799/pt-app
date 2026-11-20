@@ -25,6 +25,7 @@ import { getOwnAvatarUrl } from "@/features/avatar/services/own-avatar";
 import { AdminUnreadBadge } from "@/features/chat/components/UnreadBadge";
 import { loadAdminAccountColor } from "@/features/chat/services/chat-profile";
 import { loadAdminUnread } from "@/features/chat/services/chat-queries";
+import { loadGroupUnread } from "@/features/chat-groups/services/group-queries";
 import { MemberProgressList } from "@/features/dashboard/components/MemberProgressList";
 import { PtFilterSelect } from "@/features/dashboard/components/PtFilterSelect";
 import { RecentActivityList } from "@/features/dashboard/components/RecentActivityList";
@@ -84,6 +85,7 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     avatarUrl,
     accountColor,
     openReports,
+    groupUnread,
   ] = await Promise.all([
     isSuper ? listPtOptions() : Promise.resolve([]),
     getMemberProgress(schedule.weekStart, ptFilter),
@@ -92,8 +94,10 @@ const AdminDashboardPage = async ({ searchParams }: PageProps<"/admin">) => {
     getOwnAvatarUrl("admin"),
     loadAdminAccountColor(),
     isSuperAdmin(admin) ? countOpenReports() : 0,
+    loadGroupUnread("admin"),
   ]);
-  const unreadMessages = unread.count;
+  // Trainee chats plus group chats: the badge counts both.
+  const unreadMessages = unread.count + groupUnread.total;
   const unreadByTrainee = unread.perTrainee;
   const rows = toMemberRows(members, {
     weekStart: schedule.weekStart,

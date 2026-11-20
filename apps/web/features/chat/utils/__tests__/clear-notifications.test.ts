@@ -4,6 +4,7 @@ import {
   chatNotificationTags,
   clearNotifications,
   dmNotificationTags,
+  groupNotificationTags,
 } from "@/features/chat/utils/clear-notifications";
 
 const shown = (tags: Record<string, number>) => {
@@ -25,6 +26,7 @@ describe("notification tags", () => {
   it("match the push payload tags of a conversation", () => {
     expect(chatNotificationTags(7)).toEqual(["chat-7", "chat-react-7"]);
     expect(dmNotificationTags(7)).toEqual(["dm-7"]);
+    expect(groupNotificationTags(7)).toEqual(["chat-group-7"]);
   });
 });
 
