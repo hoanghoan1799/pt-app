@@ -21,6 +21,12 @@ export const REALTIME_EVENTS = {
   presence: "presence",
   dmUpdate: "dm:update",
   dmRead: "dm:read",
+  // Group chat: ids only, clients refetch (company Ably events on
+  // `chat:group:<id>`).
+  groupMessage: "group:message",
+  groupMessageUpdate: "group:message-update",
+  groupRead: "group:read",
+  groupMembers: "group:members",
   authRevoked: "auth:revoked",
   // client -> server (acknowledged); `typing` goes both ways
   subscribe: "subscribe",
@@ -54,6 +60,10 @@ export const userRoom = (userId: number) => `user:${userId}`;
 export const adminRoom = (adminId: number) => `admin:${adminId}`;
 export const dmRoom = (conversationId: number) => `dm:${conversationId}`;
 export const INBOX_SUPER_ROOM = "inbox:super";
+// A group's explicit active members join it on connect and when added (they
+// leave it when removed or when they leave); super admins, implicit members of
+// every group, hear every group through INBOX_SUPER_ROOM.
+export const groupRoom = (groupId: number) => `group:${groupId}`;
 export const inboxPtRoom = (adminId: number) => `inbox:pt:${adminId}`;
 // Every trainee: told when the PT team goes online or offline.
 export const TEAM_PRESENCE_ROOM = "presence:team";

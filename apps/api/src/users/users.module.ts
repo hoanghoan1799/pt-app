@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/auth.module.js";
 import { ChatModule } from "../chat/chat.module.js";
+import { ChatGroupsModule } from "../chat-groups/chat-groups.module.js";
 import { ContactAliasesModule } from "../contact-aliases/contact-aliases.module.js";
 import { FilesModule } from "../files/files.module.js";
 import { SocialModule } from "../social/social.module.js";
@@ -16,6 +17,7 @@ import { MeController, UsersMeController } from "./users-me.controller.js";
   imports: [
     AuthModule,
     ChatModule,
+    ChatGroupsModule,
     ContactAliasesModule,
     FilesModule,
     SocialModule,

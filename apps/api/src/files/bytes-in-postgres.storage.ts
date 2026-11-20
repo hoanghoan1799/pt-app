@@ -25,6 +25,7 @@ const avatarTable = (ref: FileRef) =>
 // the row the owning service created; `created_at` is the version.
 const BLOB_TABLES = {
   "chat-photo": "chat_photos",
+  "chat-group-photo": "chat_group_photos",
   "chat-sticker": "chat_custom_stickers",
   "dm-photo": "dm_photos",
   "social-photo": "social_post_photos",

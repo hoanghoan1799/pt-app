@@ -13,6 +13,10 @@ import {
   type ChatMessageSentEvent,
   type ChatReactionChangedEvent,
 } from "../chat/chat.events.js";
+import {
+  GROUP_EVENTS,
+  type GroupMessageSentEvent,
+} from "../chat-groups/group.events.js";
 import { Clock } from "../common/clock.js";
 import {
   type NotificationCreatedEvent,
@@ -204,6 +208,48 @@ export class PushNotifier {
           locale,
         }),
       );
+    });
+  }
+
+  // A new, non-silent group message: every member except the sender and the
+  // muted, the sender named as each recipient calls them, in their language,
+  // with the trainee or admin deep link. A dissolved group pushes nobody.
+  @OnEvent(GROUP_EVENTS.messageSent)
+  onGroupMessage(event: GroupMessageSentEvent) {
+    const facts = event.push;
+
+    if (facts === null) {
+      return Promise.resolve();
+    }
+    return this.guarded(GROUP_EVENTS.messageSent, async () => {
+      const groupName = await this.recipients.liveGroupName(event.groupId);
+
+      if (groupName === null) {
+        return;
+      }
+      const realName = (await this.recipients.nameOf(facts.senderKey)) ?? "";
+
+      for (const recipient of await this.recipients.groupRecipients(
+        event.groupId,
+        facts.senderKey,
+      )) {
+        await this.push.sendToOwner(
+          recipient.ownerKey,
+          pushContent.group_message({
+            recipientRole: recipient.ownerKey.startsWith("admin:")
+              ? "admin"
+              : "user",
+            groupId: event.groupId,
+            groupName,
+            senderName: recipient.alias || realName,
+            body: facts.body,
+            sticker: facts.sticker,
+            photo: facts.photoCount > 0,
+            photoCount: Math.max(1, facts.photoCount),
+            locale: recipient.locale,
+          }),
+        );
+      }
     });
   }
 

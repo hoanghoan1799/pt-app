@@ -6,12 +6,14 @@ import {
   PT_MESSAGES,
   toNameKey,
 } from "@pt/contracts";
+import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
 import { DataSource } from "typeorm";
 
 import type { AdminActor } from "../auth/actor.js";
 import { badRequest, conflict } from "../auth/auth.errors.js";
 import { PasswordHasher } from "../auth/password-hash.js";
 import { SessionsService } from "../auth/sessions.service.js";
+import { GroupAlertsService } from "../chat-groups/group-alerts.service.js";
 import { Clock } from "../common/clock.js";
 import { isUniqueViolation, notFoundError } from "../common/errors.js";
 import { Admin } from "../database/entities/admin.entity.js";
@@ -33,6 +35,8 @@ export class TraineesService {
     private readonly sessions: SessionsService,
     private readonly clock: Clock,
     private readonly deletion: TraineeDeletionService,
+    private readonly groupAlerts: GroupAlertsService,
+    @InjectPinoLogger(TraineesService.name) private readonly logger: PinoLogger,
   ) {}
 
   private get users() {
@@ -150,15 +154,38 @@ export class TraineesService {
   }
 
   // Super admin only: sets (or clears, with null) the PT of a trainee; the
-  // target must be a PT account.
+  // target must be a PT account. Saving the same PT again changes nothing: no
+  // write, no group alert. A real change tells the super admins in every
+  // group chat the trainee is in (company pt-actions.ts); a failure there is
+  // logged and never undoes the assignment.
   async assignPt(userId: number, ptAdminId: number | null) {
     if (ptAdminId !== null) {
       await this.requirePt(ptAdminId);
+    }
+    const trainee = await this.users.findOne({
+      where: { id: userId },
+      select: { id: true, ptAdminId: true },
+    });
+
+    if (!trainee) {
+      throw notFoundError("USER_NOT_FOUND", PT_MESSAGES.USER_NOT_FOUND);
+    }
+    if (trainee.ptAdminId === ptAdminId) {
+      return;
     }
     const result = await this.users.update({ id: userId }, { ptAdminId });
 
     if (result.affected === 0) {
       throw notFoundError("USER_NOT_FOUND", PT_MESSAGES.USER_NOT_FOUND);
+    }
+    try {
+      await this.groupAlerts.recordPtChange(
+        userId,
+        trainee.ptAdminId,
+        ptAdminId,
+      );
+    } catch (error) {
+      this.logger.error({ err: error, userId }, "Group PT-change alert failed");
     }
   }
 

@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import {
   adminRoom,
   conversationRoom,
+  groupRoom,
   REALTIME_EVENTS,
   type RealtimeRevokeReason,
   userRoom,
@@ -52,6 +53,11 @@ export class RealtimeHub {
     if (!namespace) {
       return;
     }
+    if (emission.join) {
+      for (const account of emission.join.accounts) {
+        namespace.in(account).socketsJoin(emission.join.room);
+      }
+    }
     if (emission.joinTraineeUserId) {
       namespace
         .in(userRoom(emission.joinTraineeUserId.userId))
@@ -92,8 +98,39 @@ export class RealtimeHub {
             continue;
           }
         }
+        if (emission.guardGroup && data.sessionId !== undefined) {
+          const verdictKey = `group:${data.sessionId}`;
+          const verdict =
+            verdicts.get(verdictKey) ??
+            (await this.audience.sessionMayFollowGroup(
+              data.sessionId,
+              emission.guardGroup.groupId,
+              emission.guardGroup.superAdminsOnly,
+            ));
+
+          verdicts.set(verdictKey, verdict);
+          if (!verdict) {
+            // Removed, left, dissolved or signed out: stop following.
+            if (room === groupRoom(emission.guardGroup.groupId)) {
+              socket.leave(room);
+            }
+            continue;
+          }
+        } else if (emission.guardGroup) {
+          continue;
+        }
         delivered.add(socket.id);
         socket.emit(emission.event, emission.data);
+      }
+    }
+    if (emission.leave) {
+      const { room } = emission.leave;
+
+      if (emission.leave.everyone) {
+        namespace.in(room).socketsLeave(room);
+      }
+      for (const account of emission.leave.accounts) {
+        namespace.in(account).socketsLeave(room);
       }
     }
   }

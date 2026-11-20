@@ -22,6 +22,13 @@ import {
 } from "../chat/chat.events.js";
 import { ChatQueries } from "../chat/chat.queries.js";
 import {
+  GROUP_EVENTS,
+  type GroupMembersChangedEvent,
+  type GroupMessageSentEvent,
+  type GroupMessageUpdatedEvent,
+  type GroupReadEvent,
+} from "../chat-groups/group.events.js";
+import {
   RESTRICTION_EVENTS,
   type TraineeSuspendedEvent,
 } from "../restrictions/restriction.events.js";
@@ -29,6 +36,10 @@ import {
   type Emission,
   mapDmDeleted,
   mapDmRead,
+  mapGroupMembersChanged,
+  mapGroupMessageSent,
+  mapGroupMessageUpdated,
+  mapGroupRead,
   mapMessageSent,
   mapMessageUpdated,
   mapProfileChanged,
@@ -115,6 +126,32 @@ export class RealtimeListeners {
   @OnEvent(CHAT_EVENTS.dmRead)
   onDmRead(event: DmReadEvent) {
     return this.run(CHAT_EVENTS.dmRead, () => mapDmRead(event));
+  }
+
+  // --- Group chat ---------------------------------------------------------------
+
+  @OnEvent(GROUP_EVENTS.messageSent)
+  onGroupMessage(event: GroupMessageSentEvent) {
+    return this.run(GROUP_EVENTS.messageSent, () => mapGroupMessageSent(event));
+  }
+
+  @OnEvent(GROUP_EVENTS.messageUpdated)
+  onGroupMessageUpdated(event: GroupMessageUpdatedEvent) {
+    return this.run(GROUP_EVENTS.messageUpdated, () =>
+      mapGroupMessageUpdated(event),
+    );
+  }
+
+  @OnEvent(GROUP_EVENTS.read)
+  onGroupRead(event: GroupReadEvent) {
+    return this.run(GROUP_EVENTS.read, () => mapGroupRead(event));
+  }
+
+  @OnEvent(GROUP_EVENTS.membersChanged)
+  onGroupMembers(event: GroupMembersChangedEvent) {
+    return this.run(GROUP_EVENTS.membersChanged, () =>
+      mapGroupMembersChanged(event),
+    );
   }
 
   // --- Sessions and presence ----------------------------------------------------

@@ -69,8 +69,7 @@ export const SOCIAL_NOTIFICATION_KINDS = [
 ] as const;
 export type SocialNotificationKind = (typeof SOCIAL_NOTIFICATION_KINDS)[number];
 
-// "group_message" is accepted for forward compatibility only: no endpoint
-// reports a group message yet.
+// "group_message" is a message in a group chat (chat_group_messages.id).
 export const SOCIAL_REPORT_TARGET_KINDS = [
   "post",
   "comment",

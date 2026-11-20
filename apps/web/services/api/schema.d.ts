@@ -1581,6 +1581,370 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/chat/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My groups, newest first, with the last message, unread and mute (a super admin: every group that is not dissolved) */
+        get: operations["GroupsController_list"];
+        put?: never;
+        /** Create a group (super admin or PT) with trainees (and, for a super admin, PTs); each id gets its own result */
+        post: operations["GroupsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/unread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Group badge poll: total and per group (own, system lines, alerts, unsent and hidden messages never count) */
+        get: operations["GroupsController_unread"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who the create / add picker offers: a PT their own visible trainees, a super admin every trainee and PT (groupId leaves out current members) */
+        get: operations["GroupsController_candidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The info page: the group, what I may do in it and its members (Manager, PT, trainee) */
+        get: operations["GroupsController_info"];
+        put?: never;
+        post?: never;
+        /** Dissolve a group (super admin): soft, the data stays, the group leaves every list and writes stop */
+        delete: operations["GroupsController_dissolve"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add trainees (and, for a super admin, PTs); 409 GROUP_FULL when the cap of 50 left room for none */
+        post: operations["GroupsController_add"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}/members/{memberKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a member (user:<id> or admin:<id>); a super admin cannot be removed */
+        delete: operations["GroupsController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Leave the group (trainee or PT); a super admin cannot. Rejoining needs an add */
+        post: operations["GroupsController_leave"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}/name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Rename the group (managers); the same name is a no-op */
+        put: operations["GroupsController_rename"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}/managers-only": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Only managers can send (managers): on or off */
+        put: operations["GroupsController_managersOnly"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}/mute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mute or unmute my notifications of this group */
+        put: operations["GroupsController_mute"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The group photo bytes (signed URL from a payload) */
+        get: operations["GroupsController_avatar"];
+        /** Set the group photo (managers): a 256x256 data URL, validated like account avatars */
+        put: operations["GroupsController_setAvatar"];
+        post?: never;
+        /** Remove the group photo (managers) */
+        delete: operations["GroupsController_clearAvatar"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One page of the thread (before / after) plus what changed since changedSince, the group and what I may do */
+        get: operations["GroupMessagesController_thread"];
+        put?: never;
+        /** Send text, a sticker, up to 10 photos with a caption, or a reply (Idempotency-Key) */
+        post: operations["GroupMessagesController_send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}/messages/{mid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Unsend my own message for everyone (idempotent) */
+        delete: operations["GroupMessagesController_unsend"];
+        options?: never;
+        head?: never;
+        /** Edit my own message (the previous text is kept in the history) */
+        patch: operations["GroupMessagesController_edit"];
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}/messages/{mid}/reaction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** React (one per person; another emoji replaces it) */
+        put: operations["GroupMessagesController_react"];
+        post?: never;
+        /** Remove my reaction */
+        delete: operations["GroupMessagesController_unreact"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}/messages/{mid}/hidden": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Hide or unhide anyone's message (super admin or the creator PT); the text stays stored */
+        put: operations["GroupMessagesController_hide"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}/messages/{mid}/edits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Previous texts of a message; empty once unsent or hidden */
+        get: operations["GroupMessagesController_edits"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}/messages/{mid}/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who read up to a message (never its sender) */
+        get: operations["GroupMessagesController_seen"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}/messages/{mid}/alert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve a PT-change alert once: keep, or remove the trainee from the group (409 GROUP_ALERT_HANDLED with details.handledBy) */
+        post: operations["GroupMessagesController_resolveAlert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move my read cursor forward (never past the newest message); allowed while chat is off or restricted */
+        post: operations["GroupMessagesController_read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a photo (raw image bytes, JPEG/PNG/WebP, 1.5 MB, 1600 px); it stays pending until a message carries it. Same rules as sending */
+        post: operations["GroupMessagesController_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/groups/{groupId}/photos/{photoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The bytes of a photo of a message in this group */
+        get: operations["GroupMessagesController_photo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/trainees/{userId}/restriction": {
         parameters: {
             query?: never;
@@ -11934,6 +12298,10 @@ export interface operations {
                                 /** @enum {string} */
                                 kind: "text" | "sticker" | "photo";
                             } | null;
+                            group: {
+                                id: number;
+                                name: string;
+                            } | null;
                         }[];
                         openCount: number;
                     };
@@ -13512,6 +13880,3506 @@ export interface operations {
             };
             /** @description Not allowed (role, passcode lock or wrong passcode) */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        groups: {
+                            id: number;
+                            name: string;
+                            avatarUrl: string | null;
+                            managersOnly: boolean;
+                            muted: boolean;
+                            unread: number;
+                            canManage: boolean;
+                            dissolved: boolean;
+                            lastMessage: {
+                                id: number;
+                                /** @enum {string} */
+                                kind: "message" | "system";
+                                senderKey: string | null;
+                                preview: string;
+                                /** @enum {string|null} */
+                                media: "photo" | "sticker" | null;
+                                photoCount: number;
+                                systemEvent: ({
+                                    /** @enum {string} */
+                                    type: "member_added";
+                                    actorKey: string;
+                                    memberKeys: string[];
+                                } | {
+                                    /** @enum {string} */
+                                    type: "member_removed";
+                                    actorKey: string;
+                                    memberKey: string;
+                                } | {
+                                    /** @enum {string} */
+                                    type: "member_left";
+                                    memberKey: string;
+                                } | {
+                                    /** @enum {string} */
+                                    type: "renamed";
+                                    actorKey: string;
+                                    from: string;
+                                    to: string;
+                                } | {
+                                    /** @enum {string} */
+                                    type: "avatar_changed";
+                                    actorKey: string;
+                                } | {
+                                    /** @enum {string} */
+                                    type: "managers_only";
+                                    actorKey: string;
+                                    enabled: boolean;
+                                } | {
+                                    /** @enum {string} */
+                                    type: "pt_changed";
+                                    userId: number;
+                                    fromPtId: number | null;
+                                    toPtId: number | null;
+                                    resolution: {
+                                        /** @enum {string} */
+                                        choice: "keep" | "remove" | "superseded";
+                                        byAdminId: number | null;
+                                        at: number;
+                                    } | null;
+                                }) | null;
+                                createdAt: string;
+                            } | null;
+                            lastMessageAt: string | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** @default [] */
+                    userIds?: unknown[];
+                    /** @default [] */
+                    ptIds?: unknown[];
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        groupId: number;
+                        results: {
+                            /** @enum {string} */
+                            kind: "user" | "admin";
+                            id: unknown;
+                            /** @enum {string} */
+                            outcome: "added" | "invalid" | "not_found" | "not_trainee" | "out_of_scope" | "already_member" | "cap_reached";
+                        }[];
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupsController_unread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        total: number;
+                        perGroup: {
+                            groupId: number;
+                            unread: number;
+                        }[];
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupsController_candidates: {
+        parameters: {
+            query?: {
+                groupId?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        trainees: {
+                            key: string;
+                            /** @enum {string} */
+                            kind: "user" | "admin";
+                            id: number;
+                            name: string;
+                        }[];
+                        pts: {
+                            key: string;
+                            /** @enum {string} */
+                            kind: "user" | "admin";
+                            id: number;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupsController_info: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        group: {
+                            id: number;
+                            name: string;
+                            avatarUrl: string | null;
+                            managersOnly: boolean;
+                            dissolved: boolean;
+                        };
+                        viewer: {
+                            key: string;
+                            /** @enum {string} */
+                            role: "super_admin" | "pt" | "trainee";
+                            isManager: boolean;
+                            canManage: boolean;
+                            isSuperAdmin: boolean;
+                            muted: boolean;
+                            /** @enum {string|null} */
+                            sendBlock: "dissolved" | "left" | "managers_only" | "chat_off" | "restricted" | null;
+                        };
+                        members: {
+                            key: string;
+                            /** @enum {string} */
+                            kind: "user" | "admin";
+                            id: number;
+                            /** @enum {string} */
+                            role: "super_admin" | "pt" | "trainee";
+                            name: string;
+                            avatarUrl: string | null;
+                            isCreator: boolean;
+                        }[];
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupsController_dissolve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupsController_add: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @default [] */
+                    userIds?: unknown[];
+                    /** @default [] */
+                    ptIds?: unknown[];
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        results: {
+                            /** @enum {string} */
+                            kind: "user" | "admin";
+                            id: unknown;
+                            /** @enum {string} */
+                            outcome: "added" | "invalid" | "not_found" | "not_trainee" | "out_of_scope" | "already_member" | "cap_reached";
+                        }[];
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Conflict with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+                memberKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupsController_leave: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupsController_rename: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupsController_managersOnly: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    enabled: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupsController_mute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    muted: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupsController_avatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /**
+             * @description No content
+             *
+             *     image/webp, image/jpeg or image/png
+             */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description ETag matches */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupsController_setAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    dataUrl: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        avatarUrl: string | null;
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupsController_clearAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        avatarUrl: string | null;
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupMessagesController_thread: {
+        parameters: {
+            query?: {
+                after?: number;
+                before?: number;
+                changedSince?: number;
+            };
+            header?: never;
+            path: {
+                groupId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        messages: {
+                            id: number;
+                            groupId: number;
+                            /** @enum {string} */
+                            kind: "message" | "system";
+                            senderKey: string | null;
+                            senderName: string | null;
+                            senderDeleted: boolean;
+                            /** @enum {string|null} */
+                            senderTag: "manager" | "pt" | null;
+                            body: string;
+                            systemEvent: ({
+                                /** @enum {string} */
+                                type: "member_added";
+                                actorKey: string;
+                                memberKeys: string[];
+                            } | {
+                                /** @enum {string} */
+                                type: "member_removed";
+                                actorKey: string;
+                                memberKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "member_left";
+                                memberKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "renamed";
+                                actorKey: string;
+                                from: string;
+                                to: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "avatar_changed";
+                                actorKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "managers_only";
+                                actorKey: string;
+                                enabled: boolean;
+                            } | {
+                                /** @enum {string} */
+                                type: "pt_changed";
+                                userId: number;
+                                fromPtId: number | null;
+                                toPtId: number | null;
+                                resolution: {
+                                    /** @enum {string} */
+                                    choice: "keep" | "remove" | "superseded";
+                                    byAdminId: number | null;
+                                    at: number;
+                                } | null;
+                            }) | null;
+                            /** @enum {string|null} */
+                            audience: "super_admin" | null;
+                            clientId: string | null;
+                            replyTo: {
+                                id: number;
+                                senderKey: string | null;
+                                senderName: string | null;
+                                snippet: string;
+                                unavailable: boolean;
+                                isSticker: boolean;
+                                isPhoto: boolean;
+                                photoCount: number;
+                            } | null;
+                            sticker: {
+                                /** @enum {string} */
+                                kind: "pack" | "giphy" | "custom";
+                                url: string;
+                                alt: string;
+                            } | null;
+                            photo: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            } | null;
+                            photos: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
+                            eventNames: {
+                                [key: string]: string | null;
+                            };
+                            silent: boolean;
+                            deleted: boolean;
+                            hidden: boolean;
+                            edited: boolean;
+                            reactions: {
+                                emoji: string;
+                                count: number;
+                                mine: boolean;
+                            }[];
+                            seenCount: number;
+                            createdAt: string;
+                            updatedAt: string | null;
+                        }[];
+                        hasMore: boolean;
+                        changes: {
+                            id: number;
+                            groupId: number;
+                            /** @enum {string} */
+                            kind: "message" | "system";
+                            senderKey: string | null;
+                            senderName: string | null;
+                            senderDeleted: boolean;
+                            /** @enum {string|null} */
+                            senderTag: "manager" | "pt" | null;
+                            body: string;
+                            systemEvent: ({
+                                /** @enum {string} */
+                                type: "member_added";
+                                actorKey: string;
+                                memberKeys: string[];
+                            } | {
+                                /** @enum {string} */
+                                type: "member_removed";
+                                actorKey: string;
+                                memberKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "member_left";
+                                memberKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "renamed";
+                                actorKey: string;
+                                from: string;
+                                to: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "avatar_changed";
+                                actorKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "managers_only";
+                                actorKey: string;
+                                enabled: boolean;
+                            } | {
+                                /** @enum {string} */
+                                type: "pt_changed";
+                                userId: number;
+                                fromPtId: number | null;
+                                toPtId: number | null;
+                                resolution: {
+                                    /** @enum {string} */
+                                    choice: "keep" | "remove" | "superseded";
+                                    byAdminId: number | null;
+                                    at: number;
+                                } | null;
+                            }) | null;
+                            /** @enum {string|null} */
+                            audience: "super_admin" | null;
+                            clientId: string | null;
+                            replyTo: {
+                                id: number;
+                                senderKey: string | null;
+                                senderName: string | null;
+                                snippet: string;
+                                unavailable: boolean;
+                                isSticker: boolean;
+                                isPhoto: boolean;
+                                photoCount: number;
+                            } | null;
+                            sticker: {
+                                /** @enum {string} */
+                                kind: "pack" | "giphy" | "custom";
+                                url: string;
+                                alt: string;
+                            } | null;
+                            photo: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            } | null;
+                            photos: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
+                            eventNames: {
+                                [key: string]: string | null;
+                            };
+                            silent: boolean;
+                            deleted: boolean;
+                            hidden: boolean;
+                            edited: boolean;
+                            reactions: {
+                                emoji: string;
+                                count: number;
+                                mine: boolean;
+                            }[];
+                            seenCount: number;
+                            createdAt: string;
+                            updatedAt: string | null;
+                        }[];
+                        lastChangeAt: number;
+                        group: {
+                            id: number;
+                            name: string;
+                            avatarUrl: string | null;
+                            managersOnly: boolean;
+                            dissolved: boolean;
+                        };
+                        viewer: {
+                            key: string;
+                            /** @enum {string} */
+                            role: "super_admin" | "pt" | "trainee";
+                            isManager: boolean;
+                            canManage: boolean;
+                            isSuperAdmin: boolean;
+                            muted: boolean;
+                            /** @enum {string|null} */
+                            sendBlock: "dissolved" | "left" | "managers_only" | "chat_off" | "restricted" | null;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupMessagesController_send: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 8-64 characters (a UUID fits). A retry by the same sender answers with the first message and creates nothing. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                groupId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    body?: string;
+                    sticker?: {
+                        pack: string;
+                        id: string;
+                    } | {
+                        giphyId: string;
+                        url: string;
+                    } | {
+                        customId: number;
+                    };
+                    photoIds?: number[];
+                    /** Format: uuid */
+                    clientId?: string;
+                    replyToMessageId?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description A retry: the stored message */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description OK */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: {
+                            id: number;
+                            groupId: number;
+                            /** @enum {string} */
+                            kind: "message" | "system";
+                            senderKey: string | null;
+                            senderName: string | null;
+                            senderDeleted: boolean;
+                            /** @enum {string|null} */
+                            senderTag: "manager" | "pt" | null;
+                            body: string;
+                            systemEvent: ({
+                                /** @enum {string} */
+                                type: "member_added";
+                                actorKey: string;
+                                memberKeys: string[];
+                            } | {
+                                /** @enum {string} */
+                                type: "member_removed";
+                                actorKey: string;
+                                memberKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "member_left";
+                                memberKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "renamed";
+                                actorKey: string;
+                                from: string;
+                                to: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "avatar_changed";
+                                actorKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "managers_only";
+                                actorKey: string;
+                                enabled: boolean;
+                            } | {
+                                /** @enum {string} */
+                                type: "pt_changed";
+                                userId: number;
+                                fromPtId: number | null;
+                                toPtId: number | null;
+                                resolution: {
+                                    /** @enum {string} */
+                                    choice: "keep" | "remove" | "superseded";
+                                    byAdminId: number | null;
+                                    at: number;
+                                } | null;
+                            }) | null;
+                            /** @enum {string|null} */
+                            audience: "super_admin" | null;
+                            clientId: string | null;
+                            replyTo: {
+                                id: number;
+                                senderKey: string | null;
+                                senderName: string | null;
+                                snippet: string;
+                                unavailable: boolean;
+                                isSticker: boolean;
+                                isPhoto: boolean;
+                                photoCount: number;
+                            } | null;
+                            sticker: {
+                                /** @enum {string} */
+                                kind: "pack" | "giphy" | "custom";
+                                url: string;
+                                alt: string;
+                            } | null;
+                            photo: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            } | null;
+                            photos: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
+                            eventNames: {
+                                [key: string]: string | null;
+                            };
+                            silent: boolean;
+                            deleted: boolean;
+                            hidden: boolean;
+                            edited: boolean;
+                            reactions: {
+                                emoji: string;
+                                count: number;
+                                mine: boolean;
+                            }[];
+                            seenCount: number;
+                            createdAt: string;
+                            updatedAt: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupMessagesController_unsend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+                mid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: {
+                            id: number;
+                            groupId: number;
+                            /** @enum {string} */
+                            kind: "message" | "system";
+                            senderKey: string | null;
+                            senderName: string | null;
+                            senderDeleted: boolean;
+                            /** @enum {string|null} */
+                            senderTag: "manager" | "pt" | null;
+                            body: string;
+                            systemEvent: ({
+                                /** @enum {string} */
+                                type: "member_added";
+                                actorKey: string;
+                                memberKeys: string[];
+                            } | {
+                                /** @enum {string} */
+                                type: "member_removed";
+                                actorKey: string;
+                                memberKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "member_left";
+                                memberKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "renamed";
+                                actorKey: string;
+                                from: string;
+                                to: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "avatar_changed";
+                                actorKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "managers_only";
+                                actorKey: string;
+                                enabled: boolean;
+                            } | {
+                                /** @enum {string} */
+                                type: "pt_changed";
+                                userId: number;
+                                fromPtId: number | null;
+                                toPtId: number | null;
+                                resolution: {
+                                    /** @enum {string} */
+                                    choice: "keep" | "remove" | "superseded";
+                                    byAdminId: number | null;
+                                    at: number;
+                                } | null;
+                            }) | null;
+                            /** @enum {string|null} */
+                            audience: "super_admin" | null;
+                            clientId: string | null;
+                            replyTo: {
+                                id: number;
+                                senderKey: string | null;
+                                senderName: string | null;
+                                snippet: string;
+                                unavailable: boolean;
+                                isSticker: boolean;
+                                isPhoto: boolean;
+                                photoCount: number;
+                            } | null;
+                            sticker: {
+                                /** @enum {string} */
+                                kind: "pack" | "giphy" | "custom";
+                                url: string;
+                                alt: string;
+                            } | null;
+                            photo: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            } | null;
+                            photos: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
+                            eventNames: {
+                                [key: string]: string | null;
+                            };
+                            silent: boolean;
+                            deleted: boolean;
+                            hidden: boolean;
+                            edited: boolean;
+                            reactions: {
+                                emoji: string;
+                                count: number;
+                                mine: boolean;
+                            }[];
+                            seenCount: number;
+                            createdAt: string;
+                            updatedAt: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupMessagesController_edit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+                mid: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    body: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: {
+                            id: number;
+                            groupId: number;
+                            /** @enum {string} */
+                            kind: "message" | "system";
+                            senderKey: string | null;
+                            senderName: string | null;
+                            senderDeleted: boolean;
+                            /** @enum {string|null} */
+                            senderTag: "manager" | "pt" | null;
+                            body: string;
+                            systemEvent: ({
+                                /** @enum {string} */
+                                type: "member_added";
+                                actorKey: string;
+                                memberKeys: string[];
+                            } | {
+                                /** @enum {string} */
+                                type: "member_removed";
+                                actorKey: string;
+                                memberKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "member_left";
+                                memberKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "renamed";
+                                actorKey: string;
+                                from: string;
+                                to: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "avatar_changed";
+                                actorKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "managers_only";
+                                actorKey: string;
+                                enabled: boolean;
+                            } | {
+                                /** @enum {string} */
+                                type: "pt_changed";
+                                userId: number;
+                                fromPtId: number | null;
+                                toPtId: number | null;
+                                resolution: {
+                                    /** @enum {string} */
+                                    choice: "keep" | "remove" | "superseded";
+                                    byAdminId: number | null;
+                                    at: number;
+                                } | null;
+                            }) | null;
+                            /** @enum {string|null} */
+                            audience: "super_admin" | null;
+                            clientId: string | null;
+                            replyTo: {
+                                id: number;
+                                senderKey: string | null;
+                                senderName: string | null;
+                                snippet: string;
+                                unavailable: boolean;
+                                isSticker: boolean;
+                                isPhoto: boolean;
+                                photoCount: number;
+                            } | null;
+                            sticker: {
+                                /** @enum {string} */
+                                kind: "pack" | "giphy" | "custom";
+                                url: string;
+                                alt: string;
+                            } | null;
+                            photo: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            } | null;
+                            photos: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
+                            eventNames: {
+                                [key: string]: string | null;
+                            };
+                            silent: boolean;
+                            deleted: boolean;
+                            hidden: boolean;
+                            edited: boolean;
+                            reactions: {
+                                emoji: string;
+                                count: number;
+                                mine: boolean;
+                            }[];
+                            seenCount: number;
+                            createdAt: string;
+                            updatedAt: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Conflict with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupMessagesController_react: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+                mid: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    emoji: "❤️" | "😂" | "😮" | "😢" | "💪" | "👍";
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: {
+                            id: number;
+                            groupId: number;
+                            /** @enum {string} */
+                            kind: "message" | "system";
+                            senderKey: string | null;
+                            senderName: string | null;
+                            senderDeleted: boolean;
+                            /** @enum {string|null} */
+                            senderTag: "manager" | "pt" | null;
+                            body: string;
+                            systemEvent: ({
+                                /** @enum {string} */
+                                type: "member_added";
+                                actorKey: string;
+                                memberKeys: string[];
+                            } | {
+                                /** @enum {string} */
+                                type: "member_removed";
+                                actorKey: string;
+                                memberKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "member_left";
+                                memberKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "renamed";
+                                actorKey: string;
+                                from: string;
+                                to: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "avatar_changed";
+                                actorKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "managers_only";
+                                actorKey: string;
+                                enabled: boolean;
+                            } | {
+                                /** @enum {string} */
+                                type: "pt_changed";
+                                userId: number;
+                                fromPtId: number | null;
+                                toPtId: number | null;
+                                resolution: {
+                                    /** @enum {string} */
+                                    choice: "keep" | "remove" | "superseded";
+                                    byAdminId: number | null;
+                                    at: number;
+                                } | null;
+                            }) | null;
+                            /** @enum {string|null} */
+                            audience: "super_admin" | null;
+                            clientId: string | null;
+                            replyTo: {
+                                id: number;
+                                senderKey: string | null;
+                                senderName: string | null;
+                                snippet: string;
+                                unavailable: boolean;
+                                isSticker: boolean;
+                                isPhoto: boolean;
+                                photoCount: number;
+                            } | null;
+                            sticker: {
+                                /** @enum {string} */
+                                kind: "pack" | "giphy" | "custom";
+                                url: string;
+                                alt: string;
+                            } | null;
+                            photo: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            } | null;
+                            photos: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
+                            eventNames: {
+                                [key: string]: string | null;
+                            };
+                            silent: boolean;
+                            deleted: boolean;
+                            hidden: boolean;
+                            edited: boolean;
+                            reactions: {
+                                emoji: string;
+                                count: number;
+                                mine: boolean;
+                            }[];
+                            seenCount: number;
+                            createdAt: string;
+                            updatedAt: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Conflict with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupMessagesController_unreact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+                mid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: {
+                            id: number;
+                            groupId: number;
+                            /** @enum {string} */
+                            kind: "message" | "system";
+                            senderKey: string | null;
+                            senderName: string | null;
+                            senderDeleted: boolean;
+                            /** @enum {string|null} */
+                            senderTag: "manager" | "pt" | null;
+                            body: string;
+                            systemEvent: ({
+                                /** @enum {string} */
+                                type: "member_added";
+                                actorKey: string;
+                                memberKeys: string[];
+                            } | {
+                                /** @enum {string} */
+                                type: "member_removed";
+                                actorKey: string;
+                                memberKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "member_left";
+                                memberKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "renamed";
+                                actorKey: string;
+                                from: string;
+                                to: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "avatar_changed";
+                                actorKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "managers_only";
+                                actorKey: string;
+                                enabled: boolean;
+                            } | {
+                                /** @enum {string} */
+                                type: "pt_changed";
+                                userId: number;
+                                fromPtId: number | null;
+                                toPtId: number | null;
+                                resolution: {
+                                    /** @enum {string} */
+                                    choice: "keep" | "remove" | "superseded";
+                                    byAdminId: number | null;
+                                    at: number;
+                                } | null;
+                            }) | null;
+                            /** @enum {string|null} */
+                            audience: "super_admin" | null;
+                            clientId: string | null;
+                            replyTo: {
+                                id: number;
+                                senderKey: string | null;
+                                senderName: string | null;
+                                snippet: string;
+                                unavailable: boolean;
+                                isSticker: boolean;
+                                isPhoto: boolean;
+                                photoCount: number;
+                            } | null;
+                            sticker: {
+                                /** @enum {string} */
+                                kind: "pack" | "giphy" | "custom";
+                                url: string;
+                                alt: string;
+                            } | null;
+                            photo: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            } | null;
+                            photos: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
+                            eventNames: {
+                                [key: string]: string | null;
+                            };
+                            silent: boolean;
+                            deleted: boolean;
+                            hidden: boolean;
+                            edited: boolean;
+                            reactions: {
+                                emoji: string;
+                                count: number;
+                                mine: boolean;
+                            }[];
+                            seenCount: number;
+                            createdAt: string;
+                            updatedAt: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Conflict with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupMessagesController_hide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+                mid: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    hidden: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: {
+                            id: number;
+                            groupId: number;
+                            /** @enum {string} */
+                            kind: "message" | "system";
+                            senderKey: string | null;
+                            senderName: string | null;
+                            senderDeleted: boolean;
+                            /** @enum {string|null} */
+                            senderTag: "manager" | "pt" | null;
+                            body: string;
+                            systemEvent: ({
+                                /** @enum {string} */
+                                type: "member_added";
+                                actorKey: string;
+                                memberKeys: string[];
+                            } | {
+                                /** @enum {string} */
+                                type: "member_removed";
+                                actorKey: string;
+                                memberKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "member_left";
+                                memberKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "renamed";
+                                actorKey: string;
+                                from: string;
+                                to: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "avatar_changed";
+                                actorKey: string;
+                            } | {
+                                /** @enum {string} */
+                                type: "managers_only";
+                                actorKey: string;
+                                enabled: boolean;
+                            } | {
+                                /** @enum {string} */
+                                type: "pt_changed";
+                                userId: number;
+                                fromPtId: number | null;
+                                toPtId: number | null;
+                                resolution: {
+                                    /** @enum {string} */
+                                    choice: "keep" | "remove" | "superseded";
+                                    byAdminId: number | null;
+                                    at: number;
+                                } | null;
+                            }) | null;
+                            /** @enum {string|null} */
+                            audience: "super_admin" | null;
+                            clientId: string | null;
+                            replyTo: {
+                                id: number;
+                                senderKey: string | null;
+                                senderName: string | null;
+                                snippet: string;
+                                unavailable: boolean;
+                                isSticker: boolean;
+                                isPhoto: boolean;
+                                photoCount: number;
+                            } | null;
+                            sticker: {
+                                /** @enum {string} */
+                                kind: "pack" | "giphy" | "custom";
+                                url: string;
+                                alt: string;
+                            } | null;
+                            photo: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            } | null;
+                            photos: {
+                                id: number;
+                                url: string;
+                                width: number;
+                                height: number;
+                                alt: string;
+                            }[];
+                            eventNames: {
+                                [key: string]: string | null;
+                            };
+                            silent: boolean;
+                            deleted: boolean;
+                            hidden: boolean;
+                            edited: boolean;
+                            reactions: {
+                                emoji: string;
+                                count: number;
+                                mine: boolean;
+                            }[];
+                            seenCount: number;
+                            createdAt: string;
+                            updatedAt: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupMessagesController_edits: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+                mid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        edits: {
+                            id: number;
+                            previousBody: string;
+                            editedAt: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupMessagesController_seen: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+                mid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        seenBy: {
+                            key: string;
+                            /** @enum {string} */
+                            role: "super_admin" | "pt" | "trainee";
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupMessagesController_resolveAlert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+                mid: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    choice: "keep" | "remove";
+                };
+            };
+        };
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Conflict with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupMessagesController_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    lastReadMessageId: number;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        lastReadMessageId: number;
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupMessagesController_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        photo: {
+                            id: number;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    GroupMessagesController_photo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: number;
+                photoId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /**
+             * @description No content
+             *
+             *     image/webp, image/jpeg or image/png
+             */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

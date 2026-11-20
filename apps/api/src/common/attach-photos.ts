@@ -3,7 +3,7 @@ import type { EntityManager } from "typeorm";
 import { returnedRows } from "./sql.js";
 
 type AttachSpec = {
-  table: "chat_photos" | "social_post_photos";
+  table: "chat_photos" | "chat_group_photos" | "social_post_photos";
   ownerColumn: "message_id" | "post_id";
   ownerId: number;
   // The array order is the display order (position = index).

@@ -363,6 +363,9 @@ export const socialReportResponseSchema = z.object({
       kind: z.enum(SOCIAL_REPORTED_MESSAGE_KINDS),
     })
     .nullable(),
+  // The group of a live group message report (with `message`); null
+  // otherwise.
+  group: z.object({ id: z.number().int(), name: z.string() }).nullable(),
 });
 export const socialCreatedResponseSchema = z.object({ id: z.number().int() });
 

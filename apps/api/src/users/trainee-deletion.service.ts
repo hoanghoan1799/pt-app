@@ -21,6 +21,12 @@ import { SocialCleanupService } from "../social/social-cleanup.service.js";
 // private nicknames, push subscriptions, custom stickers, and the social
 // content (SocialCleanupService owns that: posts, reactions, comments,
 // notifications, pending photos and reports by or about the trainee).
+//
+// Group chat (company group-cleanup.ts): member rows and reactions go with
+// the account through their generated-id foreign keys; uploads that never
+// became a message are deleted here (uploader_key has no foreign key, so an
+// attached photo stays). The trainee's messages stay: the sender shows as
+// "Deleted member".
 @Injectable()
 export class TraineeDeletionService {
   constructor(
@@ -36,6 +42,10 @@ export class TraineeDeletionService {
       await this.social.deleteContentOfUser(em, userId);
       await em.delete(ContactAlias, [{ ownerKey: key }, { targetKey: key }]);
       await em.delete(PushSubscription, { ownerKey: key });
+      await em.query(
+        `DELETE FROM chat_group_photos WHERE uploader_key = $1 AND message_id IS NULL`,
+        [key],
+      );
       await em.delete(ChatCustomSticker, {
         ownerKind: "user",
         ownerId: userId,

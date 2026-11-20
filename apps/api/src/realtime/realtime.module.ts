@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/auth.module.js";
 import { ChatModule } from "../chat/chat.module.js";
+import { ChatGroupsModule } from "../chat-groups/chat-groups.module.js";
 import { ChatGateway } from "./chat.gateway.js";
 import { PresenceRegistry } from "./presence.registry.js";
 import { PresenceService } from "./presence.service.js";
@@ -17,7 +18,7 @@ import { TypingService } from "./typing.service.js";
 // DMs and sessions only emit domain events; this module turns them into
 // socket events. Single instance: see RealtimeIoAdapter for the Redis adapter.
 @Module({
-  imports: [AuthModule, ChatModule],
+  imports: [AuthModule, ChatModule, ChatGroupsModule],
   controllers: [RealtimeController],
   providers: [
     ChatGateway,

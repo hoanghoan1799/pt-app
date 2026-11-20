@@ -180,9 +180,13 @@ describe("reports and friends", () => {
       targetName: "Binh",
       postId: null,
       message: { senderRole: "user", senderName: "Binh", traineeId: 4, traineeName: "Binh", kind: "text" },
+      group: null,
     };
 
     expect(socialReportResponseSchema.parse(report)).toEqual(report);
+    expect(
+      socialReportResponseSchema.parse({ ...report, targetKind: "group_message", group: { id: 3, name: "Crew" } }).group,
+    ).toEqual({ id: 3, name: "Crew" });
     expect(
       socialReportResponseSchema.parse({ ...report, targetKind: "post", reasonCode: null, message: null }).reasonCode,
     ).toBeNull();

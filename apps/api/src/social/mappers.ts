@@ -122,4 +122,5 @@ export const toReportResponse = (report: ReportView) => ({
   targetName: report.targetName,
   postId: report.postId,
   message: report.message,
+  group: report.group,
 });
