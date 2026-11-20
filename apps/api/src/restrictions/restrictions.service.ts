@@ -11,17 +11,12 @@ import {
   RESTRICTION_EVENTS,
   type TraineeSuspendedEvent,
 } from "./restriction.events.js";
-import type { ActiveRestriction } from "./restriction.sql.js";
+import {
+  type ActiveRestriction,
+  type Row,
+  toActive,
+} from "./restriction.sql.js";
 import { restrictionErrors } from "./restrictions.errors.js";
-
-type InsertedRow = {
-  id: number;
-  user_id: number;
-  level: ActiveRestriction["level"];
-  until: Date | null;
-  reason: string;
-  created_at: Date;
-};
 
 // Every write to user_restrictions (super admin only; the controller checks
 // the role). No data is deleted: lifted rows stay as history.
@@ -63,7 +58,7 @@ export class RestrictionsService {
           WHERE user_id = $1 AND lifted_at IS NULL`,
         [userId, now, admin.id],
       );
-      const [inserted] = returnedRows<InsertedRow>(
+      const [inserted] = returnedRows<Row>(
         await manager.query(
           `INSERT INTO user_restrictions
              (user_id, level, until, reason, created_by_admin_id, created_at)
@@ -90,14 +85,7 @@ export class RestrictionsService {
         userId,
       } satisfies TraineeSuspendedEvent);
     }
-    return {
-      id: row.id,
-      userId: row.user_id,
-      level: row.level,
-      until: row.until,
-      reason: row.reason,
-      createdAt: row.created_at,
-    };
+    return toActive(row);
   }
 
   // D7: lift early ("Gỡ chặn"), recording when and by whom. 409 when nothing

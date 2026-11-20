@@ -1,6 +1,5 @@
 import { Module } from "@nestjs/common";
 
-import { RestrictedWriteGuard } from "./restriction.guard.js";
 import { RestrictionsController } from "./restrictions.controller.js";
 import { RestrictionQueries } from "./restrictions.queries.js";
 import { RestrictionsService } from "./restrictions.service.js";
@@ -12,7 +11,7 @@ import { RestrictionsService } from "./restrictions.service.js";
 // this module's providers.
 @Module({
   controllers: [RestrictionsController],
-  providers: [RestrictionsService, RestrictionQueries, RestrictedWriteGuard],
-  exports: [RestrictionQueries, RestrictedWriteGuard],
+  providers: [RestrictionsService, RestrictionQueries],
+  exports: [RestrictionQueries],
 })
 export class RestrictionsModule {}

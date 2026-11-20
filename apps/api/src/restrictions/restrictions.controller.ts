@@ -9,7 +9,6 @@ import {
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import {
-  type ActiveRestrictionResponse,
   activeRestrictionSchema,
   type BlockUserRequest,
   blockUserRequestSchema,
@@ -22,7 +21,7 @@ import { z } from "zod";
 import type { AdminActor } from "../auth/actor.js";
 import { Actor, Roles, ScopedToTrainee } from "../auth/decorators/index.js";
 import { ApiRoute } from "../common/openapi/api-route.js";
-import type { ActiveRestriction } from "./restriction.sql.js";
+import { toActiveRestrictionResponse as toActiveResponse } from "./restrictions.mappers.js";
 import { RestrictionQueries } from "./restrictions.queries.js";
 import { RestrictionsService } from "./restrictions.service.js";
 
@@ -30,20 +29,11 @@ const idParam = { schema: idParamSchema };
 
 const iso = (date: Date) => date.toISOString();
 
-const toActiveResponse = (
-  row: ActiveRestriction,
-): ActiveRestrictionResponse => ({
-  id: row.id,
-  level: row.level,
-  until: row.until ? iso(row.until) : null,
-  reason: row.reason,
-  createdAt: iso(row.createdAt),
-});
-
 // Spec D1/D2: only a super admin blocks, re-blocks and lifts, and only a
 // super admin reads a trainee's block (a PT gets 403 from the RolesGuard).
 // The PT scope guard answers 404 for a missing trainee. Hiding a trainee is a
-// view setting, so the writes ignore it (like the member delete).
+// view setting, so these routes ignore it (like the member delete): a super
+// admin who can block a hidden trainee can also read that block.
 @ApiTags("restrictions")
 @Controller("trainees/:userId/restriction")
 export class RestrictionsController {
@@ -54,7 +44,7 @@ export class RestrictionsController {
 
   @Get()
   @Roles("super_admin")
-  @ScopedToTrainee()
+  @ScopedToTrainee({ ignoreHidden: true })
   @ApiRoute({
     summary: "The trainee's active block and their block history",
     response: traineeRestrictionResponseSchema,

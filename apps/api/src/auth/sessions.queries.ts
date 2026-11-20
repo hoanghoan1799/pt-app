@@ -8,7 +8,7 @@ import { Session } from "../database/entities/session.entity.js";
 import { User } from "../database/entities/user.entity.js";
 import {
   type ActiveRestriction,
-  loadActiveRestriction,
+  activeRestrictionSql,
 } from "../restrictions/restriction.sql.js";
 import type { AdminSubjectRow, SessionState, UserSubjectRow } from "./actor.js";
 import type { SubjectKind } from "./session-rules.js";
@@ -66,14 +66,12 @@ export class SessionQueries {
       return null;
     }
     if (session.subjectKind === "user" && session.userId !== null) {
-      const [row, restriction] = await Promise.all([
-        this.findUserRow(session.userId),
-        loadActiveRestriction(
-          this.dataSource,
-          session.userId,
-          this.clock.now(),
-        ),
-      ]);
+      const loaded = await this.findUserSubject(
+        session.userId,
+        this.clock.now(),
+      );
+      const row = loaded?.row ?? null;
+      const restriction = loaded?.restriction ?? null;
 
       // Spec D4: a suspended trainee's open sessions are rejected like a
       // deleted trainee's (401, the web ends the session). The row stays, so
@@ -94,6 +92,63 @@ export class SessionQueries {
         : null;
     }
     return null;
+  }
+
+  // The trainee row and their active restriction in one round trip: this
+  // runs on every authenticated request and every realtime audience check.
+  private async findUserSubject(
+    id: number,
+    now: Date,
+  ): Promise<{
+    row: UserSubjectRow;
+    restriction: ActiveRestriction | null;
+  } | null> {
+    const rows: (UserSubjectRow & {
+      rId: number | null;
+      rLevel: ActiveRestriction["level"] | null;
+      rUntil: Date | null;
+      rReason: string | null;
+      rCreatedAt: Date | null;
+    })[] = await this.dataSource.query(
+      `SELECT u.id, u.name, u.email, u.locale,
+              u.pt_admin_id AS "ptAdminId", u.chat_enabled AS "chatEnabled",
+              u.terms_version AS "termsVersion",
+              u.preferred_meal_count AS "preferredMealCount",
+              u.food_note AS "foodNote",
+              r.id AS "rId", r.level AS "rLevel", r.until AS "rUntil",
+              r.reason AS "rReason", r.created_at AS "rCreatedAt"
+         FROM users u
+         LEFT JOIN LATERAL (
+           SELECT r.id, r.level, r.until, r.reason, r.created_at
+             FROM user_restrictions r
+            WHERE r.user_id = u.id AND ${activeRestrictionSql("r", "$2::timestamptz")}
+            ORDER BY r.created_at DESC, r.id DESC
+            LIMIT 1
+         ) r ON TRUE
+        WHERE u.id = $1`,
+      [id, now],
+    );
+    const found = rows[0];
+
+    if (!found) {
+      return null;
+    }
+    const { rId, rLevel, rUntil, rReason, rCreatedAt, ...row } = found;
+
+    return {
+      row,
+      restriction:
+        rId !== null && rLevel !== null && rCreatedAt !== null
+          ? {
+              id: rId,
+              userId: row.id,
+              level: rLevel,
+              until: rUntil,
+              reason: rReason ?? "",
+              createdAt: rCreatedAt,
+            }
+          : null,
+    };
   }
 
   findUserRow(id: number): Promise<UserSubjectRow | null> {

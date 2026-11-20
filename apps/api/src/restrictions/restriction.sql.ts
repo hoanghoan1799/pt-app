@@ -30,7 +30,7 @@ export type ActiveRestriction = {
 
 type Runner = { query: (sql: string, params?: unknown[]) => Promise<unknown> };
 
-type Row = {
+export type Row = {
   id: number;
   user_id: number;
   level: RestrictionLevel;
@@ -39,7 +39,7 @@ type Row = {
   created_at: Date;
 };
 
-const toActive = (row: Row): ActiveRestriction => ({
+export const toActive = (row: Row): ActiveRestriction => ({
   id: row.id,
   userId: row.user_id,
   level: row.level,

@@ -7,6 +7,7 @@ import { DmMessage } from "../src/database/entities/dm-message.entity.js";
 import {
   bearer,
   DAY,
+  hideTrainee,
   loginUser,
   MINUTE,
   seedUser,
@@ -104,6 +105,21 @@ describe("block, re-block and lift (super admin only)", () => {
     }
     expect((await block(w.ids.ann, RESTRICT, w.tokens.ann)).status).toBe(403);
     expect(await rows(w.ids.ann)).toEqual([]);
+  });
+
+  it("a super admin blocks, reads and lifts a trainee they hid (hiding is a view setting)", async () => {
+    await hideTrainee(w.ds, w.ids.superAdmin, w.ids.ann);
+
+    try {
+      expect((await block(w.ids.ann, RESTRICT)).status).toBe(200);
+      const read = await readRestriction(w.ids.ann);
+
+      expect(read.status).toBe(200);
+      expect(read.body.restriction.level).toBe("restricted");
+      expect((await lift(w.ids.ann)).status).toBe(204);
+    } finally {
+      await w.ds.query(`DELETE FROM admin_hidden_users`);
+    }
   });
 
   it("stores the level, the end, the trimmed reason and the admin", async () => {

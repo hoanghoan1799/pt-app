@@ -30,8 +30,9 @@ export const assertNotRestricted = (actor: AuthActor | undefined) => {
 export class RestrictedWriteGuard implements CanActivate {
   canActivate(context: ExecutionContext) {
     // Socket.IO events are authenticated by the handshake (RealtimeAuth),
-    // whose actor can be older than the block: socket writes must ask
-    // RestrictionQueries.findActive instead.
+    // whose actor can be older than the block. The only socket event that
+    // reaches other people today is "typing", which the spec leaves open; a
+    // socket write added later asks RestrictionQueries.findActive itself.
     if (context.getType() !== "http") {
       return true;
     }
