@@ -150,6 +150,7 @@ export class GroupsController {
 
   @Post(":groupId/members")
   @Admin()
+  @HttpCode(200)
   @ApiRoute({
     summary:
       "Add trainees (and, for a super admin, PTs); 409 GROUP_FULL when the cap of 50 left room for none",
