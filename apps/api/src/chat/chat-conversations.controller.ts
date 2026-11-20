@@ -44,6 +44,7 @@ import type { Response } from "express";
 import type { AdminActor, AuthActor, UserActor } from "../auth/actor.js";
 import { Actor, Admin, User } from "../auth/decorators/index.js";
 import { ApiRoute } from "../common/openapi/api-route.js";
+import { RefuseRestricted } from "../restrictions/restriction.guard.js";
 import { ChatAccess } from "./chat.access.js";
 import { ChatService } from "./chat.service.js";
 import { ChatGalleryService } from "./chat-gallery.service.js";
@@ -118,6 +119,7 @@ export class ChatConversationsController {
 
   @Post("conversations/me/messages")
   @User()
+  @RefuseRestricted()
   @keyHeader
   @ApiRoute({
     summary: "Send text, a sticker or a photo (Idempotency-Key)",

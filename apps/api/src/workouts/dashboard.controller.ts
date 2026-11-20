@@ -60,6 +60,7 @@ export class DashboardController {
       result.weekStart,
       result.members,
       result.summary,
+      result.restrictionLevels,
     );
   }
 

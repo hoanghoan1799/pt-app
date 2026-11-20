@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/auth.module.js";
+import { RestrictionsModule } from "../restrictions/restrictions.module.js";
 import { DashboardController } from "./dashboard.controller.js";
 import { DashboardService } from "./dashboard.service.js";
 import { ExercisesController } from "./exercises.controller.js";
@@ -17,7 +18,7 @@ import { WorkoutsPolicy } from "./workouts.policy.js";
 // the admin progress reads. Queries run on the DataSource directly (raw SQL
 // read models), services own the transactions.
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, RestrictionsModule],
   controllers: [
     TraineeWorkoutsController,
     WorkoutDaysController,

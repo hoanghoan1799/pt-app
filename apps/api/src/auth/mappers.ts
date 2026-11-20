@@ -7,6 +7,7 @@ import type {
   SessionResponse,
 } from "@pt/contracts";
 
+import { toActiveRestrictionResponse } from "../restrictions/restrictions.mappers.js";
 import type { SessionInfo } from "./actor.js";
 import { type AdminActor, type AuthActor, toActorRole } from "./actor.js";
 
@@ -50,6 +51,9 @@ export const toActorResponse = (actor: AuthActor): ActorResponse =>
         termsVersion: actor.termsVersion,
         preferredMealCount: actor.preferredMealCount,
         foodNote: actor.foodNote,
+        restriction: actor.restriction
+          ? toActiveRestrictionResponse(actor.restriction)
+          : null,
       }
     : {
         kind: "admin",

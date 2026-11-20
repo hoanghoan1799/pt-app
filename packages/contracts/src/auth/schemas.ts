@@ -1,3 +1,4 @@
+import { activeRestrictionSchema } from "../restrictions/schemas.js";
 import {
   ACTOR_ROLES,
   ADMIN_ROLES,
@@ -85,6 +86,9 @@ export const userActorSchema = z.object({
   preferredMealCount: z.number().int().nullable(),
   // Foods the trainee likes or avoids, part of the same request.
   foodNote: z.string().nullable(),
+  // A super admin's active block (always "restricted" here: a suspended
+  // trainee has no session); null when not blocked. The banner shows it.
+  restriction: activeRestrictionSchema.nullable(),
 });
 
 export const adminActorSchema = z.object({

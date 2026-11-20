@@ -100,7 +100,8 @@ describe("user login", () => {
       "token",
     ]);
     // chatEnabled, termsVersion, preferredMealCount and foodNote let the web
-    // drop its own users read (step 9b-C); still no secrets.
+    // drop its own users read (step 9b-C), restriction feeds the block
+    // banner; still no secrets.
     expect(Object.keys(response.body.actor).sort()).toEqual([
       "chatEnabled",
       "email",
@@ -111,6 +112,7 @@ describe("user login", () => {
       "name",
       "preferredMealCount",
       "ptAdminId",
+      "restriction",
       "termsVersion",
     ]);
     for (const leak of ["passwordHash", "scrypt$", "tokenHash", "userAgent"]) {

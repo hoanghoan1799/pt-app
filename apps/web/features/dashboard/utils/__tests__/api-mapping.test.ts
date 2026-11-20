@@ -24,6 +24,7 @@ const member = (
   lastActiveAt: null,
   percent: 50,
   status: "in-progress",
+  restrictionLevel: null,
   ...overrides,
 });
 

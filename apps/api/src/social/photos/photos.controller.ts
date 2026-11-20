@@ -28,6 +28,7 @@ import type { AuthActor } from "../../auth/actor.js";
 import { Actor } from "../../auth/decorators/index.js";
 import { ApiErrors } from "../../common/openapi/api-errors.js";
 import { toOpenApiSchema } from "../../common/openapi/zod-schema.js";
+import { RefuseRestricted } from "../../restrictions/restriction.guard.js";
 import { ApiPathParams } from "../../workouts/workouts.openapi.js";
 import { photoTooLarge } from "../social.errors.js";
 import { toSocialActor } from "../social-actor.js";
@@ -79,6 +80,7 @@ export class PhotosController {
   // from the bytes; the photo stays pending until a post uses it. A trainee
   // needs the accepted terms, an admin uploads as themselves.
   @Post()
+  @RefuseRestricted()
   @HttpCode(201)
   @ApiConsumes("image/webp", "image/jpeg", "image/png")
   @ApiBody({ schema: { type: "string", format: "binary" } })

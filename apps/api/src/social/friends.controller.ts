@@ -33,6 +33,7 @@ import type { AuthActor } from "../auth/actor.js";
 import { Actor, Roles } from "../auth/decorators/index.js";
 import { ApiErrors } from "../common/openapi/api-errors.js";
 import { toOpenApiSchema } from "../common/openapi/zod-schema.js";
+import { RefuseRestricted } from "../restrictions/restriction.guard.js";
 import { ApiPathParams, ApiQueries } from "../workouts/workouts.openapi.js";
 import { FriendsService } from "./friends.service.js";
 import { SocialTermsGuard } from "./terms.guard.js";
@@ -76,6 +77,7 @@ export class FriendsController {
   }
 
   @Post("friends/requests")
+  @RefuseRestricted()
   @HttpCode(201)
   @ApiBody({ schema: toOpenApiSchema(socialFriendRequestSchema, "input") })
   @ApiCreatedResponse({
@@ -90,6 +92,7 @@ export class FriendsController {
   }
 
   @Post("friends/requests/:userId/accept")
+  @RefuseRestricted()
   @HttpCode(204)
   @ApiPathParams("userId")
   @ApiNoContentResponse({ description: "Accepted" })

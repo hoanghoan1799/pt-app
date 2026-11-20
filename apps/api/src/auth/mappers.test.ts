@@ -35,6 +35,7 @@ const user: UserActor = {
   termsVersion: null,
   preferredMealCount: null,
   foodNote: null,
+  restriction: null,
   session,
 };
 

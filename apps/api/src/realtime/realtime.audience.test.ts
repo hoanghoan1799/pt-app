@@ -31,6 +31,7 @@ const trainee = (id: number): UserActor => ({
   termsVersion: null,
   preferredMealCount: null,
   foodNote: null,
+  restriction: null,
   session,
 });
 

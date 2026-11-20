@@ -35,6 +35,7 @@ import type { Request, Response } from "express";
 import type { AdminActor, AuthActor, UserActor } from "../auth/actor.js";
 import { Actor, Admin, User } from "../auth/decorators/index.js";
 import { ApiRoute } from "../common/openapi/api-route.js";
+import { RefuseRestricted } from "../restrictions/restriction.guard.js";
 import { ChatAccess } from "./chat.access.js";
 import { chatErrors } from "./chat.errors.js";
 import { ChatService } from "./chat.service.js";
@@ -72,6 +73,7 @@ export class ChatMessagesController {
   ) {}
 
   @Patch("messages/:mid")
+  @RefuseRestricted()
   @ApiRoute({
     summary: "Edit my own message (the previous text is kept in the history)",
     body: chatEditMessageRequestSchema,
@@ -98,6 +100,7 @@ export class ChatMessagesController {
   }
 
   @Put("messages/:mid/reaction")
+  @RefuseRestricted()
   @ApiRoute({
     summary: "React to a message (one per person; another emoji replaces it)",
     body: chatReactRequestSchema,
@@ -113,6 +116,7 @@ export class ChatMessagesController {
   }
 
   @Delete("messages/:mid/reaction")
+  @RefuseRestricted()
   @ApiRoute({
     summary: "Remove my reaction",
     response: chatMessageResponseSchema,
@@ -139,6 +143,7 @@ export class ChatMessagesController {
 
   @Post("photos")
   @User()
+  @RefuseRestricted()
   @ApiHeader({ name: "Idempotency-Key", required: false })
   @ApiRoute({
     summary:

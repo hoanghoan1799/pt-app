@@ -29,6 +29,7 @@ import type { Response } from "express";
 import type { AdminActor, AuthActor, UserActor } from "../auth/actor.js";
 import { Actor, Roles, User } from "../auth/decorators/index.js";
 import { ApiRoute } from "../common/openapi/api-route.js";
+import { RefuseRestricted } from "../restrictions/restriction.guard.js";
 import { DmQueries } from "./dm.queries.js";
 import { DmService } from "./dm.service.js";
 
@@ -96,6 +97,7 @@ export class DmController {
 
   @Post("dm/conversations/:cid/messages")
   @User()
+  @RefuseRestricted()
   @ApiRoute({
     summary: "Sending is switched off: always 403 DM_DISABLED for a member",
     body: dmSendRequestSchema,

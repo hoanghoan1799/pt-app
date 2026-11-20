@@ -52,6 +52,7 @@ export const fakeUserMe = (
     termsVersion: null,
     preferredMealCount: null,
     foodNote: null,
+    restriction: null,
     ...overrides,
   },
   session: SESSION,

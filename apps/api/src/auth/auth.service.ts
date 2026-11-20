@@ -5,6 +5,8 @@ import { DataSource } from "typeorm";
 
 import { Clock } from "../common/clock.js";
 import { User } from "../database/entities/user.entity.js";
+import { loadActiveRestriction } from "../restrictions/restriction.sql.js";
+import { AccountSuspendedError } from "../restrictions/restrictions.errors.js";
 import type { AuthActor } from "./actor.js";
 import {
   badRequest,
@@ -48,6 +50,20 @@ export class AuthService {
     client: ClientContext,
   ) {
     const subject = await this.strategies.get(method).verify(input);
+
+    // Spec D4: checked after the credential, so a wrong password never
+    // reveals a suspension. No session is started.
+    if (subject.kind === "user") {
+      const restriction = await loadActiveRestriction(
+        this.dataSource,
+        subject.id,
+        this.clock.now(),
+      );
+
+      if (restriction?.level === "suspended") {
+        throw new AccountSuspendedError(restriction);
+      }
+    }
     const { token, sessionId } = await this.sessions.create({
       subject,
       client,

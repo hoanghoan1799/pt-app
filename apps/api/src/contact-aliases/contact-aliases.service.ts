@@ -21,8 +21,8 @@ import { Clock } from "../common/clock.js";
 import { notFoundError } from "../common/errors.js";
 import { Admin } from "../database/entities/admin.entity.js";
 import { ContactAlias } from "../database/entities/contact-alias.entity.js";
-import { SocialBlock } from "../database/entities/social-block.entity.js";
 import { User } from "../database/entities/user.entity.js";
+import { isBlockedOrSuspendedBetween } from "../restrictions/restriction.sql.js";
 
 // Terms version that unlocks the social network (spec T1).
 export const CURRENT_TERMS_VERSION = 1;
@@ -174,12 +174,8 @@ export class ContactAliasesService {
     return facts !== null && this.policy.canAccessTrainee(admin, facts);
   }
 
+  // A block either way, or either trainee suspended (D4).
   private isBlockedBetween(a: number, b: number) {
-    return this.dataSource.getRepository(SocialBlock).exists({
-      where: [
-        { blockerId: a, blockedId: b },
-        { blockerId: b, blockedId: a },
-      ],
-    });
+    return isBlockedOrSuspendedBetween(this.dataSource, a, b, this.clock.now());
   }
 }

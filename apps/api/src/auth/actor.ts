@@ -1,5 +1,6 @@
 import { type ActorRole, type AdminRole, toAdminRole } from "@pt/contracts";
 
+import type { ActiveRestriction } from "../restrictions/restriction.sql.js";
 import {
   isLockedFor,
   isRevealActive,
@@ -30,6 +31,9 @@ export type UserActor = {
   termsVersion: number | null;
   preferredMealCount: number | null;
   foodNote: string | null;
+  // A super admin's restriction, active when the session loaded; null when
+  // not blocked. Never "suspended": a suspended trainee has no session.
+  restriction: ActiveRestriction | null;
   session: SessionInfo;
 };
 
@@ -88,6 +92,7 @@ export const toActorRole = (actor: AuthActor): ActorRole =>
 export const buildUserActor = (
   state: SessionState,
   row: UserSubjectRow,
+  restriction: ActiveRestriction | null = null,
 ): UserActor => ({
   kind: "user",
   id: row.id,
@@ -100,6 +105,7 @@ export const buildUserActor = (
   termsVersion: row.termsVersion,
   preferredMealCount: row.preferredMealCount,
   foodNote: row.foodNote,
+  restriction,
   session: pickInfo(state),
 });
 

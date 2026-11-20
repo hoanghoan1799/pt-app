@@ -1581,6 +1581,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/trainees/{userId}/restriction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The trainee's active block and their block history */
+        get: operations["RestrictionsController_get"];
+        /** Block the trainee (restricted or suspended); an active block is lifted first and kept as history */
+        put: operations["RestrictionsController_block"];
+        post?: never;
+        /** Lift the trainee's active block early */
+        delete: operations["RestrictionsController_lift"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me/workout-days": {
         parameters: {
             query?: never;
@@ -2531,6 +2550,16 @@ export interface operations {
                             termsVersion: number | null;
                             preferredMealCount: number | null;
                             foodNote: string | null;
+                            restriction: {
+                                id: number;
+                                /** @enum {string} */
+                                level: "restricted" | "suspended";
+                                /** Format: date-time */
+                                until: string | null;
+                                reason: string;
+                                /** Format: date-time */
+                                createdAt: string;
+                            } | null;
                         } | {
                             /** @enum {string} */
                             kind: "admin";
@@ -2659,6 +2688,16 @@ export interface operations {
                             termsVersion: number | null;
                             preferredMealCount: number | null;
                             foodNote: string | null;
+                            restriction: {
+                                id: number;
+                                /** @enum {string} */
+                                level: "restricted" | "suspended";
+                                /** Format: date-time */
+                                until: string | null;
+                                reason: string;
+                                /** Format: date-time */
+                                createdAt: string;
+                            } | null;
                         } | {
                             /** @enum {string} */
                             kind: "admin";
@@ -2774,6 +2813,16 @@ export interface operations {
                             termsVersion: number | null;
                             preferredMealCount: number | null;
                             foodNote: string | null;
+                            restriction: {
+                                id: number;
+                                /** @enum {string} */
+                                level: "restricted" | "suspended";
+                                /** Format: date-time */
+                                until: string | null;
+                                reason: string;
+                                /** Format: date-time */
+                                createdAt: string;
+                            } | null;
                         } | {
                             /** @enum {string} */
                             kind: "admin";
@@ -2891,6 +2940,16 @@ export interface operations {
                             termsVersion: number | null;
                             preferredMealCount: number | null;
                             foodNote: string | null;
+                            restriction: {
+                                id: number;
+                                /** @enum {string} */
+                                level: "restricted" | "suspended";
+                                /** Format: date-time */
+                                until: string | null;
+                                reason: string;
+                                /** Format: date-time */
+                                createdAt: string;
+                            } | null;
                         } | {
                             /** @enum {string} */
                             kind: "admin";
@@ -13469,6 +13528,325 @@ export interface operations {
             };
         };
     };
+    RestrictionsController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        restriction: {
+                            id: number;
+                            /** @enum {string} */
+                            level: "restricted" | "suspended";
+                            /** Format: date-time */
+                            until: string | null;
+                            reason: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                        } | null;
+                        history: {
+                            id: number;
+                            /** @enum {string} */
+                            level: "restricted" | "suspended";
+                            /** Format: date-time */
+                            until: string | null;
+                            reason: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            createdBy: string | null;
+                            /** Format: date-time */
+                            liftedAt: string | null;
+                            liftedBy: string | null;
+                            active: boolean;
+                        }[];
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    RestrictionsController_block: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    level: "restricted" | "suspended";
+                    /** @enum {string} */
+                    duration: "24h" | "7d" | "30d" | "permanent";
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        restriction: {
+                            id: number;
+                            /** @enum {string} */
+                            level: "restricted" | "suspended";
+                            /** Format: date-time */
+                            until: string | null;
+                            reason: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    RestrictionsController_lift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired session, or wrong credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not allowed (role, passcode lock or wrong passcode) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Not found (also: outside the PT workspace or hidden) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Conflict with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                        ref: string;
+                        details?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
     TraineeWorkoutsController_schedule: {
         parameters: {
             query: {
@@ -14801,6 +15179,8 @@ export interface operations {
                             percent: number;
                             /** @enum {string} */
                             status: "no-plan" | "not-started" | "in-progress" | "done";
+                            /** @enum {string|null} */
+                            restrictionLevel: "restricted" | "suspended" | null;
                         }[];
                         summary: {
                             memberCount: number;

@@ -16,8 +16,13 @@ import {
   type ChatPostQuoteReader,
 } from "../chat/post-quote.port.js";
 import { previewTexts } from "../chat/preview-text.js";
+import { Clock } from "../common/clock.js";
 import { ContactAliasesService } from "../contact-aliases/contact-aliases.service.js";
 import { avatarUrl } from "../files/image-rules.js";
+import {
+  isBlockedOrSuspendedBetween,
+  suspendedUserSql,
+} from "../restrictions/restriction.sql.js";
 import { dmAccessOf, dmPreviewText, otherMember } from "./dm.rules.js";
 
 // Trainees have accepted the terms of the social network (spec T1).
@@ -61,6 +66,7 @@ export class DmQueries {
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly aliases: ContactAliasesService,
     @Inject(CHAT_POST_QUOTES) private readonly postQuotes: ChatPostQuoteReader,
+    private readonly clock: Clock,
   ) {}
 
   async findConversation(id: number): Promise<DmConversationRow | null> {
@@ -86,15 +92,9 @@ export class DmQueries {
     return ids.map((id) => ({ id, name: names.get(id) ?? null }));
   }
 
-  private async isBlockedBetween(a: number, b: number) {
-    const rows: unknown[] = await this.dataSource.query(
-      `SELECT 1 FROM social_blocks
-       WHERE (blocker_id = $1 AND blocked_id = $2) OR (blocker_id = $2 AND blocked_id = $1)
-       LIMIT 1`,
-      [a, b],
-    );
-
-    return rows.length > 0;
+  // A block either way, or a suspended member (D4), hides the conversation.
+  isBlockedBetween(a: number, b: number) {
+    return isBlockedOrSuspendedBetween(this.dataSource, a, b, this.clock.now());
   }
 
   private async hasAcceptedTerms(userId: number) {
@@ -257,7 +257,8 @@ export class DmQueries {
     };
   }
 
-  // The member's conversations that are not hidden by a block.
+  // The member's conversations that are not hidden by a block or by the other
+  // member's suspension (D4).
   private async visibleConversations(userId: number) {
     const rows: DmConversationRow[] = await this.dataSource.query(
       `SELECT c.id, c.user_low AS "userLow", c.user_high AS "userHigh",
@@ -267,8 +268,9 @@ export class DmQueries {
          AND NOT EXISTS (
            SELECT 1 FROM social_blocks b
            WHERE (b.blocker_id = $1 AND b.blocked_id = CASE WHEN c.user_low = $1 THEN c.user_high ELSE c.user_low END)
-              OR (b.blocked_id = $1 AND b.blocker_id = CASE WHEN c.user_low = $1 THEN c.user_high ELSE c.user_low END))`,
-      [userId],
+              OR (b.blocked_id = $1 AND b.blocker_id = CASE WHEN c.user_low = $1 THEN c.user_high ELSE c.user_low END))
+         AND NOT ${suspendedUserSql("CASE WHEN c.user_low = $1 THEN c.user_high ELSE c.user_low END", "$2::timestamptz")}`,
+      [userId, this.clock.now()],
     );
 
     return rows;
