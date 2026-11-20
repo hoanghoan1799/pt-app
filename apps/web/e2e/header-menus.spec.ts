@@ -12,6 +12,22 @@ const gear = (page: Page) =>
 const avatar = (page: Page) =>
   header(page).getByRole("button", { name: "Tài khoản" });
 
+// Picks a theme in the open gear menu and waits until it is saved. The
+// Giao diện group stays busy while setThemeAction runs: the cookie it sets
+// re-renders the page into the action's response, and a reload, a navigation
+// or the end of the test before that aborts it ("The destination stream
+// closed early").
+const pickTheme = async (page: Page, name: string) => {
+  const option = page.getByRole("menuitemradio", { name });
+
+  await option.click();
+  await expect(option).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("group", { name: "Giao diện" })).toHaveAttribute(
+    "aria-busy",
+    "false",
+  );
+};
+
 const logInAsTrainee = async (page: Page) => {
   await page.goto("/");
   await fillTraineeLogin(page, E2E_USER_NAME);
@@ -35,7 +51,7 @@ test("the theme menu sets dark and it survives a reload", async ({ page }) => {
   await expect(
     page.getByRole("menuitemradio", { name: "Hệ thống" }),
   ).toHaveAttribute("aria-checked", "true");
-  await page.getByRole("menuitemradio", { name: "Tối" }).click();
+  await pickTheme(page, "Tối");
   await expect(html).toHaveAttribute("data-theme", "dark");
   await expect(
     page.getByRole("menuitemradio", { name: "Tối" }),
@@ -69,13 +85,13 @@ test("the theme menu sets dark and it survives a reload", async ({ page }) => {
     page.getByRole("menuitemradio", { name: "Tối" }),
   ).toHaveAttribute("aria-checked", "true");
 
-  await page.getByRole("menuitemradio", { name: "Sáng" }).click();
+  await pickTheme(page, "Sáng");
   await expect(html).toHaveAttribute("data-theme", "light");
   await expect(page.locator("body")).toHaveCSS(
     "background-color",
     "rgb(244, 244, 245)",
   );
-  await page.getByRole("menuitemradio", { name: "Hệ thống" }).click();
+  await pickTheme(page, "Hệ thống");
   await expect(html).toHaveAttribute("data-theme", "system");
 });
 
@@ -91,12 +107,12 @@ test("Hệ thống follows the OS color scheme and a forced theme overrides it",
   );
 
   await gear(page).click();
-  await page.getByRole("menuitemradio", { name: "Sáng" }).click();
+  await pickTheme(page, "Sáng");
   await expect(page.locator("body")).toHaveCSS(
     "background-color",
     "rgb(244, 244, 245)",
   );
-  await page.getByRole("menuitemradio", { name: "Hệ thống" }).click();
+  await pickTheme(page, "Hệ thống");
 });
 
 test("a tampered theme cookie falls back to system", async ({
