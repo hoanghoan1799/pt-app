@@ -18,6 +18,7 @@ import {
 } from "./actor-ids.js";
 import { Admin } from "./admin.entity.js";
 import { ChatGroup } from "./chat-group.entity.js";
+import { ChatGroupMessage } from "./chat-group-message.entity.js";
 import { User } from "./user.entity.js";
 
 // Explicit members plus lazy state rows of super admins (mute, read cursor).
@@ -37,6 +38,15 @@ import { User } from "./user.entity.js";
 @Check(
   "chat_group_members_last_read_nonnegative",
   `"last_read_message_id" >= 0`,
+)
+// The read cursor is a message of this group. Deleting that message clears
+// only the cursor (SET NULL (last_read_message_id)), never group_id. The
+// primary key, led by group_id, serves the lookup.
+@ForeignKey(
+  () => ChatGroupMessage,
+  ["groupId", "lastReadMessageId"],
+  ["groupId", "id"],
+  { name: "fk_chat_group_members_last_read", onDelete: "SET NULL" },
 )
 @ForeignKey(() => User, ["memberUserId"], ["id"], {
   name: "fk_chat_group_members_member_user_id",
@@ -82,10 +92,12 @@ export class ChatGroupMember {
   @Column({ type: "timestamptz", nullable: true })
   mutedAt!: Date | null;
 
-  // 0 = nothing read yet (a message id otherwise, not a foreign key: the
-  // message may be gone).
-  @Column({ type: "integer", default: 0 })
-  lastReadMessageId!: number;
+  // NULL = nothing read yet; otherwise a message of this group. Unread is
+  // id > cursor with NULL as 0. Write paths (mark read, join, re-add) store
+  // NULL or an id of this group, never 0 (the foreign key refuses 0 and any
+  // other group's id); an API that answers a number maps NULL to 0.
+  @Column({ type: "integer", nullable: true })
+  lastReadMessageId!: number | null;
 
   @GeneratedId(userKeyId("member_key"))
   memberUserId!: number | null;

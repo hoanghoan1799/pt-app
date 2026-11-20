@@ -41,8 +41,8 @@ describe("entities", () => {
     // + 26 account ids (DbIntegrity) - 1 (chat_nicknames dropped by
     // DbChatSocial) + 2 (chat_nicknames restored: conversation, target admin)
     // + 3 user_restrictions + 2 theme + 14 group chat (10 declared, 4 account
-    // ids).
-    expect(foreignKeys).toHaveLength(117);
+    // ids) + 1 group read cursor (GroupChatRestrictionKeys).
+    expect(foreignKeys).toHaveLength(118);
     expect(foreignKeys.every((fk) => fk.onDelete !== undefined)).toBe(true);
   });
 
