@@ -1216,7 +1216,9 @@ const companyDirty = (): Entry[] => [
       lifted_by_admin_id: 1,
     },
   ],
-  // An active block whose admin was deleted in SQLite (no FKs there).
+  // An active block whose admin was deleted in SQLite (no FKs there). Also
+  // the newest active block of trainee 1, so 90 is lifted when 91 replaced it
+  // (GroupChatRestrictionKeys).
   [
     "user_restrictions",
     {
@@ -1225,6 +1227,52 @@ const companyDirty = (): Entry[] => [
       level: "restricted",
       created_by_admin_id: 99,
       created_at: MS + 8001,
+    },
+  ],
+  // Trainee 2: three active blocks. 94 stays; 93 is lifted when 94 replaced
+  // it, 92 at its own until (it ended before 93 came).
+  [
+    "user_restrictions",
+    {
+      id: 92,
+      user_id: 2,
+      level: "restricted",
+      until: MS + 8150,
+      created_by_admin_id: 1,
+      created_at: MS + 8100,
+    },
+  ],
+  [
+    "user_restrictions",
+    {
+      id: 93,
+      user_id: 2,
+      level: "suspended",
+      created_by_admin_id: 1,
+      created_at: MS + 8200,
+    },
+  ],
+  [
+    "user_restrictions",
+    {
+      id: 94,
+      user_id: 2,
+      level: "restricted",
+      until: MS + 9999,
+      created_by_admin_id: 1,
+      created_at: MS + 8300,
+    },
+  ],
+  // Lifted before it was created: lifted at created_at instead.
+  [
+    "user_restrictions",
+    {
+      id: 95,
+      user_id: 5,
+      level: "restricted",
+      created_by_admin_id: 1,
+      created_at: MS + 8400,
+      lifted_at: MS + 8350,
     },
   ],
   [
@@ -1258,6 +1306,28 @@ const companyDirty = (): Entry[] => [
       member_key: "user",
       added_by_key: "admin:1",
       joined_at: MS + 8021,
+    },
+  ],
+  // Read cursors naming no message of their group (SQLite had no FK): a
+  // missing message and another group's. Cleared; the members stay.
+  [
+    "chat_group_members",
+    {
+      group_id: 1,
+      member_key: "user:5",
+      added_by_key: "admin:1",
+      joined_at: MS + 8022,
+      last_read_message_id: 999,
+    },
+  ],
+  [
+    "chat_group_members",
+    {
+      group_id: 1,
+      member_key: "admin:1",
+      added_by_key: "admin:1",
+      joined_at: MS + 8023,
+      last_read_message_id: 91,
     },
   ],
   [

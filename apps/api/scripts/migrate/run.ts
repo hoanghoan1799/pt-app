@@ -32,6 +32,8 @@ import {
   companyScanValues,
   findCompanyViolations,
   NULL_INSTEAD_OF_SKIP,
+  planCompanyRepairs,
+  resetCompanyRepairs,
 } from "./company-features.js";
 import {
   backfills,
@@ -891,6 +893,7 @@ const isVerified = (report: Report) =>
 
 const execute = async (options: RunOptions, report: Report, log: Log) => {
   resetConstraintState();
+  resetCompanyRepairs();
   // Without the table and columns PostgreSQL dropped (chat-social.ts); the
   // source schema check below still uses the full description.
   const sourceMapping = loadTursoColumns();
@@ -963,7 +966,10 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
     }
 
     for (const [item, count] of [
-      ["chat_messages.attachment_url / attachment_meta (messages)", legacy.attachments],
+      [
+        "chat_messages.attachment_url / attachment_meta (messages)",
+        legacy.attachments,
+      ],
     ] as const) {
       if (count > 0) {
         report.droppedLegacy.push({ item, count });
@@ -994,6 +1000,30 @@ const execute = async (options: RunOptions, report: Report, log: Log) => {
     report.invalidValues = analysis.invalid;
     report.blobs = analysis.blobs;
     report.warnings.push(...analysis.warnings);
+
+    // GroupChatRestrictionKeys repairs these rows in place; the copy does the
+    // same (applied on every later read, listed here by primary key).
+    const repaired = planCompanyRepairs(analysis.rows);
+
+    for (const [table, what, keys] of [
+      [
+        "user_restrictions",
+        "older active restriction(s) of the same trainee lifted (the newest stays active)",
+        repaired.liftedRestrictions,
+      ],
+      [
+        "chat_group_members",
+        "read cursor(s) naming no message of their group cleared",
+        repaired.clearedCursors,
+      ],
+    ] as const) {
+      if (keys.length > 0) {
+        const line = `${table}: ${keys.length} ${what}: ${keys.slice(0, SAMPLES_PER_COLUMN).join(", ")}`;
+
+        report.warnings.push(line);
+        log(`  ${line}`);
+      }
+    }
     report.skippedAvatars = analysis.skippedAvatars;
     printSkippedAvatars(report, log);
 

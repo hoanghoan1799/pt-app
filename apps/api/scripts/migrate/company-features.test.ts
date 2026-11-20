@@ -1,11 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   COMPANY_REASONS,
   companyScanValues,
   findCompanyViolations,
+  liftedAtFor,
   NULL_INSTEAD_OF_SKIP,
+  planCompanyRepairs,
+  planRestrictionLifts,
   repairCompanyRow,
+  resetCompanyRepairs,
 } from "./company-features.js";
 import type { RowRef } from "./plan.js";
 
@@ -153,6 +157,7 @@ describe("findCompanyViolations", () => {
       "users:accent_color:true",
     ]);
     expect([...NULL_INSTEAD_OF_SKIP].sort()).toEqual([
+      "chat_group_members.last_read_message_id",
       "user_restrictions.created_by_admin_id",
       "user_restrictions.lifted_by_admin_id",
     ]);
@@ -238,5 +243,165 @@ describe("findCompanyViolations", () => {
     ).toEqual([
       `chat_group_photos:message_id:12:${COMPANY_REASONS.photoOtherGroup}`,
     ]);
+  });
+});
+
+describe("GroupChatRestrictionKeys repairs", () => {
+  afterEach(() => {
+    resetCompanyRepairs();
+  });
+
+  it("reads a cursor of 0 as NULL (nothing read) and keeps a real one", () => {
+    const unread: Record<string, unknown> = {
+      group_id: 1,
+      member_key: "user:1",
+      last_read_message_id: 0,
+    };
+    const read: Record<string, unknown> = {
+      group_id: 1,
+      member_key: "user:2",
+      last_read_message_id: 4,
+    };
+
+    repairCompanyRow("chat_group_members", unread);
+    repairCompanyRow("chat_group_members", read);
+
+    expect(unread.last_read_message_id).toBeNull();
+    expect(read.last_read_message_id).toBe(4);
+  });
+
+  it("moves a lifted_at before created_at up to created_at", () => {
+    const early: Record<string, unknown> = {
+      id: 1,
+      created_at: 100,
+      lifted_at: 50,
+    };
+    const fine: Record<string, unknown> = {
+      id: 2,
+      created_at: 100,
+      lifted_at: 150,
+    };
+
+    repairCompanyRow("user_restrictions", early);
+    repairCompanyRow("user_restrictions", fine);
+
+    expect(early.lifted_at).toBe(100);
+    expect(fine.lifted_at).toBe(150);
+  });
+
+  it("lifts an older row when the next newer one replaced it, or at its own earlier until", () => {
+    expect(liftedAtFor(100, null, 300)).toBe(300);
+    expect(liftedAtFor(100, 200, 300)).toBe(200);
+    expect(liftedAtFor(100, 400, 300)).toBe(300);
+    // An until before created_at never lifts the row before it existed.
+    expect(liftedAtFor(100, 50, 300)).toBe(100);
+  });
+
+  it("keeps the newest active restriction per trainee (created_at, then id) and lifts the rest", () => {
+    const restriction = (
+      key: string,
+      userId: number,
+      createdAt: number,
+      until: number | null = null,
+      liftedAt: number | null = null,
+    ) =>
+      row(key, {
+        user_id: userId,
+        created_at: createdAt,
+        until,
+        lifted_at: liftedAt,
+        lifted_by_admin_id: null,
+      });
+
+    const lifts = planRestrictionLifts([
+      // Trainee 1: a chain of three active rows, plus a lifted one.
+      restriction("1", 1, 100, 150),
+      restriction("2", 1, 200),
+      restriction("3", 1, 300, 900),
+      restriction("4", 1, 400, null, 450),
+      // Trainee 2: one active row, nothing to do.
+      restriction("5", 2, 100),
+      // Trainee 3: same created_at, the higher id stays.
+      restriction("6", 3, 500),
+      restriction("7", 3, 500),
+    ]);
+
+    expect(Object.fromEntries(lifts)).toEqual({
+      "1": 150,
+      "2": 300,
+      "6": 500,
+    });
+  });
+
+  it("clears a cursor naming a missing message or another group's, and leaves a negative one for the report", () => {
+    const rows = {
+      chat_group_messages: [
+        row("1", message({ group_id: 1 })),
+        row("2", message({ group_id: 2 })),
+      ],
+      chat_group_members: [
+        row("1:user:1", { group_id: 1, last_read_message_id: 1 }),
+        row("1:user:2", { group_id: 1, last_read_message_id: 2 }),
+        row("1:user:3", { group_id: 1, last_read_message_id: 99 }),
+        row("1:user:4", { group_id: 1, last_read_message_id: null }),
+        row("1:user:5", { group_id: 1, last_read_message_id: -1 }),
+      ],
+    };
+
+    expect(planCompanyRepairs(rows)).toEqual({
+      liftedRestrictions: [],
+      clearedCursors: ["1:user:2", "1:user:3"],
+    });
+    // The orphan scan that follows sees the cleared values.
+    expect(
+      rows.chat_group_members.map(
+        (member) => member.values.last_read_message_id,
+      ),
+    ).toEqual([1, null, null, null, -1]);
+
+    const loaded: Record<string, unknown> = {
+      group_id: 1,
+      member_key: "user:3",
+      last_read_message_id: 99,
+    };
+
+    repairCompanyRow("chat_group_members", loaded);
+    expect(loaded.last_read_message_id).toBeNull();
+  });
+
+  it("applies planned lifts on later reads only, and a reset forgets them", () => {
+    planCompanyRepairs({
+      user_restrictions: [
+        row("1", { user_id: 1, created_at: 100, until: null, lifted_at: null }),
+        row("2", { user_id: 1, created_at: 200, until: null, lifted_at: null }),
+      ],
+    });
+
+    const older: Record<string, unknown> = {
+      id: 1,
+      created_at: 100,
+      lifted_at: null,
+    };
+    const newer: Record<string, unknown> = {
+      id: 2,
+      created_at: 200,
+      lifted_at: null,
+    };
+
+    repairCompanyRow("user_restrictions", older);
+    repairCompanyRow("user_restrictions", newer);
+    expect(older.lifted_at).toBe(200);
+    expect(newer.lifted_at).toBeNull();
+
+    resetCompanyRepairs();
+
+    const again: Record<string, unknown> = {
+      id: 1,
+      created_at: 100,
+      lifted_at: null,
+    };
+
+    repairCompanyRow("user_restrictions", again);
+    expect(again.lifted_at).toBeNull();
   });
 });
