@@ -233,13 +233,6 @@ export class PushNotifier {
         event.groupId,
         facts.senderKey,
       )) {
-        if (!(await this.push.hasDevices(recipient.ownerKey))) {
-          continue;
-        }
-        const alias = await this.recipients.aliasFor(recipient.ownerKey, [
-          facts.senderKey,
-        ]);
-
         await this.push.sendToOwner(
           recipient.ownerKey,
           pushContent.group_message({
@@ -248,7 +241,7 @@ export class PushNotifier {
               : "user",
             groupId: event.groupId,
             groupName,
-            senderName: alias || realName,
+            senderName: recipient.alias || realName,
             body: facts.body,
             sticker: facts.sticker,
             photo: facts.photoCount > 0,

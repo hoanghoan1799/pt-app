@@ -208,6 +208,42 @@ describe("realtime fan-out (company group-realtime)", () => {
     expect(row[0].audience).toBe("super_admin");
     await nothingNamed(annSocket, REALTIME_EVENTS.groupMessage, groupId);
     await nothingNamed(ptSocket, REALTIME_EVENTS.groupMessage, groupId);
+
+    // A newer change supersedes it: open threads hear the update.
+    await callWith(
+      w.app,
+      "put",
+      `/v1/trainees/${ann.id}/pt`,
+      superAdmin.token,
+      {
+        body: { ptAdminId: pt.id },
+      },
+    );
+    expect(
+      await superSocket.waitFor(
+        REALTIME_EVENTS.groupMessageUpdate,
+        (data) => data.messageId === alert.messageId,
+      ),
+    ).toEqual({ groupId, messageId: alert.messageId });
+    await nothingNamed(annSocket, REALTIME_EVENTS.groupMessageUpdate, groupId);
+  });
+
+  it("publishes a read only when the cursor moved", async () => {
+    const ann = await traineeIn(w, { ptAdminId: pt.id });
+    const groupId = await api.createId(pt.token, { userIds: [ann.id] });
+    const mid = await api.sendId(pt.token, groupId);
+    const ptSocket = await socketOf(pt);
+
+    await api.read(ann.token, groupId, mid);
+    await ptSocket.waitFor(REALTIME_EVENTS.groupRead, forGroup(groupId));
+    await api.read(ann.token, groupId, mid);
+    await api.read(ann.token, groupId, 0);
+    await pause(250);
+    expect(
+      ptSocket
+        .named(REALTIME_EVENTS.groupRead)
+        .filter((data) => data.groupId === groupId),
+    ).toHaveLength(1);
   });
 
   it("tells the members once on dissolve and then nothing", async () => {

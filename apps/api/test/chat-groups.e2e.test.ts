@@ -1091,6 +1091,35 @@ describe("message changes (company group-mutations)", () => {
 
     expect((await api.hide(pt.token, groupId, line, true)).status).toBe(404);
   });
+
+  it("keeps a super admin's hide: the creator PT cannot unhide it and the author cannot edit it", async () => {
+    const groupId = await ptGroup();
+    const mid = await api.sendId(ann.token, groupId, { body: "abuse" });
+
+    await api.hide(superAdmin.token, groupId, mid, true);
+    const unhide = await api.hide(pt.token, groupId, mid, false);
+
+    expect(unhide.status).toBe(403);
+    expect(unhide.body.code).toBe("GROUP_NOT_MANAGER");
+    const rewrite = await api.edit(ann.token, groupId, mid, "harmless");
+
+    expect(rewrite.status).toBe(409);
+    expect(
+      (
+        await w.ds.query(`SELECT body FROM chat_group_messages WHERE id = $1`, [
+          mid,
+        ])
+      )[0].body,
+    ).toBe("abuse");
+    // The creator PT's own hide stays theirs to undo.
+    const own = await api.sendId(ben.token, groupId, { body: "meh" });
+
+    await api.hide(pt.token, groupId, own, true);
+    expect((await api.hide(pt.token, groupId, own, false)).status).toBe(200);
+    expect((await api.hide(superAdmin.token, groupId, mid, false)).status).toBe(
+      200,
+    );
+  });
 });
 
 describe("thread, names and seen-by (company group-queries)", () => {

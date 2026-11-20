@@ -164,33 +164,42 @@ export class PushRecipients {
   // and anyone who muted the group, with their language. A member who left or
   // was removed has no active row, so hears nothing. Group membership is
   // explicit, so the PT scope and hidden trainees do not apply (spec G11).
+  // Only owners with a device are returned, each with their private nickname
+  // for the sender (blank = none), in one query.
   async groupRecipients(
     groupId: number,
     senderKey: string,
-  ): Promise<{ ownerKey: string; locale: Locale }[]> {
-    const rows: { owner_key: string; locale: string | null }[] =
-      await this.dataSource.query(
-        `WITH keys AS (
+  ): Promise<{ ownerKey: string; locale: Locale; alias: string | null }[]> {
+    const rows: {
+      owner_key: string;
+      locale: string | null;
+      alias: string | null;
+    }[] = await this.dataSource.query(
+      `WITH keys AS (
            SELECT member_key AS k FROM chat_group_members
            WHERE group_id = $1 AND left_at IS NULL
            UNION
            SELECT 'admin:' || id FROM admins WHERE role = 'super_admin')
-         SELECT keys.k AS owner_key, COALESCE(u.locale, a.locale) AS locale
+         SELECT keys.k AS owner_key, COALESCE(u.locale, a.locale) AS locale,
+                NULLIF(btrim(ca.alias), '') AS alias
          FROM keys
+         LEFT JOIN contact_aliases ca ON ca.owner_key = keys.k AND ca.target_key = $2
          LEFT JOIN users u ON keys.k = 'user:' || u.id
          LEFT JOIN admins a ON keys.k = 'admin:' || a.id
          WHERE keys.k <> $2
            AND (u.id IS NOT NULL OR a.id IS NOT NULL)
+           AND EXISTS (SELECT 1 FROM push_subscriptions ps WHERE ps.owner_key = keys.k)
            AND NOT EXISTS (SELECT 1 FROM chat_group_members cm
                            WHERE cm.group_id = $1 AND cm.member_key = keys.k
                              AND cm.muted_at IS NOT NULL)
          ORDER BY keys.k`,
-        [groupId, senderKey],
-      );
+      [groupId, senderKey],
+    );
 
     return rows.map((row) => ({
       ownerKey: row.owner_key,
       locale: toLocale(row.locale),
+      alias: row.alias,
     }));
   }
 

@@ -71,6 +71,7 @@ export class GroupAlertsService {
     for (const { groupId } of groups) {
       try {
         const now = this.clock.now();
+        const superseded: number[] = [];
         const id = await this.dataSource.transaction(async (manager) => {
           const older: { id: number; systemEvent: string }[] =
             await manager.query(
@@ -89,23 +90,29 @@ export class GroupAlertsService {
             ) {
               // Compare-and-swap on the stored text: a super admin resolving
               // it at the same moment wins and the line stays theirs.
-              await manager.query(
-                `UPDATE chat_group_messages SET system_event = $1
-                 WHERE id = $2 AND system_event = $3`,
-                [
-                  serializeGroupSystemEvent({
-                    ...event,
-                    resolution: {
-                      choice: "superseded",
-                      byAdminId: null,
-                      at: now.getTime(),
-                    },
-                  }),
-                  row.id,
-                  row.systemEvent,
-                ],
+              const changed = returnedRows(
+                await manager.query(
+                  `UPDATE chat_group_messages SET system_event = $1
+                 WHERE id = $2 AND system_event = $3 RETURNING id`,
+                  [
+                    serializeGroupSystemEvent({
+                      ...event,
+                      resolution: {
+                        choice: "superseded",
+                        byAdminId: null,
+                        at: now.getTime(),
+                      },
+                    }),
+                    row.id,
+                    row.systemEvent,
+                  ],
+                ),
               );
-              await this.queries.touch(manager, groupId, row.id, now);
+
+              if (changed.length > 0) {
+                await this.queries.touch(manager, groupId, row.id, now);
+                superseded.push(row.id);
+              }
             }
           }
           return appendSystemLine(manager, groupId, alert, {
@@ -115,6 +122,14 @@ export class GroupAlertsService {
         });
 
         written += 1;
+        // Open threads drop the buttons of the superseded alert.
+        for (const messageId of superseded) {
+          this.events.publish(GROUP_EVENTS.messageUpdated, {
+            groupId,
+            messageId,
+            audience: "super_admin",
+          } satisfies GroupMessageUpdatedEvent);
+        }
         this.events.publish(GROUP_EVENTS.messageSent, {
           groupId,
           messageId: id,
@@ -143,7 +158,7 @@ export class GroupAlertsService {
   ) {
     const group = await this.queries.findGroup(groupId);
     const rows: { systemEvent: string | null; audience: string | null }[] =
-      group
+      group && group.dissolvedAt === null
         ? await this.dataSource.query(
             `SELECT system_event AS "systemEvent", audience FROM chat_group_messages
              WHERE id = $1 AND group_id = $2 AND kind = 'system'`,
@@ -164,7 +179,9 @@ export class GroupAlertsService {
       throw await this.handled(messageId);
     }
     const now = this.clock.now();
-    const updated = await this.dataSource.transaction(async (manager) => {
+    // The resolution and a "remove" commit together: an alert never says
+    // "removed" while the trainee is still in.
+    const outcome = await this.dataSource.transaction(async (manager) => {
       const changed = returnedRows(
         await manager.query(
           `UPDATE chat_group_messages SET system_event = $1
@@ -180,20 +197,32 @@ export class GroupAlertsService {
         ),
       );
 
-      if (changed.length > 0) {
-        await this.queries.touch(manager, groupId, messageId, now);
+      if (changed.length === 0) {
+        return null;
       }
-      return changed.length > 0;
+      await this.queries.touch(manager, groupId, messageId, now);
+      return {
+        lineId:
+          choice === "remove"
+            ? await this.membership.deactivateIn(
+                manager,
+                groupId,
+                `user:${event.userId}`,
+                `admin:${auth.id}`,
+                now,
+              )
+            : null,
+      };
     });
 
-    if (!updated) {
+    if (!outcome) {
       throw await this.handled(messageId);
     }
-    if (choice === "remove") {
-      await this.membership.deactivate(
+    if (outcome.lineId !== null) {
+      this.membership.publishDeparture(
         groupId,
         `user:${event.userId}`,
-        `admin:${auth.id}`,
+        outcome.lineId,
       );
     }
     this.events.publish(GROUP_EVENTS.messageUpdated, {

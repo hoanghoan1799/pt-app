@@ -130,7 +130,9 @@ export class GroupInboxService {
   }
 
   // Who the create and add pickers offer (G1): a PT their own trainees that
-  // they have not hidden, a super admin every trainee and every PT. This only
+  // they have not hidden (all of them while the session revealed hidden
+  // trainees, the same rule as the add), a super admin every trainee and
+  // every PT. This only
   // fills the list; the add checks the same rule again. With `groupId` the
   // people already in that group are left out.
   async candidates(auth: AdminActor, groupId: number | undefined) {
@@ -153,10 +155,10 @@ export class GroupInboxService {
         : this.dataSource.query(
             `SELECT u.id, u.name FROM users u
              WHERE u.pt_admin_id = $1
-               AND NOT EXISTS (SELECT 1 FROM admin_hidden_users h
-                               WHERE h.admin_id = $1 AND h.user_id = u.id)
+               AND ($2::boolean OR NOT EXISTS (SELECT 1 FROM admin_hidden_users h
+                               WHERE h.admin_id = $1 AND h.user_id = u.id))
              ORDER BY u.name_key, u.id`,
-            [auth.id],
+            [auth.id, auth.revealed],
           ),
       isSuper
         ? this.dataSource.query(

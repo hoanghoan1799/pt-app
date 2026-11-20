@@ -276,6 +276,23 @@ describe("PT-change alert (G17)", () => {
   });
 });
 
+describe("PT-change alert in a dissolved group", () => {
+  it("cannot be resolved once the group is dissolved", async () => {
+    const ann = await traineeIn(w, { ptAdminId: pt.id });
+    const groupId = await api.createId(pt.token, { userIds: [ann.id] });
+
+    await assignPt(ann.id, newPt.id);
+    const alert = (await alertsOf(groupId))[0];
+
+    await api.dissolve(superAdmin.token, groupId);
+    expect(
+      (await api.resolve(superAdmin.token, groupId, alert.id, "remove")).status,
+    ).toBe(404);
+    expect((await memberRow(w, groupId, ann.key))?.left_at).toBeNull();
+    expect((await alertsOf(groupId))[0].event.resolution).toBeNull();
+  });
+});
+
 describe("cleanup on delete (company group-cleanup)", () => {
   it("deleting a trainee removes member rows, reactions and pending photos, and keeps messages as a deleted member", async () => {
     const ann = await traineeIn(w, { ptAdminId: pt.id });

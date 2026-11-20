@@ -412,7 +412,9 @@ export class GroupMessagesService {
     if (stored.senderKey !== context.actor.key) {
       throw groupErrors.notYourMessage();
     }
-    if (stored.deletedAt !== null) {
+    // A hidden message is gone for its author too: rewriting it would slip
+    // unmoderated text past the manager who hid it.
+    if (stored.deletedAt !== null || stored.hiddenAt !== null) {
       throw groupErrors.messageUnsent();
     }
     if (stored.stickerRef !== null) {
@@ -487,6 +489,15 @@ export class GroupMessagesService {
     if (hidden === (stored.hiddenAt !== null)) {
       return this.current(context, messageId);
     }
+    // What a super admin hid (by hand or as a report's resolution) only a
+    // super admin unhides.
+    if (
+      !hidden &&
+      !context.actor.isSuperAdmin &&
+      (await this.hiddenBySuperAdmin(messageId))
+    ) {
+      throw groupErrors.notManager();
+    }
     const now = this.clock.now();
 
     await this.dataSource.transaction(async (manager) => {
@@ -497,6 +508,17 @@ export class GroupMessagesService {
       await this.queries.touch(manager, groupId, messageId, now);
     });
     return this.finish(context, stored);
+  }
+
+  private async hiddenBySuperAdmin(messageId: number) {
+    const rows: unknown[] = await this.dataSource.query(
+      `SELECT 1 FROM chat_group_messages m
+       JOIN admins a ON m.hidden_by_key = 'admin:' || a.id
+       WHERE m.id = $1 AND a.role = 'super_admin'`,
+      [messageId],
+    );
+
+    return rows.length > 0;
   }
 
   private async finish(context: GroupContext, stored: MessageRow) {
@@ -531,6 +553,9 @@ export class GroupMessagesService {
   async markRead(auth: AuthActor, groupId: number, requested: number) {
     const { group, actor } = await this.access.load(auth, groupId);
     const ceiling = Math.min(requested, group.lastMessageId ?? 0);
+    const before =
+      (await this.queries.findMember(group.id, actor.key))?.lastReadMessageId ??
+      0;
     const now = this.clock.now();
     const rows = returnedRows<{ lastReadMessageId: number | null }>(
       await this.dataSource.query(
@@ -548,11 +573,14 @@ export class GroupMessagesService {
     );
     const saved = rows[0]?.lastReadMessageId ?? 0;
 
-    this.events.publish(GROUP_EVENTS.read, {
-      groupId: group.id,
-      readerKey: actor.key,
-      lastReadMessageId: saved,
-    } satisfies GroupReadEvent);
+    // Only a cursor that moved is news ("Seen by" of the others).
+    if (saved > before) {
+      this.events.publish(GROUP_EVENTS.read, {
+        groupId: group.id,
+        readerKey: actor.key,
+        lastReadMessageId: saved,
+      } satisfies GroupReadEvent);
+    }
     return saved;
   }
 }
