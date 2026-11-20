@@ -2,6 +2,7 @@ import { FOOD_MESSAGES } from "@pt/contracts";
 import { foodFormSchema } from "@pt/contracts";
 import { MEAL_LOG_MESSAGES, MEAL_PLAN_MESSAGES } from "@pt/contracts";
 import { exerciseSchema } from "@pt/contracts";
+import { RESTRICTION_MESSAGES } from "@pt/contracts";
 import { describe, expect, it } from "vitest";
 
 import { GENERIC_ERROR_MESSAGE } from "@/constants/errors";
@@ -42,6 +43,7 @@ const CONSTANTS: Record<string, Record<string, string>> = {
   MEMBER_MESSAGES,
   NUTRITION_MESSAGES,
   PT_MESSAGES,
+  RESTRICTION_MESSAGES,
   DM_MESSAGES,
   FRIEND_MESSAGES,
   SOCIAL_MESSAGES,
@@ -135,6 +137,7 @@ describe("localizeMessageFor", () => {
     expect(vi.photo).toEqual(PHOTO_ERRORS);
     expect(vi.generic.default).toBe(GENERIC_ERROR_MESSAGE);
     expect(vi.workouts).toEqual(WORKOUT_MESSAGES);
+    expect(vi.restriction).toEqual(RESTRICTION_MESSAGES);
     expect(vi.members.PASSWORD_ONCE).toBe(MEMBER_MESSAGES.PASSWORD_ONCE);
   });
 

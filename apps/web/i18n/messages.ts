@@ -15,6 +15,7 @@ import enPages from "@/messages/en/pages.json";
 import enPts from "@/messages/en/pts.json";
 import enPush from "@/messages/en/push.json";
 import enPwa from "@/messages/en/pwa.json";
+import enRestrictions from "@/messages/en/restrictions.json";
 import enSocial from "@/messages/en/social.json";
 import enWorkouts from "@/messages/en/workouts.json";
 import viAdminPages from "@/messages/vi/adminPages.json";
@@ -34,6 +35,7 @@ import viPages from "@/messages/vi/pages.json";
 import viPts from "@/messages/vi/pts.json";
 import viPush from "@/messages/vi/push.json";
 import viPwa from "@/messages/vi/pwa.json";
+import viRestrictions from "@/messages/vi/restrictions.json";
 import viSocial from "@/messages/vi/social.json";
 import viWorkouts from "@/messages/vi/workouts.json";
 import zhAdminPages from "@/messages/zh/adminPages.json";
@@ -53,6 +55,7 @@ import zhPages from "@/messages/zh/pages.json";
 import zhPts from "@/messages/zh/pts.json";
 import zhPush from "@/messages/zh/push.json";
 import zhPwa from "@/messages/zh/pwa.json";
+import zhRestrictions from "@/messages/zh/restrictions.json";
 import zhSocial from "@/messages/zh/social.json";
 import zhWorkouts from "@/messages/zh/workouts.json";
 import type { Locale } from "@/utils/locale";
@@ -79,6 +82,7 @@ export const MESSAGES = {
     pts: viPts,
     push: viPush,
     pwa: viPwa,
+    restrictions: viRestrictions,
     social: viSocial,
     workouts: viWorkouts,
   },
@@ -100,6 +104,7 @@ export const MESSAGES = {
     pts: enPts,
     push: enPush,
     pwa: enPwa,
+    restrictions: enRestrictions,
     social: enSocial,
     workouts: enWorkouts,
   },
@@ -121,6 +126,7 @@ export const MESSAGES = {
     pts: zhPts,
     push: zhPush,
     pwa: zhPwa,
+    restrictions: zhRestrictions,
     social: zhSocial,
     workouts: zhWorkouts,
   },

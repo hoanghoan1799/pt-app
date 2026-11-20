@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 
 import { ROUTES, SESSION_ROLE_PARAM } from "@/constants/routes";
+import { toActiveRestriction } from "@/features/restrictions/utils/restriction-mapping";
 import { fetchMe } from "@/services/api/me";
 import type { SessionRole } from "@/types/session";
 import { isSuperAdmin } from "@/utils/admin-role";
@@ -34,6 +35,11 @@ export const getCurrentUser = cache(async () => {
     termsVersion: actor.termsVersion,
     preferredMealCount: actor.preferredMealCount,
     foodNote: actor.foodNote,
+    // A super admin's block (spec D3): the banner shows it, the API refuses
+    // the writes. A suspended trainee has no session, so never "suspended".
+    restriction: actor.restriction
+      ? toActiveRestriction(actor.restriction)
+      : null,
   };
 });
 

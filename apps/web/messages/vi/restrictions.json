@@ -1,0 +1,52 @@
+{
+  "levels": {
+    "restricted": "Hạn chế",
+    "suspended": "Khoá tài khoản"
+  },
+  "levelHints": {
+    "restricted": "Vẫn đăng nhập, xem lịch tập và thực đơn, nhưng không nhắn tin, đăng bài, bình luận hay thả cảm xúc được.",
+    "suspended": "Không đăng nhập được và bị ẩn khỏi bảng tin, danh sách bạn bè và tìm kiếm của người khác."
+  },
+  "durations": {
+    "24h": "24 giờ",
+    "7d": "7 ngày",
+    "30d": "30 ngày",
+    "permanent": "Vĩnh viễn"
+  },
+  "badge": {
+    "restricted": "Bị hạn chế",
+    "suspended": "Bị khoá"
+  },
+  "summary": {
+    "titleRestricted": "Đang bị hạn chế",
+    "titleSuspended": "Đang bị khoá tài khoản",
+    "until": "Đến {until}",
+    "permanent": "Vĩnh viễn",
+    "reason": "Lý do: {reason}"
+  },
+  "banner": {
+    "title": "Tài khoản của bạn đang bị hạn chế",
+    "hint": "Bạn vẫn xem được lịch tập và thực đơn, nhưng chưa thể nhắn tin, đăng bài, bình luận hay thả cảm xúc."
+  },
+  "control": {
+    "title": "Chặn học viên",
+    "trigger": "Chặn",
+    "change": "Đổi mức chặn",
+    "lift": "Gỡ chặn",
+    "lifted": "Đã gỡ chặn",
+    "liftFailed": "Không gỡ chặn được. Thử lại nhé."
+  },
+  "sheet": {
+    "title": "Chặn học viên",
+    "description": "Chọn mức chặn, thời hạn và ghi lý do. Học viên sẽ thấy lý do này.",
+    "levelLabel": "Mức chặn",
+    "durationLabel": "Thời hạn",
+    "reasonLabel": "Lý do",
+    "reasonPlaceholder": "Ví dụ: gửi nội dung không phù hợp trong chat",
+    "reasonCount": "{count}/{max}",
+    "submit": "Chặn",
+    "saving": "Đang chặn...",
+    "blocked": "Đã chặn học viên",
+    "failed": "Không chặn được. Thử lại nhé."
+  }
+}

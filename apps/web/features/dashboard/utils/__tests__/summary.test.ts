@@ -26,6 +26,7 @@ const createMember = (
   activeDays: completed ? 1 : 0,
   nutritionDays: 0,
   lastActiveAt,
+  restrictionLevel: null,
 });
 
 const MEMBERS = [

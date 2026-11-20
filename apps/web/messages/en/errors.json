@@ -270,10 +270,20 @@
   "toasts": {
     "memberAdded": "Added {name}",
     "weekCopied": "Copied {count, plural, one {# day} other {# days}} to the week of {range}",
-    "weekCopiedTo": "Copied {count, plural, one {# day} other {# days}} to {name}''s week of {range}"
+    "weekCopiedTo": "Copied {count, plural, one {# day} other {# days}} to {name}''s week of {range}",
+    "suspendedUntil": "Your account is suspended until {until}. Reason: {reason}",
+    "suspendedForever": "Your account is suspended permanently. Reason: {reason}"
   },
   "alias": {
     "SELF": "You cannot set a nickname for yourself",
     "TARGET_NOT_FOUND": "This person was not found"
+  },
+  "restriction": {
+    "RESTRICTED": "Your account is restricted, so you cannot do this right now.",
+    "USER_NOT_FOUND": "The trainee to block was not found",
+    "INVALID_INPUT": "The block details are not valid",
+    "REASON_REQUIRED": "Enter the reason for the block",
+    "REASON_TOO_LONG": "The reason can have at most 300 characters",
+    "NOT_RESTRICTED": "This trainee is not blocked right now"
   }
 }

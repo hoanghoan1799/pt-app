@@ -8,6 +8,7 @@ import { ROUTES } from "@/constants/routes";
 import { CARD, PAGE_CONTAINER, SECTION_TITLE } from "@/constants/styles";
 import { TIME_ZONE } from "@/constants/time";
 import { ReportActions } from "@/features/social/components/ReportActions";
+import { ReportBlockHost } from "@/features/social/components/ReportBlockHost";
 import { listOpenReports } from "@/features/social/services/social-queries";
 import { requireSuperAdmin } from "@/services/auth-guard";
 import { formatRelativeTime } from "@/utils/time";
@@ -44,71 +45,87 @@ const AdminReportsPage = async () => {
             {t("emptyList")}
           </p>
         ) : (
-          <ul className="space-y-3">
-            {reports.map((report) => (
-              <li key={report.id} className={`${CARD} space-y-3 p-4`}>
-                <p className="text-sm text-muted">
-                  <span className="font-semibold text-fg">
-                    {t(`kinds.${report.targetKind}`)}
-                  </span>
-                  {report.targetName &&
-                    t("targetName", { name: report.targetName })}
-                  {" · "}
-                  {formatRelativeTime(
-                    report.createdAt,
-                    TIME_ZONE,
-                    undefined,
-                    locale,
+          <ReportBlockHost>
+            <ul className="space-y-3">
+              {reports.map((report) => (
+                <li key={report.id} className={`${CARD} space-y-3 p-4`}>
+                  <p className="text-sm text-muted">
+                    <span className="font-semibold text-fg">
+                      {t(`kinds.${report.targetKind}`)}
+                    </span>
+                    {report.targetName &&
+                      t("targetName", { name: report.targetName })}
+                    {" · "}
+                    {formatRelativeTime(
+                      report.createdAt,
+                      TIME_ZONE,
+                      undefined,
+                      locale,
+                    )}
+                  </p>
+                  {report.preview !== null ? (
+                    <p className="text-base break-words whitespace-pre-wrap text-fg">
+                      {report.preview || t("emptyPreview")}
+                    </p>
+                  ) : report.targetKind !== "user" ? (
+                    <p className="text-base text-muted italic">
+                      {t("deleted")}
+                    </p>
+                  ) : null}
+                  {report.message && (
+                    <p className="text-sm break-words text-muted">
+                      {t("sender", { name: report.message.senderName })}
+                      {report.message.senderRole === "admin" &&
+                        ` · ${t("trainee", { name: report.message.traineeName })}`}
+                    </p>
                   )}
-                </p>
-                {report.preview !== null ? (
-                  <p className="text-base break-words whitespace-pre-wrap text-fg">
-                    {report.preview || t("emptyPreview")}
-                  </p>
-                ) : report.targetKind !== "user" ? (
-                  <p className="text-base text-muted italic">{t("deleted")}</p>
-                ) : null}
-                {report.message && (
+                  {report.href && (
+                    <Link
+                      href={report.href}
+                      className="inline-flex min-h-11 items-center text-sm font-semibold text-accent"
+                    >
+                      {report.targetKind === "user"
+                        ? t("viewProfile")
+                        : report.targetKind === "message"
+                          ? t("viewChat")
+                          : t("view")}
+                    </Link>
+                  )}
                   <p className="text-sm break-words text-muted">
-                    {t("sender", { name: report.message.senderName })}
-                    {report.message.senderRole === "admin" &&
-                      ` · ${t("trainee", { name: report.message.traineeName })}`}
+                    {t("reporter", { name: report.reporterName })}
                   </p>
-                )}
-                {report.href && (
-                  <Link
-                    href={report.href}
-                    className="inline-flex min-h-11 items-center text-sm font-semibold text-accent"
-                  >
-                    {report.targetKind === "user"
-                      ? t("viewProfile")
-                      : report.targetKind === "message"
-                        ? t("viewChat")
-                        : t("view")}
-                  </Link>
-                )}
-                <p className="text-sm break-words text-muted">
-                  {t("reporter", { name: report.reporterName })}
-                </p>
-                <p className="text-sm break-words text-muted">
-                  {report.reasonCode
-                    ? t("reasonCode", {
-                        reason: t(`reasons.${report.reasonCode}`),
-                      })
-                    : t("noReason")}
-                  {report.reason && ` · ${t("note", { note: report.reason })}`}
-                </p>
-                <ReportActions
-                  reportId={report.id}
-                  canDelete={
-                    report.targetKind !== "user" &&
-                    report.targetKind !== "message"
-                  }
-                  isMessage={report.targetKind === "message"}
-                />
-              </li>
-            ))}
-          </ul>
+                  <p className="text-sm break-words text-muted">
+                    {report.reasonCode
+                      ? t("reasonCode", {
+                          reason: t(`reasons.${report.reasonCode}`),
+                        })
+                      : t("noReason")}
+                    {report.reason &&
+                      ` · ${t("note", { note: report.reason })}`}
+                  </p>
+                  <ReportActions
+                    reportId={report.id}
+                    canDelete={
+                      report.targetKind !== "user" &&
+                      report.targetKind !== "message"
+                    }
+                    message={
+                      report.targetKind === "message"
+                        ? {
+                            // "Ẩn + chặn" only for a trainee's message.
+                            blockUserId:
+                              report.message?.senderRole === "user" &&
+                              report.message.traineeId > 0
+                                ? report.message.traineeId
+                                : null,
+                          }
+                        : undefined
+                    }
+                  />
+                </li>
+              ))}
+            </ul>
+          </ReportBlockHost>
         )}
       </main>
       <ScrollToTopButton />

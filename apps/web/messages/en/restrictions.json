@@ -1,0 +1,52 @@
+{
+  "levels": {
+    "restricted": "Restricted",
+    "suspended": "Suspended"
+  },
+  "levelHints": {
+    "restricted": "Can still sign in and use workouts and meals, but cannot send messages, post, comment or react.",
+    "suspended": "Cannot sign in, and is hidden from other trainees' feed, friend lists and search."
+  },
+  "durations": {
+    "24h": "24 hours",
+    "7d": "7 days",
+    "30d": "30 days",
+    "permanent": "Permanent"
+  },
+  "badge": {
+    "restricted": "Restricted",
+    "suspended": "Suspended"
+  },
+  "summary": {
+    "titleRestricted": "Currently restricted",
+    "titleSuspended": "Currently suspended",
+    "until": "Until {until}",
+    "permanent": "Permanent",
+    "reason": "Reason: {reason}"
+  },
+  "banner": {
+    "title": "Your account is restricted",
+    "hint": "You can still see your workouts and meals, but you cannot send messages, post, comment or react for now."
+  },
+  "control": {
+    "title": "Block trainee",
+    "trigger": "Block",
+    "change": "Change block",
+    "lift": "Lift block",
+    "lifted": "Block lifted",
+    "liftFailed": "Could not lift the block. Please try again."
+  },
+  "sheet": {
+    "title": "Block trainee",
+    "description": "Pick the level and the duration, and write the reason. The trainee will see this reason.",
+    "levelLabel": "Level",
+    "durationLabel": "Duration",
+    "reasonLabel": "Reason",
+    "reasonPlaceholder": "For example: sent inappropriate content in chat",
+    "reasonCount": "{count}/{max}",
+    "submit": "Block",
+    "saving": "Blocking...",
+    "blocked": "Trainee blocked",
+    "failed": "Could not block. Please try again."
+  }
+}
