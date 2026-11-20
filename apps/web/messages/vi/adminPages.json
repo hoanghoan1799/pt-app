@@ -38,7 +38,8 @@
       "post": "Bài viết",
       "comment": "Bình luận",
       "user": "Người dùng",
-      "message": "Tin nhắn"
+      "message": "Tin nhắn",
+      "group_message": "Tin nhắn nhóm"
     },
     "emptyPreview": "(Trống)",
     "deleted": "Nội dung đã bị xóa.",
@@ -58,7 +59,9 @@
       "inappropriate": "Nội dung không phù hợp",
       "scam": "Lừa đảo",
       "other": "Khác"
-    }
+    },
+    "viewGroup": "Mở nhóm",
+    "group": "Nhóm: {name}"
   },
   "userPage": {
     "metaTitle": "Lịch tập",

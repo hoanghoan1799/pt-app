@@ -121,7 +121,8 @@
       "post": "Report post",
       "comment": "Report comment",
       "user": "Report user",
-      "message": "Report message"
+      "message": "Report message",
+      "group_message": "Report group message"
     },
     "description": "An admin will review your report.",
     "reasonLabel": "Note (optional)",

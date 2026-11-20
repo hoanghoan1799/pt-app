@@ -321,10 +321,15 @@ describe("group state", () => {
     expect(lockReasonOf(null)).toBeNull();
   });
 
-  it("reads the switches and the block from a payload", () => {
+  it("reads the header, the switches and the block from a payload", () => {
     expect(
       groupStateOf({
-        group: { managersOnly: true, dissolved: false },
+        group: {
+          name: "Lớp sáng",
+          avatarUrl: "/api/chat/groups/3/avatar?v=2&t=sig",
+          managersOnly: true,
+          dissolved: false,
+        },
         viewer: {
           isManager: false,
           canManage: false,
@@ -333,6 +338,8 @@ describe("group state", () => {
         },
       }),
     ).toEqual({
+      name: "Lớp sáng",
+      avatarUrl: "/api/chat/groups/3/avatar?v=2&t=sig",
       managersOnly: true,
       dissolved: false,
       isManager: false,
@@ -345,7 +352,12 @@ describe("group state", () => {
   it("follows a change of the manage rights from the payload", () => {
     expect(
       groupStateOf({
-        group: { managersOnly: false, dissolved: true },
+        group: {
+          name: "Lớp sáng (đổi tên)",
+          avatarUrl: null,
+          managersOnly: false,
+          dissolved: true,
+        },
         viewer: {
           isManager: true,
           canManage: true,
@@ -353,6 +365,12 @@ describe("group state", () => {
           sendBlock: "dissolved",
         },
       }),
-    ).toMatchObject({ dissolved: true, canManage: true, isSuperAdmin: true });
+    ).toMatchObject({
+      name: "Lớp sáng (đổi tên)",
+      avatarUrl: null,
+      dissolved: true,
+      canManage: true,
+      isSuperAdmin: true,
+    });
   });
 });

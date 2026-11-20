@@ -121,7 +121,8 @@
       "post": "举报动态",
       "comment": "举报评论",
       "user": "举报用户",
-      "message": "举报消息"
+      "message": "举报消息",
+      "group_message": "举报群消息"
     },
     "description": "管理员会审核你的举报。",
     "reasonLabel": "备注（选填）",

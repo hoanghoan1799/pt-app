@@ -151,6 +151,7 @@ export interface ReportedMessageView {
   senderRole: "user" | "admin";
   senderName: string;
   // The conversation's trainee (the sender when senderRole is "user").
+  // Group message: the sender when they are a trainee, else 0 and "".
   traineeId: number;
   traineeName: string;
   kind: "text" | "sticker" | "photo";
@@ -158,15 +159,17 @@ export interface ReportedMessageView {
 
 export interface ReportView {
   id: number;
-  targetKind: "post" | "comment" | "user" | "message";
+  targetKind: "post" | "comment" | "user" | "message" | "group_message";
   targetId: number;
   reporterName: string;
   // The optional note.
   reason: string;
   // Null on reports filed before the reason list existed.
   reasonCode: "spam" | "harassment" | "inappropriate" | "scam" | "other" | null;
-  // Set for a live message report only.
+  // Set for a live message report only (coach chat or group).
   message: ReportedMessageView | null;
+  // Set for a live group message report: where it was written.
+  group: { id: number; name: string } | null;
   createdAt: number;
   // Short text of the reported content; null when it no longer exists.
   preview: string | null;

@@ -38,8 +38,6 @@ const AdminGroupPage = async ({
   return (
     <GroupThread
       groupId={group.id}
-      groupName={group.name}
-      avatarSrc={group.avatarUrl}
       role="admin"
       viewerId={admin.id}
       viewerKey={viewer.key}
