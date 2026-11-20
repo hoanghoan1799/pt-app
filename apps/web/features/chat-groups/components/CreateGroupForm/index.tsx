@@ -68,41 +68,50 @@ export const CreateGroupForm = ({
     }
   };
 
+  // The group exists already: a failed photo (refused or thrown) is told, not
+  // fatal, so the form never offers to create the same group twice.
+  const savePhoto = async (groupId: number, dataUrl: string) => {
+    try {
+      const saved = await setGroupAvatarAction({ groupId, dataUrl });
+
+      if (saved.status === "error") {
+        toast.error(localize(saved.message));
+      }
+    } catch {
+      toast.error(t("info.photoFailed"));
+    }
+  };
+
   const submit = () => {
     setError(null);
     startTransition(async () => {
+      let created: Awaited<ReturnType<typeof createGroupAction>>;
+
       try {
         const { userIds, ptIds } = selectionToIds(selected);
-        const result = await createGroupAction({ name, userIds, ptIds });
 
-        if (result.status === "error") {
-          setError(localize(result.message));
-          return;
-        }
-        if (photo) {
-          // The group exists already; a failed photo is told, not fatal.
-          const saved = await setGroupAvatarAction({
-            groupId: result.groupId,
-            dataUrl: photo,
-          });
-
-          if (saved.status === "error") {
-            toast.error(localize(saved.message));
-          }
-        }
-        const skipped = result.results.filter(
-          (item) => item.outcome !== "added",
-        ).length;
-
-        if (skipped > 0) {
-          toast.info(t("create.partial", { count: skipped }));
-        } else {
-          toast.success(t("create.created"));
-        }
-        router.push(getAdminGroupPath(result.groupId));
+        created = await createGroupAction({ name, userIds, ptIds });
       } catch {
         setError(t("create.failed"));
+        return;
       }
+      if (created.status === "error") {
+        setError(localize(created.message));
+        return;
+      }
+      if (photo) {
+        await savePhoto(created.groupId, photo);
+      }
+      const skipped = created.results.filter(
+        (item) => item.outcome !== "added",
+      ).length;
+
+      if (skipped > 0) {
+        toast.info(t("create.partial", { count: skipped }));
+      } else {
+        toast.success(t("create.created"));
+      }
+      router.push(getAdminGroupPath(created.groupId));
     });
   };
 

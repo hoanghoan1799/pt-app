@@ -376,8 +376,6 @@ export const markGroupReadAction = withResultErrorHandling(
 
 // ---- membership and settings (company group-core) ----------------------------
 
-type Outcome = { ok: true } | { ok: false; error: ApiError };
-
 export type GroupCreateResult =
   | { status: "success"; groupId: number; results: GroupAddResult[] }
   | { status: "error"; message: string };
@@ -458,11 +456,11 @@ export const removeGroupMemberAction = withResultErrorHandling(
     const { groupId, memberKey } = parsed.data;
 
     return done(
-      (await tryApi("admin", (api) =>
+      await tryApi("admin", (api) =>
         api.DELETE("/v1/chat/groups/{groupId}/members/{memberKey}", {
           params: { path: { groupId, memberKey } },
         }),
-      )) as Outcome,
+      ),
     );
   },
 );
@@ -482,12 +480,12 @@ export const renameGroupAction = withResultErrorHandling(
     const { groupId, name } = parsed.data;
 
     return done(
-      (await tryApi("admin", (api) =>
+      await tryApi("admin", (api) =>
         api.PUT("/v1/chat/groups/{groupId}/name", {
           params: { path: { groupId } },
           body: { name },
         }),
-      )) as Outcome,
+      ),
     );
   },
 );
@@ -555,12 +553,12 @@ export const setGroupManagersOnlyAction = withResultErrorHandling(
     const { groupId, enabled } = parsed.data;
 
     return done(
-      (await tryApi("admin", (api) =>
+      await tryApi("admin", (api) =>
         api.PUT("/v1/chat/groups/{groupId}/managers-only", {
           params: { path: { groupId } },
           body: { enabled },
         }),
-      )) as Outcome,
+      ),
     );
   },
 );
@@ -580,11 +578,11 @@ export const dissolveGroupAction = withResultErrorHandling(
     const { groupId } = parsed.data;
 
     return done(
-      (await tryApi("admin", (api) =>
+      await tryApi("admin", (api) =>
         api.DELETE("/v1/chat/groups/{groupId}", {
           params: { path: { groupId } },
         }),
-      )) as Outcome,
+      ),
     );
   },
 );
@@ -601,12 +599,12 @@ const setMuted = async (actor: Actor, input: unknown) => {
   const { groupId, muted } = parsed.data;
 
   return done(
-    (await tryApi(actor, (api) =>
+    await tryApi(actor, (api) =>
       api.PUT("/v1/chat/groups/{groupId}/mute", {
         params: { path: { groupId } },
         body: { muted },
       }),
-    )) as Outcome,
+    ),
   );
 };
 
@@ -621,11 +619,11 @@ const leave = async (actor: Actor, input: unknown) => {
   const { groupId } = parsed.data;
 
   return done(
-    (await tryApi(actor, (api) =>
+    await tryApi(actor, (api) =>
       api.POST("/v1/chat/groups/{groupId}/leave", {
         params: { path: { groupId } },
       }),
-    )) as Outcome,
+    ),
   );
 };
 

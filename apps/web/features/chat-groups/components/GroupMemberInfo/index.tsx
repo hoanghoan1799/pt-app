@@ -113,8 +113,9 @@ export const GroupMemberInfo = ({
           setError(localize(result.message));
           return;
         }
+        // No refresh of this page first: it would render its 404 (no longer
+        // a member); the inbox is fetched fresh on the way.
         router.replace(ROUTES.MESSAGES);
-        router.refresh();
       } catch {
         setError(t("info.leaveFailed"));
       } finally {
@@ -188,6 +189,7 @@ export const GroupMemberInfo = ({
           hint={t("info.muteHint")}
           checked={muted}
           isPending={busy === "mute"}
+          isDisabled={busy !== null}
           onChange={toggleMute}
         />
       </section>

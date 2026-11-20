@@ -111,8 +111,9 @@ export const GroupInfo = ({
 
   useGroupLiveRefresh("admin", group.id);
 
-  // Runs one action: `busy` names what is running (spinner on that control),
-  // a failure shows its localized message, success refreshes the page data.
+  // Runs one action: `busy` names what is running (spinner on that control,
+  // every other control waits), a failure shows its localized message,
+  // success refreshes the page data.
   const run = (
     id: string,
     action: () => Promise<{ status: string; message?: string }>,
@@ -139,8 +140,13 @@ export const GroupInfo = ({
           if (success) {
             toast.success(success);
           }
-          onDone?.();
-          router.refresh();
+          // Leave and dissolve navigate away instead: refreshing this page
+          // first would render its 404 (no longer a member).
+          if (onDone) {
+            onDone();
+          } else {
+            router.refresh();
+          }
         } else {
           onFail?.();
           setError(result.message ? localize(result.message) : failure);
@@ -213,7 +219,10 @@ export const GroupInfo = ({
         ).length;
         const skipped = result.results.length - added;
 
-        toast.success(t("info.added", { count: added }));
+        // Nobody added (all taken meanwhile or out of scope) is no success.
+        if (added > 0) {
+          toast.success(t("info.added", { count: added }));
+        }
         if (skipped > 0) {
           toast.info(t("info.addSkipped", { count: skipped }));
         }
@@ -283,7 +292,7 @@ export const GroupInfo = ({
           <div className="flex flex-wrap justify-center gap-2">
             <button
               type="button"
-              disabled={busy === "photo"}
+              disabled={busy !== null}
               aria-busy={busy === "photo"}
               onClick={() => fileInput.current?.click()}
               className={`${BUTTON_SECONDARY} min-h-11 px-4 text-sm`}
@@ -298,7 +307,7 @@ export const GroupInfo = ({
             {avatarSrc && (
               <button
                 type="button"
-                disabled={busy === "photo"}
+                disabled={busy !== null}
                 onClick={() =>
                   run(
                     "photo",
@@ -364,7 +373,7 @@ export const GroupInfo = ({
             <button
               type="submit"
               disabled={
-                busy === "rename" ||
+                busy !== null ||
                 name.trim() === "" ||
                 name.trim() === group.name
               }
@@ -380,6 +389,7 @@ export const GroupInfo = ({
             hint={t("info.managersOnlyHint")}
             checked={managersOnly}
             isPending={busy === "managersOnly"}
+            isDisabled={busy !== null}
             onChange={(next) => {
               setManagersOnly(next);
               run(
@@ -479,6 +489,7 @@ export const GroupInfo = ({
             hint={t("info.muteHint")}
             checked={muted}
             isPending={busy === "mute"}
+            isDisabled={busy !== null}
             onChange={(next) => {
               setMuted(next);
               run(

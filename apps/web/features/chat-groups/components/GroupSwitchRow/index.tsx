@@ -10,6 +10,8 @@ interface GroupSwitchRowProps {
   hint?: string;
   checked: boolean;
   isPending: boolean;
+  // Another action of the page is running: no second request meanwhile.
+  isDisabled?: boolean;
   onChange: (next: boolean) => void;
 }
 
@@ -19,6 +21,7 @@ export const GroupSwitchRow = ({
   hint,
   checked,
   isPending,
+  isDisabled = false,
   onChange,
 }: GroupSwitchRowProps) => {
   const id = useId();
@@ -36,7 +39,7 @@ export const GroupSwitchRow = ({
         role="switch"
         aria-checked={checked}
         aria-labelledby={id}
-        disabled={isPending}
+        disabled={isPending || isDisabled}
         aria-busy={isPending}
         onClick={() => onChange(!checked)}
         className={clsx(
