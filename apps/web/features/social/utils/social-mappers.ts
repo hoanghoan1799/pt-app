@@ -24,6 +24,7 @@ import {
   socialPhotoUrl,
 } from "@/features/social/utils/post-rules";
 import { DEFAULT_LOCALE, type Locale } from "@/utils/locale";
+import { getAdminGroupPath } from "@/utils/routes";
 
 // API answers -> the plain data the UI draws. Pure: no network, no cookies.
 // The API sends ISO dates and its own file paths (`/v1/...`); the UI wants
@@ -123,8 +124,7 @@ export const toProfilePageData = (
 
 export interface ApiReport {
   id: number;
-  // "group_message" has no endpoint yet, so it never reaches the queue.
-  targetKind: "post" | "comment" | "user" | "message" | "group_message";
+  targetKind: ReportView["targetKind"];
   targetId: number;
   reporterName: string;
   reason: string;
@@ -134,12 +134,17 @@ export interface ApiReport {
   targetName: string | null;
   postId: number | null;
   message: ReportView["message"];
+  // Older APIs leave it out.
+  group?: ReportView["group"];
 }
 
 // Where the super admin looks at a reported thing: the post (also for a
-// comment), the trainee's profile, the chat at the message; nothing once the
-// content is gone.
+// comment), the trainee's profile, the chat at the message, the group of a
+// group message; nothing once the content is gone.
 const reportHref = (report: ApiReport) => {
+  if (report.targetKind === "group_message") {
+    return report.group ? getAdminGroupPath(report.group.id) : null;
+  }
   if (report.targetKind === "message") {
     return report.message === null
       ? null
@@ -160,13 +165,13 @@ const reportHref = (report: ApiReport) => {
 
 export const toReportView = (report: ApiReport): ReportView => ({
   id: report.id,
-  targetKind:
-    report.targetKind === "group_message" ? "message" : report.targetKind,
+  targetKind: report.targetKind,
   targetId: report.targetId,
   reporterName: report.reporterName,
   reason: report.reason,
   reasonCode: report.reasonCode,
   message: report.message,
+  group: report.group ?? null,
   createdAt: Date.parse(report.createdAt),
   preview: report.preview,
   targetName: report.targetName,

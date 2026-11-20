@@ -78,8 +78,10 @@ const AdminReportsPage = async () => {
                   {report.message && (
                     <p className="text-sm break-words text-muted">
                       {t("sender", { name: report.message.senderName })}
-                      {report.message.senderRole === "admin" &&
-                        ` · ${t("trainee", { name: report.message.traineeName })}`}
+                      {report.group
+                        ? ` · ${t("group", { name: report.group.name })}`
+                        : report.message.senderRole === "admin" &&
+                          ` · ${t("trainee", { name: report.message.traineeName })}`}
                     </p>
                   )}
                   {report.href && (
@@ -89,9 +91,11 @@ const AdminReportsPage = async () => {
                     >
                       {report.targetKind === "user"
                         ? t("viewProfile")
-                        : report.targetKind === "message"
-                          ? t("viewChat")
-                          : t("view")}
+                        : report.group
+                          ? t("viewGroup")
+                          : report.targetKind === "message"
+                            ? t("viewChat")
+                            : t("view")}
                     </Link>
                   )}
                   <p className="text-sm break-words text-muted">
@@ -110,10 +114,12 @@ const AdminReportsPage = async () => {
                     reportId={report.id}
                     canDelete={
                       report.targetKind !== "user" &&
-                      report.targetKind !== "message"
+                      report.targetKind !== "message" &&
+                      report.targetKind !== "group_message"
                     }
                     message={
-                      report.targetKind === "message"
+                      report.targetKind === "message" ||
+                      report.targetKind === "group_message"
                         ? {
                             // "Ẩn + chặn" only for a trainee's message.
                             blockUserId:

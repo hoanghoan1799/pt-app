@@ -1,8 +1,13 @@
 import "server-only";
 
-import type { GroupSummary, GroupUnreadResponse } from "@pt/contracts";
+import type {
+  GroupInfoResponse,
+  GroupSummary,
+  GroupUnreadResponse,
+} from "@pt/contracts";
 
 import { webizeUrlFields } from "@/features/chat/utils/api-urls";
+import type { GroupCandidates } from "@/features/chat-groups/types/group";
 import type { GroupThreadWire } from "@/features/chat-groups/utils/group-thread-map";
 import { redirectForAuthError, runApi, tryApi } from "@/services/api/call";
 import { logServerError } from "@/services/logger";
@@ -50,6 +55,51 @@ export const loadGroupThread = async (
   }
   if (outcome.error.status === 404 || outcome.error.status === 400) {
     return null;
+  }
+  throw outcome.error;
+};
+
+// The info page of a group (header, what I may do, members with their label),
+// or null under the thread's 404 rule (missing, dissolved for a non super
+// admin, not a member, left).
+export const loadGroupInfo = async (
+  actor: Actor,
+  groupId: number,
+): Promise<GroupInfoResponse | null> => {
+  const outcome = await tryApi(actor, (api) =>
+    api.GET("/v1/chat/groups/{groupId}", {
+      params: { path: { groupId } },
+    }),
+  );
+
+  if (outcome.ok) {
+    return webizeUrlFields(outcome.data) as GroupInfoResponse;
+  }
+  if (outcome.error.status === 404 || outcome.error.status === 400) {
+    return null;
+  }
+  throw outcome.error;
+};
+
+const NO_CANDIDATES: GroupCandidates = { trainees: [], pts: [] };
+
+// Who the create and add pickers offer (admins only): a PT their own visible
+// trainees, a super admin every trainee and PT; `groupId` leaves its active
+// members out. The add checks the same rule again.
+export const loadGroupCandidates = async (
+  groupId?: number,
+): Promise<GroupCandidates> => {
+  const outcome = await tryApi("admin", (api) =>
+    api.GET("/v1/chat/groups/candidates", {
+      params: { query: groupId === undefined ? {} : { groupId } },
+    }),
+  );
+
+  if (outcome.ok) {
+    return outcome.data as GroupCandidates;
+  }
+  if (outcome.error.status === 404) {
+    return NO_CANDIDATES;
   }
   throw outcome.error;
 };

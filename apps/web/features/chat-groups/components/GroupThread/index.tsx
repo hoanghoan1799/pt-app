@@ -31,6 +31,7 @@ import { useChatTransport } from "@/features/chat/hooks/use-chat-transport";
 import { useClearNotifications } from "@/features/chat/hooks/use-clear-notifications";
 import {
   buildThreadItems,
+  canReportGroupMessage,
   firstStoredId,
   isNearBottom,
   markUnsentQuotes,
@@ -60,9 +61,6 @@ import { scrollBehaviorFor } from "@/utils/scroll-rules";
 
 export interface GroupThreadProps {
   groupId: number;
-  groupName: string;
-  // Signed group photo URL, or null for initials.
-  avatarSrc: string | null;
   // Which cookie the routes serve: admins pass "admin".
   role: GroupApiRole;
   // Admin or trainee id, for the realtime connection.
@@ -127,6 +125,13 @@ const EditHistorySheet = dynamic(
     ),
   { ssr: false },
 );
+const ReportSheet = dynamic(
+  () =>
+    import("@/features/social/components/ReportSheet").then(
+      (module) => module.ReportSheet,
+    ),
+  { ssr: false },
+);
 const BottomSheet = dynamic(
   () =>
     import("@/components/common/BottomSheet").then(
@@ -135,7 +140,7 @@ const BottomSheet = dynamic(
   { ssr: false },
 );
 
-type SheetKind = "actions" | "history" | "seen" | "hidden";
+type SheetKind = "actions" | "history" | "seen" | "hidden" | "report";
 
 const SHEET_ROW =
   "flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-base font-medium text-fg transition active:bg-line";
@@ -147,8 +152,6 @@ const SHEET_ROW =
 // a separate wrapper instead of widening that component further).
 export const GroupThread = ({
   groupId,
-  groupName,
-  avatarSrc,
   role,
   viewerId,
   viewerKey,
@@ -501,10 +504,10 @@ export const GroupThread = ({
       }
     >
       <ChatHeader
-        name={groupName}
-        title={groupName}
+        name={groupState.name}
+        title={groupState.name}
         backHref={backHref}
-        avatarSrc={avatarSrc}
+        avatarSrc={groupState.avatarUrl}
         presence={null}
         infoHref={infoHref}
         settingsLabel={t("thread.infoLabel")}
@@ -539,7 +542,7 @@ export const GroupThread = ({
             <div
               role="log"
               aria-live="polite"
-              aria-label={t("thread.ariaLabel", { name: groupName })}
+              aria-label={t("thread.ariaLabel", { name: groupState.name })}
             >
               {items.map((item) => {
                 if (item.kind === "message") {
@@ -703,6 +706,17 @@ export const GroupThread = ({
             );
           }}
           onUnsend={() => void handleUnsend(sheetMessage)}
+          // Reporting stays open under managers-only, chat off or a
+          // restriction (the API decides); super admins moderate instead.
+          onReport={
+            canReportGroupMessage(
+              sheetMessage,
+              adapter.viewer,
+              groupState.isSuperAdmin,
+            )
+              ? () => openSheet("report", sheetMessage)
+              : undefined
+          }
           extra={
             canManage && !groupState.dissolved ? (
               <button
@@ -715,6 +729,16 @@ export const GroupThread = ({
               </button>
             ) : undefined
           }
+        />
+      )}
+      {sheet?.kind === "report" && sheetMessage?.id != null && (
+        <ReportSheet
+          key={sheetMessage.id}
+          isOpen={isSheetOpen}
+          onOpenChange={setIsSheetOpen}
+          mode={role}
+          targetKind="group_message"
+          targetId={sheetMessage.id}
         />
       )}
       {sheet?.kind === "hidden" && sheetMessage && (

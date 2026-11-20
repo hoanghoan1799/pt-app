@@ -38,7 +38,8 @@
       "post": "Post",
       "comment": "Comment",
       "user": "User",
-      "message": "Message"
+      "message": "Message",
+      "group_message": "Group message"
     },
     "emptyPreview": "(Empty)",
     "deleted": "This content has been deleted.",
@@ -58,7 +59,9 @@
       "inappropriate": "Inappropriate content",
       "scam": "Scam",
       "other": "Other"
-    }
+    },
+    "viewGroup": "Open group",
+    "group": "Group: {name}"
   },
   "userPage": {
     "metaTitle": "Workouts",

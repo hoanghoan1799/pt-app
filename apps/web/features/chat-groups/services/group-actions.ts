@@ -3,17 +3,26 @@
 import {
   GROUP_ERROR_CODES,
   GROUP_MESSAGES,
+  groupAddMembersRequestSchema,
+  groupCreateRequestSchema,
   groupEditMessageRequestSchema,
   groupHideRequestSchema,
+  groupManagersOnlyRequestSchema,
   groupMarkReadRequestSchema,
+  groupMemberKeyParamSchema,
   type GroupMessageView,
+  groupMuteRequestSchema,
   groupReactRequestSchema,
+  groupRenameRequestSchema,
   groupResolveAlertRequestSchema,
   groupSendMessageRequestSchema,
 } from "@pt/contracts";
 import { z } from "zod";
 
+import { AVATAR_MESSAGES } from "@/features/avatar/constants/messages";
+import { AVATAR_MAX_DATA_URL_LENGTH } from "@/features/avatar/utils/avatar-rules";
 import { webizeUrlFields } from "@/features/chat/utils/api-urls";
+import type { GroupAddResult } from "@/features/chat-groups/types/group";
 import { withResultErrorHandling } from "@/services/action-errors";
 import { tryApi } from "@/services/api/call";
 import type { ApiError } from "@/services/api/errors";
@@ -38,14 +47,45 @@ export type GroupMessageResult =
 
 const fail = (message: string) => ({ status: "error" as const, message });
 
-// A refused request shows the API's own text (403 RESTRICTED, managers-only,
-// 404 "not found"...); a malformed one the generic "invalid".
+// The group codes the API answers, as the texts the web localizes
+// (GROUP_FULL, GROUP_NOT_FOUND, GROUP_NOT_MANAGER...). Keyed by code, so a
+// reworded API message still shows the right translation.
+const MESSAGE_OF_CODE: Readonly<Record<string, string>> = {
+  ...Object.fromEntries(
+    Object.entries(GROUP_ERROR_CODES).map(([name, code]) => [
+      code,
+      GROUP_MESSAGES[name as keyof typeof GROUP_ERROR_CODES],
+    ]),
+  ),
+  VALIDATION_FAILED: GROUP_MESSAGES.INVALID_INPUT,
+  AVATAR_INVALID: AVATAR_MESSAGES.INVALID,
+  AVATAR_TOO_LARGE: AVATAR_MESSAGES.TOO_LARGE,
+};
+
+// A refused request shows the text of its code, else the API's own text (403
+// RESTRICTED, a 404 "message not found"...); a malformed one the generic
+// "invalid".
 const failFrom = (error: ApiError) =>
-  fail(
-    error.code === "VALIDATION_FAILED"
-      ? GROUP_MESSAGES.INVALID_INPUT
-      : error.message,
+  fail(MESSAGE_OF_CODE[error.code] ?? error.message);
+
+const KNOWN_MESSAGES: ReadonlySet<string> = new Set(
+  Object.values(GROUP_MESSAGES),
+);
+
+// A refused input says why when the schema knows (the name rule), else the
+// generic "invalid"; Zod's own English texts never reach the screen.
+const failInput = (error: z.ZodError) => {
+  const message = error.issues[0]?.message;
+
+  return fail(
+    message && KNOWN_MESSAGES.has(message)
+      ? message
+      : GROUP_MESSAGES.INVALID_INPUT,
   );
+};
+
+const done = (outcome: { ok: true } | { ok: false; error: ApiError }) =>
+  outcome.ok ? { status: "success" as const } : failFrom(outcome.error);
 
 const id = z.number().int().positive();
 const groupInput = z.object({ groupId: id });
@@ -331,5 +371,290 @@ export const markGroupReadAction = withResultErrorHandling(
   async (input: unknown) => {
     await requireUser();
     return markRead("user", input);
+  },
+);
+
+// ---- membership and settings (company group-core) ----------------------------
+
+export type GroupCreateResult =
+  | { status: "success"; groupId: number; results: GroupAddResult[] }
+  | { status: "error"; message: string };
+
+export type GroupAddMembersResult =
+  | { status: "success"; results: GroupAddResult[] }
+  | { status: "error"; message: string };
+
+export type GroupAvatarResult =
+  | { status: "success"; avatarUrl: string | null }
+  | { status: "error"; message: string };
+
+// Create a group (super admin or PT): the API adds the creating PT, checks
+// every id (own trainees for a PT, G1) and says per id what happened.
+export const createGroupAction = withResultErrorHandling(
+  "createGroup",
+  async (input: unknown): Promise<GroupCreateResult> => {
+    await requireAdmin();
+    const parsed = groupCreateRequestSchema.safeParse(input);
+
+    if (!parsed.success) {
+      return failInput(parsed.error);
+    }
+    const outcome = await tryApi("admin", (api) =>
+      api.POST("/v1/chat/groups", { body: parsed.data }),
+    );
+
+    return outcome.ok
+      ? {
+          status: "success",
+          groupId: outcome.data.groupId,
+          results: outcome.data.results,
+        }
+      : failFrom(outcome.error);
+  },
+);
+
+const addInput = groupInput.and(groupAddMembersRequestSchema);
+
+// Add trainees (and PTs, super admin only) to a group the caller manages. 409
+// GROUP_FULL when nobody fits; otherwise a result per id.
+export const addGroupMembersAction = withResultErrorHandling(
+  "addGroupMembers",
+  async (input: unknown): Promise<GroupAddMembersResult> => {
+    await requireAdmin();
+    const parsed = addInput.safeParse(input);
+
+    if (!parsed.success) {
+      return failInput(parsed.error);
+    }
+    const { groupId, userIds, ptIds } = parsed.data;
+    const outcome = await tryApi("admin", (api) =>
+      api.POST("/v1/chat/groups/{groupId}/members", {
+        params: { path: { groupId } },
+        body: { userIds, ptIds },
+      }),
+    );
+
+    return outcome.ok
+      ? { status: "success", results: outcome.data.results }
+      : failFrom(outcome.error);
+  },
+);
+
+const removeInput = groupInput.extend({ memberKey: groupMemberKeyParamSchema });
+
+// Remove a trainee or PT ("user:<id>" | "admin:<id>"); a super admin cannot be
+// removed (403 GROUP_CANNOT_REMOVE_MANAGER).
+export const removeGroupMemberAction = withResultErrorHandling(
+  "removeGroupMember",
+  async (input: unknown) => {
+    await requireAdmin();
+    const parsed = removeInput.safeParse(input);
+
+    if (!parsed.success) {
+      return failInput(parsed.error);
+    }
+    const { groupId, memberKey } = parsed.data;
+
+    return done(
+      await tryApi("admin", (api) =>
+        api.DELETE("/v1/chat/groups/{groupId}/members/{memberKey}", {
+          params: { path: { groupId, memberKey } },
+        }),
+      ),
+    );
+  },
+);
+
+const renameInput = groupInput.and(groupRenameRequestSchema);
+
+// Rename: 1 to 60 characters after the trim (GROUP_NAME_INVALID otherwise).
+export const renameGroupAction = withResultErrorHandling(
+  "renameGroup",
+  async (input: unknown) => {
+    await requireAdmin();
+    const parsed = renameInput.safeParse(input);
+
+    if (!parsed.success) {
+      return failInput(parsed.error);
+    }
+    const { groupId, name } = parsed.data;
+
+    return done(
+      await tryApi("admin", (api) =>
+        api.PUT("/v1/chat/groups/{groupId}/name", {
+          params: { path: { groupId } },
+          body: { name },
+        }),
+      ),
+    );
+  },
+);
+
+const avatarInput = groupInput.extend({
+  // The browser's 256x256 data URL; null removes the photo. The API checks
+  // the bytes and the type like an account photo.
+  dataUrl: z.string().min(1).max(AVATAR_MAX_DATA_URL_LENGTH).nullable(),
+});
+
+// Set or clear the group photo. Answers the new signed photo URL (this app's
+// route), or null.
+export const setGroupAvatarAction = withResultErrorHandling(
+  "setGroupAvatar",
+  async (input: unknown): Promise<GroupAvatarResult> => {
+    await requireAdmin();
+    const parsed = avatarInput.safeParse(input);
+
+    if (!parsed.success) {
+      const dataUrl = (input as { dataUrl?: unknown } | null)?.dataUrl;
+
+      return fail(
+        typeof dataUrl === "string" &&
+          dataUrl.length > AVATAR_MAX_DATA_URL_LENGTH
+          ? AVATAR_MESSAGES.TOO_LARGE
+          : GROUP_MESSAGES.INVALID_INPUT,
+      );
+    }
+    const { groupId, dataUrl } = parsed.data;
+    const outcome =
+      dataUrl === null
+        ? await tryApi("admin", (api) =>
+            api.DELETE("/v1/chat/groups/{groupId}/avatar", {
+              params: { path: { groupId } },
+            }),
+          )
+        : await tryApi("admin", (api) =>
+            api.PUT("/v1/chat/groups/{groupId}/avatar", {
+              params: { path: { groupId } },
+              body: { dataUrl },
+            }),
+          );
+
+    return outcome.ok
+      ? {
+          status: "success",
+          avatarUrl: webizeUrlFields(outcome.data).avatarUrl,
+        }
+      : failFrom(outcome.error);
+  },
+);
+
+const managersOnlyInput = groupInput.and(groupManagersOnlyRequestSchema);
+
+// "Chỉ quản lý được nhắn": trainees read only while it is on.
+export const setGroupManagersOnlyAction = withResultErrorHandling(
+  "setGroupManagersOnly",
+  async (input: unknown) => {
+    await requireAdmin();
+    const parsed = managersOnlyInput.safeParse(input);
+
+    if (!parsed.success) {
+      return failInput(parsed.error);
+    }
+    const { groupId, enabled } = parsed.data;
+
+    return done(
+      await tryApi("admin", (api) =>
+        api.PUT("/v1/chat/groups/{groupId}/managers-only", {
+          params: { path: { groupId } },
+          body: { enabled },
+        }),
+      ),
+    );
+  },
+);
+
+// Super admin only: soft dissolve (the data stays, the group leaves every
+// list, sending stops). requireSuperAdmin() sends a PT back to the dashboard
+// and the API refuses a PT as well.
+export const dissolveGroupAction = withResultErrorHandling(
+  "dissolveGroup",
+  async (input: unknown) => {
+    await requireSuperAdmin();
+    const parsed = groupInput.safeParse(input);
+
+    if (!parsed.success) {
+      return failInput(parsed.error);
+    }
+    const { groupId } = parsed.data;
+
+    return done(
+      await tryApi("admin", (api) =>
+        api.DELETE("/v1/chat/groups/{groupId}", {
+          params: { path: { groupId } },
+        }),
+      ),
+    );
+  },
+);
+
+const muteInput = groupInput.and(groupMuteRequestSchema);
+
+// My own notifications of the group; unread is unchanged.
+const setMuted = async (actor: Actor, input: unknown) => {
+  const parsed = muteInput.safeParse(input);
+
+  if (!parsed.success) {
+    return failInput(parsed.error);
+  }
+  const { groupId, muted } = parsed.data;
+
+  return done(
+    await tryApi(actor, (api) =>
+      api.PUT("/v1/chat/groups/{groupId}/mute", {
+        params: { path: { groupId } },
+        body: { muted },
+      }),
+    ),
+  );
+};
+
+// Leave on my own; only a manager can add me back. A super admin cannot leave
+// (403 GROUP_MANAGER_CANNOT_LEAVE).
+const leave = async (actor: Actor, input: unknown) => {
+  const parsed = groupInput.safeParse(input);
+
+  if (!parsed.success) {
+    return failInput(parsed.error);
+  }
+  const { groupId } = parsed.data;
+
+  return done(
+    await tryApi(actor, (api) =>
+      api.POST("/v1/chat/groups/{groupId}/leave", {
+        params: { path: { groupId } },
+      }),
+    ),
+  );
+};
+
+export const adminSetGroupMutedAction = withResultErrorHandling(
+  "adminSetGroupMuted",
+  async (input: unknown) => {
+    await requireAdmin();
+    return setMuted("admin", input);
+  },
+);
+
+export const adminLeaveGroupAction = withResultErrorHandling(
+  "adminLeaveGroup",
+  async (input: unknown) => {
+    await requireAdmin();
+    return leave("admin", input);
+  },
+);
+
+export const setGroupMutedAction = withResultErrorHandling(
+  "setGroupMuted",
+  async (input: unknown) => {
+    await requireUser();
+    return setMuted("user", input);
+  },
+);
+
+export const leaveGroupAction = withResultErrorHandling(
+  "leaveGroup",
+  async (input: unknown) => {
+    await requireUser();
+    return leave("user", input);
   },
 );

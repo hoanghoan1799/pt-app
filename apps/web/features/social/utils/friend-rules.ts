@@ -26,7 +26,7 @@ const idSchema = z.number().int().positive();
 export const userIdSchema = idSchema;
 
 export const reportSchema = z.object({
-  targetKind: z.enum(["post", "comment", "user", "message"]),
+  targetKind: z.enum(["post", "comment", "user", "message", "group_message"]),
   targetId: idSchema,
   reasonCode: z.enum(REPORT_REASON_CODES, FRIEND_MESSAGES.REASON_REQUIRED),
   reason: z
@@ -42,5 +42,6 @@ export const resolveReportSchema = z.object({
   resolution: z.enum(["kept", "deleted", "hidden"]),
 });
 
-export type ReportTargetKind = "post" | "comment" | "user" | "message";
+export type ReportTargetKind =
+  "post" | "comment" | "user" | "message" | "group_message";
 export type ReportReasonCode = (typeof REPORT_REASON_CODES)[number];

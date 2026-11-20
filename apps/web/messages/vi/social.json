@@ -121,7 +121,8 @@
       "post": "Báo cáo bài viết",
       "comment": "Báo cáo bình luận",
       "user": "Báo cáo người dùng",
-      "message": "Báo cáo tin nhắn"
+      "message": "Báo cáo tin nhắn",
+      "group_message": "Báo cáo tin nhắn nhóm"
     },
     "description": "Quản trị viên sẽ xem xét báo cáo của bạn.",
     "reasonLabel": "Ghi chú (không bắt buộc)",

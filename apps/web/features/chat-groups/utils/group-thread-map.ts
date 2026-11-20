@@ -145,6 +145,9 @@ export const lockReasonOf = (
 // The switches the thread watches while it is open: the banner that replaces
 // the composer is chosen from them.
 export interface GroupState {
+  // The header: a rename or a new photo by a manager shows on the next fetch.
+  name: string;
+  avatarUrl: string | null;
   managersOnly: boolean;
   dissolved: boolean;
   // Super admin or PT member: may write under managers-only.
@@ -157,12 +160,14 @@ export interface GroupState {
 }
 
 export const groupStateOf = (payload: {
-  group: Pick<GroupHeader, "managersOnly" | "dissolved">;
+  group: Pick<GroupHeader, "name" | "avatarUrl" | "managersOnly" | "dissolved">;
   viewer: Pick<
     GroupViewer,
     "isManager" | "canManage" | "isSuperAdmin" | "sendBlock"
   >;
 }): GroupState => ({
+  name: payload.group.name,
+  avatarUrl: payload.group.avatarUrl,
   managersOnly: payload.group.managersOnly,
   dissolved: payload.group.dissolved,
   isManager: payload.viewer.isManager,

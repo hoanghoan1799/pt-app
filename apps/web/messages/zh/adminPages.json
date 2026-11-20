@@ -38,7 +38,8 @@
       "post": "动态",
       "comment": "评论",
       "user": "用户",
-      "message": "消息"
+      "message": "消息",
+      "group_message": "群消息"
     },
     "emptyPreview": "（空）",
     "deleted": "内容已被删除。",
@@ -58,7 +59,9 @@
       "inappropriate": "不当内容",
       "scam": "诈骗",
       "other": "其他"
-    }
+    },
+    "viewGroup": "打开群组",
+    "group": "群组：{name}"
   },
   "userPage": {
     "metaTitle": "训练计划",

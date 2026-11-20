@@ -33,7 +33,13 @@ describe("parseSearchEmail", () => {
 
 describe("reportSchema reason code", () => {
   it("requires one of the fixed reason codes for every kind", () => {
-    for (const targetKind of ["post", "comment", "user", "message"]) {
+    for (const targetKind of [
+      "post",
+      "comment",
+      "user",
+      "message",
+      "group_message",
+    ]) {
       const parsed = reportSchema.safeParse({ targetKind, targetId: 1 });
 
       expect(parsed.success).toBe(false);
