@@ -50,7 +50,7 @@ const AdminMessagesInboxPage = async ({
   return (
     <>
       <AppHeader title={t("adminMessagesTitle")} backHref={ROUTES.ADMIN} />
-      <InboxLiveRefresh />
+      <InboxLiveRefresh groupReaderKey={`admin:${admin.id}`} />
       <AdminInbox
         items={items}
         fresh={fresh}

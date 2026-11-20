@@ -149,16 +149,25 @@ export interface GroupState {
   dissolved: boolean;
   // Super admin or PT member: may write under managers-only.
   isManager: boolean;
+  // Super admin or the creator PT: may hide and unhide messages.
+  canManage: boolean;
+  // Sees the PT-change alert and its buttons, reports nothing.
+  isSuperAdmin: boolean;
   lockReason: GroupLockReason | null;
 }
 
 export const groupStateOf = (payload: {
   group: Pick<GroupHeader, "managersOnly" | "dissolved">;
-  viewer: Pick<GroupViewer, "isManager" | "sendBlock">;
+  viewer: Pick<
+    GroupViewer,
+    "isManager" | "canManage" | "isSuperAdmin" | "sendBlock"
+  >;
 }): GroupState => ({
   managersOnly: payload.group.managersOnly,
   dissolved: payload.group.dissolved,
   isManager: payload.viewer.isManager,
+  canManage: payload.viewer.canManage,
+  isSuperAdmin: payload.viewer.isSuperAdmin,
   lockReason: lockReasonOf(payload.viewer.sendBlock),
 });
 

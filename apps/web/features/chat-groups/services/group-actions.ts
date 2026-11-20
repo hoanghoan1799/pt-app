@@ -13,7 +13,7 @@ import {
 } from "@pt/contracts";
 import { z } from "zod";
 
-import { webizeUrls } from "@/features/chat/utils/api-urls";
+import { webizeUrlFields } from "@/features/chat/utils/api-urls";
 import { withResultErrorHandling } from "@/services/action-errors";
 import { tryApi } from "@/services/api/call";
 import type { ApiError } from "@/services/api/errors";
@@ -57,7 +57,7 @@ type MessageOutcome =
 
 const toResult = (outcome: MessageOutcome): GroupMessageResult =>
   outcome.ok
-    ? { status: "success", message: webizeUrls(outcome.data.message) }
+    ? { status: "success", message: webizeUrlFields(outcome.data.message) }
     : failFrom(outcome.error);
 
 // ---- send -------------------------------------------------------------------

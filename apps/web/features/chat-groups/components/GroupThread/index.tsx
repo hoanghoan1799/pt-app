@@ -70,12 +70,9 @@ export interface GroupThreadProps {
   // "admin:<id>" | "user:<id>" and the name optimistic bubbles show.
   viewerKey: string;
   viewerName: string;
-  // Super admin or the creator PT: may hide and unhide messages.
-  canManage: boolean;
-  // Super admin: sees the PT-change alert and its buttons, reports nothing.
-  canResolveAlert: boolean;
-  // The group's switches and the person's own block at page load; every
-  // fetched payload updates them.
+  // The group's switches and what the viewer may do (manage, resolve the
+  // PT-change alert, their own block) at page load; every fetched payload
+  // updates them.
   initialState: GroupState;
   initial: ThreadSnapshot;
   backHref: string;
@@ -156,8 +153,6 @@ export const GroupThread = ({
   viewerId,
   viewerKey,
   viewerName,
-  canManage,
-  canResolveAlert,
   initialState,
   initial,
   backHref,
@@ -171,6 +166,7 @@ export const GroupThread = ({
   const confirm = useConfirm();
   const [isVisible, setIsVisible] = useState(true);
   const [groupState, setGroupState] = useState(initialState);
+  const { canManage } = groupState;
   const viewer = useMemo(
     () => groupViewer(viewerKey, viewerName),
     [viewerKey, viewerName],
@@ -348,7 +344,7 @@ export const GroupThread = ({
     }
     if (message.hidden) {
       // Nothing to copy or react to; a manager can bring it back.
-      if (canManage) {
+      if (canManage && !groupState.dissolved) {
         openSheet("hidden", message);
       }
       return;
@@ -575,7 +571,7 @@ export const GroupThread = ({
                       messageId={item.message.id}
                       event={item.message.systemEvent ?? null}
                       eventNames={item.message.eventNames ?? {}}
-                      canResolveAlert={canResolveAlert}
+                      canResolveAlert={groupState.isSuperAdmin}
                       onChanged={() => void sync()}
                     />
                   );
@@ -708,7 +704,7 @@ export const GroupThread = ({
           }}
           onUnsend={() => void handleUnsend(sheetMessage)}
           extra={
-            canManage ? (
+            canManage && !groupState.dissolved ? (
               <button
                 type="button"
                 onClick={() => void handleHide(sheetMessage, true)}

@@ -2,9 +2,10 @@ import "server-only";
 
 import type { GroupSummary, GroupUnreadResponse } from "@pt/contracts";
 
-import { webizeUrls } from "@/features/chat/utils/api-urls";
+import { webizeUrlFields } from "@/features/chat/utils/api-urls";
 import type { GroupThreadWire } from "@/features/chat-groups/utils/group-thread-map";
-import { callApi, runApi, tryApi } from "@/services/api/call";
+import { redirectForAuthError, runApi, tryApi } from "@/services/api/call";
+import { logServerError } from "@/services/logger";
 
 // Reads of the group screens, through the API (which checks membership on
 // every call). File URLs are mapped to this app's proxy routes.
@@ -17,11 +18,18 @@ export const EMPTY_GROUP_UNREAD: GroupUnreadResponse = {
 };
 
 // The caller's groups, newest first (a super admin sees every group that is
-// not dissolved).
+// not dissolved). The inboxes list them next to the coach and trainee chats,
+// so a failing group list shows no groups (and is logged) instead of taking
+// the whole inbox down; an ended session or the admin lock still redirect.
 export const listMyGroups = async (actor: Actor): Promise<GroupSummary[]> => {
-  const data = await callApi(actor, (api) => api.GET("/v1/chat/groups"));
+  const outcome = await runApi(actor, (api) => api.GET("/v1/chat/groups"));
 
-  return webizeUrls(data.groups) as GroupSummary[];
+  if (outcome.ok) {
+    return webizeUrlFields(outcome.data.groups) as GroupSummary[];
+  }
+  redirectForAuthError(actor, outcome.error);
+  logServerError("listChatGroups", outcome.error);
+  return [];
 };
 
 // The newest page of one group for its thread page, or null when the caller
@@ -38,7 +46,7 @@ export const loadGroupThread = async (
   );
 
   if (outcome.ok) {
-    return webizeUrls(outcome.data) as GroupThreadWire;
+    return webizeUrlFields(outcome.data) as GroupThreadWire;
   }
   if (outcome.error.status === 404 || outcome.error.status === 400) {
     return null;

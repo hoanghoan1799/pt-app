@@ -325,13 +325,34 @@ describe("group state", () => {
     expect(
       groupStateOf({
         group: { managersOnly: true, dissolved: false },
-        viewer: { isManager: false, sendBlock: "restricted" },
+        viewer: {
+          isManager: false,
+          canManage: false,
+          isSuperAdmin: false,
+          sendBlock: "restricted",
+        },
       }),
     ).toEqual({
       managersOnly: true,
       dissolved: false,
       isManager: false,
+      canManage: false,
+      isSuperAdmin: false,
       lockReason: "restricted",
     });
+  });
+
+  it("follows a change of the manage rights from the payload", () => {
+    expect(
+      groupStateOf({
+        group: { managersOnly: false, dissolved: true },
+        viewer: {
+          isManager: true,
+          canManage: true,
+          isSuperAdmin: true,
+          sendBlock: "dissolved",
+        },
+      }),
+    ).toMatchObject({ dissolved: true, canManage: true, isSuperAdmin: true });
   });
 });

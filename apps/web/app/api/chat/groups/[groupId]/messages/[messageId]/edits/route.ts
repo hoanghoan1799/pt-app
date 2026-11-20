@@ -6,6 +6,7 @@ import {
   routeData,
   routeInvalid,
 } from "@/features/chat/services/chat-api";
+import { webizeUrlFields } from "@/features/chat/utils/api-urls";
 import { parseRouteId } from "@/features/chat-groups/utils/group-ids";
 
 // Previous bodies of an edited group message; every member sees them. The
@@ -27,5 +28,7 @@ export const GET = async (
         params: { path: { groupId, mid } },
       }),
     ),
+    undefined,
+    webizeUrlFields,
   );
 };

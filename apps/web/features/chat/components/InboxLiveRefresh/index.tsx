@@ -1,5 +1,6 @@
 "use client";
 
+import { REALTIME_EVENTS } from "@pt/contracts";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -21,13 +22,30 @@ interface InboxLiveRefreshProps {
   // The admin inbox (trainee chats and groups) or the trainee Messages tab
   // (groups only; its other rows have their own refresh).
   role?: ChatRole;
+  // "admin:<id>" | "user:<id>" of the viewer: another member's group read
+  // changes nothing here, only my own (read in another tab) does.
+  groupReaderKey?: string;
 }
+
+// Whether a group event changes what this inbox shows: new or changed
+// messages and member changes always, a read only when it is my own.
+const groupEventRefreshes = (
+  name: string,
+  data: unknown,
+  readerKey: string | undefined,
+) =>
+  name !== REALTIME_EVENTS.groupRead ||
+  (readerKey !== undefined &&
+    (data as { readerKey?: unknown } | null)?.readerKey === readerKey);
 
 // Renders nothing. Keeps the server-rendered inbox fresh: refreshes the route
 // on every inbox and group event from the socket, and (admin) on a 30 s tick
 // while it is not connected (no ticket, failed, or still connecting). A
 // hidden tab pauses and refreshes once when it returns.
-export const InboxLiveRefresh = ({ role = "admin" }: InboxLiveRefreshProps) => {
+export const InboxLiveRefresh = ({
+  role = "admin",
+  groupReaderKey,
+}: InboxLiveRefreshProps) => {
   const router = useRouter();
   const [state, setState] = useState<RealtimeState>("connecting");
   const [isHidden, setIsHidden] = useState(false);
@@ -63,16 +81,17 @@ export const InboxLiveRefresh = ({ role = "admin" }: InboxLiveRefreshProps) => {
         onState: setState,
         // Catch up on what happened while disconnected.
         onConnect: () => refreshRef.current(),
-        onEvent: (name) => {
+        onEvent: (name, data) => {
           if (
-            isGroupEvent(name) ||
-            (role === "admin" && (name === "inbox" || name === "read"))
+            isGroupEvent(name)
+              ? groupEventRefreshes(name, data, groupReaderKey)
+              : role === "admin" && (name === "inbox" || name === "read")
           ) {
             refreshRef.current();
           }
         },
       }),
-    [role],
+    [role, groupReaderKey],
   );
 
   useEffect(() => {

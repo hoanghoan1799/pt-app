@@ -249,7 +249,7 @@ export const MessageBubble = ({
             isHighlighted && "ring-2 ring-accent",
           )}
         >
-          {replyTo && !isUnsent && (
+          {replyTo && !isUnsent && !isHidden && (
             <button
               type="button"
               onClick={() => onJumpToReply(replyTo.id)}
@@ -383,7 +383,7 @@ export const MessageBubble = ({
           ))}
         </div>
       )}
-      {message.editedAt && !isUnsent && (
+      {message.editedAt && !isUnsent && !isHidden && (
         <button
           type="button"
           onClick={() => onOpenHistory(message)}
@@ -415,6 +415,7 @@ export const MessageBubble = ({
         isLastInRun &&
         message.id !== null &&
         !isUnsent &&
+        !isHidden &&
         (message.seenCount ?? 0) > 0 && (
           <button
             type="button"

@@ -6,6 +6,7 @@ import {
   routeData,
   routeInvalid,
 } from "@/features/chat/services/chat-api";
+import { webizeUrlFields } from "@/features/chat/utils/api-urls";
 import { threadQueryOf } from "@/features/chat/utils/chat-query";
 import { parseRouteId } from "@/features/chat-groups/utils/group-ids";
 
@@ -36,5 +37,7 @@ export const GET = async (
         },
       }),
     ),
+    undefined,
+    webizeUrlFields,
   );
 };

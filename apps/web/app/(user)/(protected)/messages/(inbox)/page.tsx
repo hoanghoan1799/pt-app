@@ -54,7 +54,7 @@ const MessagesInboxPage = async () => {
     <>
       <AppHeader title={dm("inboxTitle")} />
       <DmInboxRefresh />
-      <InboxLiveRefresh role="user" />
+      <InboxLiveRefresh role="user" groupReaderKey={`user:${user.id}`} />
       <main
         className={`${PAGE_CONTAINER} space-y-3 pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]`}
       >
