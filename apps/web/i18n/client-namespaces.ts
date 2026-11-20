@@ -17,6 +17,7 @@ export const CLIENT_NAMESPACES = [
   "pages",
   "pts",
   "pwa",
+  "restrictions",
   "social",
   "workouts",
 ] as const;

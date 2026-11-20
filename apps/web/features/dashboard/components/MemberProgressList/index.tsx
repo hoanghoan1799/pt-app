@@ -18,6 +18,7 @@ import { useHiddenReveal } from "@/features/chat/hooks/use-hidden-reveal";
 import { unhideUserAction } from "@/features/chat/services/chat-hidden-actions";
 import { useMemberSearch } from "@/features/dashboard/hooks/use-member-search";
 import type { MemberRow } from "@/features/dashboard/types/dashboard";
+import { RestrictionBadge } from "@/features/restrictions/components/RestrictionBadge";
 
 interface MemberProgressListProps {
   members: MemberRow[];
@@ -121,6 +122,9 @@ export const MemberProgressList = ({
                         {member.displayName}
                       </span>
                       <UnreadBadge count={member.unread} className="shrink-0" />
+                      {member.restrictionLevel && (
+                        <RestrictionBadge level={member.restrictionLevel} />
+                      )}
                       {isPtShown && (
                         <span className="shrink-0 rounded-full bg-line/60 px-2 py-0.5 text-xs font-medium text-muted">
                           {member.ptName

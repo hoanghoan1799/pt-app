@@ -62,6 +62,9 @@ const traineeSees = async (
     await expect(
       page.getByRole("heading", { name: "Thư viện thực phẩm" }),
     ).toBeVisible();
+    // The loading skeleton has the same heading; only the loaded list has the
+    // labelled search box, so count once the foods are on the page.
+    await expect(page.getByLabel("Tìm món")).toBeVisible();
 
     return await getFoodLink(page, name).count();
   } finally {

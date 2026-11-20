@@ -93,9 +93,27 @@ export const clearAvatarsViaApi = async (traineeName: string) => {
 
 // A PT account (the e2e admin is a super admin), created through the API. The
 // spec that needs one owns the username, so specs do not depend on each other.
-export const createPtViaApi = async (username: string, password: string) => {
-  await call("POST", "/v1/pts", {
+// Returns the PT's admin id (to assign trainees to them).
+export const createPtViaApi = async (username: string, password: string) =>
+  (
+    await call<{ id: number }>("POST", "/v1/pts", {
+      token: await loginAdminViaApi(),
+      body: { username, password },
+    })
+  ).id;
+
+// A super admin block on a trainee (PUT /v1/trainees/:userId/restriction), for
+// specs that test what the trainee sees rather than the block sheet itself.
+export const blockTraineeViaApi = async (
+  userId: number,
+  body: {
+    level: "restricted" | "suspended";
+    duration: "24h" | "7d" | "30d" | "permanent";
+    reason: string;
+  },
+) => {
+  await call("PUT", `/v1/trainees/${userId}/restriction`, {
     token: await loginAdminViaApi(),
-    body: { username, password },
+    body,
   });
 };

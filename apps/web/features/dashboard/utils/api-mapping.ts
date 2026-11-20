@@ -1,7 +1,4 @@
-import type {
-  ActivityResponse,
-  DashboardSummaryResponse,
-} from "@pt/contracts";
+import type { ActivityResponse, DashboardSummaryResponse } from "@pt/contracts";
 
 import { toWebAvatarUrl } from "@/features/avatar/utils/avatar-rules";
 import type {
@@ -28,6 +25,7 @@ export const toMemberProgress = (
   activeDays: member.activeDays,
   nutritionDays: member.nutritionDays,
   lastActiveAt: toEpochMs(member.lastActiveAt),
+  restrictionLevel: member.restrictionLevel,
 });
 
 export const toActivityItems = (

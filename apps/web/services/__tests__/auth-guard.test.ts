@@ -131,6 +131,28 @@ describe("user guards", () => {
       termsVersion: 2,
       preferredMealCount: 4,
       foodNote: "no peanuts",
+      restriction: null,
+    });
+  });
+
+  it("carries a super admin's block for the banner, dates as epoch ms", async () => {
+    state.user = fakeUserMe({
+      id: 4,
+      restriction: {
+        id: 9,
+        level: "restricted",
+        until: "2026-11-21T10:00:00.000Z",
+        reason: "spam",
+        createdAt: "2026-11-14T10:00:00.000Z",
+      },
+    });
+
+    expect((await guard.requireUser()).restriction).toEqual({
+      id: 9,
+      level: "restricted",
+      until: Date.parse("2026-11-21T10:00:00.000Z"),
+      reason: "spam",
+      createdAt: Date.parse("2026-11-14T10:00:00.000Z"),
     });
   });
 

@@ -50,6 +50,14 @@ describe("toMemberProgress", () => {
     ).toBe(1_700_000_000_000);
     expect(toMemberProgress(member()).lastActiveAt).toBeNull();
   });
+
+  it("carries the super admin block level for the list badge", () => {
+    expect(
+      toMemberProgress(member({ restrictionLevel: "suspended" }))
+        .restrictionLevel,
+    ).toBe("suspended");
+    expect(toMemberProgress(member()).restrictionLevel).toBeNull();
+  });
 });
 
 describe("toActivityItems", () => {

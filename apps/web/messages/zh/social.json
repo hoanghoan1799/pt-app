@@ -13,6 +13,7 @@
     "handled": "已处理",
     "deleteContent": "删除内容",
     "hide": "隐藏",
+    "hideBlock": "隐藏并封禁",
     "hideTitle": "隐藏被举报的消息？",
     "hideDescription": "该消息将对所有人从对话中消失。",
     "hideConfirm": "隐藏"

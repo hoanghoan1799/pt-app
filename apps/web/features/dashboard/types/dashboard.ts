@@ -1,3 +1,4 @@
+import type { RestrictionLevel } from "@/features/restrictions/types/restriction";
 import type { BestSet } from "@/features/workouts/types/workout";
 
 // Dashboard filter by PT: everyone, trainees without a PT, or one PT's.
@@ -23,6 +24,8 @@ export interface MemberProgress {
   nutritionDays: number;
   // Latest completion ever (epoch ms), not limited to the week.
   lastActiveAt: number | null;
+  // Active super admin block on this trainee (the list badge); null = none.
+  restrictionLevel: RestrictionLevel | null;
 }
 
 export interface MemberRow extends MemberProgress {

@@ -1,10 +1,13 @@
 "use server";
 
+import { RESTRICTION_ERROR_CODES } from "@pt/contracts";
 import { redirect } from "next/navigation";
 
 import { ROUTES } from "@/constants/routes";
 import { ADMIN_COOKIE, USER_COOKIE } from "@/constants/session";
 import { AUTH_MESSAGES } from "@/features/auth/constants/messages";
+import { describeSuspension } from "@/features/restrictions/services/restriction-messages";
+import { parseSuspensionDetails } from "@/features/restrictions/utils/restriction-mapping";
 import { withFormErrorHandling } from "@/services/action-errors";
 import { runApi, tryApi } from "@/services/api/call";
 import { apiErrorToFormState } from "@/services/api/errors";
@@ -36,7 +39,16 @@ export const loginWithEmailAction = withFormErrorHandling(
     );
 
     if (!outcome.ok) {
-      return apiErrorToFormState(outcome.error, { values });
+      // Spec D4: only after the right password, with the end and the reason
+      // in the request's language (the API's own text is Vietnamese).
+      const suspension =
+        outcome.error.code === RESTRICTION_ERROR_CODES.ACCOUNT_SUSPENDED
+          ? parseSuspensionDetails(outcome.error.details)
+          : null;
+
+      return suspension
+        ? createErrorState(await describeSuspension(suspension), { values })
+        : apiErrorToFormState(outcome.error, { values });
     }
 
     await startSession("user", outcome.data.token);

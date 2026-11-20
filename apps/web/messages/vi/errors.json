@@ -270,10 +270,20 @@
   "toasts": {
     "memberAdded": "Đã thêm {name}",
     "weekCopied": "Đã sao chép {count} ngày sang tuần {range}",
-    "weekCopiedTo": "Đã sao chép {count} ngày sang tuần {range} của {name}"
+    "weekCopiedTo": "Đã sao chép {count} ngày sang tuần {range} của {name}",
+    "suspendedUntil": "Tài khoản của bạn đã bị khoá đến {until}. Lý do: {reason}",
+    "suspendedForever": "Tài khoản của bạn đã bị khoá vĩnh viễn. Lý do: {reason}"
   },
   "alias": {
     "SELF": "Bạn không thể đặt biệt danh cho chính mình",
     "TARGET_NOT_FOUND": "Không tìm thấy người này"
+  },
+  "restriction": {
+    "RESTRICTED": "Tài khoản của bạn đang bị hạn chế, nên chưa thể thực hiện thao tác này.",
+    "USER_NOT_FOUND": "Không tìm thấy học viên cần chặn",
+    "INVALID_INPUT": "Thông tin chặn không hợp lệ",
+    "REASON_REQUIRED": "Hãy nhập lý do chặn",
+    "REASON_TOO_LONG": "Lý do chặn tối đa 300 ký tự",
+    "NOT_RESTRICTED": "Học viên này hiện không bị chặn"
   }
 }

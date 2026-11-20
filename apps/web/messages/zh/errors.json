@@ -270,10 +270,20 @@
   "toasts": {
     "memberAdded": "已添加 {name}",
     "weekCopied": "已将 {count} 天复制到 {range} 这一周",
-    "weekCopiedTo": "已将 {count} 天复制到 {name} 的 {range} 这一周"
+    "weekCopiedTo": "已将 {count} 天复制到 {name} 的 {range} 这一周",
+    "suspendedUntil": "你的账号已被停用至 {until}。原因：{reason}",
+    "suspendedForever": "你的账号已被永久停用。原因：{reason}"
   },
   "alias": {
     "SELF": "你不能给自己设置昵称",
     "TARGET_NOT_FOUND": "找不到此人"
+  },
+  "restriction": {
+    "RESTRICTED": "你的账号已被限制，暂时无法执行此操作。",
+    "USER_NOT_FOUND": "找不到要封禁的学员",
+    "INVALID_INPUT": "封禁信息无效",
+    "REASON_REQUIRED": "请填写封禁原因",
+    "REASON_TOO_LONG": "封禁原因最多 300 个字符",
+    "NOT_RESTRICTED": "该学员目前没有被封禁"
   }
 }

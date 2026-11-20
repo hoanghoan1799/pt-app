@@ -13,6 +13,7 @@
     "handled": "Handled",
     "deleteContent": "Delete content",
     "hide": "Hide",
+    "hideBlock": "Hide + block",
     "hideTitle": "Hide the reported message?",
     "hideDescription": "The message will disappear from the conversation for everyone.",
     "hideConfirm": "Hide"

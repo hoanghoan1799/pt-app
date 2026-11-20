@@ -1,0 +1,52 @@
+{
+  "levels": {
+    "restricted": "限制",
+    "suspended": "停用账号"
+  },
+  "levelHints": {
+    "restricted": "仍可登录并使用训练和饮食功能，但不能发消息、发帖、评论或表情回应。",
+    "suspended": "无法登录，并且在其他学员的动态、好友列表和搜索中被隐藏。"
+  },
+  "durations": {
+    "24h": "24 小时",
+    "7d": "7 天",
+    "30d": "30 天",
+    "permanent": "永久"
+  },
+  "badge": {
+    "restricted": "已限制",
+    "suspended": "已停用"
+  },
+  "summary": {
+    "titleRestricted": "当前被限制",
+    "titleSuspended": "当前被停用",
+    "until": "截止 {until}",
+    "permanent": "永久",
+    "reason": "原因：{reason}"
+  },
+  "banner": {
+    "title": "你的账号已被限制",
+    "hint": "你仍可查看训练计划和饮食，但暂时无法发消息、发帖、评论或表情回应。"
+  },
+  "control": {
+    "title": "封禁学员",
+    "trigger": "封禁",
+    "change": "更改封禁",
+    "lift": "解除封禁",
+    "lifted": "已解除封禁",
+    "liftFailed": "无法解除封禁，请重试。"
+  },
+  "sheet": {
+    "title": "封禁学员",
+    "description": "选择封禁级别和时长，并填写原因。学员会看到这条原因。",
+    "levelLabel": "封禁级别",
+    "durationLabel": "时长",
+    "reasonLabel": "原因",
+    "reasonPlaceholder": "例如：在聊天中发送不当内容",
+    "reasonCount": "{count}/{max}",
+    "submit": "封禁",
+    "saving": "正在封禁...",
+    "blocked": "已封禁学员",
+    "failed": "封禁失败，请重试。"
+  }
+}
