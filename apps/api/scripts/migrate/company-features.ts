@@ -35,8 +35,8 @@ const NULL_MEANS_FALSE: Record<string, string[]> = {
 type Repairs = {
   // user_restrictions id -> lifted_at (epoch ms).
   lifts: Map<string, number>;
-  // chat_group_members keys ("<group_id>:<member_key>") whose cursor is
-  // cleared.
+  // chat_group_members whose cursor is cleared, by memberKey (built from the
+  // row's own columns, not from the script's primary key string).
   clearedCursors: Set<string>;
 };
 
@@ -53,7 +53,7 @@ export const resetCompanyRepairs = () => {
 };
 
 const memberKey = (row: Record<string, unknown>) =>
-  `${String(row.group_id)}:${String(row.member_key)}`;
+  JSON.stringify([row.group_id, row.member_key]);
 
 export const repairCompanyRow = (
   table: string,
@@ -117,8 +117,8 @@ export const liftedAtFor = (
 // user_restrictions_one_active: per trainee, the newest row (created_at, then
 // id) that is not lifted stays active; every older one is lifted (liftedAtFor
 // with the next newer row's created_at). lifted_by_admin_id is left as it is
-// (NULL, unless the source had one: then lifted_by_without_lifted_at clears
-// it). Returns id -> lifted_at.
+// (the row now has a lifted_at, so a source lifted_by stays valid). Returns
+// id -> lifted_at.
 export const planRestrictionLifts = (rows: RowRef[] | undefined) => {
   const active = new Map<string, RowRef[]>();
 
@@ -133,7 +133,13 @@ export const planRestrictionLifts = (rows: RowRef[] | undefined) => {
 
     const user = String(row.values.user_id);
 
-    active.set(user, [...(active.get(user) ?? []), row]);
+    const list = active.get(user);
+
+    if (list) {
+      list.push(row);
+    } else {
+      active.set(user, [row]);
+    }
   }
 
   const lifts = new Map<string, number>();
@@ -164,10 +170,11 @@ export const planRestrictionLifts = (rows: RowRef[] | undefined) => {
 
 // fk_chat_group_members_last_read: a cursor that names no message of its own
 // group (missing, or another group's) is cleared, as the migration does; the
-// membership stays. Read cursors are already 0 -> NULL here.
+// membership stays. Read cursors are already 0 -> NULL here. Returns the
+// member rows to clear.
 export const planClearedCursors = (rows: RepairRows) => {
   const messages = byKey(rows.chat_group_messages);
-  const cleared = new Set<string>();
+  const cleared: RowRef[] = [];
 
   for (const row of rows.chat_group_members ?? []) {
     const cursor = row.values.last_read_message_id;
@@ -184,7 +191,7 @@ export const planClearedCursors = (rows: RepairRows) => {
       !message ||
       String(message.values.group_id) !== String(row.values.group_id)
     ) {
-      cleared.add(row.key);
+      cleared.push(row);
     }
   }
 
@@ -196,24 +203,34 @@ export type CompanyRepairSummary = {
   clearedCursors: string[];
 };
 
-// Plans the cross-row repairs from the analysis rows and clears the planned
-// cursors in `rows` too, so the orphan scan that follows sees the loaded
-// value. Call once per run, after the analysis pass.
+// Plans the cross-row repairs from the analysis rows and applies them to
+// `rows` too (cleared cursors, lifted_at of lifted restrictions), so the
+// constraint and orphan scans that follow see the values that will be loaded.
+// Call once per run, after the analysis pass.
 export const planCompanyRepairs = (rows: RepairRows): CompanyRepairSummary => {
+  const lifts = planRestrictionLifts(rows.user_restrictions);
+  const cleared = planClearedCursors(rows);
+
   repairs = {
-    lifts: planRestrictionLifts(rows.user_restrictions),
-    clearedCursors: planClearedCursors(rows),
+    lifts,
+    clearedCursors: new Set(cleared.map((row) => memberKey(row.values))),
   };
 
-  for (const row of rows.chat_group_members ?? []) {
-    if (repairs.clearedCursors.has(row.key)) {
-      row.values.last_read_message_id = null;
+  for (const row of cleared) {
+    row.values.last_read_message_id = null;
+  }
+
+  for (const row of rows.user_restrictions ?? []) {
+    const lifted = lifts.get(row.key);
+
+    if (lifted !== undefined) {
+      row.values.lifted_at = lifted;
     }
   }
 
   return {
-    liftedRestrictions: [...repairs.lifts.keys()],
-    clearedCursors: [...repairs.clearedCursors],
+    liftedRestrictions: [...lifts.keys()],
+    clearedCursors: cleared.map((row) => row.key),
   };
 };
 
@@ -247,6 +264,7 @@ export const COMPANY_SCAN_COLUMNS: Record<string, string[]> = {
   chat_groups: ["last_message_id", "dissolved_at", "dissolved_by_admin_id"],
   chat_group_members: [
     "group_id",
+    "member_key",
     "left_at",
     "removed_by_key",
     "last_read_message_id",

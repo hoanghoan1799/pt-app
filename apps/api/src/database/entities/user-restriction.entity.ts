@@ -22,8 +22,11 @@ import { User } from "./user.entity.js";
 // an index cannot use now(), so a row past its `until` but never lifted still
 // holds the slot). A new block therefore, in one transaction: locks the
 // trainee's users row (SELECT ... FOR UPDATE, so two concurrent blocks queue
-// instead of hitting the index), lifts every row with lifted_at NULL
-// (lifted_at = its `until` when that has passed, else now()), then inserts.
+// instead of hitting the index), lifts every row with lifted_at NULL, then
+// inserts. lifted_at = GREATEST(created_at, LEAST(now(), COALESCE(until,
+// now()))): its `until` when that has passed, else now(), never before
+// created_at (a queued transaction's now() is its start, which can be earlier
+// than the row it waited for).
 //
 // SQLite had no foreign keys here. PostgreSQL deletes the rows with the trainee
 // (the old member delete did it by hand) and clears the admin ids when an admin

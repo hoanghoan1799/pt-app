@@ -979,12 +979,11 @@ describe("data migration from a Turso/SQLite copy", () => {
         `SELECT accent_color FROM users WHERE id = 90`,
       );
 
-      // Both rows are kept. 91 is trainee 1's newest block and stays active;
-      // 90 ends when 91 replaced it (one active block per trainee).
+      // Both blocks are still active (never lifted).
       expect(restrictions).toEqual([
         {
           id: 90,
-          lifted_at: new Date(1_700_000_008_001),
+          lifted_at: null,
           lifted_by_admin_id: null,
           created_by_admin_id: 1,
         },
@@ -1007,10 +1006,13 @@ describe("data migration from a Turso/SQLite copy", () => {
       expect(exitCode, output).toBe(0);
       expect(report.tables.every((row) => row.match)).toBe(true);
 
-      const restrictions: { id: number; lifted_at: Date | null }[] =
-        await db.dataSource.query(
-          `SELECT id, lifted_at FROM user_restrictions WHERE id BETWEEN 90 AND 95 ORDER BY id`,
-        );
+      const restrictions: {
+        id: number;
+        lifted_at: Date | null;
+        lifted_by_admin_id: number | null;
+      }[] = await db.dataSource.query(
+        `SELECT id, lifted_at, lifted_by_admin_id FROM user_restrictions WHERE id BETWEEN 90 AND 96 ORDER BY id`,
+      );
       const active: { user_id: number; id: number }[] =
         await db.dataSource.query(
           `SELECT user_id, id FROM user_restrictions WHERE lifted_at IS NULL ORDER BY user_id`,
@@ -1022,20 +1024,34 @@ describe("data migration from a Turso/SQLite copy", () => {
         `SELECT member_key, last_read_message_id FROM chat_group_members WHERE group_id = 1 ORDER BY member_key`,
       );
 
+      const lift = (
+        id: number,
+        at: number | null,
+        by: number | null = null,
+      ) => ({
+        id,
+        lifted_at: at === null ? null : new Date(1_700_000_000_000 + at),
+        lifted_by_admin_id: by,
+      });
+
       expect(restrictions).toEqual([
-        { id: 90, lifted_at: new Date(1_700_000_008_001) },
-        { id: 91, lifted_at: null },
+        // Trainee 5's only active block: lifted_by without a time is cleared.
+        lift(90, null),
+        lift(91, null),
         // Ended at its own until, before 93 came.
-        { id: 92, lifted_at: new Date(1_700_000_008_150) },
+        lift(92, 8150),
         // Replaced by 94.
-        { id: 93, lifted_at: new Date(1_700_000_008_300) },
-        { id: 94, lifted_at: null },
+        lift(93, 8300),
+        lift(94, null),
         // Was lifted before it was created.
-        { id: 95, lifted_at: new Date(1_700_000_008_400) },
+        lift(95, 8400),
+        // Replaced by 92; it now has a lift time, so its lifter stays.
+        lift(96, 8100, 1),
       ]);
       expect(active).toEqual([
         { user_id: 1, id: 91 },
         { user_id: 2, id: 94 },
+        { user_id: 5, id: 90 },
       ]);
       // 0 is NULL (nothing read); a missing message and another group's
       // message are cleared; a real cursor stays.
@@ -1047,7 +1063,7 @@ describe("data migration from a Turso/SQLite copy", () => {
       ]);
       expect(report.warnings).toEqual(
         expect.arrayContaining([
-          "user_restrictions: 3 older active restriction(s) of the same trainee lifted (the newest stays active): 90, 93, 92",
+          "user_restrictions: 3 older active restriction(s) of the same trainee lifted (the newest stays active): 93, 92, 96",
           "chat_group_members: 2 read cursor(s) naming no message of their group cleared: 1:admin:1, 1:user:5",
         ]),
       );

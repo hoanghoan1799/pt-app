@@ -1205,20 +1205,19 @@ const companyDirty = (): Entry[] => [
     },
   ],
   ["theme_settings", { scope: "pt", accent: "cam", updated_at: S + 801 }],
+  // Trainee 5's only active block, with a lifter but no lift time.
   [
     "user_restrictions",
     {
       id: 90,
-      user_id: 1,
+      user_id: 5,
       level: "suspended",
       created_by_admin_id: 1,
       created_at: MS + 8000,
       lifted_by_admin_id: 1,
     },
   ],
-  // An active block whose admin was deleted in SQLite (no FKs there). Also
-  // the newest active block of trainee 1, so 90 is lifted when 91 replaced it
-  // (GroupChatRestrictionKeys).
+  // An active block whose admin was deleted in SQLite (no FKs there).
   [
     "user_restrictions",
     {
@@ -1229,8 +1228,20 @@ const companyDirty = (): Entry[] => [
       created_at: MS + 8001,
     },
   ],
-  // Trainee 2: three active blocks. 94 stays; 93 is lifted when 94 replaced
-  // it, 92 at its own until (it ended before 93 came).
+  // Trainee 2: four active blocks (GroupChatRestrictionKeys). 94 stays; 93 is
+  // lifted when 94 replaced it, 92 at its own until (it ended before 93 came),
+  // 96 when 92 replaced it, keeping its lifter (it now has a lift time).
+  [
+    "user_restrictions",
+    {
+      id: 96,
+      user_id: 2,
+      level: "restricted",
+      created_by_admin_id: 1,
+      created_at: MS + 8050,
+      lifted_by_admin_id: 1,
+    },
+  ],
   [
     "user_restrictions",
     {

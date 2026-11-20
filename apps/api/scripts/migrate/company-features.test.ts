@@ -340,11 +340,13 @@ describe("GroupChatRestrictionKeys repairs", () => {
         row("2", message({ group_id: 2 })),
       ],
       chat_group_members: [
-        row("1:user:1", { group_id: 1, last_read_message_id: 1 }),
-        row("1:user:2", { group_id: 1, last_read_message_id: 2 }),
-        row("1:user:3", { group_id: 1, last_read_message_id: 99 }),
-        row("1:user:4", { group_id: 1, last_read_message_id: null }),
-        row("1:user:5", { group_id: 1, last_read_message_id: -1 }),
+        ...[1, 2, 99, null, -1].map((cursor, index) =>
+          row(`1:user:${index + 1}`, {
+            group_id: 1,
+            member_key: `user:${index + 1}`,
+            last_read_message_id: cursor,
+          }),
+        ),
       ],
     };
 
@@ -367,6 +369,60 @@ describe("GroupChatRestrictionKeys repairs", () => {
 
     repairCompanyRow("chat_group_members", loaded);
     expect(loaded.last_read_message_id).toBeNull();
+  });
+
+  it("gives the scans that follow the planned lift, so a lifter without a lift time is not flagged on a lifted row", () => {
+    const rows = {
+      user_restrictions: [
+        row("1", {
+          user_id: 1,
+          created_at: 100,
+          until: null,
+          lifted_at: null,
+          lifted_by_admin_id: 3,
+        }),
+        row("2", {
+          user_id: 1,
+          created_at: 200,
+          until: null,
+          lifted_at: null,
+          lifted_by_admin_id: null,
+        }),
+      ],
+    };
+
+    expect(planCompanyRepairs(rows).liftedRestrictions).toEqual(["1"]);
+    expect(rows.user_restrictions[0].values.lifted_at).toBe(200);
+    expect(found(rows)).toEqual([]);
+  });
+
+  it("matches a planned cursor on later reads by the row's own columns", () => {
+    planCompanyRepairs({
+      chat_group_messages: [],
+      chat_group_members: [
+        row("any-key", {
+          group_id: 7,
+          member_key: "user:1",
+          last_read_message_id: 5,
+        }),
+      ],
+    });
+
+    const loaded: Record<string, unknown> = {
+      group_id: 7,
+      member_key: "user:1",
+      last_read_message_id: 5,
+    };
+    const other: Record<string, unknown> = {
+      group_id: 7,
+      member_key: "user:2",
+      last_read_message_id: 5,
+    };
+
+    repairCompanyRow("chat_group_members", loaded);
+    repairCompanyRow("chat_group_members", other);
+    expect(loaded.last_read_message_id).toBeNull();
+    expect(other.last_read_message_id).toBe(5);
   });
 
   it("applies planned lifts on later reads only, and a reset forgets them", () => {

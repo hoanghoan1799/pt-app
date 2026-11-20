@@ -32,7 +32,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 //        stays active. Each older one is lifted when the next newer one
 //        replaced it (that row's created_at), or at its own `until` when it
 //        had already ended before that, never before its own created_at.
-//        lifted_by_admin_id stays NULL (lifted by this migration). The
+//        lifted_by_admin_id is kept (NULL here: the existing CHECK allows
+//        it only with lifted_at, so a row not lifted has none). The
 //        moments come from the rows, not now(), so the data script
 //        (scripts/migrate/company-features.ts) computes the same values.
 //
