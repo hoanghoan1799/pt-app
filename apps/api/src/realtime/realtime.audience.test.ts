@@ -70,6 +70,7 @@ const audienceWith = (stored: ConversationFacts | null) =>
     } as unknown as ChatQueries,
     {} as never,
     {} as never,
+    {} as never,
   );
 
 const audience = audienceWith(null);

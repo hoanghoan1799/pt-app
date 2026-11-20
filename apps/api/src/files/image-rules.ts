@@ -70,7 +70,8 @@ export const encodeDataUrl = (mime: string, bytes: Uint8Array) =>
 export const avatarVersion = (updatedAt: Date) =>
   String(Math.floor(updatedAt.getTime() / 1000));
 
-// Signed URLs (HMAC-SHA256 over "<kind>:<id>:<version>"): the URL itself is the
+// Signed URLs (HMAC-SHA256 over "<kind>:<id>:<version>"; kind "group" is a
+// group chat's photo, see chat-groups/group.mapper.ts): the URL itself is the
 // capability, so whoever the API hands a URL to may load that photo. Set once
 // at boot from AVATAR_URL_SECRET (config/app-config.module.ts); unit tests that
 // never boot the app use the fixed development secret.
@@ -82,7 +83,7 @@ export const setAvatarUrlSecret = (secret: string) => {
 };
 
 export const avatarToken = (
-  kind: "user" | "admin",
+  kind: "user" | "admin" | "group",
   id: number,
   version: string,
 ) =>

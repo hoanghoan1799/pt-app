@@ -1,5 +1,6 @@
 export * from "./auth/index.js";
 export * from "./chat/index.js";
+export * from "./chat-groups/index.js";
 export * from "./date.js";
 export * from "./decimal.js";
 export * from "./food-api-schemas.js";

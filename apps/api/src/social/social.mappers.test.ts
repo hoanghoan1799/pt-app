@@ -142,6 +142,7 @@ describe("mappers", () => {
         targetName: null,
         postId: null,
         message: null,
+        group: null,
       }).createdAt,
     ).toBe("2026-11-12T10:00:00.000Z");
   });
@@ -166,10 +167,37 @@ describe("mappers", () => {
       targetName: "Ann",
       postId: null,
       message,
+      group: null,
     });
 
     expect(socialReportResponseSchema.parse(response)).toEqual(response);
     expect(response).toMatchObject({ reasonCode: "harassment", message });
+  });
+
+  it("maps a group message report with its group", () => {
+    const response = toReportResponse({
+      id: 6,
+      targetKind: "group_message",
+      targetId: 77,
+      reporterName: "Ann",
+      reason: "",
+      reasonCode: "spam",
+      createdAt,
+      preview: "buy now",
+      targetName: "Binh",
+      postId: null,
+      message: {
+        senderRole: "user",
+        senderName: "Binh",
+        traineeId: 3,
+        traineeName: "Binh",
+        kind: "text",
+      },
+      group: { id: 12, name: "Morning crew" },
+    });
+
+    expect(socialReportResponseSchema.parse(response)).toEqual(response);
+    expect(response.group).toEqual({ id: 12, name: "Morning crew" });
   });
 });
 

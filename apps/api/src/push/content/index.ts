@@ -1,5 +1,6 @@
 import { buildNotificationPush } from "../../social/notifications/notification-content.js";
 import { buildChatMessagePush, buildChatReactionPush } from "./chat-content.js";
+import { buildGroupMessagePush } from "./group-content.js";
 import { buildReportPush } from "./report-content.js";
 
 // Notification content strategy: one builder per kind of push, each turning
@@ -11,9 +12,11 @@ import { buildReportPush } from "./report-content.js";
 export const pushContent = {
   chat_message: buildChatMessagePush,
   chat_reaction: buildChatReactionPush,
+  group_message: buildGroupMessagePush,
   report: buildReportPush,
   social: buildNotificationPush,
 } as const;
 
 export * from "./chat-content.js";
+export * from "./group-content.js";
 export * from "./report-content.js";

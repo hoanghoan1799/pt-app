@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { AdminActor } from "../auth/actor.js";
 import type { PasswordHasher } from "../auth/password-hash.js";
 import type { SessionsService } from "../auth/sessions.service.js";
+import type { GroupAlertsService } from "../chat-groups/group-alerts.service.js";
 import type { Clock } from "../common/clock.js";
 import type { TraineeDeletionService } from "./trainee-deletion.service.js";
 import { TraineesService } from "./trainees.service.js";
@@ -12,8 +13,13 @@ const now = new Date("2026-11-12T10:00:00.456Z");
 // Repositories are faked per entity name so the use-case rules run without a
 // database; the e2e tests cover the SQL.
 const build = (rows: {
-  user?: { id: number; emailKey: string | null } | null;
+  user?: {
+    id: number;
+    emailKey?: string | null;
+    ptAdminId?: number | null;
+  } | null;
   ptExists?: boolean;
+  alertFails?: boolean;
 }) => {
   const update = vi.fn(async () => ({ affected: 1 }));
   const save = vi.fn(async (entity: object) => ({ id: 41, ...entity }));
@@ -30,15 +36,24 @@ const build = (rows: {
       entity.name === "User" ? users : admins,
   };
   const revokeAll = vi.fn(async () => undefined);
+  const recordPtChange = vi.fn(async () => {
+    if (rows.alertFails) {
+      throw new Error("alert failed");
+    }
+    return 1;
+  });
+  const logError = vi.fn();
   const service = new TraineesService(
     dataSource as never,
     { hash: async (p: string) => `hashed:${p}` } as unknown as PasswordHasher,
     { revokeAll } as unknown as SessionsService,
     { now: () => now } as unknown as Clock,
     {} as TraineeDeletionService,
+    { recordPtChange } as unknown as GroupAlertsService,
+    { error: logError } as never,
   );
 
-  return { service, update, save, revokeAll, users };
+  return { service, update, save, revokeAll, users, recordPtChange, logError };
 };
 
 const actor = (role: "pt" | "super_admin", id = 5) =>
@@ -135,5 +150,69 @@ describe("TraineesService.create PT resolution", () => {
         passwordChangedAt: new Date("2026-11-12T10:00:00.000Z"),
       }),
     );
+  });
+});
+
+// Company pt-actions.ts assignTraineePtAction + group-system-lines.ts: a
+// re-save of the same PT changes nothing; a real change alerts the groups and
+// a failing alert never undoes the assignment.
+describe("TraineesService.assignPt", () => {
+  it("writes nothing and alerts nobody when the PT is the same", async () => {
+    const { service, update, recordPtChange } = build({
+      user: { id: 9, ptAdminId: 4 },
+      ptExists: true,
+    });
+
+    await service.assignPt(9, 4);
+
+    expect(update).not.toHaveBeenCalled();
+    expect(recordPtChange).not.toHaveBeenCalled();
+  });
+
+  it("stores a new PT and records the change in the trainee's groups", async () => {
+    const { service, update, recordPtChange } = build({
+      user: { id: 9, ptAdminId: 4 },
+      ptExists: true,
+    });
+
+    await service.assignPt(9, 7);
+
+    expect(update).toHaveBeenCalledWith({ id: 9 }, { ptAdminId: 7 });
+    expect(recordPtChange).toHaveBeenCalledWith(9, 4, 7);
+  });
+
+  it("records clearing the PT as a change to null", async () => {
+    const { service, recordPtChange } = build({
+      user: { id: 9, ptAdminId: 4 },
+    });
+
+    await service.assignPt(9, null);
+
+    expect(recordPtChange).toHaveBeenCalledWith(9, 4, null);
+  });
+
+  it("keeps the assignment when the group alert fails, and logs it", async () => {
+    const { service, update, logError } = build({
+      user: { id: 9, ptAdminId: null },
+      ptExists: true,
+      alertFails: true,
+    });
+
+    await expect(service.assignPt(9, 7)).resolves.toBeUndefined();
+    expect(update).toHaveBeenCalledWith({ id: 9 }, { ptAdminId: 7 });
+    expect(logError).toHaveBeenCalledTimes(1);
+  });
+
+  it("answers not found for a missing trainee without writing", async () => {
+    const { service, update, recordPtChange } = build({
+      user: null,
+      ptExists: true,
+    });
+
+    await expect(service.assignPt(9, 7)).rejects.toMatchObject({
+      status: 404,
+    });
+    expect(update).not.toHaveBeenCalled();
+    expect(recordPtChange).not.toHaveBeenCalled();
   });
 });

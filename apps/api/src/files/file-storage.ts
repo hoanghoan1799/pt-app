@@ -12,6 +12,7 @@ export type FileCollection =
   | "avatar-user"
   | "avatar-admin"
   | "chat-photo"
+  | "chat-group-photo"
   | "chat-sticker"
   | "dm-photo"
   | "social-photo";

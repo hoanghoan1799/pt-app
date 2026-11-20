@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/auth.module.js";
 import { ChatModerationModule } from "../chat/chat-moderation.module.js";
+import { ChatGroupReportsModule } from "../chat-groups/chat-group-reports.module.js";
 import { FilesModule } from "../files/files.module.js";
 import { AccountDirectoryModule } from "../users/account-directory.module.js";
 import { CommentPolicy } from "./domain/comment.policy.js";
@@ -39,6 +40,7 @@ import { SocialTermsGuard } from "./terms.guard.js";
     FilesModule,
     AccountDirectoryModule,
     ChatModerationModule,
+    ChatGroupReportsModule,
   ],
   controllers: [
     PostsController,

@@ -4,6 +4,7 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
 import { AdminsModule } from "./admins/admins.module.js";
 import { AuthModule } from "./auth/auth.module.js";
 import { ChatModule } from "./chat/chat.module.js";
+import { ChatGroupsModule } from "./chat-groups/chat-groups.module.js";
 import { ClockModule } from "./common/clock.js";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter.js";
 import { createLoggerModule } from "./common/logging/logging.module.js";
@@ -44,6 +45,7 @@ import { WorkoutsModule } from "./workouts/workouts.module.js";
     NutritionModule,
     SocialModule,
     ChatModule,
+    ChatGroupsModule,
     StickersModule,
     DmModule,
     RealtimeModule,

@@ -10,6 +10,7 @@ import type {
 import { DataSource } from "typeorm";
 
 import { ChatModeration } from "../chat/chat-moderation.service.js";
+import { GroupReports } from "../chat-groups/group-reports.service.js";
 import { Clock } from "../common/clock.js";
 import { returnedRows } from "../common/sql.js";
 import { AccountDirectory } from "../users/account-directory.service.js";
@@ -46,6 +47,8 @@ export type ReportView = {
   targetName: string | null;
   postId: number | null;
   message: ReportedMessage | null;
+  // The group of a live group message report.
+  group: { id: number; name: string } | null;
 };
 
 // What a chat message report adds to the queue row.
@@ -89,6 +92,7 @@ export class ReportsService {
     private readonly posts: PostsService,
     private readonly engagement: EngagementService,
     private readonly moderation: ChatModeration,
+    private readonly groupReports: GroupReports,
     private readonly events: SocialEventsPublisher,
     private readonly clock: Clock,
   ) {}
@@ -131,8 +135,7 @@ export class ReportsService {
     const mine = keyOf(actor);
 
     if (kind === "group_message") {
-      // Reserved for group chats: nothing can be reported yet.
-      return false;
+      return this.groupReports.canReport(actor, targetId);
     }
     if (kind === "message") {
       return this.canReportMessage(actor, targetId);
@@ -233,12 +236,13 @@ export class ReportsService {
       throw reportNotFound();
     }
     let applied = resolution;
-    const isMessage = report.target_kind === "message";
+    const isMessage =
+      report.target_kind === "message" ||
+      report.target_kind === "group_message";
 
     if (
       (resolution === "hidden" && !isMessage) ||
-      (resolution === "deleted" &&
-        (isMessage || report.target_kind === "group_message"))
+      (resolution === "deleted" && isMessage)
     ) {
       throw notAllowed();
     }
@@ -246,7 +250,11 @@ export class ReportsService {
       applied = "kept";
     } else if (resolution === "hidden") {
       // Already gone counts as done.
-      await this.moderation.hide(actor.id, report.target_id);
+      if (report.target_kind === "group_message") {
+        await this.groupReports.hideReported(actor.id, report.target_id);
+      } else {
+        await this.moderation.hide(actor.id, report.target_id);
+      }
     } else if (resolution === "deleted") {
       // Already gone counts as done.
       if (report.target_kind === "post") {
@@ -293,6 +301,9 @@ export class ReportsService {
     );
     const idsOf = (kind: SocialReportTargetKind) =>
       reports.filter((r) => r.target_kind === kind).map((r) => r.target_id);
+    const groupMessages = await this.groupReports.describe(
+      idsOf("group_message"),
+    );
     const [posts, comments, targetUsers, messages]: [
       {
         id: number;
@@ -341,6 +352,7 @@ export class ReportsService {
     ]);
     const accounts = await this.accounts.loadAccounts([
       ...reports.map((r) => r.reporter_key),
+      ...groupMessages.flatMap((m) => (m.senderKey ? [m.senderKey] : [])),
       ...posts.map((p) => `${p.author_kind}:${p.author_id}`),
       ...comments.map((c) => c.author_key),
     ]);
@@ -357,6 +369,7 @@ export class ReportsService {
         reasonCode: report.reason_code,
         createdAt: report.created_at,
         message: null,
+        group: null,
       };
       const gone = { ...base, preview: null, targetName: null, postId: null };
 
@@ -396,6 +409,48 @@ export class ReportsService {
         };
       }
 
+      if (report.target_kind === "group_message") {
+        const message = groupMessages.find((m) => m.id === report.target_id);
+
+        // Unsent or already hidden: nothing left to look at.
+        if (!message) {
+          return gone;
+        }
+        const kind: SocialReportedMessageKind = message.stickerRef
+          ? "sticker"
+          : message.photoId !== null && message.body.trim() === ""
+            ? "photo"
+            : "text";
+        const senderUserId =
+          message.senderKey?.startsWith("user:") === true
+            ? Number(message.senderKey.slice(5))
+            : 0;
+        const senderName =
+          (message.senderKey ? accounts.get(message.senderKey)?.name : null) ??
+          deletedAccountName(locale);
+
+        return {
+          ...base,
+          // A trainee sender can be restricted from the queue; PTs and super
+          // admins cannot (company report-queries.ts).
+          message: {
+            senderRole: senderUserId > 0 ? "user" : "admin",
+            senderName,
+            traineeId: senderUserId,
+            traineeName: senderUserId > 0 ? senderName : "",
+            kind,
+          },
+          group: { id: message.groupId, name: message.groupName },
+          preview:
+            kind === "sticker"
+              ? stickerMessageText(locale)
+              : kind === "photo"
+                ? photoMessageText(locale)
+                : this.snippet(message.body, ""),
+          targetName: senderName,
+          postId: null,
+        };
+      }
       if (report.target_kind === "post") {
         const post = posts.find((p) => p.id === report.target_id);
 

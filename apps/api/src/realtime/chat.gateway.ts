@@ -13,6 +13,7 @@ import {
   adminRoom,
   conversationRoom,
   dmRoom,
+  groupRoom,
   INBOX_SUPER_ROOM,
   inboxPtRoom,
   REALTIME_EVENTS,
@@ -144,6 +145,18 @@ export class ChatGateway
       rooms.push(
         actor.role === "super_admin" ? INBOX_SUPER_ROOM : inboxPtRoom(actor.id),
       );
+    }
+    // Group chats with an active membership (super admins hear every group
+    // through INBOX_SUPER_ROOM instead).
+    if (actor.kind === "user" || actor.role !== "super_admin") {
+      const groups: { id: number }[] = await this.dataSource.query(
+        `SELECT cm.group_id AS id FROM chat_group_members cm
+         JOIN chat_groups g ON g.id = cm.group_id
+         WHERE cm.member_key = $1 AND cm.left_at IS NULL AND g.dissolved_at IS NULL`,
+        [`${actor.kind}:${actor.id}`],
+      );
+
+      rooms.push(...groups.map((row) => groupRoom(row.id)));
     }
     await socket.join(rooms);
   }
