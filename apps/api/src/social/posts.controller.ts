@@ -48,6 +48,7 @@ import type { AuthActor } from "../auth/actor.js";
 import { Actor } from "../auth/decorators/index.js";
 import { ApiErrors } from "../common/openapi/api-errors.js";
 import { toOpenApiSchema } from "../common/openapi/zod-schema.js";
+import { RefuseRestricted } from "../restrictions/restriction.guard.js";
 import { AccountDirectory } from "../users/account-directory.service.js";
 import { ApiPathParams, ApiQueries } from "../workouts/workouts.openapi.js";
 import { decodeIdCursor } from "./domain/cursor.js";
@@ -145,6 +146,7 @@ export class PostsController {
   // `Idempotency-Key`: a retry with the same key returns the first post and
   // creates nothing (header `Idempotent-Replayed: true`).
   @Post("posts")
+  @RefuseRestricted()
   @HttpCode(201)
   @ApiHeader({
     name: "Idempotency-Key",
@@ -203,6 +205,7 @@ export class PostsController {
   }
 
   @Patch("posts/:id")
+  @RefuseRestricted()
   @HttpCode(204)
   @ApiPathParams("id")
   @ApiBody({ schema: toOpenApiSchema(socialEditPostRequestSchema, "input") })

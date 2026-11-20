@@ -24,6 +24,7 @@ import {
 import { ApiErrors } from "../common/openapi/api-errors.js";
 import { toOpenApiSchema } from "../common/openapi/zod-schema.js";
 import { AvatarService } from "../files/avatar.service.js";
+import { RefuseRestricted } from "../restrictions/restriction.guard.js";
 import { ProfileService } from "./profile.service.js";
 
 // The signed-in trainee's own profile and settings. The id always comes from
@@ -104,6 +105,7 @@ export class MeController {
   }
 
   @Put("bio")
+  @RefuseRestricted()
   @ApiBody({ schema: toOpenApiSchema(setBioRequestSchema, "input") })
   @ApiOkResponse({ description: "Saved bio (null when cleared)" })
   @ApiErrors(400, 401, 403)

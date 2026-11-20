@@ -41,6 +41,7 @@ const trainee: UserActor = {
   termsVersion: null,
   preferredMealCount: null,
   foodNote: null,
+  restriction: null,
   session,
 };
 

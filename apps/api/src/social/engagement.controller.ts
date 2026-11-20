@@ -36,6 +36,7 @@ import type { AuthActor } from "../auth/actor.js";
 import { Actor } from "../auth/decorators/index.js";
 import { ApiErrors } from "../common/openapi/api-errors.js";
 import { toOpenApiSchema } from "../common/openapi/zod-schema.js";
+import { RefuseRestricted } from "../restrictions/restriction.guard.js";
 import { ApiPathParams, ApiQueries } from "../workouts/workouts.openapi.js";
 import { EngagementService } from "./engagement.service.js";
 import { toCommentResponse } from "./mappers.js";
@@ -54,6 +55,7 @@ export class EngagementController {
 
   // Set or change my one reaction; DELETE removes it.
   @Put("posts/:id/reaction")
+  @RefuseRestricted()
   @HttpCode(204)
   @ApiPathParams("id")
   @ApiBody({ schema: toOpenApiSchema(socialReactionRequestSchema, "input") })
@@ -68,6 +70,7 @@ export class EngagementController {
   }
 
   @Delete("posts/:id/reaction")
+  @RefuseRestricted()
   @HttpCode(204)
   @ApiPathParams("id")
   @ApiNoContentResponse({ description: "Reaction removed" })
@@ -123,6 +126,7 @@ export class EngagementController {
   }
 
   @Post("posts/:id/comments")
+  @RefuseRestricted()
   @HttpCode(201)
   @ApiPathParams("id")
   @ApiBody({ schema: toOpenApiSchema(socialCommentRequestSchema, "input") })
@@ -143,6 +147,7 @@ export class EngagementController {
   }
 
   @Patch("comments/:id")
+  @RefuseRestricted()
   @HttpCode(204)
   @ApiPathParams("id")
   @ApiBody({ schema: toOpenApiSchema(socialCommentRequestSchema, "input") })

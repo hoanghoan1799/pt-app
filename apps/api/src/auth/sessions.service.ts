@@ -209,7 +209,11 @@ export class SessionsService {
 
   private toActor(loaded: LoadedSession, now: Date): AuthActor {
     return loaded.subject.kind === "user"
-      ? buildUserActor(loaded.state, loaded.subject.row)
+      ? buildUserActor(
+          loaded.state,
+          loaded.subject.row,
+          loaded.subject.restriction,
+        )
       : buildAdminActor(loaded.state, loaded.subject.row, now);
   }
 }

@@ -1,4 +1,5 @@
 import { addDays, isValidDate } from "./date.js";
+import { restrictionLevelSchema } from "./restrictions/schemas.js";
 import {
   copyDaySchema,
   copyWeekSchema,
@@ -281,6 +282,8 @@ export const memberProgressResponseSchema = z.object({
   lastActiveAt: isoDateTime.nullable(),
   percent: z.number().int(),
   status: z.enum(MEMBER_STATUSES),
+  // Active super admin block (badge in the list); null when not blocked.
+  restrictionLevel: restrictionLevelSchema.nullable(),
 });
 
 export const weekSummarySchema = z.object({

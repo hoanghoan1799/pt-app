@@ -19,6 +19,7 @@ export * from "./nutrition-schemas.js";
 export * from "./pagination.js";
 export * from "./push/index.js";
 export * from "./realtime/index.js";
+export * from "./restrictions/index.js";
 export * from "./social.js";
 export * from "./social-api-schemas.js";
 export * from "./users/index.js";

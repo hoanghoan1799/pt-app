@@ -3,6 +3,12 @@ import { InjectDataSource } from "@nestjs/typeorm";
 import { socialPairOf, type SocialRelationship } from "@pt/contracts";
 import { DataSource, EntityManager } from "typeorm";
 
+import { Clock } from "../common/clock.js";
+import {
+  isBlockedOrSuspendedBetween,
+  loadSuspendedUserIds,
+} from "../restrictions/restriction.sql.js";
+
 export type FriendshipRow = {
   status: "pending" | "accepted";
   requestedBy: number;
@@ -13,7 +19,10 @@ export type FriendshipRow = {
 // Admins have neither (they are default friends by role).
 @Injectable()
 export class RelationshipQueries {
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly clock: Clock,
+  ) {}
 
   private run<T>(
     manager: EntityManager | undefined,
@@ -43,17 +52,15 @@ export class RelationshipQueries {
       : null;
   }
 
-  // Either side blocked the other.
-  async isBlockedBetween(a: number, b: number, manager?: EntityManager) {
-    const rows = await this.run<unknown[]>(
-      manager,
-      `SELECT 1 FROM social_blocks
-       WHERE (blocker_id = $1 AND blocked_id = $2)
-          OR (blocker_id = $2 AND blocked_id = $1) LIMIT 1`,
-      [a, b],
+  // Either side blocked the other, or either one is suspended by a super
+  // admin (spec D4: hidden from everyone else like a blocked trainee).
+  isBlockedBetween(a: number, b: number, manager?: EntityManager) {
+    return isBlockedOrSuspendedBetween(
+      manager ?? this.dataSource,
+      a,
+      b,
+      this.clock.now(),
     );
-
-    return rows.length > 0;
   }
 
   // What the visibility context needs about two trainees.
@@ -90,20 +97,27 @@ export class RelationshipQueries {
     return friendship.requestedBy === viewerId ? "sent" : "received";
   }
 
-  // Everyone who blocked `userId` or whom `userId` blocked.
+  // Everyone who blocked `userId` or whom `userId` blocked, plus every
+  // trainee a super admin suspended (hidden from all other trainees, D4).
   async blockedBetweenIds(userId: number): Promise<Set<number>> {
-    const rows: { blocker_id: number; blocked_id: number }[] =
-      await this.dataSource.query(
+    const [rows, suspended]: [
+      { blocker_id: number; blocked_id: number }[],
+      number[],
+    ] = await Promise.all([
+      this.dataSource.query(
         `SELECT blocker_id, blocked_id FROM social_blocks
          WHERE blocker_id = $1 OR blocked_id = $1`,
         [userId],
-      );
+      ),
+      loadSuspendedUserIds(this.dataSource, this.clock.now(), userId),
+    ]);
 
-    return new Set(
-      rows.map((row) =>
+    return new Set([
+      ...rows.map((row) =>
         row.blocker_id === userId ? row.blocked_id : row.blocker_id,
       ),
-    );
+      ...suspended,
+    ]);
   }
 
   // Ids of the trainees in an accepted friendship with `userId`, minus anyone

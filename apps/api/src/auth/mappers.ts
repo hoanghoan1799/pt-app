@@ -50,6 +50,17 @@ export const toActorResponse = (actor: AuthActor): ActorResponse =>
         termsVersion: actor.termsVersion,
         preferredMealCount: actor.preferredMealCount,
         foodNote: actor.foodNote,
+        restriction: actor.restriction
+          ? {
+              id: actor.restriction.id,
+              level: actor.restriction.level,
+              until: actor.restriction.until
+                ? iso(actor.restriction.until)
+                : null,
+              reason: actor.restriction.reason,
+              createdAt: iso(actor.restriction.createdAt),
+            }
+          : null,
       }
     : {
         kind: "admin",

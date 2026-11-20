@@ -169,6 +169,7 @@ describe("GET /v1/dashboard/summary", () => {
       lastActiveAt: null,
       percent: 0,
       status: "not-started",
+      restrictionLevel: null,
     });
     // Binh: 5 exercises this week (Mon squat, Tue row, Wed press, Thu curl),
     // 1 done; food on two different days.

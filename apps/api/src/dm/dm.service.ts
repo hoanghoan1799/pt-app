@@ -61,14 +61,7 @@ export class DmService {
     if (otherId === actor.id) {
       throw notFound();
     }
-    const blocked: unknown[] = await this.dataSource.query(
-      `SELECT 1 FROM social_blocks
-       WHERE (blocker_id = $1 AND blocked_id = $2) OR (blocker_id = $2 AND blocked_id = $1)
-       LIMIT 1`,
-      [actor.id, otherId],
-    );
-
-    if (blocked.length > 0) {
+    if (await this.queries.isBlockedBetween(actor.id, otherId)) {
       throw notFound();
     }
     const { low, high } = dmPairOf(actor.id, otherId);

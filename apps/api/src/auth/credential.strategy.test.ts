@@ -39,11 +39,11 @@ describe("AuthService.login", () => {
   const build = (strategies: CredentialStrategy[]) =>
     new AuthService(
       strategies,
-      {} as never,
+      { query: vi.fn(async () => []) } as never,
       sessions as never,
       {} as never,
       {} as never,
-      {} as never,
+      { now: () => new Date() } as never,
     );
 
   it("ends every method in sessions.create, including one added later", async () => {

@@ -22,6 +22,10 @@ import {
 } from "../chat/chat.events.js";
 import { ChatQueries } from "../chat/chat.queries.js";
 import {
+  RESTRICTION_EVENTS,
+  type TraineeSuspendedEvent,
+} from "../restrictions/restriction.events.js";
+import {
   type Emission,
   mapDmDeleted,
   mapDmRead,
@@ -133,6 +137,12 @@ export class RealtimeListeners {
       event.exceptSessionId,
       "signed_out",
     );
+  }
+
+  // A suspended trainee's sockets were opened before the block (spec D4).
+  @OnEvent(RESTRICTION_EVENTS.suspended)
+  onTraineeSuspended(event: TraineeSuspendedEvent) {
+    return this.hub.revokeAccount("user", event.userId, null, "signed_out");
   }
 
   @OnEvent(ADMIN_EVENTS.presenceHiddenChanged)

@@ -11,6 +11,7 @@ import { DataSource } from "typeorm";
 import { z } from "zod";
 
 import { Clock } from "../common/clock.js";
+import { suspendedUserSql } from "../restrictions/restriction.sql.js";
 import { AccountDirectory } from "../users/account-directory.service.js";
 import { rowsOf } from "./domain/rows.js";
 import { SOCIAL_EVENTS } from "./events/social.events.js";
@@ -139,6 +140,8 @@ export class FriendsService {
     return this.inOrder(ids, await this.loadPeople(ids, meId));
   }
 
+  // Pending both ways. A suspended trainee's requests are hidden while the
+  // suspension lasts (D4); they come back when it ends.
   async listRequests(meId: number) {
     const rows: {
       user_low: number;
@@ -147,8 +150,9 @@ export class FriendsService {
     }[] = await this.dataSource.query(
       `SELECT user_low, user_high, requested_by FROM social_friendships
        WHERE status = 'pending' AND (user_low = $1 OR user_high = $1)
+         AND NOT ${suspendedUserSql("CASE WHEN user_low = $1 THEN user_high ELSE user_low END", "$2::timestamptz")}
        ORDER BY created_at DESC, user_low, user_high`,
-      [meId],
+      [meId, this.clock.now()],
     );
     const otherOf = (row: (typeof rows)[number]) =>
       row.user_low === meId ? row.user_high : row.user_low;

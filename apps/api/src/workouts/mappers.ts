@@ -3,6 +3,7 @@ import type {
   DashboardSummaryResponse,
   ExerciseResponse,
   ProgressResponse,
+  RestrictionLevel,
   ScheduleDayResponse,
   WorkoutDayResponse,
 } from "@pt/contracts";
@@ -84,6 +85,8 @@ export const toDashboardSummaryResponse = (
   weekStart: string,
   members: MemberProgress[],
   summary: WeekSummary,
+  // Active super admin block per trainee (the list badge); others absent.
+  restrictionLevels: ReadonlyMap<number, RestrictionLevel> = new Map(),
 ): DashboardSummaryResponse => ({
   weekStart,
   summary,
@@ -105,6 +108,7 @@ export const toDashboardSummaryResponse = (
     lastActiveAt: member.lastActiveAt ? iso(member.lastActiveAt) : null,
     percent: calculatePercent(member.completed, member.assigned),
     status: getMemberStatus(member),
+    restrictionLevel: restrictionLevels.get(member.id) ?? null,
   })),
 });
 

@@ -3,6 +3,7 @@ import { isValidDate, WORKOUT_TIME_ZONE } from "@pt/contracts";
 
 import type { AdminActor } from "../auth/actor.js";
 import { Clock } from "../common/clock.js";
+import { RestrictionQueries } from "../restrictions/restrictions.queries.js";
 import {
   type ActivityItem,
   buildExerciseProgress,
@@ -29,6 +30,7 @@ export class DashboardService {
   constructor(
     private readonly queries: InsightsQueries,
     private readonly clock: Clock,
+    private readonly restrictions: RestrictionQueries,
   ) {}
 
   // Any date of the week snaps to its Monday; no date means this week.
@@ -52,14 +54,23 @@ export class DashboardService {
       admin.id,
       members.map((member) => member.id),
     );
-    const progress = await this.queries.getMemberProgress(
-      members,
-      dates[0],
-      dates[dates.length - 1],
-      aliases,
-    );
+    const [progress, restrictionLevels] = await Promise.all([
+      this.queries.getMemberProgress(
+        members,
+        dates[0],
+        dates[dates.length - 1],
+        aliases,
+      ),
+      // The list badge (spec D2): every admin who sees the trainee sees it.
+      this.restrictions.activeLevels(members.map((member) => member.id)),
+    ]);
 
-    return { weekStart, members: progress, summary: summarizeWeek(progress) };
+    return {
+      weekStart,
+      members: progress,
+      summary: summarizeWeek(progress),
+      restrictionLevels,
+    };
   }
 
   // Completions and personal bests across the admin's trainees, newest first.

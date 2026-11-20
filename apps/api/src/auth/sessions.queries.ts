@@ -2,9 +2,14 @@ import { Injectable } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
 import { DataSource, MoreThan } from "typeorm";
 
+import { Clock } from "../common/clock.js";
 import { Admin } from "../database/entities/admin.entity.js";
 import { Session } from "../database/entities/session.entity.js";
 import { User } from "../database/entities/user.entity.js";
+import {
+  type ActiveRestriction,
+  loadActiveRestriction,
+} from "../restrictions/restriction.sql.js";
 import type { AdminSubjectRow, SessionState, UserSubjectRow } from "./actor.js";
 import type { SubjectKind } from "./session-rules.js";
 
@@ -13,7 +18,11 @@ export type SubjectRef = { kind: SubjectKind; id: number };
 export type LoadedSession = {
   state: SessionState;
   subject:
-    | { kind: "user"; row: UserSubjectRow }
+    | {
+        kind: "user";
+        row: UserSubjectRow;
+        restriction: ActiveRestriction | null;
+      }
     | { kind: "admin"; row: AdminSubjectRow };
 };
 
@@ -33,7 +42,10 @@ const toState = (session: Session): SessionState => ({
 // passcode hash, no photos.
 @Injectable()
 export class SessionQueries {
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly clock: Clock,
+  ) {}
 
   findByTokenHash(tokenHash: Buffer) {
     return this.load({ tokenHash });
@@ -54,11 +66,25 @@ export class SessionQueries {
       return null;
     }
     if (session.subjectKind === "user" && session.userId !== null) {
-      const row = await this.findUserRow(session.userId);
+      const [row, restriction] = await Promise.all([
+        this.findUserRow(session.userId),
+        loadActiveRestriction(
+          this.dataSource,
+          session.userId,
+          this.clock.now(),
+        ),
+      ]);
 
-      return row
-        ? { state: toState(session), subject: { kind: "user", row } }
-        : null;
+      // Spec D4: a suspended trainee's open sessions are rejected like a
+      // deleted trainee's (401, the web ends the session). The row stays, so
+      // the same session works again once the block is lifted or runs out.
+      if (!row || restriction?.level === "suspended") {
+        return null;
+      }
+      return {
+        state: toState(session),
+        subject: { kind: "user", row, restriction },
+      };
     }
     if (session.adminId !== null) {
       const row = await this.findAdminRow(session.adminId);

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { AdminActor } from "../auth/actor.js";
 import { PtScopePolicy } from "../auth/policies/pt-scope.policy.js";
 import type { Clock } from "../common/clock.js";
+import type { RestrictionQueries } from "../restrictions/restrictions.queries.js";
 import { DashboardService } from "./dashboard.service.js";
 import type { InsightsQueries } from "./insights.queries.js";
 import type { ScheduleQueries } from "./schedule.queries.js";
@@ -177,6 +178,9 @@ describe("DashboardService", () => {
       service: new DashboardService(
         queries as unknown as InsightsQueries,
         clock,
+        {
+          activeLevels: vi.fn(async () => new Map()),
+        } as unknown as RestrictionQueries,
       ),
     };
   };

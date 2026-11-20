@@ -18,6 +18,7 @@ import { HousekeepingModule } from "./housekeeping/housekeeping.module.js";
 import { NutritionModule } from "./nutrition/nutrition.module.js";
 import { PushModule } from "./push/push.module.js";
 import { RealtimeModule } from "./realtime/realtime.module.js";
+import { RestrictionsModule } from "./restrictions/restrictions.module.js";
 import { SocialModule } from "./social/social.module.js";
 import { StickersModule } from "./stickers/stickers.module.js";
 import { UsersModule } from "./users/users.module.js";
@@ -35,6 +36,7 @@ import { WorkoutsModule } from "./workouts/workouts.module.js";
     AuthModule,
     AdminsModule,
     UsersModule,
+    RestrictionsModule,
     ContactAliasesModule,
     FilesModule,
     WorkoutsModule,
